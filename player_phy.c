@@ -27,7 +27,7 @@ void	pl_step_snd(void){
 	
 	/*
 		HOOF POLY #
-		204, 205, 206, 207
+		Changes when exporting
 		Intent:
 		First, check if we're in a moving-animated state.
 		Check a vertice from each hoof and see if it is above 294500 [approx. 4.5].
@@ -93,8 +93,19 @@ void	player_phys_affect(void)
 	you.ControlUV[Y] = slSin(you.rot[X]);
 	you.ControlUV[Z] = -slCos((you.rot[Y]));
 	
-	//F = m * a
-	//A = F / M
+	//Smart Camera Setup
+	VECTOR uview = {-slSin(you.viewRot[Y]), 0, slCos(you.viewRot[Y])};
+	int proportion = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
+	short angDif = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
+	//Will pivot camera towards direction of motion
+	if( (you.setSlide == true || you.onSurface != true) && JO_ABS(angDif) > 1024)
+	{
+		you.viewRot[Y] += (angDif > 0) ? proportion : -proportion; //Determines if we want to rotate view clockwise or counterclockwise
+	}
+	//
+	
+	//F = m * a : This comment means nothing. This math isn't here nor there.
+	//A = F / M :
 	
 		//There's always air .. unless we go into space, but whatevs, bruh
 		you.Velocity[X] = fxm(you.Velocity[X], (airFriction));
@@ -267,8 +278,20 @@ void	player_phys_affect(void)
 	you.prevPos[Y] = you.pos[Y];
 	you.prevPos[Z] = you.pos[Z];
 	}
+	
 	//I wanna work on momentum.
-	make2AxisBox(you.pos[X], you.pos[Y], you.pos[Z], you.rot[X], (you.renderRot[Y]), you.rot[Z], (2<<16), (5<<16), (5<<16), &pl_RBB);
+	make2AxisBox(you.pos[X], you.pos[Y], you.pos[Z], you.renderRot[X], (you.renderRot[Y]), you.renderRot[Z], (2<<16), (5<<16), (5<<16), &pl_RBB);
+
+		if(you.setSlide) //Rotational logic changes based on what movement state you are in.
+		{				//This is *after* the rotation is set to the matrix so that when it is drawn (by slave SH2), it is appropriate.
+				you.renderRot[X] = you.rot[X];
+				you.renderRot[Y] = -you.viewRot[Y];
+				you.renderRot[Z] = you.rot[Z];
+		} else {
+				you.renderRot[X] = you.rot[X];
+				you.renderRot[Y] = you.rot[Y];
+				you.renderRot[Z] = you.rot[Z];
+		}
 
 	pl_RBB.boxID = 0;
 	pl_RBB.isBoxPop = true;	
@@ -331,7 +354,7 @@ nyToTri2 = realpt_to_plane(realCFs.yp1, nyTriNorm2, nyNearTriCF2);
 if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 	you.hitMap = true;
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, lowPoint);
-	sort_angle_to_domain(nyTriNorm2, alwaysLow, you.rot);
+	sort_angle_to_domain(nyTriNorm2, alwaysLow, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
@@ -345,7 +368,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 } else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && you.hitSurface == false){
 	you.hitMap = true;
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, lowPoint);
-	sort_angle_to_domain(nyTriNorm1, alwaysLow, you.rot);
+	sort_angle_to_domain(nyTriNorm1, alwaysLow, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));

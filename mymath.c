@@ -238,6 +238,10 @@ Uint8	solve_domain(FIXED normal[XYZ]){
 		//NN
 		return 4;
 	};
+	/*
+	3	-	1
+	4	-	2
+	*/
 	return 0;
 }
 

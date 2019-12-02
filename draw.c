@@ -94,7 +94,6 @@ void	player_draw(void)
 				if(you.onSurface == true){
 				airTimer = 0;
 					if(you.setSlide != true && airTimer == 0){
-						you.renderRot[Y] = you.rot[Y];
 						if(you.Velocity[X] == 0 && you.Velocity[Y] == 0 && you.Velocity[Z] == 0){
 							ssh2DrawAnimation(&idle, &pl_model, plLit);
 						} else if( (you.Velocity[X] != 0 || you.Velocity[Z] != 0) && you.dirInp){
@@ -116,7 +115,6 @@ void	player_draw(void)
 						ssh2DrawAnimation(&idle, &pl_model, plLit);
 						}	
 					} else {//IF NOT SLIDE ENDIF
-						you.renderRot[Y] = -you.viewRot[Y]; 
 						if(jo_is_input_key_pressed(0, JO_KEY_RIGHT)){
 						ssh2DrawAnimation(&slideRln, &pl_model, plLit);
 						} else if(jo_is_input_key_pressed(0, JO_KEY_LEFT)){
