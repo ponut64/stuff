@@ -3,7 +3,6 @@
 
 #include "draw.h"
 #include "height.h"
-#include "game.c"
 
 FIXED surf_lit[3] = {0, 65535, 0};
 FIXED light[3] = {0, 65535, 0};
@@ -22,15 +21,8 @@ void	computeLight(void)
 }
 
 
-void	initCamera(jo_camera * curCam)
+void	initCamera(void)
 {
-	(*curCam).viewpoint[X] = (0.0);
-	(*curCam).viewpoint[Y] = (0.0);
-	(*curCam).viewpoint[Z] = 65536;
-	(*curCam).z_angle = DEGtoANG(0.0);
-	(*curCam).target[X] = 0;
-	(*curCam).target[Y] = 0;
-	(*curCam).target[Z] = 0;
 	//slWindow(16, 8, 336, 232, draw_distance, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
 	slWindow(0, 0, JO_TV_WIDTH-1, JO_TV_HEIGHT-1, 1200, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
 	slZdspLevel(0);
@@ -39,27 +31,28 @@ void	initCamera(jo_camera * curCam)
 
 void	set_camera(void)
 {
-//current player variable input type of _player has component type rcam which has viewpoint target and zangle	
-	slLookAt( you.rcam.viewpoint , you.rcam.target , you.rcam.z_angle );
+ POINT viewPnt = {0, 0, 1<<16};	
+
+	slLookAt( viewPnt , zPt , 0 );
 }
 
 void	master_draw_stats(void)
 {
-	slPrintFX(you.pos[X], slLocate(0, 1));
-	slPrintFX(you.pos[Y], slLocate(10, 1));
-	slPrintFX(you.pos[Z], slLocate(20, 1));
+	slPrintFX(you.pos[X], slLocate(8, 1));
+	slPrintFX(you.pos[Y], slLocate(18, 1));
+	slPrintFX(you.pos[Z], slLocate(28, 1));
 
 	jo_printf(18, 0, "(File System Status)");
-	jo_printf(14, 4, "Y rot:(%i)", you.rot[Y] / 182);
-	jo_printf(0, 4, "throttle:(%i)", you.IPaccel);
-	jo_printf(0, 25, "Total quads :                      ");
-	jo_printf(0, 25, "Total quads : %d", transVerts[0]);
-	jo_printf(0, 26, "Disp quads :                  ");
-	jo_printf(0, 26, "Disp quads :  %d", ssh2SentPolys[0] + msh2SentPolys[0]);
-	jo_printf(0, 27, "Vertices :                  ");
-	jo_printf(0, 27, "Vertices :    %d", transVerts[0]);
-	jo_printf(27, 26, "Cell Pos X (%i)", you.cellPos[X]);
-	jo_printf(27, 27, "Cell Pos Z (%i)", you.cellPos[Y]);    
+	jo_printf(27, 2, "Pts :%x:", you.points);
+	jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
+	jo_printf(7, 25, "TRPLY:                ");
+	jo_printf(7, 25, "TRPLY:%i", transPolys[0]);
+	jo_printf(7, 26, "SNTPL:                ");
+	jo_printf(7, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	jo_printf(7, 27, "VERTS:                ");
+	jo_printf(7, 27, "VERTS:%i", transVerts[0]);
+	jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
+	jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
 }
 
 void	player_draw(void)
@@ -200,12 +193,17 @@ void	box_phys_helper(_boundBox * tbox, FIXED offset[XYZ]){
 
 void	obj_draw_queue(void)
 {
-	
+		static ANGLE spinAngle;
 		static MATRIX mat;
+		static MATRIX matSt;
+		spinAngle+=182;
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++){
 		if(RBBs[i].isBoxPop != true) continue;
-	slPushMatrix();
 		
+		unsigned short objType = (dWorldObjects[objDWO[i]].type.ext_dat & 0x7000);
+		
+	slPushMatrix();
+		slGetMatrix(matSt);
 		mat[X][X] = RBBs[i].UVX[X];
 		mat[X][Y] = RBBs[i].UVX[Y];
 		mat[X][Z] = RBBs[i].UVX[Z];
@@ -220,17 +218,28 @@ void	obj_draw_queue(void)
 		mat[Z][Y] = RBBs[i].UVZ[Y];
 		mat[Z][Z] = RBBs[i].UVZ[Z];
 		mat[3][2] = RBBs[i].pos[Z]; //Position
+		
+		POINT objLit = {mat[X][Y], mat[Y][Y], mat[Z][Y]};
+	
+					if( objType != ITEM && objType != LDATA ){ //Check if entity is NOT ITEM or LDATA
 
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
 		//Why use my own matrix function? 1. Some separation from SGL, 2. Easier to port (if ever neccessary), 3. Simplified rotation order 
+		ssh2DrawModel(&entities[objDRAW[i]], objLit);
 		
-		POINT objLit = {mat[X][Y], mat[Y][Y], mat[Z][Y]};
+					} else if( objType == ITEM ){ //if entity IS ITEM
 		
-	ssh2DrawModel(&entities[objDRAW[i]], objLit);
-	
+			if( !(dWorldObjects[objDWO[i]].type.ext_dat & 8) ) //Check if root entity still exists
+			{
+		slMultiMatrix(mat);
+		slRotY(spinAngle);
+		ssh2DrawModel(&entities[objDRAW[i]], objLit);
+			}
+		
+					}
 	slPopMatrix();
 	}
-
+	
 }
 
 void	shadow_draw(void)
@@ -337,6 +346,8 @@ void	master_draw(void)
 
 	hmap_cluster();
 	computeLight();
+
+	//has_entity_passed_between(1, 0, &pl_RBB);
 
 	map_draw();
 

@@ -6,7 +6,7 @@
 #include "control.h"
 #include "def.h"
 
-#define MAX_PHYS_PROXY (16)
+#define MAX_PHYS_PROXY (32)
 //Structs
 
 typedef struct {
@@ -17,10 +17,6 @@ typedef struct {
 	FIXED UVNX[XYZ];
 	FIXED UVNY[XYZ];
 	FIXED UVNZ[XYZ];
-	//Matrix Axis (calculated from inverted angles)
-	FIXED maX[XYZ];
-	FIXED maY[XYZ];
-	FIXED maZ[XYZ];
 	//The center-faces.
 	FIXED Xplus[XYZ];
 	FIXED Xneg[XYZ];
@@ -51,7 +47,7 @@ typedef struct {
 } _boundBox;
 
 
-extern _boundBox RBBs[MAX_PHYS_PROXY];
+extern _boundBox * RBBs; //In LWRAM // 
 extern _boundBox pl_RBB;
 
 //------------------------------------------------------------------------------------

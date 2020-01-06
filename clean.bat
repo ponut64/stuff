@@ -1,6 +1,6 @@
 @ECHO Off
 SET COMPILER_DIR=..\..\Compiler
-SET JO_ENGINE_SRC_DIR=../../jo_engine
+SET JO_ENGINE_SRC_DIR=./jo_engine
 SET PATH=%COMPILER_DIR%\SH_COFF\Other Utilities;%PATH%
 
 rm -f ./cd/0.bin

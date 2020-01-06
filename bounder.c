@@ -7,7 +7,7 @@ This file is compiled separately.
 
 #include "bounder.h"
 
-_boundBox RBBs[MAX_PHYS_PROXY];
+_boundBox * RBBs; //In LWRAM // 
 _boundBox pl_RBB;
 Uint8 curBoxes = 0;
 

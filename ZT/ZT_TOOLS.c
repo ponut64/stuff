@@ -18,79 +18,79 @@ void ztClearText(void)
 
 void ztLoadVDP2bmp(char * filename, Uint16 *VDP2RAM, unsigned short paletteId, Uint8 NBGtype)
 {
-    char * ptr = (char*)LWRAM;
+    // char * ptr = (char*)LWRAM;
 
-    Sint32 fid = GFS_NameToId((Sint8*)filename);
-    if (fid < 0) {slPrint("ERROR", slLocate(10,5)); fadeIn(); return;}
-    else GFS_Load(fid, 0, (void*)LWRAM, 512*512+44+512);
+    // Sint32 fid = GFS_NameToId((Sint8*)filename);
+    // if (fid < 0) {slPrint("ERROR", slLocate(10,5)); fadeIn(); return;}
+    // else GFS_Load(fid, 0, (void*)LWRAM, 512*512+44+512);
 
-    img_t * img;
-    img = (img_t*)(LWRAM);
-    img->data = (Uint16*)(LWRAM+sizeof(img_t));
+    // img_t * img;
+    // img = (img_t*)(LWRAM);
+    // img->data = (Uint16*)(LWRAM+sizeof(img_t));
 
-    if (img->cmode == COL_16) img->cmode=2;
-    else img->cmode=1;
+    // if (img->cmode == COL_16) img->cmode=2;
+    // else img->cmode=1;
 
-    if (img->nbcol <= 16) img->nbcol=16;
-    else img->nbcol=256;
+    // if (img->nbcol <= 16) img->nbcol=16;
+    // else img->nbcol=256;
 
-    int vdp2_width;
-    if (img->width <= 512) vdp2_width=512;
-    else vdp2_width=1024;
+    // int vdp2_width;
+    // if (img->width <= 512) vdp2_width=512;
+    // else vdp2_width=1024;
 
-    Sint32 yy, xx;
-    Uint8 *Cel_Data = (Uint8*)(LWRAM+sizeof(img_t));
-	Uint8 *VRAM = (Uint8 *) VDP2RAM;
+    // Sint32 yy, xx;
+    // Uint8 *Cel_Data = (Uint8*)(LWRAM+sizeof(img_t));
+	// Uint8 *VRAM = (Uint8 *) VDP2RAM;
 
-    for (yy = 0; yy < img->height; yy++)
-    {
-        for (xx=0; xx< img->width/img->cmode; xx++)
-        {
-            *(VRAM) = Cel_Data[xx+(yy*img->width/img->cmode)];//*(Cel_Data++);
-            *(VRAM++);
-        }
-        *(VRAM+=(vdp2_width/img->cmode - (img->width/img->cmode)));
-    }
+    // for (yy = 0; yy < img->height; yy++)
+    // {
+        // for (xx=0; xx< img->width/img->cmode; xx++)
+        // {
+            // *(VRAM) = Cel_Data[xx+(yy*img->width/img->cmode)];//*(Cel_Data++);
+            // *(VRAM++);
+        // }
+        // *(VRAM+=(vdp2_width/img->cmode - (img->width/img->cmode)));
+    // }
 
 
-    ptr = (char*)(LWRAM+sizeof(img_t)+(img->width*img->height/img->cmode));
+    // ptr = (char*)(LWRAM+sizeof(img_t)+(img->width*img->height/img->cmode));
 
-    Pal2CRAM((unsigned short*)(ptr), (void*)(VDP2_COLRAM + (paletteId*0x0200)), img->nbcol);
+    // Pal2CRAM((unsigned short*)(ptr), (void*)(VDP2_COLRAM + (paletteId*0x0200)), img->nbcol);
 
-    if (NBGtype==bmNBG1)
-    {
-        if (img->cmode == 2) slBitMapNbg1(COL_TYPE_16, BM_512x256, (void *)VDP2RAM); //Need some kind of offset
-        else slBitMapNbg1(COL_TYPE_256, BM_512x512, (void *)VDP2RAM);
-        slBMPalette(bmNBG1 , paletteId);  //This is the CRAM Offset (0 to 7) -> 2048 colors, each palette containing 256 colors. In 16 colors mode, only the first 16 colors can be choosen
-    }
-    else
-    {
-        if (img->cmode == 2) slBitMapNbg0(COL_TYPE_16, BM_512x256, (void *)VDP2RAM); //Need some kind of offset
-        else slBitMapNbg0(COL_TYPE_256, BM_512x512, (void *)VDP2RAM);
-        slBMPalette(bmNBG0 , paletteId);  //This is the CRAM Offset (0 to 7) -> 2048 colors, each palette containing 256 colors. In 16 colors mode, only the first 16 colors can be choosen
-    }
-    slScrPosNbg1(toFIXED(0.0), toFIXED(0.0));
-    slScrPosNbg0(toFIXED(0.0), toFIXED(0.0));
-    slScrAutoDisp(NBG0ON | NBG1ON | NBG3ON);
-	slColOffsetA(0,0,0);
+    // if (NBGtype==bmNBG1)
+    // {
+        // if (img->cmode == 2) slBitMapNbg1(COL_TYPE_16, BM_512x256, (void *)VDP2RAM); //Need some kind of offset
+        // else slBitMapNbg1(COL_TYPE_256, BM_512x512, (void *)VDP2RAM);
+        // slBMPalette(bmNBG1 , paletteId);  //This is the CRAM Offset (0 to 7) -> 2048 colors, each palette containing 256 colors. In 16 colors mode, only the first 16 colors can be choosen
+    // }
+    // else
+    // {
+        // if (img->cmode == 2) slBitMapNbg0(COL_TYPE_16, BM_512x256, (void *)VDP2RAM); //Need some kind of offset
+        // else slBitMapNbg0(COL_TYPE_256, BM_512x512, (void *)VDP2RAM);
+        // slBMPalette(bmNBG0 , paletteId);  //This is the CRAM Offset (0 to 7) -> 2048 colors, each palette containing 256 colors. In 16 colors mode, only the first 16 colors can be choosen
+    // }
+    // slScrPosNbg1(toFIXED(0.0), toFIXED(0.0));
+    // slScrPosNbg0(toFIXED(0.0), toFIXED(0.0));
+    // slScrAutoDisp(NBG0ON | NBG1ON | NBG3ON);
+	// slColOffsetA(0,0,0);
 }
 
 /** Swiches the text display to NBG3 to free up the NBG0 **/
 void ztFont2NBG3(void)
 {
-    slCharNbg3(COL_TYPE_256, CHAR_SIZE_1x1);
-    slPageNbg3((void*)0x25e60000, 0, PNB_1WORD|CN_10BIT );
-    slPlaneNbg3(PL_SIZE_1x1);
-    slMapNbg3((void*)0x25e76000, (void*)0x25e76000, (void*)0x25e76000, (void*)0x25e76000);
+    // slCharNbg3(COL_TYPE_256, CHAR_SIZE_1x1);
+    // slPageNbg3((void*)0x25e60000, 0, PNB_1WORD|CN_10BIT );
+    // slPlaneNbg3(PL_SIZE_1x1);
+    // slMapNbg3((void*)0x25e76000, (void*)0x25e76000, (void*)0x25e76000, (void*)0x25e76000);
 
-    slBitMapNbg0(COL_TYPE_16, BM_512x256, (void *)VDP2_VRAM_A0);
-    slBMPalette(bmNBG0 , 0);
-    slPriorityNbg0(5);
-    slPriorityNbg1(4);
-    slPriorityNbg2(1);
-    slPriorityNbg3(7);
-    slPrioritySpr0(6);
-    slPriorityRbg0(2);
+    // slBitMapNbg0(COL_TYPE_16, BM_512x256, (void *)VDP2_VRAM_A0);
+    // slBMPalette(bmNBG0 , 0);
+    // slPriorityNbg0(5);
+    // slPriorityNbg1(4);
+    // slPriorityNbg2(1);
+    // slPriorityNbg3(7);
+    // slPrioritySpr0(6);
+    // slPriorityRbg0(2);
     //slScrAutoDisp(NBG0ON|NBG1ON|NBG3ON|SPRON);
 }
 

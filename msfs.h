@@ -4,20 +4,15 @@
 #include "ZT/ZT_COMMON.H"
 #include "ZT/ZT_LOAD_MODEL.H"
 #include "hmap.h"
+#include "ldata.h"
 #include <jo/jo.h>
 
 //No Touchy Sound Ram Start!
 #define SNDRAM  (631242752)
 //
-#define PQSRAM  (631287808)
-#define PCMRAM	(631734272)
 //Also the end of sound RAM
 #define PCMEND	(631767039)
 //
-#define LWRAM	(2097152)
-#define	HIMEM	(100679680)
-//HIMEM has 376 sectors (752 KB)
-#define HIEND	(101449728)
 //Playback buffers start 352 KB into sound RAM. From 40Kb into sound RAM to 352 KB, area is OK for storing sound.
 //Each buffer is 8 sectors / 16 KB
 //This is sound RAM, addressable by the MC68EC000 / SCSP
@@ -85,40 +80,59 @@ frames : the number of frames this sound needs to play. The math is strange. The
 For 15.360KHz playback, 1KB is played per frame. For 30.720KHz playback, 2KB is played per frame.
 **/
 typedef struct{
-	Bool	file_done;
-	Bool	active; //File System Activity
+	char	file_done;
+	char	active; //File System Activity
 	int	dstAddress;
 	Sint8*	fid;
 	
-	int	pitchword;
+	short	pitchword;
 	int	playsize;
-	int	loctbl;
-	int	segments;
+	short	loctbl;
+	short	segments;
 	int	offset;
-	int	frames;
+	short	frames;
 } p64pcm;
+
+typedef struct{
+unsigned char		CH_SND_NUM;
+unsigned char		ch_on;
+unsigned char		ready;
+unsigned char		busy;
+unsigned char		ready_play;
+unsigned char		volpan;
+int					playtimer;
+} pcmCtrlTbl;
 
 typedef struct
 {
-	Bool	file_done;
+	char	file_done;
 	char	useHiMem;
-	Bool	active; //File System Activity
+	char	active; //File System Activity
 	void *	dstAddress;
 	entity_t * tmodel;
 	Sint8 * filename;
 }	request;
 
+typedef struct
+{
+	char file_done;
+	char active;
+	Sint8 * fid;
+	char type;
+}	spr_rq;
+
 extern void * active_LWRAM_ptr;
 extern void * active_HWRAM_ptr;
 
 extern request	requests[19];
-extern p64pcm	pcm_slot[19];
+extern spr_rq	tga_request[19];
+extern p64pcm *	pcm_slot; //In LWRAM // 
+extern pcmCtrlTbl * pcm_ctrl; //In LWRAM // 
 
 extern snd_ring		music_buf[5];
 extern Sint8*		music;
 extern int			musicPitch;
 extern int			musicTimer;
-extern int			CH_SND_NUM[8];
 extern int			buf_pos;
 extern void*		curpcmbuf;
 extern int			buffers_filled;
@@ -131,13 +145,14 @@ void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg);
 void	sound_on_channel(Uint8 sound_number, Uint8 channel);
 void	music_vblIn(Uint8 vol);
 void	trigger_sound(Uint8 channel, Uint8 sound_number, Uint8 vp_word);
+void	stop_sound(Uint8 channel);
 //
 void	ztModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType, short base_texture);
 //
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));
 //
-void	p64MapRequest(Sint8* name, Uint8 mapNum);
+void	p64MapRequest(Sint8 * levelNo, Uint8 mapNum);
 
 #endif
 

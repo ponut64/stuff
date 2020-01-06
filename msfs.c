@@ -6,18 +6,13 @@ const Sint32		pcmbuftbl[19] = {
 	PCMBUF16, PCMBUF17, PCMBUF18, PCMBUF19, PCMBUF20, PCMBUF21, PCMBUF22, PCMBUF23, PCMBUF24
 };
 
-p64pcm			pcm_slot[19];
+p64pcm	*		pcm_slot; //In LWRAM // 
+pcmCtrlTbl *	pcm_ctrl; //In LWRAM // 
 snd_ring		music_buf[5];
 int				musicPitch = S1536KHZ;
 int				musicTimer = 64;
-Sint8*			music = (Sint8*)"BP10.MUS";
+Sint8*			music = (Sint8*)"MAIN.MUS";
 
-int			CH_SND_NUM[8];
-static Bool		ch_on[8];
-static Bool		channel_ready[8];
-static Bool		channel_busy[8];
-static unsigned char channel_volpan[8];
-int channel_playtimer[8];
 static	int	mrd_pos = 0;
 int			buf_pos;
 int			music_frames = 0;
@@ -40,6 +35,7 @@ GfsHn	music_fs;
 GfsHn	gfsx;
 GfsHn	gfs_s;
 GfsHn	gfs_h;
+GfsHn	gfs_t;
 
 //Rate of data reading
 //We will have to see if this is enough buffer time...
@@ -57,65 +53,66 @@ const int			sf_sector = 5;
 static Bool	model_requested;
 static Bool sound_requested;
 static Bool map_requested;
+static Bool tga_requested;
 
 request requests[19]; //ZTP Requests
+spr_rq	tga_request[19];
 
 request * activeZTP; //Pointers to currently serving file structures
 p64pcm * activePCM;
 _heightmap * activePGM;
+spr_rq	* activeTGA;
 
 unsigned char NactiveZTP = 0;
 unsigned char NactivePCM = 0;
 unsigned char NactivePGM = 0;
+unsigned char NactiveTGA = 0;
 
 void * active_LWRAM_ptr = (void*)LWRAM;
 void * active_HWRAM_ptr = (void*)LWRAM;
 	
 ///Something more to do here, but it does work.
+//Barely. The driver has an issue with multiple channels tacked on. I dunno what to do, I guess I will live with it.
 ///This goes at interrupt. Control is performed by ch_on Boolean.
 //Notice: slSoundRequest is broken into multiple parameters by newlines (comma).
 void sound_on_channel(Uint8 sound_number, Uint8 channel){
-bool	ready_play = false;
+		pcm_ctrl[channel].ready_play = false;
 pcm_slot[sound_number].offset = 0;
-		if(channel_ready[channel] == true){
-	if(ch_on[channel] == true){
-	if(channel_playtimer[channel] < 1){
-		ready_play = true;
+		if(pcm_ctrl[channel].ready == true){
+	if(pcm_ctrl[channel].ch_on == true){
+	if(pcm_ctrl[channel].playtimer < 1){
+		pcm_ctrl[channel].ready_play = true;
 	}
-	if(ready_play == true){
+	if(pcm_ctrl[channel].ready_play == true){
 		slSoundRequest("bbwwwbb",
 		SND_PCM_START,
 		channel, //Channel [and other information, like bit depth and channel information, but its all zero]
-		channel_volpan[channel], //Pan/Volume
+		pcm_ctrl[channel].volpan, //Pan/Volume
 		MAP_TO_SCSP(pcm_slot[sound_number].dstAddress + pcm_slot[sound_number].offset), //location [in sound RAM]
-		(pcm_slot[sound_number].playsize),	//Size
+		(0),	//Size
 		(pcm_slot[sound_number].pitchword), // Pitch
 		0); //Effect and Effect Level [Mono]
-		ready_play = false;
+		pcm_ctrl[channel].ready_play = false;
 	}
-	channel_playtimer[channel]++;
-	if(channel_playtimer[channel] == 200 || channel_playtimer[channel] == 400 || channel_playtimer[channel] == 600 || channel_playtimer[channel] == 800 || channel_playtimer[channel] == 1000){
-		ready_play = true;
-	}
+	pcm_ctrl[channel].playtimer++;
+	// if(pcm_ctrl[channel].playtimer == 200 || pcm_ctrl[channel].playtimer == 400 || pcm_ctrl[channel].playtimer == 600 || pcm_ctrl[channel].playtimer == 800 || pcm_ctrl[channel].playtimer == 1000){
+		// pcm_ctrl[channel].ready_play = true;
+	// }
 	if(pcm_slot[sound_number].pitchword == S1536KHZ){
-	pcm_slot[sound_number].offset = channel_playtimer[channel] * S1536TIMER;
-	if(channel_playtimer[channel] >= ( (pcm_slot[sound_number].playsize>>9) ) ){
-		ch_on[channel] = false;
-		}
+	pcm_slot[sound_number].offset = pcm_ctrl[channel].playtimer * S1536TIMER;
+	pcm_ctrl[channel].ch_on = (pcm_ctrl[channel].playtimer >= ( (pcm_slot[sound_number].playsize>>9) ) ) ? false : true;
 	} else if(pcm_slot[sound_number].pitchword == S3072KHZ){
-	pcm_slot[sound_number].offset = channel_playtimer[channel] * S3072TIMER;
-	if(channel_playtimer[channel] >= ( (pcm_slot[sound_number].playsize>>10) ) ){
-		ch_on[channel] = false;
-		}
+	pcm_slot[sound_number].offset = pcm_ctrl[channel].playtimer * S3072TIMER;
+	pcm_ctrl[channel].ch_on = (pcm_ctrl[channel].playtimer >= ( (pcm_slot[sound_number].playsize>>10) ) ) ? false : true;
 	}
 }
 //sound complete, close channel
-	if(ch_on[channel] != true){
+	if(pcm_ctrl[channel].ch_on != true){
 		slSoundRequest("b", SND_PCM_STOP, channel);
 		pcm_slot[sound_number].offset = 0;
-		ready_play = false;
-		channel_playtimer[channel] = 0;
-		channel_busy[channel] = false;
+		pcm_ctrl[channel].ready_play = false;
+		pcm_ctrl[channel].playtimer = 0;
+		pcm_ctrl[channel].busy = false;
 	}
 
 	}
@@ -149,13 +146,24 @@ void	music_vblIn(Uint8 vol){
 void	trigger_sound(Uint8 channel, Uint8 sound_number, Uint8 vp_word)
 {
 		if(pcm_slot[sound_number].file_done != true) return; //Avoid playing garbage on unloaded sounds
-	if(channel_busy[channel] != true){
-	channel_ready[channel] = true;
-	CH_SND_NUM[channel] = sound_number;
-	ch_on[channel] = true;
-	channel_busy[channel] = true;
-	channel_volpan[channel] = vp_word;
+	if(pcm_ctrl[channel].busy != true){
+	pcm_ctrl[channel].ready = true;
+	pcm_ctrl[channel].CH_SND_NUM = sound_number;
+	pcm_ctrl[channel].ch_on = true;
+	pcm_ctrl[channel].busy = true;
+	pcm_ctrl[channel].volpan = vp_word;
+	pcm_ctrl[channel].playtimer = 0;
+	pcm_slot[sound_number].offset = 0;
 	}
+}
+
+void	stop_sound(Uint8 channel)
+{
+	slSoundRequest("b", SND_PCM_STOP, channel);
+	pcm_ctrl[channel].ready = false;
+	pcm_ctrl[channel].ch_on = false;
+	pcm_ctrl[channel].busy = false;
+	pcm_ctrl[channel].volpan = 0;
 }
 
 void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType, short base_texture)
@@ -180,27 +188,64 @@ void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg)
 	pcm_slot[NactivePCM].dstAddress = pcmbuftbl[destBufSeg];
 	pcm_slot[NactivePCM].fid = (Sint8*)GFS_NameToId(name);
 	pcm_slot[NactivePCM].active = true;
+	pcm_slot[NactivePCM].file_done = false;
 
 NactivePCM++;
 }
 
-void	p64MapRequest(Sint8* name, Uint8 mapNum)
+Sint8 pgm_name[11];
+Sint8 ldat_name[11];
+
+void	p64MapRequest(Sint8 * levelNo, Uint8 mapNum)
 {
 ///Fill out the request.
-	maps[NactivePGM].dstAddress = hmap_buf;
-	maps[NactivePGM].fid = (Sint8*)GFS_NameToId(name);
+	pgm_name[0] = 'L';
+	pgm_name[1] = 'E';
+	pgm_name[2] = 'V';
+	pgm_name[3] = 'E';
+	pgm_name[4] = 'L';
+	pgm_name[5] = levelNo[0];
+	pgm_name[6] = levelNo[1];
+	pgm_name[7] = '.';
+	pgm_name[8] = 'P';
+	pgm_name[9] = 'G';
+	pgm_name[10] = 'M';
+					
+	ldat_name[0] = 'L';
+	ldat_name[1] = 'E';
+	ldat_name[2] = 'V';
+	ldat_name[3] = 'E';
+	ldat_name[4] = 'L';
+	ldat_name[5] = levelNo[0];
+	ldat_name[6] = levelNo[1];
+	ldat_name[7] = '.';
+	ldat_name[8] = 'T';
+	ldat_name[9] = 'G';
+	ldat_name[10] = 'A';
+					
+	maps[NactivePGM].dstAddress = dirty_buf;
+	maps[NactivePGM].fid = (Sint8*)GFS_NameToId(pgm_name);
 	maps[NactivePGM].active = true;
+	maps[NactivePGM].file_done = false;
+	maps[NactivePGM].Xval = 0;
+	maps[NactivePGM].Yval = 0;
+	maps[NactivePGM].totalPix = 0;
+	
+	ldata_ready = false;
+	tga_request[NactiveTGA].fid = (Sint8*)GFS_NameToId(ldat_name);
+	tga_request[NactiveTGA].type = 'L'; //for level data
+	tga_request[NactiveTGA].active = true;
+	tga_request[NactiveTGA].file_done = false;
 
 NactivePGM++;
+NactiveTGA++;
 }
 
 
 void	file_request_loop(void)
 {
 	
-	jo_printf(9, 0, "(%i)", NactiveZTP);
-	jo_printf(12, 0, "(%i)", NactivePCM);
-	jo_printf(15, 0, "(%i)", NactivePGM);
+	jo_printf(9, 0, "(%i:%i:%i:%i)", NactiveZTP, NactivePCM, NactivePGM, NactiveTGA);
 		//PRINT STATEMENTS IN LOOPS = BAD
 	for(unsigned char i = 0; i < 19; i++){
 		if(requests[i].active == true){
@@ -214,6 +259,10 @@ void	file_request_loop(void)
 		} else if(i < 4 && maps[i].active == true){
 			activePGM = &maps[i];
 			map_requested = true;
+			break;
+		} else if(tga_request[i].active == true){
+			activeTGA = &tga_request[i];
+			tga_requested = true;
 			break;
 		} else {
 			continue;
@@ -267,7 +316,7 @@ do{
 		GFS_NwExecOne(gfsx);
 		GFS_NwGetStat(gfsx, &stat, &rdsize);
 	// jo_printf(0, 16, "(%i)", fsize);
-	// jo_printf(0, 20, "(10) loop label");
+	// jo_printf(0, 20, "(ZT) loop label");
 	// jo_printf(0, 15, "(%i)", curRdFrame);
 	// jo_printf(4, 15, "(%i)", rd_frames);
 	// jo_printf(0, 22, "(%i) cur rd case", mrd_pos);
@@ -363,7 +412,7 @@ void	pop_load_pcm(void(*game_code)(void)){
 			game_code();
 			GFS_NwExecOne(gfs_s);
 			GFS_NwGetStat(gfs_s, &stat, &rdsize);
-	// jo_printf(0, 20, "(17) loop label");
+	// jo_printf(0, 20, "(SD) loop label");
 	// jo_printf(0, 16, "(%i)", fsizeS);
 	// jo_printf(0, 15, "(%i)", curRdFrame);
 	// jo_printf(4, 15, "(%i)", rd_frames);
@@ -424,8 +473,8 @@ void	pop_load_map(void(*game_code)(void)){
 	GFS_Seek(gfs_h, file_ref, GFS_SEEK_SET);
 	GFS_SetReadPara(gfs_h, sf_step);
 	GFS_SetTransPara(gfs_h, sf_sector);
-///Transfer mode should be SCU because this is going to sound RAM.
-	GFS_SetTmode(gfs_h, GFS_TMODE_SCU);
+
+	GFS_SetTmode(gfs_h, GFS_TMODE_CPU);
 	GFS_NwCdRead(gfs_h, fsizeH);
 	
 	for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
@@ -435,7 +484,7 @@ void	pop_load_map(void(*game_code)(void)){
 			game_code();
 			GFS_NwExecOne(gfs_h);
 			GFS_NwGetStat(gfs_h, &stat, &rdsize);
-	// jo_printf(0, 20, "(88) loop label");
+	// jo_printf(0, 20, "(PG) loop label");
 	// jo_printf(0, 16, "(%i)", fsizeH);
 	// jo_printf(0, 15, "(%i)", curRdFrame);
 	// jo_printf(4, 15, "(%i)", rd_frames);
@@ -455,14 +504,11 @@ void	pop_load_map(void(*game_code)(void)){
 			if(activePGM->file_done != true){
 				read_gmp_header(activePGM);
 				//
-					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Zval)){
-				for(int i = 0; i < (activePGM->totalPix); i++){
-				volatile Uint8	* tempVert = (volatile Uint8 *)activePGM->dstAddress + i;
-				buf_map[i] = *tempVert;
-				}
+					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Yval)){
+					slDMACopy(activePGM->dstAddress, buf_map, activePGM->totalPix);
 				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
 				// jo_printf(15, 20, "(%i)", activePGM->Xval);
-				// jo_printf(20, 20, "(%i)", activePGM->Zval);
+				// jo_printf(20, 20, "(%i)", activePGM->Yval);
 					} else {
 				jo_printf(8, 25, "MAP REJECTED - IS EVEN");
 					}
@@ -479,6 +525,75 @@ void	pop_load_map(void(*game_code)(void)){
 		}
 ///MAP LOAD REQUEST END STUB
 }
+
+
+void	pop_load_tga(void(*game_code)(void)){
+	Sint32	fsizeT;
+	Sint32	nsctT;
+	Sint32	rdsize;
+	Sint32	stat;
+
+	gfs_t = GFS_Open((Sint32)activeTGA->fid);
+	
+	GFS_GetFileSize(gfs_t, NULL, &nsctT, NULL);
+	GFS_GetFileInfo(gfs_t, NULL, NULL, &fsizeT, NULL);
+///How many frames are we reading?
+	if(sf_step < fsizeT){
+		rd_frames = (fsizeT + (sf_step - 1))/(sf_step);
+	} else {
+		rd_frames = 1;
+	}
+
+///Seek to the desired spot on the file
+	GFS_Seek(gfs_t, file_ref, GFS_SEEK_SET);
+	GFS_SetReadPara(gfs_t, sf_step);
+	GFS_SetTransPara(gfs_t, sf_sector);
+///Transfer mode should be SCU because this is going to sound RAM.
+	GFS_SetTmode(gfs_t, GFS_TMODE_CPU);
+	GFS_NwCdRead(gfs_t, fsizeT);
+	
+	for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
+		GFS_NwFread(gfs_t, sf_sector, (Sint32*)(dirty_buf + (curRdFrame * sf_step)), sf_step);
+		file_ref += sf_sector;
+		do{
+			game_code();
+			GFS_NwExecOne(gfs_t);
+			GFS_NwGetStat(gfs_t, &stat, &rdsize);
+	// jo_printf(0, 20, "(TG) loop label");
+	// jo_printf(0, 16, "(%i)", fsizeT);
+	// jo_printf(0, 15, "(%i)", curRdFrame);
+	// jo_printf(4, 15, "(%i)", rd_frames);
+	// jo_printf(0, 22, "(%i) cur rd case", mrd_pos);
+	// jo_printf(0, 23, "(%i) cur buf case", buf_pos);
+		// jo_printf(0, 7, "(%i)", music_frames);
+		// jo_printf(7, 7, "(%i) sct off", play_ref);
+		// jo_printf(0, 10, "(%i) fs stat", stat);
+		// jo_printf(0, 11, "(%i) fetch", fetch_timer);
+		}while(stat != GFS_SVR_COMPLETED && rdsize < sf_step);
+
+		curRdFrame++;
+	///FOR-DO-WHILE READ LOOP END STUB
+	}
+	GFS_Close(gfs_t);
+		if(curRdFrame >= rd_frames){
+			if(activeTGA->file_done != true){
+				if(activeTGA->type == 'L'){
+					process_tga_as_ldata();
+				}
+
+			NactiveTGA--;
+			file_ref = 0;
+			rd_frames = 0;
+			curRdFrame = 0;
+		activeTGA->file_done = true;
+		activeTGA->active = false;
+		tga_requested = false;
+			}
+		///TGA HANDLER END STUB
+		}
+///TGA LOAD REQUEST END STUB
+}
+
 
 void		master_file_system(void(*game_code)(void))
 {	
@@ -552,7 +667,7 @@ do{
 	buffers_filled += 1;
 	music_frames = 0;
 	}
-	// jo_printf(0, 20, "(49) loop label");
+	// jo_printf(0, 20, "(PM) loop label");
 	// jo_printf(0, 22, "(%i) buffers filled", buffers_filled);
 	// jo_printf(0, 23, "(%i) cur buf case", buf_pos);
 		// jo_printf(0, 7, "(%i)", music_frames);
@@ -616,7 +731,7 @@ do{
 	// jo_printf(0, 15, "(%i)", curRdFrame);
 	// jo_printf(4, 15, "(%i)", rd_frames);
 	// jo_printf(0, 18, "(%i)", msize);
-	// jo_printf(0, 20, "(49) loop label");
+	// jo_printf(0, 20, "(MA) loop label");
 	// jo_printf(0, 22, "(%i) cur rd case", mrd_pos);
 	// jo_printf(0, 23, "(%i) cur play case", buf_pos);
 		// jo_printf(0, 7, "(%i)", music_frames);
@@ -625,7 +740,7 @@ do{
 		// jo_printf(0, 11, "(%i) fetch", fetch_timer);
 }while(stat != GFS_SVR_COMPLETED && rdsize < m_step);
 if(mrd_pos > 4){mrd_pos = 0;}
-if((model_requested == true || sound_requested == true || map_requested == true || chg_music == true) && fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer){if(mrd_pos == buf_pos){break;}}
+if((model_requested == true || sound_requested == true || map_requested == true || tga_requested == true || chg_music == true) && fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer){if(mrd_pos == buf_pos){break;}}
 }
 					/**END MUSIC SYSTEM SETUP**/
 	GFS_Close(music_fs);
@@ -636,6 +751,8 @@ if(model_requested == true){
 		pop_load_pcm(game_code);
 		} else if(map_requested == true){
 			pop_load_map(game_code);
+			} else if(tga_requested == true){
+				pop_load_tga(game_code);
 			}
 										/**END FILE SYSTEM LOOP**/
 }

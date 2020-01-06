@@ -29,18 +29,28 @@ FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 	return rtval;
 }
 
+
+FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal instruction execution... I wonder why... fxm does not
+{
+	register FIXED rtval;
+	asm(
+		"clrmac;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"sts MACH,r1;"
+		"sts MACL,%[ox];"
+		"xtrct r1,%[ox];"
+		: 	[ox] "=r" (rtval)											//OUT
+		:	[ptr1] "r" (ptA) , [ptr2] "r" (ptB)							//IN
+		:	"r1"														//CLOBBERS
+	);
+	return rtval;
+}
+
+
 FIXED		ANGtoDEG(FIXED angle){
 	return (fxm(angle, 360.0))>>16;
-}
-
-Sint32 vectori_dot(int vectori1[XYZ], int vectori2[XYZ])
-{
-	return ( (vectori1[X] * vectori2[X]) + (vectori1[Y] * vectori2[Y]) + (vectori1[Z] * vectori2[Z]) );
-}
-
-Sint32 vectori_Mag(Sint32 vectorX, Sint32 vectorY, Sint32 vectorZ)
-{
-	return slSquart(JO_SQUARE(vectorX) + JO_SQUARE(vectorY) + JO_SQUARE(vectorZ));
 }
 
 bool	chk_matching_sign(FIXED io1[XYZ], FIXED io2[XYZ])
@@ -57,11 +67,6 @@ bool	chk_matching_sign(FIXED io1[XYZ], FIXED io2[XYZ])
 	return true;
 }
 
-Uint32 INTsegmentLength(int Max[XYZ], int Min[XYZ])
-{
-	return slSquart(JO_SQUARE(Max[X] - Min[X]) + JO_SQUARE(Max[Y] - Min[Y]) + JO_SQUARE(Max[Z] - Min[Z]));
-}
-
 int		unfix_dot(FIXED v1[XYZ], FIXED v2[XYZ])
 {
 	return (int)( ((v1[X]>>16) * (v2[X]>>16)) + ((v1[Y]>>16) * (v2[Y]>>16)) + ((v1[Z]>>16) * (v2[Z]>>16)) );
@@ -75,14 +80,6 @@ int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 int unfix_mag(FIXED vectorX, FIXED vectorY, FIXED vectorZ)
 {
 	return slSquart(JO_SQUARE(vectorX>>16) + JO_SQUARE(vectorY>>16) + JO_SQUARE(vectorZ>>16));
-}
-
-void	avg_pts(FIXED p1[XYZ], FIXED p2[XYZ], FIXED output[XYZ])
-{
-//	if(p1[X] == p2[X] && p1[Y] == p2[Y] && p1[Z] == p2[Z]) return;
-	output[X] = fxm((p1[X] + p2[X]),32768);
-	output[Y] = fxm((p1[Y] + p2[Y]),32768);
-	output[Z] = fxm((p1[Z] + p2[Z]),32768);
 }
 
 //void	subtract_and_compare_points(POINT p1, POINT p2, POINT subPoint)
@@ -172,9 +169,9 @@ void	project_to_segment(POINT tgt, POINT p1, POINT p2, POINT outPt, VECTOR outV)
 	outV[Y] = (p1[Y] - p2[Y]);
 	outV[Z] = (p1[Z] - p2[Z]);
 	
-	if(JO_ABS(outV[X]) >= (182<<16) || JO_ABS(outV[Y]) >= (182<<16) || JO_ABS(outV[Z]) >= (182<<16))
+	if(JO_ABS(outV[X]) >= (SQUARE_MAX) || JO_ABS(outV[Y]) >= (SQUARE_MAX) || JO_ABS(outV[Z]) >= (SQUARE_MAX))
 	{
-	//Normalization that covers values >182
+	//Normalization that covers values >SQUARE_MAX
 	int vmag = slSquart( ((outV[X]>>16) * (outV[X]>>16)) + ((outV[Y]>>16) * (outV[Y]>>16)) + ((outV[Z]>>16) * (outV[Z]>>16)) )<<16;
 	vmag = slDivFX(vmag, 65536);
 	//
@@ -186,7 +183,7 @@ void	project_to_segment(POINT tgt, POINT p1, POINT p2, POINT outPt, VECTOR outV)
 	}
 	//
 	//Generatr a scalar for the source vector
-	register int scaler = slInnerProduct(vectorized_pt, tgt);
+	int scaler = slInnerProduct(vectorized_pt, tgt);
 	//Scale the vector to project onto ; using scalar as a represenation of how far along the vector it is
 	outPt[X] = fxm(scaler, vectorized_pt[X]);
 	outPt[Y] = fxm(scaler, vectorized_pt[Y]);
@@ -285,44 +282,6 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 	pFNn[Y] = realNormal[Y] - ptreal[Y];
 	pFNn[Z] = realNormal[Z] - ptreal[Z];
 	return slInnerProduct(pFNn, normal);
-}
-
-//Finds where a line hits a plane.
-void	cntrl_line_hit_plane(FIXED p0[XYZ], FIXED p1[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED unmoving[XYZ], FIXED output[XYZ])
-{
-	//Line scalar: This factor determines where the calculated point lands.
-	static FIXED line_scalar = 0;
-	//Vector-segment: A vector that expresses the length and direction of the segment.
-	static FIXED vseg[XYZ] = {0, 0, 0};
-	vseg[X] = p0[X] - p1[X];
-	vseg[Y] = p0[Y] - p1[Y];
-	vseg[Z] = p0[Z] - p1[Z];
-	//W is an expression of a vector that is from a point on the segment to a point on the plane. You would normally use addition, but it doesn't change anything.
-	//normal + the offset finds a real point on the plane as we are using the normal which is also a point on the plane, when added to the plane's positional offset. This normal isn't actually used as a normal here.
-	//This is backwards. I know. It doesn't matter.
-	static FIXED w[XYZ] = {0, 0, 0};
-	w[X] = (normal[X] + (offset[X])) - p0[X];
-	w[Y] = (normal[Y] + (offset[Y])) - p0[Y];
-	w[Z] = (normal[Z] + (offset[Z])) - p0[Z];
-	
-	//This finds the unit scalar as a dot product to find a distance scalar between the vector-segment and the normal.
-	//We divide the scalar of an expression of distance between the plane and the segment and the normal.
-	//By themselves, these factors are linear. When we divide them, we get a dynamic scalar that responds to proportionate changes in distance between the vector-segment, a point on the plane, and a point on the segment.
-	//We use the unit vectors of the normals to prevent overflows of FIXED (16.16 bit) values.
-	//Warning about slDivFX: Subscripted value is SECOND. Divisor is FIRST. BACK ASSWARDS!
-	line_scalar = slDivFX(slInnerProduct(vseg, unitNormal), slInnerProduct(w, unitNormal));
-	if(line_scalar > ((2)<<16) || line_scalar < (-2)<<16){
-		line_scalar = 0;
-	output[X] = unmoving[X];
-	output[Y] = unmoving[Y];
-	output[Z] = unmoving[Z];
-	} else {
-	//p0 is used as an offset (real position) for the final calculation, relative to the line (and not the plane).
-	output[X] = (p0[X] + fxm(vseg[X], line_scalar));
-	output[Y] = (p0[Y] + fxm(vseg[Y], line_scalar));
-	output[Z] = (p0[Z] + fxm(vseg[Z], line_scalar));
-	}
-
 }
 
 Bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED centreFace[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED output[XYZ])

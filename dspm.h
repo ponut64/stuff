@@ -7,13 +7,10 @@
 #include "draw.h"
 #include "DSP/DSP.h"
 
-extern volatile Uint32 * dspCtrlPrt;
 extern volatile int * dsp_input_addr;
-extern volatile int * local_hmap;
-extern volatile int * dspNotiEndAddr;
+extern volatile int * dsp_output_addr;
 
 void	load_dsp_prog(void);
-void	rt_fail(void);
 void	run_dsp(void);
 
 #endif

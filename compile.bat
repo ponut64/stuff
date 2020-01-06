@@ -1,0 +1,6 @@
+@ECHO Off
+SET COMPILER_DIR=.\Compiler
+SET PATH=%COMPILER_DIR%\SH_ELF\bin;%COMPILER_DIR%\SH_ELF\Other Utilities;%COMPILER_DIR%\SH_ELF\sh-elf\bin;%COMPILER_DIR%\TOOLS;%PATH%
+make re
+JoEngineCueMaker
+PAUSE

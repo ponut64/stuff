@@ -10,8 +10,10 @@
 #include "draw.h"
 #include "hmap.h"
 
+extern unsigned char oneLineCt;
 
 void	init_minimap(void);
+void	update_mmap_1pass(void);
 void	draw_minimap(void);
 
 #endif

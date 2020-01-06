@@ -8,9 +8,6 @@
 #define	GRtbl(n)	    (0x1c38+(n))
 #define	GRaddr	        0x1c38
 #define GOUR_REAL_MAX   768
-
-#define LWRAM	(2097152)
-
 typedef     Sint16	compVert[XYZ];
 typedef     Uint8   compNorm;
 

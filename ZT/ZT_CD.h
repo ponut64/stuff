@@ -5,7 +5,6 @@
 # define __ZT_CD_H__
 
 extern void * currentAddress;
-extern void * HighEndAddr;
 
 extern GfsDirTbl gfsDirTbl;
 extern GfsDirName gfsDirName[];

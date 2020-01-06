@@ -4,7 +4,7 @@
 #include "ZT_COMMON.h"
 
 /**ZTP stands for Z-Treme polygonal model**/
-void * currentAddress = (void*)(LWRAM);
+void * currentAddress;
 
 /**Added by XL2 to use my own CD loading functions**/
 #define     OPEN_MAX    (Sint32)5

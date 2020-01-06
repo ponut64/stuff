@@ -10,6 +10,7 @@ POINT alwaysHigh = {0, (1<<16), 0};
 FIXED	lowPoint[XYZ] = {0, 0, 0};
 
 void pl_jump(void){
+		stop_sound(1); //One extra way to give the jump sound priority
 		if(you.Velocity[Y] > 0){
 			you.Velocity[Y] = fxm(you.floorNorm[Y], you.Velocity[Y]);
 		} else {

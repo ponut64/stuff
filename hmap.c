@@ -7,24 +7,24 @@
 Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
-//int local_hmap[625];
 unsigned char * local_hmap;
 unsigned int * yValueIndex;
 unsigned short * minimap;
 int main_map_total_pix = 625;
 int main_map_x_pix = 25;
-int main_map_z_pix = 25;
+int main_map_y_pix = 25;
 int main_map_strata[4] = {40, 70, 100, 170};
 bool map_update_complete;
+bool map_chg = false;
 
 void	read_gmp_header(_heightmap * map){
-					static Uint8 newlines = 0;
-					static Uint8 NumberOfNumbers;
-					static Uint8 spaceChar = 0;
-					static Uint8 numLeftOfSpace = 0;
-					static Uint8 numRightOfSpace = 0;
-				static Uint8 leftFactor = 0;
-				static Uint8 rightFactor = 0;
+				Uint8 newlines = 0;
+				Uint8 NumberOfNumbers;
+				Uint8 spaceChar = 0;
+				Uint8 numLeftOfSpace = 0;
+				Uint8 numRightOfSpace = 0;
+				Uint8 leftFactor = 0;
+				Uint8 rightFactor = 0;
 				
 				Uint8* newlinePtr[4] = {0, 0, 0, 0};
 				for(Uint8 l = 0; newlines < 4; l++){
@@ -76,7 +76,7 @@ void	read_gmp_header(_heightmap * map){
 					}
 					//Here, we set the map's X and Z (Y, actually, not Z) to the data read from the header. And also multiplies them and gets the total pixels.
 					map->Xval = leftFactor;
-					map->Zval = rightFactor;
+					map->Yval = rightFactor;
 					map->totalPix = leftFactor * rightFactor;
 					//Not included: GFS load sys, but that's ez
 }
@@ -92,31 +92,17 @@ void init_heightmap(void)
 	local_hmap = (void*)jo_malloc(625);
 	yValueIndex = (void*)jo_malloc(576 * sizeof(int));
 	minimap = (void*)jo_malloc(2550 * sizeof(short));
-//HMAP loading buffer
-	hmap_buf = (void*)(LWRAM+1048576)-65536;
-//Actual Main Map
-	main_map =  (void*)(hmap_buf-65536);
-//Ready Loaded Map
-	buf_map = (void*)(main_map-65536);
-/* //Local Map
-	local_hmap = (void*)(buf_map - 625);
-//Index
-	yValueIndex = (void*)(local_hmap - (576 * sizeof(int)));
-//Minimap
-	minimap = (void*)(yValueIndex - (2550 * sizeof(short))); */
-//Total consumed LWRAM: ~198,000 bytes, approx. 193 KB
 }
 
-void	chg_map(_heightmap tmap){
-	static bool hasYetChangd = false;
-		for(Uint16 i = 0; i < tmap.totalPix && hasYetChangd == false && tmap.active != true && tmap.file_done == true; i++){
+void	chg_map(_heightmap * tmap){
+		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false && tmap->active != true && tmap->file_done == true; i++){
 			main_map[i] = buf_map[i];
-			if(i == tmap.totalPix-1){
-				main_map_x_pix = tmap.Xval;
-				main_map_z_pix = tmap.Zval;
-				main_map_total_pix = tmap.totalPix;
+			if(i == tmap->totalPix-1){
+				main_map_x_pix = tmap->Xval;
+				main_map_y_pix = tmap->Yval;
+				main_map_total_pix = tmap->totalPix;
 				init_minimap();
-				hasYetChangd = true;
+				map_chg = true;
 			}
 		}
 }
@@ -159,22 +145,22 @@ void	texHandler(int index){
 					{
 			texno += (absN[Z] > 8192) ? 2 : 3;
 			flip = (norm[X] > 0) ? FLIPH : 0;
-			flip += ( ((norm[Z] & -2147483648) | 57344) > 0 ) ? FLIPV : 0; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
+			flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
 					} else {
 			texno += (absN[Z] > 16384) ? 5 : 6;
 			flip = (norm[X] > 0) ? FLIPH : 0;
-			flip += ( ((norm[Z] & -2147483648) | 57344) > 0 ) ? FLIPV : 0;
+			flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0;
 					}
 		} else {
 					if(absN[Z] < 24576)
 					{
 			texno += (absN[X] > 8192) ? 2 : 1;
 			flip = (norm[Z] > 0) ? FLIPV : 0;
-			flip += ( ((norm[X] & -2147483648) | 57344) > 0 ) ? FLIPH : 0;
+			flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
 					} else {
 			texno += (absN[X] > 16384) ? 5 : 4;
 			flip = (norm[Z] > 0) ? FLIPV : 0;
-			flip += ( ((norm[X] & -2147483648) | 57344) > 0 ) ? FLIPH : 0;
+			flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
 					}
 		}
 	}
@@ -237,10 +223,9 @@ So, based on the direction we've moved, we should be able to copy all present po
 The following accounts for the various directions we can move the map and how we should copy the data through it.
 */
 
-//Next step: Zero translation; weighted average of previous Y value -> next Y value
-//Complicated as there are not just two values, but four: XY0, X+1, Y+1, XY+1 - with the weights of each on a pythagorean curve
-//The weighted target is the hypotenuse of your dir angle; if majority X, it lies on the X->XY edge; if majority Z, it lies on the Y->XY edge
-	
+//I thought the next step was zero-translation scaling, but..
+//There are so many ways to add water, I kind of want to go that direction.
+//
 	xDo = JO_ABS(xDir);
 	zDo = JO_ABS(zDir * 24);
 	
@@ -363,7 +348,7 @@ The following accounts for the various directions we can move the map and how we
 	
 		} //Copy End
 	if(normalsHit != 0){
-	jo_printf(26, 4, "New Norms:(%i)", normalsHit);
+	jo_printf(26, 3, "New Norms:(%i)", normalsHit);
 	}
 	map_update_complete = true;
 }
@@ -371,7 +356,8 @@ The following accounts for the various directions we can move the map and how we
 
 void	hmap_cluster(void)
 {
-	chg_map(maps[0]);
+	chg_map(&maps[0]);
 	update_hmap();
 	draw_minimap();
+	update_mmap_1pass();
 }
