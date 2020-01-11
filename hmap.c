@@ -15,6 +15,7 @@ int main_map_x_pix = 25;
 int main_map_y_pix = 25;
 int main_map_strata[4] = {40, 70, 100, 170};
 bool map_update_complete;
+bool * sysbool;
 bool map_chg = false;
 
 void	read_gmp_header(_heightmap * map){
@@ -88,7 +89,7 @@ void init_heightmap(void)
 0 - 1
 3 - 2
 */
-	//jo_malloc(1024 * 200);
+	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
 	local_hmap = (void*)jo_malloc(625);
 	yValueIndex = (void*)jo_malloc(576 * sizeof(int));
 	minimap = (void*)jo_malloc(2550 * sizeof(short));
@@ -183,6 +184,10 @@ void	normHandler(int index){
 
 	
 	cross_fixed(rminusb, sminusb, cross);
+	//Cross X varies on the input Y's
+	//Cross Y is always 1250<<16
+	//Cross Z varies on the input Y's
+	//To build a normalization table from this point ... Man I hate imperfect precalculations.
 	cross[X] = cross[X]>>8;
 	cross[Y] = cross[Y]>>8;
 	cross[Z] = cross[Z]>>8;
@@ -197,7 +202,6 @@ void	normHandler(int index){
 
 
 void	update_hmap(void){
-	map_update_complete = false;
 
 	register int xDir = (you.dispPos[X] - you.prevDispPos[X]);
 	register int zDir = (you.dispPos[Y] - you.prevDispPos[Y]);
@@ -223,8 +227,8 @@ So, based on the direction we've moved, we should be able to copy all present po
 The following accounts for the various directions we can move the map and how we should copy the data through it.
 */
 
-//I thought the next step was zero-translation scaling, but..
-//There are so many ways to add water, I kind of want to go that direction.
+//
+//The only way to increase the render distance is with a non-uniform density.
 //
 	xDo = JO_ABS(xDir);
 	zDo = JO_ABS(zDir * 24);
@@ -350,7 +354,7 @@ The following accounts for the various directions we can move the map and how we
 	if(normalsHit != 0){
 	jo_printf(26, 3, "New Norms:(%i)", normalsHit);
 	}
-	map_update_complete = true;
+	*sysbool = true;
 }
 
 

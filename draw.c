@@ -38,19 +38,19 @@ void	set_camera(void)
 
 void	master_draw_stats(void)
 {
-	slPrintFX(you.pos[X], slLocate(8, 1));
-	slPrintFX(you.pos[Y], slLocate(18, 1));
-	slPrintFX(you.pos[Z], slLocate(28, 1));
+	slPrintFX(you.pos[X], slLocate(9, 1));
+	slPrintFX(you.pos[Y], slLocate(19, 1));
+	slPrintFX(you.pos[Z], slLocate(29, 1));
 
 	jo_printf(18, 0, "(File System Status)");
 	jo_printf(27, 2, "Pts :%x:", you.points);
 	jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
-	jo_printf(7, 25, "TRPLY:                ");
-	jo_printf(7, 25, "TRPLY:%i", transPolys[0]);
-	jo_printf(7, 26, "SNTPL:                ");
-	jo_printf(7, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
-	jo_printf(7, 27, "VERTS:                ");
-	jo_printf(7, 27, "VERTS:%i", transVerts[0]);
+	jo_printf(8, 25, "TRPLY:                ");
+	jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
+	jo_printf(8, 26, "SNTPL:                ");
+	jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	jo_printf(8, 27, "VERTS:                ");
+	jo_printf(8, 27, "VERTS:%i", transVerts[0]);
 	jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
 	jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
 }
@@ -287,6 +287,7 @@ void	shadow_draw(void)
 
 void	object_draw(void)
 {
+	
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X<<16), (VIEW_OFFSET_Y<<16), (VIEW_OFFSET_Z<<16) );
@@ -302,10 +303,18 @@ void	object_draw(void)
 	shadow_draw();
 		
 	obj_draw_queue();
-
-
 	}
 	slPopMatrix();
+	
+	//No Touch Order -- Affects animations/mechanics
+	player_phys_affect();
+		mypad();
+	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
+	collide_with_heightmap(&pl_RBB);
+	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.
+	//
+	
+	
 }
 
 void	map_draw(void){	
@@ -345,11 +354,8 @@ void	master_draw(void)
 	slCashPurge();
 
 	hmap_cluster();
-	computeLight();
-
-	//has_entity_passed_between(1, 0, &pl_RBB);
-
 	map_draw();
+	computeLight();
 
 	you.prevCellPos[X] = you.cellPos[X];
 	you.prevCellPos[Y] = you.cellPos[Y];

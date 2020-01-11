@@ -13,7 +13,7 @@ unsigned int yDrawPos = 0;
 unsigned short colorData = 0;
 
 #define MMAP_BASE_Y (173)
-#define MMAP_BASE_X (0)
+#define MMAP_BASE_X (12)
 #define MMAP_CNTR_Y (MMAP_BASE_Y+25)
 #define MMAP_CNTR_X (MMAP_BASE_X+25)
 

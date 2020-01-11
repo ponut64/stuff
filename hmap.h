@@ -32,10 +32,14 @@ extern int main_map_y_pix; //Z pixels of map
 extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 // Eventually, to be loaded from file. But can be manually defined too, I guess.
 extern int map_texno_tbl[5];
 extern bool map_update_complete;
+extern bool * sysbool;
 extern bool map_chg;
 _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
+extern unsigned char * xTbl;
+extern unsigned char * yTbl;
+extern unsigned char * zTbl;
 extern unsigned char * local_hmap;
 extern unsigned short * minimap;
 

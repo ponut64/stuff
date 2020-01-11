@@ -31,7 +31,7 @@ int * transPolys;
 int anims;
 
 const	FIXED	nearP	= 15<<16; // Z DISPLAY LEVEL [Actually a bit more complicated than that, but it works]
-const	FIXED	farP	= 800<<16; // RENDER DIST
+const	FIXED	farP	= 1000<<16; // RENDER DIST
 const unsigned short comm_p_mode = 5264; //Should add color mode table? Color mode is applied here.
 const unsigned short ctrl = 2;
 
@@ -282,9 +282,9 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 										ptv[1]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS) continue;
-		//Goal: Flip the polygon so that vertice 0 is in the render area
-		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
+/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -307,7 +307,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		}
+		} */
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
@@ -350,9 +350,9 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 										ptv[1]->clipFlag | ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS) continue;
-		//Goal: Flip the polygon so that vertice 0 is in the render area
-		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
+/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -375,7 +375,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		}
+		} */
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
@@ -415,9 +415,9 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		((ptv[0]->clipFlag &
 		ptv[2]->clipFlag) == 1) ||
-		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS) continue;
-		//Goal: Flip the polygon so that vertice 0 is in the render area
-		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
+/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -440,7 +440,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		}
+		} */
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
@@ -462,7 +462,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 
 }
 
-void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
+inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
 {
 	if(ent->file_done != true){return;}
 	//Recommended, for performance, that large entities be placed in HWRAM.
@@ -555,9 +555,9 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		register int onScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) continue;
-		//Goal: Flip the polygon so that vertice 0 is in the render area
-		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
+/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -580,7 +580,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		}
+		} */
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
@@ -742,6 +742,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 
     dst = (Sint32 *)&model->pltbl[0];
     Uint8 *src2 = ent->animation[AnimArea[anims].currentKeyFrm]->cNorm; //A new 1-byte src
+	VECTOR tNorm = {0, 0, 0};
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	short flip = 0;
@@ -765,12 +766,13 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses average of top-left and bottom-right. Adding logic to change sorting per-polygon HAMMERS performance in unacceptable ways.
 		register int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
-		
+
+		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
-		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS) continue;
-		//Goal: Flip the polygon so that vertice 0 is in the render area
+		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+/* 		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
 			//-------- Edge | Y-
@@ -794,17 +796,14 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		}
+		} */
 		//Preclipping is always enabled
-		//New normals in from animation normal table
-        *dst++=ANORMS[*src2][X];
-        *dst++=ANORMS[*src2][Y];
-        *dst++=ANORMS[*src2++][Z];
-        *dst++;
-		*dst++;
-		//I've tried to change how this works to reduce memory access (by not writing the normal back to pltbl) but no other way of writing it works
+		//New normals in from animation normal table // These are not written back to memory
+        tNorm[X]=ANORMS[*src2][X];
+        tNorm[Y]=ANORMS[*src2][Y];
+        tNorm[Z]=ANORMS[*src2][Z];
 		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->pltbl[i].norm, lightSrc);
+		luma = fxdot(tNorm, lightSrc);
 		//Use transformed normal as shade determinant
 		colorBank = (luma < -32768) ? 0 : 1;
 		colorBank = (luma > 16384) ? 2 : colorBank;

@@ -63,6 +63,8 @@ void	dpinit(void)
 	initCamera();
 }
 
+#define GRAPH_X_OFFSET (12)
+
 //borrowed/given by XL2 -- Frame limiter to 30 FPS. EXTREMELY USEFUL.
 void	update_gamespeed(void)
 {
@@ -78,7 +80,7 @@ void	update_gamespeed(void)
 	time_selector = (time_selector > 66) ? 0 : time_selector+1;
 	
     framerate = (frmrt)>>4;
-	jo_printf(0, 3, "(%i) Bad Frames)", bad_frames);
+	jo_printf(1, 3, "(%i) Bad Frames)", bad_frames);
 	
     if (framerate <= 0) framerate=1;
     else if (framerate > 5) framerate=5;
@@ -87,14 +89,14 @@ void	update_gamespeed(void)
 	char curLine = frmrt;
 	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
 	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
-
-	jo_draw_background_line(time_selector+4, 22, time_selector+4, 8, 0xC210);
-	jo_draw_background_line(time_selector+4, 22, time_selector+4, (curLine>>2)+6, 0x8200);
+	
+	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210);
+	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
 		if(time_selector > 1){
-	jo_draw_background_line((time_selector-1)+4, 22, (time_selector-1)+4, (prevLine>>2)+6, 0xC000);
+	jo_draw_background_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
 		}
 		if(time_selector > 2){
-	jo_draw_background_line((time_selector-2)+4, 22, (time_selector-2)+4, (nthLine>>2)+6, 0x8010);
+	jo_draw_background_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
 		} 
 		//
 }
@@ -152,11 +154,11 @@ void	game_frame(void)
 
 	file_request_loop();
 	//No Touch Order -- Affects animations/mechanics
-	player_phys_affect();
-		mypad();
-	player_collision_test_loop();
-	collide_with_heightmap(&pl_RBB);
-	object_control_loop(you.dispPos);
+	//player_phys_affect();
+	//	mypad();
+	//player_collision_test_loop();
+	//collide_with_heightmap(&pl_RBB);
+	//object_control_loop(you.dispPos);
 	
 	slSynch();
 }

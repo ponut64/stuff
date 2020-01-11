@@ -261,15 +261,15 @@ FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], F
 	return slInnerProduct(pFNn, unitNormal);
 }
 
-FIXED	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
+int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shifts down the pFNn to suppress overflows
 {
 	realNormal[X] = normal[X] + (offset[X]);
 	realNormal[Y] = normal[Y] + (offset[Y]);
 	realNormal[Z] = normal[Z] + (offset[Z]);
-	pFNn[X] = realNormal[X] - ptreal[X];
-	pFNn[Y] = realNormal[Y] - ptreal[Y];
-	pFNn[Z] = realNormal[Z] - ptreal[Z];
-	return unfix_dot(pFNn, normal);
+	pFNn[X] = (realNormal[X] - ptreal[X])>>8;
+	pFNn[Y] = (realNormal[Y] - ptreal[Y])>>8;
+	pFNn[Z] = (realNormal[Z] - ptreal[Z])>>8;
+	return fxdot(pFNn, normal);
 }
 
 //Why is there a duplicate? I had to make one to handle the data type conversion from FIXED to 16-bit integer without errors if I wanted to skip the first parameter.

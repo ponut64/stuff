@@ -346,14 +346,13 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	
 	normalize(cross, faceNormal);
 	//Then a collision detector.
-	if(JO_ABS(tgtRelPos[X]) > (SQUARE_MAX) || JO_ABS(tgtRelPos[Y]) > (SQUARE_MAX) || JO_ABS(tgtRelPos[Z]) > (SQUARE_MAX))
-	{
-	tDist = ptalt_plane(tgt->pos, faceNormal, centerFace); //Returns on integer scale when value is large
-	} else {
-	tDist = realpt_to_plane(tgt->pos, faceNormal, centerFace);
-	}
-	//slPrintFX(planeDist, slLocate(0, 8));
-	if(fxm(tDist, dWorldObjects[obj_id1].dist) < 0)
+	tDist = ptalt_plane(tgt->pos, faceNormal, centerFace);
+
+	slPrintFX(tDist, slLocate(0, 12));
+	slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
+
+
+	if( (tDist * dWorldObjects[obj_id1].dist) < 0)
 	{
 			dWorldObjects[obj_id1].dist = 0;
 			dWorldObjects[posts[0]].type.ext_dat |= 0x1;
