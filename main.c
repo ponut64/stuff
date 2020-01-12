@@ -34,11 +34,10 @@ I am sorry for the pain you had to go through.
 #include "tga.h"
 #include "ldata.h"
 #include "dspm.h"
+#include "input.h"
 //
 #include "lwram.c"
 //
-#include <sddrvs.dat>
-const char map[] = {0xff, 0xff, 0xff, 0xff}; //For sound driver
 
 //
 // Game data //
@@ -104,6 +103,15 @@ void	update_gamespeed(void)
 //Loading. Check msfs.c and ZT_LOADMODEL.h for more information.
 void	load_test(void)
 {
+	//
+	snd_lstep = load_16bit_pcm((Sint8*)"LSTEP.PCM", 15360);
+	snd_wind = load_16bit_pcm((Sint8*)"WND.PCM", 15360);
+	snd_bstep = load_16bit_pcm((Sint8*)"BSTEP.PCM", 15360);
+	snd_click = load_16bit_pcm((Sint8*)"CLCK1.PCM", 15360);
+	snd_button = load_16bit_pcm((Sint8*)"BTN1.PCM", 15360);
+	snd_cronch = load_16bit_pcm((Sint8*)"CRONCH.PCM", 15360);
+	snd_alarm = load_16bit_pcm((Sint8*)"ALARM.PCM", 15360);
+	snd_win = load_16bit_pcm((Sint8*)"WIN.PCM", 15360);
 	//Next up: TGA file system handler?
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
@@ -126,18 +134,6 @@ ztModelRequest((Sint8*)"PILLAR.ZTP",  &entities[3], true, SORT_CEN, numTex);
 	WRAP_NewTable((Sint8*)"PILTEX.TGA", (void*)dirty_buf, 0);
 ztModelRequest((Sint8*)"SHADOW.ZTP", &shadow, true, SORT_CEN, numTex);
 	WRAP_NewTexture((Sint8*)"SHADOW.TGA", (void*)dirty_buf);
-
-//Don't change the order, it affects the PCM number. Not a good system ATM.
-p64SoundRequest((Sint8*)"LSTEP.PCM", S1536KHZ, 0);
-p64SoundRequest((Sint8*)"WND.PCM", S1536KHZ, 1);
-p64SoundRequest((Sint8*)"BSTEP.PCM", S1536KHZ, 5);
-p64SoundRequest((Sint8*)"CLCK1.PCM", S1536KHZ, 6);
-p64SoundRequest((Sint8*)"BTN1.PCM", S1536KHZ, 7);
-p64SoundRequest((Sint8*)"CRONCH.PCM", S1536KHZ, 9);
-p64SoundRequest((Sint8*)"ALARM.PCM", S1536KHZ, 11);
-p64SoundRequest((Sint8*)"WIN.PCM", S1536KHZ, 13);
-//Sound RAM is full.
-//A different way to load stuff in sound RAM is needed!
 
 p64MapRequest((Sint8*)"00", 0);
 
@@ -165,26 +161,11 @@ void	game_frame(void)
 
 void	my_vlank(void){
 	vblank_requirements();
+	operate_digital_pad1();
+	m68k_com->start = 1;
+	m68k_com->dT_ms = dt>>6;
 ///Watch out for SCSP command overflow.
 ///Changing the order of these functions may cause that.
-	sound_on_channel(pcm_ctrl[1].CH_SND_NUM, 1);
-	sound_on_channel(pcm_ctrl[2].CH_SND_NUM, 2);
-	sound_on_channel(pcm_ctrl[3].CH_SND_NUM, 3);
-	sound_on_channel(pcm_ctrl[4].CH_SND_NUM, 4);
-	sound_on_channel(pcm_ctrl[5].CH_SND_NUM, 5);
-	sound_on_channel(pcm_ctrl[6].CH_SND_NUM, 6);
-	sound_on_channel(pcm_ctrl[7].CH_SND_NUM, 7);
-/*
-Channel Use Disambiguation
-0: Music
-1: Step, Jump
-2: Gate pass, Gate success, gate fail
-3: Item collection, victory
-4:
-5:
-6:
-7: Wind
-*/
 	music_vblIn(6);
 }
 
@@ -234,6 +215,7 @@ void	jo_main(void)
 //	attributions();
 	//
 	//Loading Area
+	//
 	init_lwram();
 	active_HWRAM_ptr = (void*)jo_malloc(150 * 1024); //High Work Ram Entity Area 
 	dpinit();
@@ -241,7 +223,9 @@ void	jo_main(void)
 	initPhys();
 	anim_defs();
 	init_heightmap();
-	slInitSound((unsigned char *)sddrvstsk, sizeof(sddrvstsk), (unsigned char *)map, sizeof(map));
+	//Sound Driver
+	load_drv(); 
+	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
 	//SYS_SETSCUIM(SYS_GETSCUIM & 8192);

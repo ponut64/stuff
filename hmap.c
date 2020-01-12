@@ -134,8 +134,8 @@ void	texHandler(int index){
 	
 	POINT norm = {polymap->pltbl[index].norm[X], polymap->pltbl[index].norm[Y], polymap->pltbl[index].norm[Z]};
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
-	short baseTex = strataFinder(index);
-	short flip = 0;
+	int baseTex = strataFinder(index);
+	int flip = 0;
 	
 	if(absN[X] <= 4096 && absN[Z] <= 4096)
 	{

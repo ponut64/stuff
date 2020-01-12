@@ -10,7 +10,6 @@ POINT alwaysHigh = {0, (1<<16), 0};
 FIXED	lowPoint[XYZ] = {0, 0, 0};
 
 void pl_jump(void){
-		stop_sound(1); //One extra way to give the jump sound priority
 		if(you.Velocity[Y] > 0){
 			you.Velocity[Y] = fxm(you.floorNorm[Y], you.Velocity[Y]);
 		} else {
@@ -21,7 +20,7 @@ void pl_jump(void){
 			you.Velocity[X] += fxm(196608, you.floorNorm[X]); 
 			you.Velocity[Y] += fxm(196608, you.floorNorm[Y]);
 			you.Velocity[Z] += fxm(196608, you.floorNorm[Z]);
-		trigger_sound(1, 2, 7<<5);
+		pcm_play(snd_bstep, PCM_SEMI, 7);
 }
 
 void	pl_step_snd(void){
@@ -33,18 +32,12 @@ void	pl_step_snd(void){
 		First, check if we're in a moving-animated state.
 		Check a vertice from each hoof and see if it is above 294500 [approx. 4.5].
 		Use this information to play a sound whenever any hoof clears this condition.
-		If multiple hooves do, increase the volume.
-		
-		Addendum:
-		The sound should only trigger when the state of any hoof boolean changes.
-		If there is no change in all hoof booleans, no sound should play.
-		If there is change in only one, perhaps it is lesser volume, but it should play.
+		If multiple hooves do, increase the volume?
 	*/
 	if(pl_model.file_done != true) return;
 	static char hoofSetBools[5];
 	static char oldHoofSetBools[5];
 	char runSnd = 0;
-	static char SndOnlyOnce = 0;
 	const int HoofLowValue = 310000;
 
 		if(you.onSurface == true){
@@ -64,10 +57,7 @@ void	pl_step_snd(void){
 	
 	if(runSnd == 1)
 	{
-	if(SndOnlyOnce != true) trigger_sound(1, 0, 160);
-	SndOnlyOnce = true;
-	} else {
-	SndOnlyOnce = false;
+		pcm_play(snd_lstep, PCM_SEMI, 6);
 	}
 	
 	oldHoofSetBools[0] = hoofSetBools[0];
@@ -99,7 +89,8 @@ void	player_phys_affect(void)
 	int proportion = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
 	short angDif = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
 	//Will pivot camera towards direction of motion
-	if( (you.setSlide == true || you.onSurface != true) && JO_ABS(angDif) > 1024)
+	if( /*(you.setSlide == true || you.onSurface != true) &&*/ (JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif) > 1024 &&
+	is_key_up(DIGI_DOWN))
 	{
 		you.viewRot[Y] += (angDif > 0) ? proportion : -proportion; //Determines if we want to rotate view clockwise or counterclockwise
 	}
@@ -227,9 +218,8 @@ void	player_phys_affect(void)
 	normalize(tempDif, you.DirUV);
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
 	
-	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1)<<5 : 224;
-	slSoundRequest("bbwwbb", SND_PCM_PRM_CHG, 7, windVol, S1536KHZ, 0, 0, 0); //Change volume immediately [sound is 2 seconds long]
-	trigger_sound(7, 1, windVol); //Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
+	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
+	pcm_play(snd_wind, PCM_FWD_LOOP, windVol); //Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		

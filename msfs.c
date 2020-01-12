@@ -1,14 +1,7 @@
 /** MSFS.C --> MASTER SOUND & FILE SYSTEM CODE **/
 #include "msfs.h"
 
-const Sint32		pcmbuftbl[19] = {
-	PCMBUF6, PCMBUF7, PCMBUF8, PCMBUF9, PCMBUF10, PCMBUF11, PCMBUF12, PCMBUF13, PCMBUF14, PCMBUF15,
-	PCMBUF16, PCMBUF17, PCMBUF18, PCMBUF19, PCMBUF20, PCMBUF21, PCMBUF22, PCMBUF23, PCMBUF24
-};
-
-p64pcm	*		pcm_slot; //In LWRAM // 
-pcmCtrlTbl *	pcm_ctrl; //In LWRAM // 
-snd_ring		music_buf[5];
+snd_ring		music_buf[MUS_BUFCNT];
 int				musicPitch = S1536KHZ;
 int				musicTimer = 64;
 Sint8*			music = (Sint8*)"MAIN.MUS";
@@ -59,7 +52,7 @@ request requests[19]; //ZTP Requests
 spr_rq	tga_request[19];
 
 request * activeZTP; //Pointers to currently serving file structures
-p64pcm * activePCM;
+//p64pcm * activePCM;
 _heightmap * activePGM;
 spr_rq	* activeTGA;
 
@@ -71,99 +64,27 @@ unsigned char NactiveTGA = 0;
 void * active_LWRAM_ptr = (void*)LWRAM;
 void * active_HWRAM_ptr = (void*)LWRAM;
 	
-///Something more to do here, but it does work.
-//Barely. The driver has an issue with multiple channels tacked on. I dunno what to do, I guess I will live with it.
-///This goes at interrupt. Control is performed by ch_on Boolean.
-//Notice: slSoundRequest is broken into multiple parameters by newlines (comma).
-void sound_on_channel(Uint8 sound_number, Uint8 channel){
-		pcm_ctrl[channel].ready_play = false;
-pcm_slot[sound_number].offset = 0;
-		if(pcm_ctrl[channel].ready == true){
-	if(pcm_ctrl[channel].ch_on == true){
-	if(pcm_ctrl[channel].playtimer < 1){
-		pcm_ctrl[channel].ready_play = true;
-	}
-	if(pcm_ctrl[channel].ready_play == true){
-		slSoundRequest("bbwwwbb",
-		SND_PCM_START,
-		channel, //Channel [and other information, like bit depth and channel information, but its all zero]
-		pcm_ctrl[channel].volpan, //Pan/Volume
-		MAP_TO_SCSP(pcm_slot[sound_number].dstAddress + pcm_slot[sound_number].offset), //location [in sound RAM]
-		(0),	//Size
-		(pcm_slot[sound_number].pitchword), // Pitch
-		0); //Effect and Effect Level [Mono]
-		pcm_ctrl[channel].ready_play = false;
-	}
-	pcm_ctrl[channel].playtimer++;
-	// if(pcm_ctrl[channel].playtimer == 200 || pcm_ctrl[channel].playtimer == 400 || pcm_ctrl[channel].playtimer == 600 || pcm_ctrl[channel].playtimer == 800 || pcm_ctrl[channel].playtimer == 1000){
-		// pcm_ctrl[channel].ready_play = true;
-	// }
-	if(pcm_slot[sound_number].pitchword == S1536KHZ){
-	pcm_slot[sound_number].offset = pcm_ctrl[channel].playtimer * S1536TIMER;
-	pcm_ctrl[channel].ch_on = (pcm_ctrl[channel].playtimer >= ( (pcm_slot[sound_number].playsize>>9) ) ) ? false : true;
-	} else if(pcm_slot[sound_number].pitchword == S3072KHZ){
-	pcm_slot[sound_number].offset = pcm_ctrl[channel].playtimer * S3072TIMER;
-	pcm_ctrl[channel].ch_on = (pcm_ctrl[channel].playtimer >= ( (pcm_slot[sound_number].playsize>>10) ) ) ? false : true;
-	}
-}
-//sound complete, close channel
-	if(pcm_ctrl[channel].ch_on != true){
-		slSoundRequest("b", SND_PCM_STOP, channel);
-		pcm_slot[sound_number].offset = 0;
-		pcm_ctrl[channel].ready_play = false;
-		pcm_ctrl[channel].playtimer = 0;
-		pcm_ctrl[channel].busy = false;
-	}
+int bufNums[MUS_BUFCNT] = {123, 124, 125, 126, 127};
 
-	}
-}
 void	music_vblIn(Uint8 vol){
 //NOTICE: Music PCM buffer currently sits at the last 160 KB of sound RAM. m_trig Boolean is the control variable of playback.
 ///Sample clipping issue? .. That's literally just the bitrate reduction.
 	if(m_trig == true){
 	if(fetch_timer == 0){
-		slSoundRequest("bbwwwbb", SND_PCM_START, 0, vol<<5, (music_buf[buf_pos].play_pcmbuf), (32768), (musicPitch), 0);
+		pcm_play(bufNums[buf_pos], PCM_SEMI, 7);
 	}
 		fetch_timer++;
 	if(fetch_timer >= musicTimer){
-		//Injecting a PCM stop to hopefully save the ears of someone who uses a real console.
-		slSoundRequest("b", SND_PCM_STOP, 0);
+		pcm_cease(bufNums[buf_pos]);
 		buffers_filled -= 1;
 		buf_pos++;
 ///Ring buffer wrap
-	if(buf_pos > 4){
+	if(buf_pos > MUS_BUFCNT-1){
 		buf_pos = 0;
 	}
 		fetch_timer = 0;
 	}
 	}
-}
-
-//The sound number is the order it was loaded in.
-//The idea is a map file has a table of its sounds.
-//Like sounds should always be in the same spot in the table.
-//It is not neccessarily true though that these sounds are always the same size or in the same spot in sound RAM.
-void	trigger_sound(Uint8 channel, Uint8 sound_number, Uint8 vp_word)
-{
-		if(pcm_slot[sound_number].file_done != true) return; //Avoid playing garbage on unloaded sounds
-	if(pcm_ctrl[channel].busy != true){
-	pcm_ctrl[channel].ready = true;
-	pcm_ctrl[channel].CH_SND_NUM = sound_number;
-	pcm_ctrl[channel].ch_on = true;
-	pcm_ctrl[channel].busy = true;
-	pcm_ctrl[channel].volpan = vp_word;
-	pcm_ctrl[channel].playtimer = 0;
-	pcm_slot[sound_number].offset = 0;
-	}
-}
-
-void	stop_sound(Uint8 channel)
-{
-	slSoundRequest("b", SND_PCM_STOP, channel);
-	pcm_ctrl[channel].ready = false;
-	pcm_ctrl[channel].ch_on = false;
-	pcm_ctrl[channel].busy = false;
-	pcm_ctrl[channel].volpan = 0;
 }
 
 void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType, short base_texture)
@@ -182,15 +103,15 @@ void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType
 ///Notice: In loading order, put sound requests below model requests.
 void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg)
 {
-///Fill out the request.
-	pcm_slot[NactivePCM].pitchword = bitrate;
-	pcm_slot[NactivePCM].loctbl = destBufSeg;
-	pcm_slot[NactivePCM].dstAddress = pcmbuftbl[destBufSeg];
-	pcm_slot[NactivePCM].fid = (Sint8*)GFS_NameToId(name);
-	pcm_slot[NactivePCM].active = true;
-	pcm_slot[NactivePCM].file_done = false;
+//Fill out the request.
+	// pcm_slot[NactivePCM].pitchword = bitrate;
+	// pcm_slot[NactivePCM].loctbl = destBufSeg;
+	// pcm_slot[NactivePCM].dstAddress = pcmbuftbl[destBufSeg];
+	// pcm_slot[NactivePCM].fid = (Sint8*)GFS_NameToId(name);
+	// pcm_slot[NactivePCM].active = true;
+	// pcm_slot[NactivePCM].file_done = false;
 
-NactivePCM++;
+// NactivePCM++;
 }
 
 Sint8 pgm_name[11];
@@ -252,10 +173,10 @@ void	file_request_loop(void)
 			activeZTP = &requests[i]; //Remember: "&" qualifies "address of". You kind of thought that as what a struct would be in the first place?
 			model_requested = true; //Too bad.
 			break;
-		} else if(pcm_slot[i].active == true){
-			activePCM = &pcm_slot[i]; 
-			sound_requested = true;
-			break;
+		//} else if(pcm_slot[i].active == true){
+			//activePCM = &pcm_slot[i]; 
+		//sound_requested = true;
+			//break;
 		} else if(i < 4 && maps[i].active == true){
 			activePGM = &maps[i];
 			map_requested = true;
@@ -381,75 +302,8 @@ do{
 }
 
 void	pop_load_pcm(void(*game_code)(void)){
-	Sint32	fsizeS;
-	Sint32	nsctS;
-	Sint32	rdsize;
-	Sint32	stat;
 
-	gfs_s = GFS_Open((Sint32)activePCM->fid);
-	
-	GFS_GetFileSize(gfs_s, NULL, &nsctS, NULL);
-	GFS_GetFileInfo(gfs_s, NULL, NULL, &fsizeS, NULL);
-///How many frames are we reading?
-	if(sf_step < fsizeS){
-		rd_frames = (fsizeS + (sf_step - 1))/(sf_step);
-	} else {
-		rd_frames = 1;
-	}
 
-///Seek to the desired spot on the file
-	GFS_Seek(gfs_s, file_ref, GFS_SEEK_SET);
-	GFS_SetReadPara(gfs_s, sf_step);
-	GFS_SetTransPara(gfs_s, sf_sector);
-///Transfer mode should be SCU because this is going to sound RAM.
-	GFS_SetTmode(gfs_s, GFS_TMODE_SCU);
-	GFS_NwCdRead(gfs_s, fsizeS);
-	
-	for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
-		GFS_NwFread(gfs_s, sf_sector, (Sint32*)(activePCM->dstAddress + (curRdFrame * sf_step)), sf_step);
-		file_ref += sf_sector;
-		do{
-			game_code();
-			GFS_NwExecOne(gfs_s);
-			GFS_NwGetStat(gfs_s, &stat, &rdsize);
-	// jo_printf(0, 20, "(SD) loop label");
-	// jo_printf(0, 16, "(%i)", fsizeS);
-	// jo_printf(0, 15, "(%i)", curRdFrame);
-	// jo_printf(4, 15, "(%i)", rd_frames);
-	// jo_printf(0, 22, "(%i) cur rd case", mrd_pos);
-	// jo_printf(0, 23, "(%i) cur buf case", buf_pos);
-		// jo_printf(0, 7, "(%i)", music_frames);
-		// jo_printf(7, 7, "(%i) sct off", play_ref);
-		// jo_printf(0, 10, "(%i) fs stat", stat);
-		// jo_printf(0, 11, "(%i) fetch", fetch_timer);
-		}while(stat != GFS_SVR_COMPLETED && rdsize < sf_step);
-
-		curRdFrame++;
-	///FOR-DO-WHILE READ LOOP END STUB
-	}
-	GFS_Close(gfs_s);
-		if(curRdFrame >= rd_frames){
-			if(activePCM->file_done != true){
-///How many buffers is the sound going to consume?
-			if(fsizeS > 16384){
-				activePCM->segments	= (fsizeS + (16384 - 1))/(16384);
-			} else {
-				activePCM->segments 	= 1;
-			}
-			activePCM->playsize = fsizeS;
-			activePCM->frames = rd_frames;
-			
-			NactivePCM--;
-			file_ref = 0;
-			rd_frames = 0;
-			curRdFrame = 0;
-		activePCM->file_done = true;
-		activePCM->active = false;
-		sound_requested = false;
-			}
-		///SFX HANDLER END STUB
-		}
-///SOUND LOAD REQUEST END STUB
 }
 
 void	pop_load_map(void(*game_code)(void)){
@@ -505,7 +359,11 @@ void	pop_load_map(void(*game_code)(void)){
 				read_gmp_header(activePGM);
 				//
 					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Yval)){
-					slDMACopy(activePGM->dstAddress, buf_map, activePGM->totalPix);
+					//slDMACopy(activePGM->dstAddress, buf_map, activePGM->totalPix);
+						for(int i = 0; i < activePGM->totalPix; i++)
+						{
+							buf_map[i] = *((Uint8*)activePGM->dstAddress + i);
+						}
 				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
 				// jo_printf(15, 20, "(%i)", activePGM->Xval);
 				// jo_printf(20, 20, "(%i)", activePGM->Yval);
@@ -594,6 +452,14 @@ void	pop_load_tga(void(*game_code)(void)){
 ///TGA LOAD REQUEST END STUB
 }
 
+void		cease_all_music(void)
+{
+	pcm_cease(bufNums[0]);
+	pcm_cease(bufNums[1]);
+	pcm_cease(bufNums[2]);
+	pcm_cease(bufNums[3]);
+	pcm_cease(bufNums[4]);
+}
 
 void		master_file_system(void(*game_code)(void))
 {	
@@ -608,9 +474,27 @@ music_buf[3].rd_pcmbuf = (void*)PCMBUF2;
 music_buf[3].play_pcmbuf = MAP_TO_SCSP(PCMBUF4);
 music_buf[4].rd_pcmbuf = (void*)PCMBUF3;
 music_buf[4].play_pcmbuf = MAP_TO_SCSP(PCMBUF5);
+
+//Initialize PCM Streams
+	if(m68k_com->pcmCtrl[bufNums[0]].playsize == 0)
+	{
+for(int i = 0; i < MUS_BUFCNT; i++)
+{
+	m68k_com->pcmCtrl[bufNums[i]].hiAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf >> 16);
+	m68k_com->pcmCtrl[bufNums[i]].loAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf & 0xFFFF);
+	m68k_com->pcmCtrl[bufNums[i]].pitchword = S1536KHZ;
+	m68k_com->pcmCtrl[bufNums[i]].playsize = (32768>>1);
+	m68k_com->pcmCtrl[bufNums[i]].bytes_per_blank = 512;
+	m68k_com->pcmCtrl[bufNums[i]].bitDepth = 0; //Select 16-bit
+	m68k_com->pcmCtrl[bufNums[i]].loopType = 1;
+	m68k_com->pcmCtrl[bufNums[i]].volume = 7; 
+}
+	}
+
 	if(chg_music == true){
 		m_trig = false;
-		slSoundRequest("b", SND_PCM_STOP, 0);
+		//slSoundRequest("b", SND_PCM_STOP, 0);
+		//cease_all_music();
 			buffers_filled = 0;
 			fetch_timer = 0;
 			mrd_pos = 0;
@@ -653,8 +537,8 @@ static Sint32			rdsize;
 	GFS_NwCdRead(music_fs, (32 * 2048));
 
 //Let's make a pre-playback loop to read from the CD to fill a series of buffers using a work buffer.
-for( ; buffers_filled < 3  && m_trig != true ; ){
- 	if(music_frames < mcpy_factor && buffers_filled < 3){
+for( ; buffers_filled < MUS_BUFCNT-2  && m_trig != true ; ){
+ 	if(music_frames < mcpy_factor && buffers_filled < MUS_BUFCNT-2){
 	GFS_NwFread(music_fs, m_sector, (void*)music_buf[buffers_filled].rd_pcmbuf + (music_frames * m_step), m_step);
 	play_ref += m_sector;
 	music_frames++;
@@ -674,10 +558,11 @@ do{
 		// jo_printf(7, 7, "(%i) sct off", play_ref);
 		// jo_printf(0, 10, "(%i) fs stat", stat);
 		// jo_printf(0, 11, "(%i) fetch", fetch_timer);
-	mrd_pos = 3;
-	buf_pos = 3;
+	mrd_pos = MUS_BUFCNT-2;
+	buf_pos = MUS_BUFCNT-2;
 }while(stat != GFS_SVR_COMPLETED && rdsize < m_step);
 }
+
 /**
 MAIN MUSIC-GAME LOOP
 Fault Tolerance needs study.
@@ -706,7 +591,9 @@ for( ; ; ){
 	m_trig = true;
 	} else if(play_ref >= nsct_m){
 	m_trig = false;
-	slSoundRequest("b", SND_PCM_STOP, 0);
+//	slSoundRequest("b", SND_PCM_STOP, 0);
+//	all sound slots in driver do need to die here
+		//cease_all_music();
 		buffers_filled = 0;
 		fetch_timer = 0;
 		mrd_pos = 0;
@@ -739,7 +626,7 @@ do{
 		// jo_printf(0, 10, "(%i) fs stat", stat);
 		// jo_printf(0, 11, "(%i) fetch", fetch_timer);
 }while(stat != GFS_SVR_COMPLETED && rdsize < m_step);
-if(mrd_pos > 4){mrd_pos = 0;}
+if(mrd_pos > MUS_BUFCNT-1){mrd_pos = 0;}
 if((model_requested == true || sound_requested == true || map_requested == true || tga_requested == true || chg_music == true) && fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer){if(mrd_pos == buf_pos){break;}}
 }
 					/**END MUSIC SYSTEM SETUP**/

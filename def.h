@@ -4,6 +4,8 @@
 
 //def.h -- the catch-all "i dunno where else this goes" file
 #include "timer.h"
+#include "input.h"
+#include "pcmsys.h"
 
 #define CELL_SIZE (25<<16)
 #define INV_CELL_SIZE (slDivFX(25<<16, 1<<16))
@@ -15,8 +17,21 @@
 #define FLIPH (16)
 #define FLIPHV (48)
 #define SQUARE_MAX (9633792) //147<<16
-//Structs
 
+//////////////////////////////////////////////////////////////////////////////
+//Sound Numbers
+//////////////////////////////////////////////////////////////////////////////
+int snd_lstep;
+int snd_wind;
+int snd_bstep;
+int snd_click;
+int snd_button;
+int snd_cronch;
+int snd_alarm;
+int snd_win;
+//////////////////////////////////////////////////////////////////////////////
+
+//Structs
 typedef struct {
 	FIXED pos[XYZ];
 	int cellPos[XY];

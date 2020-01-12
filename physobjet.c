@@ -231,10 +231,9 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 			track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
 			if(track_select == object_track && (activeTrack == trackedLDATA || activeTrack == -1))
 			{
-				stop_sound(2); //Sound Override
 				activeTrack = trackedLDATA;
 				trackTimers[object_track] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
-				trigger_sound(2, 4, 7<<5);
+				pcm_play(snd_button, PCM_PROTECTED, 7);
 				break;
 			}
 		}//PAST TRACK DATA
@@ -348,11 +347,12 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//Then a collision detector.
 	tDist = ptalt_plane(tgt->pos, faceNormal, centerFace);
 
-	slPrintFX(tDist, slLocate(0, 12));
-	slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
+	// slPrintFX(tDist, slLocate(0, 12));
+	// slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
+	// jo_printf(12, 14, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
 
 
-	if( (tDist * dWorldObjects[obj_id1].dist) < 0)
+	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) //Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
 	{
 			dWorldObjects[obj_id1].dist = 0;
 			dWorldObjects[posts[0]].type.ext_dat |= 0x1;
@@ -429,12 +429,9 @@ void	run_item_collision(int index, _boundBox * tgt)
 
 			if(realDist < (dWorldObjects[objDWO[index]].type.radius[Y]<<16) ) //Explicit radius collision test
 				{
-					//sound stuff
-				stop_sound(2); //Sound Override
 			dWorldObjects[objDWO[index]].type.ext_dat |= 8; //Remove root entity from stack object
 			you.points++;
-				trigger_sound(3, 3, 7<<5);
-					//	
+			pcm_play(snd_click, PCM_SEMI, 7);
 				}
 		}
 			}//Root entity check end
@@ -599,16 +596,13 @@ void	gate_track_manager(void)
 			//Track completion logic
 			if(dWorldObjects[trackedLDATA].pix[X] == dWorldObjects[trackedLDATA].pix[Y] && dWorldObjects[trackedLDATA].pix[X] != 0)
 			{
-				//Sound stuff
-				stop_sound(2);
 				dWorldObjects[trackedLDATA].type.ext_dat &= UNPOP;	//Set track as inactive
 				dWorldObjects[trackedLDATA].height |= OBJPOP;	//Set track as complete
 				trackTimers[track_select] = 0;	//Re-set the track timer
 				activeTrack = -1;	//Release active track
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
 				complete_ldat++;
-				//Sound stuff
-				trigger_sound(2, 5, 7<<5);
+				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
 			}
 
 			//Timer run & check
@@ -622,7 +616,7 @@ void	gate_track_manager(void)
 						trackTimers[track_select] = 0;
 						activeTrack = -1; //Release active track
 						//Sound stuff
-						trigger_sound(2, 6, 7<<5);
+						pcm_play(snd_alarm, PCM_PROTECTED, 7);
 					}
 			}
 					}//if active track \ track end
@@ -632,7 +626,7 @@ void	gate_track_manager(void)
 	
 	if(complete_ldat == numldat && link_starts[LDATA>>12] > -1)
 	{
-		trigger_sound(3, 7, 7<<5);
+		pcm_play(snd_win, PCM_PROTECTED, 7);
 		complete_ldat = 0;
 		map_chg = false;
 		p64MapRequest((Sint8*)"01", 0); //ALRIGHT SO I CAN MAKE TWO LEVELS

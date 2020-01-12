@@ -63,32 +63,27 @@ void reset_player(void)
 //	are to be used as arrow key / WADS arrangement for camera movement.
 void controls(void)
 {
-	Uint16 id = you.id;
 
-	if(jo_is_input_key_pressed(id, JO_KEY_A )){
-		you.rotState[X] -=91 * framerate;
+	if(is_key_down(DIGI_A)){
+		you.rotState[X] -=91 * framerate; //Look/turn left
 	}
-	if(jo_is_input_key_pressed(id, JO_KEY_B) ){
+	if(is_key_down(DIGI_B)){
 
-		you.rotState[Y] -=91 * framerate;
+		you.rotState[Y] -=91 * framerate; //Look down
 	}
-	if(jo_is_input_key_pressed(id, JO_KEY_C)){
-		you.rotState[X] +=91 * framerate;
+	if(is_key_down(DIGI_C)){
+		you.rotState[X] +=91 * framerate; //Look/turn right
 	}
-    if (jo_is_input_key_pressed(id, JO_KEY_X))
+    if (is_key_down(DIGI_X))
     {
-		// SynchConst = 3;
-		usePolyLine = false;
-		// testNum[X]+=91;
+		
     }
-	if (jo_is_input_key_pressed(id, JO_KEY_Y))
+	if (is_key_down(DIGI_Y))
     {
-		you.rotState[Y] +=91 * framerate;
+		you.rotState[Y] +=91 * framerate; //Look up
     }
-	if(jo_is_input_key_pressed(id, JO_KEY_Z)){
-		// SynchConst = 1;
-		usePolyLine = true;
-		// testNum[X]-=91;
+	if(is_key_down(DIGI_Z)){
+
 	}
 
 
@@ -100,28 +95,28 @@ void controls(void)
 	*/
 
 		you.dirInp = false;
-	if(jo_is_input_key_pressed(id, JO_KEY_UP) && jo_is_input_key_pressed(id, JO_KEY_RIGHT)){
+	if(is_key_down(DIGI_UP) && is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = DEGtoANG(45) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_UP) && jo_is_input_key_pressed(id, JO_KEY_LEFT)){
+	} else if(is_key_down(DIGI_UP) && is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -DEGtoANG(45) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_DOWN) && jo_is_input_key_pressed(id, JO_KEY_RIGHT)){
+	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = DEGtoANG(135) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_DOWN) && jo_is_input_key_pressed(id, JO_KEY_LEFT)){
+	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -DEGtoANG(135) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_UP)){
+	} else if(is_key_down(DIGI_UP)){
 		you.rot[Y] = -you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_DOWN)){
+	} else if(is_key_down(DIGI_DOWN)){
 		you.rot[Y] = -DEGtoANG(180) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_LEFT)){
+	} else if(is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -DEGtoANG(90) - you.viewRot[Y]; 
 		you.dirInp = true;
-	} else if(jo_is_input_key_pressed(id, JO_KEY_RIGHT)){
+	} else if(is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = DEGtoANG(90) - you.viewRot[Y]; 
 		you.dirInp = true;
 	}
@@ -132,7 +127,7 @@ void controls(void)
 		you.IPaccel += spdfactr;
 	}
 		
-	if(jo_is_input_key_pressed(id, JO_KEY_L) ){
+	if(is_key_down(DIGI_L) ){
 		you.setSlide = true;
 	} else {
 		you.setSlide = false;
@@ -144,7 +139,7 @@ void controls(void)
 	//Two, to ensure that there is some time after pressing the jump button that we may be allowed to jump.
 	//Three, to ensure that the step sound doesn't destroy the jump sound if the timer is in a condition that would allow it to jump.
 	//They share a channel and they never need to play at the same time, but they could logically, so this skirts around that gingerly.
-	if(jo_is_input_key_pressed(id, JO_KEY_R) ){
+	if(is_key_down(DIGI_R) ){
 		if(rKeyTimer <= (66 / framerate)){ 
 			if(you.onSurface == true){
 				you.setJump = true;
@@ -165,7 +160,7 @@ void controls(void)
 
 	//
 	//This is here because the _player struct is already here and all the math for it is here	
-	if(jo_is_input_key_pressed(id, JO_KEY_START)){
+	if(is_key_pressed(DIGI_START)){
 		reset_player();
 	}
 	
@@ -173,7 +168,6 @@ void controls(void)
 
 void	mypad(void)
 {
-	if(!jo_is_pad1_available()) return;
 	
 	controls();
 }

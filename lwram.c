@@ -15,13 +15,9 @@ void	init_lwram(void)
 	//In LWRAM because why use HWRAM for it? It is frequently cached data, anyhow. // 2048 bytes
 	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 1024)));//|UNCACHE); 
 //Sound Control Data Table
-	pcm_slot = (void*)((unsigned int)(pcoTexDefs-(sizeof(p64pcm) * 19))|UNCACHE); //In LWRAM // 
-//Sound Control Data Table
-	pcm_ctrl = (void*)((unsigned int)(pcm_slot-(sizeof(pcmCtrlTbl) * 8))|UNCACHE); //In LWRAM // 
-//Sound Control Data Table
-	RBBs = (void*)((unsigned int)(pcm_ctrl-(sizeof(_boundBox) * MAX_PHYS_PROXY))|UNCACHE); //In LWRAM // 
+	RBBs = (void*)((unsigned int)(pcoTexDefs-(sizeof(_boundBox) * MAX_PHYS_PROXY))|UNCACHE); //In LWRAM // 
 //Object Table
-	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//|UNCACHE); //In LWRAM // 11264 bytes
+	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512))|UNCACHE); //In LWRAM // 11264 bytes
 //Total consumed LWRAM: about 215 KB
 
 }
