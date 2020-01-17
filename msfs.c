@@ -260,8 +260,8 @@ do{
 	activeZTP->tmodel->nbFrames = bufModelX.nbFrames;
 	
 	//Uint16 first_texture = loadTextures(workAddress, &bufModelX);
-	Sint32 bytesOff = bufModelX.TEXT_SIZE+(sizeof(modelData_t));
-	workAddress = (workAddress + bytesOff);
+	Sint32 bytesOff = bufModelX.TEXT_SIZE+(sizeof(modelData_t)); 
+	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
 	
 	activeZTP->tmodel->size = (unsigned int)workAddress;
 	workAddress = loadPDATA((workAddress), activeZTP->tmodel, &bufModelX);
@@ -356,7 +356,7 @@ void	pop_load_map(void(*game_code)(void)){
 	GFS_Close(gfs_h);
 		if(curRdFrame >= rd_frames){
 			if(activePGM->file_done != true){
-				read_gmp_header(activePGM);
+				read_pgm_header(activePGM);
 				//
 					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Yval)){
 					//slDMACopy(activePGM->dstAddress, buf_map, activePGM->totalPix);
@@ -364,6 +364,7 @@ void	pop_load_map(void(*game_code)(void)){
 						{
 							buf_map[i] = *((Uint8*)activePGM->dstAddress + i);
 						}
+						//process_map_for_normals(activePGM);
 				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
 				// jo_printf(15, 20, "(%i)", activePGM->Xval);
 				// jo_printf(20, 20, "(%i)", activePGM->Yval);

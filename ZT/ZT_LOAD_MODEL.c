@@ -112,16 +112,15 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
 
     for (i=0; i<modelData->TOTAL_MESH; i++)
     {
-        model->pol[i]=(XPDATA*)workAddress;
-        workAddress=(void*)(workAddress + sizeof(XPDATA));
+        model->pol[i]=(PDATA*)workAddress;
+        workAddress=(void*)(workAddress + sizeof(PDATA));
         model->pol[i]->pntbl = (POINT*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(POINT)* model->pol[i]->nbPoint));
+        workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol[i]->nbPoint));
         model->pol[i]->pltbl = (POLYGON*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(POLYGON)* model->pol[i]->nbPolygon));
+        workAddress=(void*)(workAddress + (sizeof(POLYGON) * model->pol[i]->nbPolygon));
         model->pol[i]->attbl = (ATTR*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(ATTR)*model->pol[i]->nbPolygon));
-        model->pol[i]->vntbl = (VECTOR*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(VECTOR)*model->pol[i]->nbPoint));
+        workAddress=(void*)(workAddress + (sizeof(ATTR) * model->pol[i]->nbPolygon));
+		//Model is of PDATA type, there are no per-vertice normals for gouraud shading
     }
 
     return workAddress;

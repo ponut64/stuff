@@ -22,11 +22,10 @@
 
 //extern POINT point_static[625];
 //extern volatile POINT * point_0;
-extern POINT point_0[625];
-extern POLYGON polygon_0[576];
-extern ATTR attribute_0[];
-extern VECTOR normal_0[];
-extern XPDATA polymap[];
+extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
+extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
+extern ATTR attribute_0[LCL_MAP_PLY * LCL_MAP_PLY];
+extern PDATA polymap[];
 extern FIXED hmap_matrix_pos[XYZ];
 //Player Model
 extern entity_t pl_model;

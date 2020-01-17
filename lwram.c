@@ -17,8 +17,12 @@ void	init_lwram(void)
 //Sound Control Data Table
 	RBBs = (void*)((unsigned int)(pcoTexDefs-(sizeof(_boundBox) * MAX_PHYS_PROXY))|UNCACHE); //In LWRAM // 
 //Object Table
-	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512))|UNCACHE); //In LWRAM // 11264 bytes
-//Total consumed LWRAM: about 215 KB
+	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//^UNCACHE);//|UNCACHE); //In LWRAM // 11264 bytes
+//Map Normal Table
+	normTbl = (void*)((unsigned int)(LWRAM+(256 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
 
+
+
+//I have detected a 'black spot' in LWRAM, between 256 and 512KB from the end of LWRAM is what seems to be an illegal area.
 }
 

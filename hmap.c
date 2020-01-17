@@ -8,17 +8,20 @@ Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
 unsigned char * local_hmap;
-unsigned int * yValueIndex;
+char * normTbl;
 unsigned short * minimap;
-int main_map_total_pix = 625;
-int main_map_x_pix = 25;
-int main_map_y_pix = 25;
+int	src_pix_tbl[LCL_MAP_PIX * LCL_MAP_PIX];
+int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
+int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
+int main_map_x_pix = LCL_MAP_PIX;
+int main_map_y_pix = LCL_MAP_PIX;
 int main_map_strata[4] = {40, 70, 100, 170};
 bool map_update_complete;
 bool * sysbool;
 bool map_chg = false;
 
-void	read_gmp_header(_heightmap * map){
+void	read_pgm_header(_heightmap * map)
+{
 				Uint8 newlines = 0;
 				Uint8 NumberOfNumbers;
 				Uint8 spaceChar = 0;
@@ -82,16 +85,73 @@ void	read_gmp_header(_heightmap * map){
 					//Not included: GFS load sys, but that's ez
 }
 
+void	process_map_for_normals(_heightmap * map)
+{
+	int e = 0;
+	int y0 = 0;
+	int y1 = 0;
+	int y2 = 0;
+	int y3 = 0;
+	
+	VECTOR rminusb = {-(25<<16), 0, (25<<16)};
+	VECTOR sminusb = {(25<<16), 0, (25<<16)};
+	VECTOR cross = {0, 0, 0};
+	
+	int norm_index = 0;
+	unsigned char * readByte = &main_map[0];
+	
+	main_map_total_poly = 0;
+	
+	//Please don't ask me why this works...
+	//I was up late one day and.. oh man..
+	for(int k = 0; k < (main_map_y_pix-1); k++){
+		for(int v = 0; v < (main_map_x_pix-1); v++){
+			e	= (k * (main_map_x_pix)) + v - 1;
+			y0	= readByte[e];
+			y1	= readByte[e + 1];
+			y2	= readByte[e + 1 + (main_map_x_pix)];
+			y3	= readByte[e + (main_map_x_pix)];
+
+	main_map_total_poly++;
+			
+	rminusb[1] = (y2<<16) - (y0<<16);
+
+	sminusb[1] = (y3<<16) - (y1<<16);
+	
+	cross_fixed(rminusb, sminusb, cross);
+
+	cross[X] = cross[X]>>8; //Shift to supresss overflows
+	cross[Y] = cross[Y]>>8;
+	cross[Z] = cross[Z]>>8;
+
+	double_normalize(cross, cross);
+	
+	normTbl[norm_index] = (cross[X] > 0) ? -JO_ABS(cross[X]>>9) : JO_ABS(cross[X]>>9); //X value write
+	normTbl[norm_index+1] = (cross[Y] > 0) ? -JO_ABS(cross[Y]>>9) : JO_ABS(cross[Y]>>9); //Y value write
+	normTbl[norm_index+2] = (cross[Z] > 0) ? -JO_ABS(cross[Z]>>9) : JO_ABS(cross[Z]>>9); //Z value write
+	norm_index+=3;
+			
+		}
+		
+	}
+	
+	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
+	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
+	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
+	
+	jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
+	
+}
+
 //Only works at start of program
-void init_heightmap(void)
+void 	init_heightmap(void)
 {
 /*Vertice Order Hint
 0 - 1
 3 - 2
 */
 	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	local_hmap = (void*)jo_malloc(625);
-	yValueIndex = (void*)jo_malloc(576 * sizeof(int));
+	local_hmap = (void*)jo_malloc(LCL_MAP_PIX * LCL_MAP_PIX);
 	minimap = (void*)jo_malloc(2550 * sizeof(short));
 }
 
@@ -104,6 +164,7 @@ void	chg_map(_heightmap * tmap){
 				main_map_total_pix = tmap->totalPix;
 				init_minimap();
 				map_chg = true;
+				process_map_for_normals(tmap);
 			}
 		}
 }
@@ -127,15 +188,13 @@ int	strataFinder(int index){
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-//Texture Assignment Handler stage of new data calculation in local polymap.
-void	texHandler(int index){
+int		tex2Handler(int index, FIXED * norm, int * flip){
 	//if(txtbl_e[4].file_done != true) return;
-	int texno = 0;
 	
-	POINT norm = {polymap->pltbl[index].norm[X], polymap->pltbl[index].norm[Y], polymap->pltbl[index].norm[Z]};
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
 	int baseTex = strataFinder(index);
-	int flip = 0;
+	int texno = 0;
+	*flip = 0;
 	
 	if(absN[X] <= 4096 && absN[Z] <= 4096)
 	{
@@ -145,72 +204,34 @@ void	texHandler(int index){
 					if(absN[X] < 24576)
 					{
 			texno += (absN[Z] > 8192) ? 2 : 3;
-			flip = (norm[X] > 0) ? FLIPH : 0;
-			flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
+			*flip = (norm[X] > 0) ? FLIPH : 0;
+			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
 					} else {
 			texno += (absN[Z] > 16384) ? 5 : 6;
-			flip = (norm[X] > 0) ? FLIPH : 0;
-			flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0;
+			*flip = (norm[X] > 0) ? FLIPH : 0;
+			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0;
 					}
 		} else {
 					if(absN[Z] < 24576)
 					{
 			texno += (absN[X] > 8192) ? 2 : 1;
-			flip = (norm[Z] > 0) ? FLIPV : 0;
-			flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
+			*flip = (norm[Z] > 0) ? FLIPV : 0;
+			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
 					} else {
 			texno += (absN[X] > 16384) ? 5 : 4;
-			flip = (norm[Z] > 0) ? FLIPV : 0;
-			flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
+			*flip = (norm[Z] > 0) ? FLIPV : 0;
+			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
 					}
 		}
 	}
-	
-	polymap->attbl[index].texno = baseTex+texno;
-	polymap->attbl[index].dir = flip;
+	return baseTex+texno;
 }
 
-//Calculates a normal for the polymap given the index into the polymap
-void	normHandler(int index){
-	static VECTOR cross = {0, 0, 0};
+void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
+{ //Master SH2 drawing function (needs to be sorted after by slave)
 
-	static VECTOR rminusb = {-(25<<16), 0, (25<<16)};
-	static VECTOR sminusb = {(25<<16), 0, (25<<16)};
-	
-
-	rminusb[Y] = (polymap->pntbl[polymap->pltbl[index].Vertices[2]][Y]) - (polymap->pntbl[polymap->pltbl[index].Vertices[0]][Y]);
-
-	sminusb[Y] = (polymap->pntbl[polymap->pltbl[index].Vertices[3]][Y]) - (polymap->pntbl[polymap->pltbl[index].Vertices[1]][Y]);
-
-	
-	cross_fixed(rminusb, sminusb, cross);
-	//Cross X varies on the input Y's
-	//Cross Y is always 1250<<16
-	//Cross Z varies on the input Y's
-	//To build a normalization table from this point ... Man I hate imperfect precalculations.
-	cross[X] = cross[X]>>8;
-	cross[Y] = cross[Y]>>8;
-	cross[Z] = cross[Z]>>8;
-
-	normalize(cross, cross);
-	
-	polymap->pltbl[index].norm[X] = -cross[X];
-	polymap->pltbl[index].norm[Y] = -cross[Y];
-	polymap->pltbl[index].norm[Z] = -cross[Z];
-	
-}
-
-
-void	update_hmap(void){
-
-	register int xDir = (you.dispPos[X] - you.prevDispPos[X]);
-	register int zDir = (you.dispPos[Y] - you.prevDispPos[Y]);
-	
-	register int xDo = 0;
-	register int zDo = 0;
-	
 	static int startOffset;
-	startOffset = (main_map_total_pix>>1) - (main_map_x_pix * 12) - 12;
+	startOffset = (main_map_total_pix>>1) - (main_map_x_pix * (LCL_MAP_PIX>>1)) - (LCL_MAP_PIX>>1);
 	static int rowOffset;
 	static int x_pix_sample;
 	static int y_pix_sample;
@@ -218,30 +239,49 @@ void	update_hmap(void){
 	static int dst_pix;
 	static int rowLimit;
 	static int RightBoundPixel;
-	
-/*
-Normal Copy Loops
-We already have normals on the map and don't want to recalculate them all every frame.
-There might also be attributes for each polygon that we don't want to recalculate, such as its ground scatter or doodad assignments.
-So, based on the direction we've moved, we should be able to copy all present polygon data to where it's moved to.
-The following accounts for the various directions we can move the map and how we should copy the data through it.
-*/
 
+	static FIXED m0x[4];
+	static FIXED m1y[4];
+	static FIXED m2z[4];
+	
+	m0x[0] = msMatrix[X][X];
+	m0x[1] = msMatrix[Y][X];
+	m0x[2] = msMatrix[Z][X];
+	m0x[3] = msMatrix[3][X];
+	
+	m1y[0] = msMatrix[X][Y];
+	m1y[1] = msMatrix[Y][Y];
+	m1y[2] = msMatrix[Z][Y];
+	m1y[3] = msMatrix[3][Y];
+	
+	m2z[0] = msMatrix[X][Z];
+	m2z[1] = msMatrix[Y][Z];
+	m2z[2] = msMatrix[Z][Z];
+	m2z[3] = msMatrix[3][Z];
+	
+	FIXED luma;
+	short colorBank;
 //
 //The only way to increase the render distance is with a non-uniform density.
 //
-	xDo = JO_ABS(xDir);
-	zDo = JO_ABS(zDir * 24);
+	
+	
+	//Loop Concept:
+	//SO just open Paint.NET make a 255x255 image.
+	//Then with the selection tool, drag a box exactly 25x25 in size.
+	//Then move the box around. That's exactly that this does.
+	//Well, maybe that's the simple version.
+	//It writes the pixels in that area to polygons, as the polygon's Y value.
 	
 			y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
-		for(Uint16 k = 0; k < 25; k++){
+		for(int k = 0; k < LCL_MAP_PIX; k++){
 			rowOffset = (k * main_map_x_pix) + startOffset;
 			rowLimit = rowOffset / main_map_x_pix;
-			for(Uint16 v = 0; v < 25; v++){
+			for(int v = 0; v < LCL_MAP_PIX; v++){
 				x_pix_sample = v + rowOffset + you.dispPos[X];
 				RightBoundPixel = (x_pix_sample - (rowLimit * main_map_x_pix));
 				src_pix = x_pix_sample - y_pix_sample;
-				dst_pix = v+(k*25);
+				dst_pix = v+(k*LCL_MAP_PIX);
 				if(src_pix < main_map_total_pix && src_pix >= 0 && RightBoundPixel < main_map_x_pix && RightBoundPixel >= 0){
 				local_hmap[dst_pix] = main_map[src_pix];
 				} else { //Fill Set Value if outside of map area
@@ -249,111 +289,128 @@ The following accounts for the various directions we can move the map and how we
 				//Note: Presently if a vertice inside the area that is visible in proximity to pixels outside the area with the same value as this..
 				//their normals are frequently copied incorrectly.
 			}
+			//src_pix_tbl[dst_pix] = src_pix;
 			polymap->pntbl[dst_pix][Y] = -(local_hmap[dst_pix]<<16);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Vertice 3D Transformation
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /**calculate z**/
+        msh2VertArea[dst_pix].pnt[Z] = trans_pt_by_component(polymap->pntbl[dst_pix], m2z);
+		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > nearP) ? msh2VertArea[dst_pix].pnt[Z] : nearP;
+ 
+         /**Starts the division**/
+        SetFixDiv(MsScreenDist, msh2VertArea[dst_pix].pnt[Z]);
+
+        /**Calculates X and Y while waiting for screenDist/z **/
+        msh2VertArea[dst_pix].pnt[Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
+        msh2VertArea[dst_pix].pnt[X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
+		
+        /** Retrieves the result of the division **/
+		msh2VertArea[dst_pix].inverseZ = *DVDNTL;
+
+        /**Transform X and Y to screen space**/
+        msh2VertArea[dst_pix].pnt[X] = fxm(msh2VertArea[dst_pix].pnt[X], msh2VertArea[dst_pix].inverseZ)>>SCR_SCALE_X;
+        msh2VertArea[dst_pix].pnt[Y] = fxm(msh2VertArea[dst_pix].pnt[Y], msh2VertArea[dst_pix].inverseZ)>>SCR_SCALE_Y;
+ 
+        //Screen Clip Flags for on-off screen decimation
+		msh2VertArea[dst_pix].clipFlag = (JO_ABS(msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
+		msh2VertArea[dst_pix].clipFlag |= (JO_ABS(msh2VertArea[dst_pix].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
+			
+			
 			}	// Row Filler Loop End Stub
 		} // Row Selector Loop End Stub
 		
-	// jo_printf(0, 11, "(%i)", xDir);
-	// jo_printf(0, 12, "(%i)", zDir);
+    transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 
-
-	int normalsHit = 0;
-	if( (xDir > 0 && zDir == 0) || (xDir == 0 && zDir < 0) || (xDir >= 1 && zDir <= -1) ){
-		
-	for(int g = 0; g < 576; g++){
-	  	yValueIndex[g] = ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[3]]]) << 24)
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[2]]]) << 16) 
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[1]]]) << 8 )
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[0]]]));
-		
-	if(yValueIndex[g] == yValueIndex[g+zDo+xDo] && (zDo+xDo) != 0  && (g+zDo+xDo) < 576){
-	polymap->pltbl[g].norm[X] = polymap->pltbl[g+zDo+xDo].norm[X]; //DO NOT USE DMA COPY IT IS SLOWER!
-	polymap->pltbl[g].norm[Y] = polymap->pltbl[g+zDo+xDo].norm[Y];
-	polymap->pltbl[g].norm[Z] = polymap->pltbl[g+zDo+xDo].norm[Z];
-	polymap->attbl[g] = polymap->attbl[g+zDo+xDo];
-	} else {
+			//Loop explanation:
+			//When we retrieve the map from the CD, we calculate the normals of every "potential" polygon in the map and write them to NormTbl.
+			//The map is forced to be odd in both dimensionsm (X and Y) to force there to be an objective "center" pixel. This is neccessary so we can find our place in the map,
+			//for the above loop.
+			//However, this complicates assigning our "compressed" normals to polygons.
+			//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
+			//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
+			//Very important is to find the local polygon 0 ("top left") to use as the offset for our location.
+			//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
+			//The vertice map does have a center. So we define our center as the polygon which has the center vertice as its first vertice [vertice 0 of 0-1-2-3].
+			// currently, 12 represents the polymap_width>>1
 	
-	normHandler(g);
-	normalsHit++;
-	texHandler(g);
-
-		}//Calculation End Stub
-
-	} //NORMAL LOOP END STUB
-		} else if(  (xDir < 0 && zDir == 0) || (xDir == 0 && zDir > 0) || (xDir <= -1 && zDir >= 1) ){ // Copy Direction Change
+			int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); //This polygon contains the center pixel (main_map_total_pix>>1)
+			int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); //This is the upper-left polygon of the display area
+			int src_norm = 0;
+			int dst_poly = 0;
+			VECTOR tempNorm = {0, 0, 0};
+			
+			vertex_t * ptv[5] = {0, 0, 0, 0, 0};
+			int flip = 0;
+			int texno = 0;
+			
+			y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
+		for(int k = 0; k < LCL_MAP_PLY; k++){
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Row Selection
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			rowOffset = (k * (main_map_x_pix-1)) + poly_offset;
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			for(int v = 0; v < LCL_MAP_PLY; v++){
+				
+				dst_poly = v+(k*LCL_MAP_PLY);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Backface & Screenspace Culling Section
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[0]];
+		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[1]];
+		ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[2]];
+		ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[3]];
 		
-	for(int g = 575; g >= 0; g--){
-	  	yValueIndex[g] = ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[3]]]) << 24)
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[2]]]) << 16) 
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[1]]]) << 8 )
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[0]]]));
+		//Components of screen-space cross-product used for backface culling.
+		//Vertice order hint:
+		// 0 - 1
+		// 3 - 2
+		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
+		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
+		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
+		//Sorting target. Uses max.
+		register int zDepthTgt = JO_MAX(
+		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		register int onScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
+		if((cross0 >= cross1) || onScrn || zDepthTgt <= nearP || zDepthTgt >= farP || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//HMAP Normal/Texture Finder
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				x_pix_sample = (v + rowOffset + (you.dispPos[X]));
+				
+				src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
 
-	if(yValueIndex[g] == yValueIndex[g-zDo-xDo] && (zDo-xDo) != 0 && (g-zDo-xDo) >= 0){
-	polymap->pltbl[g].norm[X] = polymap->pltbl[g-zDo-xDo].norm[X];
-	polymap->pltbl[g].norm[Y] = polymap->pltbl[g-zDo-xDo].norm[Y];
-	polymap->pltbl[g].norm[Z] = polymap->pltbl[g-zDo-xDo].norm[Z];
-	polymap->attbl[g] = polymap->attbl[g-zDo-xDo];
-	} else {
+				tempNorm[X] = normTbl[src_norm]<<9;
+				tempNorm[Y] = normTbl[src_norm+1]<<9;
+				tempNorm[Z] = normTbl[src_norm+2]<<9;
+
+		texno = tex2Handler(dst_poly, tempNorm, &flip);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Lighting
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//Transform the polygon's normal by light source vector
+		luma = fxdot(tempNorm, lightSrc);
+		//Use transformed normal as shade determinant
+		colorBank = (luma < -59000) ? 0 : 1;
+		colorBank = (luma > -50000) ? 2 : colorBank;
+		colorBank = (luma > -45000) ? 3 : colorBank;
+		colorBank = (luma > 0) ? 515 : colorBank; //Make really dark? use MSB shadow
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
+					ptv[2]->pnt, ptv[3]->pnt,
+                     2 | (flip), ( 5264 ), //Reads flip value
+                     pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			}	// Row Filler Loop End Stub
+		} // Row Selector Loop End Stub
 		
-	normHandler(g);
-	normalsHit++;
-	texHandler(g);
-	
-	}//Calculation End Stub
+		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
 
-	} //NORMAL LOOP END STUB
-		} else if((xDir > 0 && zDir > 0)){ //Copy Direction Change
-		
-	for(int g = 575; g >= 0; g--){
-	  	yValueIndex[g] = ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[3]]]) << 24)
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[2]]]) << 16) 
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[1]]]) << 8 )
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[0]]]));
-		
-
-	if(yValueIndex[g] == yValueIndex[g-zDo+xDo] && (zDo+xDo) != 0 && (g-zDo+xDo) >= 0){
-	polymap->pltbl[g].norm[X] = polymap->pltbl[g-zDo+xDo].norm[X];
-	polymap->pltbl[g].norm[Y] = polymap->pltbl[g-zDo+xDo].norm[Y];
-	polymap->pltbl[g].norm[Z] = polymap->pltbl[g-zDo+xDo].norm[Z];
-	polymap->attbl[g] = polymap->attbl[g-zDo+xDo];
-	} else {
-		
-	normHandler(g);
-	normalsHit++;
-	texHandler(g);
-	
-	}//Calculation End Stub
-
-	} //NORMAL LOOP END STUB
-		} else if((xDir < 0 && zDir < 0)){ //Copy Direction Change
-		
-	for(int g = 0; g < 576; g++){
-	  	yValueIndex[g] = ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[3]]]) << 24)
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[2]]]) << 16) 
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[1]]]) << 8 )
-		| ((Uint8)(main_map[local_hmap[polymap->pltbl[g].Vertices[0]]]));
-		
-
-	if(yValueIndex[g] == yValueIndex[g+zDo-xDo] && (zDo-xDo) != 0  && (g+zDo-xDo) < 576){
-	polymap->pltbl[g].norm[X] = polymap->pltbl[g+zDo-xDo].norm[X];
-	polymap->pltbl[g].norm[Y] = polymap->pltbl[g+zDo-xDo].norm[Y];
-	polymap->pltbl[g].norm[Z] = polymap->pltbl[g+zDo-xDo].norm[Z];
-	polymap->attbl[g] = polymap->attbl[g+zDo-xDo];
-	} else {
-	
-	normHandler(g);
-	normalsHit++;
-	texHandler(g);
-
-		}//Calculation End Stub
-
-	} //NORMAL LOOP END STUB
-	
-		} //Copy End
-	if(normalsHit != 0){
-	jo_printf(26, 3, "New Norms:(%i)", normalsHit);
-	}
 	*sysbool = true;
 }
 
@@ -361,7 +418,7 @@ The following accounts for the various directions we can move the map and how we
 void	hmap_cluster(void)
 {
 	chg_map(&maps[0]);
-	update_hmap();
+	//update_hmap();
 	draw_minimap();
 	update_mmap_1pass();
 }

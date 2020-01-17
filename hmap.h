@@ -30,24 +30,22 @@ extern int main_map_total_pix; //Total pixels of map
 extern int main_map_x_pix; //X pixels of map
 extern int main_map_y_pix; //Z pixels of map
 extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 // Eventually, to be loaded from file. But can be manually defined too, I guess.
-extern int map_texno_tbl[5];
 extern bool map_update_complete;
 extern bool * sysbool;
 extern bool map_chg;
 _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
-extern unsigned char * xTbl;
-extern unsigned char * yTbl;
-extern unsigned char * zTbl;
+extern char * normTbl;
 extern unsigned char * local_hmap;
 extern unsigned short * minimap;
 
 //Used in msfs.c
-void	read_gmp_header(_heightmap * map);
+void	read_pgm_header(_heightmap * map);
+void	process_map_for_normals(_heightmap * map);
 //
 void	init_heightmap(void);
-void	update_hmap(void);
+void	update_hmap(MATRIX msMatrix, FIXED * lightSrc);
 void	chg_map(_heightmap * tmap);
 void	hmap_cluster(void);
 //from hmap_col.c

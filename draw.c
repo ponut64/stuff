@@ -24,7 +24,7 @@ void	computeLight(void)
 void	initCamera(void)
 {
 	//slWindow(16, 8, 336, 232, draw_distance, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
-	slWindow(0, 0, JO_TV_WIDTH-1, JO_TV_HEIGHT-1, 1200, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
+	slWindow(0, 0, JO_TV_WIDTH-1, JO_TV_HEIGHT-1, 2000, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
 	slZdspLevel(0);
 	slPerspective(DEGtoANG(90)); //FOV
 }
@@ -45,6 +45,7 @@ void	master_draw_stats(void)
 	jo_printf(18, 0, "(File System Status)");
 	jo_printf(27, 2, "Pts :%x:", you.points);
 	jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
+	slPrintFX(you.sanics, slLocate(26, 3));
 	jo_printf(8, 25, "TRPLY:                ");
 	jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
 	jo_printf(8, 26, "SNTPL:                ");
@@ -108,13 +109,13 @@ void	player_draw(void)
 						ssh2DrawAnimation(&idle, &pl_model, plLit);
 						}	
 					} else {//IF NOT SLIDE ENDIF
-						if(jo_is_input_key_pressed(0, JO_KEY_RIGHT)){
+						if(is_key_pressed(DIGI_RIGHT)){
 						ssh2DrawAnimation(&slideRln, &pl_model, plLit);
-						} else if(jo_is_input_key_pressed(0, JO_KEY_LEFT)){
+						} else if(is_key_pressed(DIGI_LEFT)){
 						ssh2DrawAnimation(&slideLln, &pl_model, plLit);
-						} else if(jo_is_input_key_pressed(0, JO_KEY_UP)){
+						} else if(is_key_pressed(DIGI_UP)){
 						ssh2DrawAnimation(&slideFwd, &pl_model, plLit);
-						} else if(jo_is_input_key_pressed(0, JO_KEY_DOWN)){
+						} else if(is_key_pressed(DIGI_DOWN)){
 						ssh2DrawAnimation(&slideRvs, &pl_model, plLit);
 						} else {
 						ssh2DrawAnimation(&slideIdle, &pl_model, plLit);
@@ -130,11 +131,11 @@ void	player_draw(void)
 							} else {
 							ssh2DrawAnimation(&jump, &pl_model, light);
 							}
-						} else if(jo_is_input_key_pressed(0, JO_KEY_RIGHT)){
+						} else if(is_key_pressed(DIGI_RIGHT)){
 						ssh2DrawAnimation(&airRight, &pl_model, light);
-						} else if(jo_is_input_key_pressed(0, JO_KEY_LEFT)){
+						} else if(is_key_pressed(DIGI_LEFT)){
 						ssh2DrawAnimation(&airLeft, &pl_model, light);
-						} else if(jo_is_input_key_pressed(0, JO_KEY_DOWN)){
+						} else if(is_key_pressed(DIGI_DOWN)){
 						ssh2DrawAnimation(&airBack, &pl_model, light);
 						} else {
 						ssh2DrawAnimation(&airIdle, &pl_model, light);
@@ -323,12 +324,8 @@ Heightmap Occlusion Idea:
 If between the projection window and an entity there exists any yValue between the entitie's bounding box vertices greater than all of the vertices, do not bother sending the putpolygon command.
 First of course we need to figure out how to walk the heightmap in a particular direction.
 */
-entity_t MapDat;
 
-MapDat.pol[0] = (XPDATA*)polymap;
-MapDat.file_done = true;
-
-msh2DrawModel(&MapDat, hmap_mtx, surf_lit);
+update_hmap(hmap_mtx, surf_lit);
 
 }
 
@@ -364,8 +361,12 @@ void	master_draw(void)
 	//View Distance Extention -- Makes turning view cause performance issue, beware?
 	you.cellPos[X] = (fxm((INV_CELL_SIZE), you.pos[X])>>16);
 	you.cellPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z])>>16);
-	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] + fxm(slSin(-you.viewRot[Y]), 225<<16) )>>16);
-	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] + fxm(slCos(-you.viewRot[Y]), 225<<16) )>>16);
+	int sineY = fxm(slSin(-you.viewRot[Y]), 250<<16);
+	int sineX = fxm(slCos(-you.viewRot[Y]), 250<<16);
+	sineY += (sineY > 0) ? 25<<16 : 0; 
+	sineX += (sineX > 0) ? 25<<16 : 0; 
+	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
+	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
 	//
 	hmap_matrix_pos[X] = (you.pos[X]+you.Velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
 	hmap_matrix_pos[Z] = (you.pos[Z]+you.Velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);

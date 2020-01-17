@@ -122,7 +122,7 @@ void controls(void)
 	}
 	
 	
-		spdfactr = fxm(300, framerate<<16);
+		spdfactr = fxm(300, frmul);
 	if(you.dirInp == true){
 		you.IPaccel += spdfactr;
 	}
@@ -149,7 +149,7 @@ void controls(void)
 		} else {
 			you.okayStepSnd = true;
 		}
-//		you.Velocity[Y] += fxm((13106), (framerate)<<16);
+
 		rKeyTimer++;
 	} else {
 		you.okayStepSnd = true;

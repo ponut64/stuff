@@ -17,6 +17,8 @@
 #define FLIPH (16)
 #define FLIPHV (48)
 #define SQUARE_MAX (9633792) //147<<16
+#define LCL_MAP_PIX (25)
+#define LCL_MAP_PLY (24)
 
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
@@ -87,7 +89,8 @@ extern POINT zPt;
 //Lives in main.c
 //System
 extern unsigned char * dirty_buf;
-extern Sint32 framerate;
+extern int framerate;
+extern int frmul;
 extern volatile Uint32 * scuireg;
 
 typedef struct

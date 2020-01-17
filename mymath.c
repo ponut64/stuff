@@ -128,6 +128,37 @@ FIXED		fxisqrt(FIXED input){
 	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
 }
 
+FIXED		double_fxisqrt(FIXED input){
+	
+	static FIXED xSR = 0;
+	static FIXED pushrsamp = 0;
+	static FIXED msb = 0;
+	static FIXED shoffset = 0;
+	static FIXED yIsqr = 0;
+	
+	if(input <= 65536){
+		return 65536;
+	}
+	
+	xSR = input>>1;
+	pushrsamp = input;
+	msb = 0;
+	shoffset = 0;
+	yIsqr = 0;
+	
+	while(pushrsamp >= 65536){
+		pushrsamp >>=1;
+		msb++;
+	}
+
+	shoffset = (16 - ((msb)>>1));
+	yIsqr = 1<<shoffset;
+	//y = (y * (98304 - ( ( (x>>1) * ((y * y)>>16 ) )>>16 ) ) )>>16;   x2
+	yIsqr = (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
+	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
+}
+
+
 void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
@@ -137,6 +168,17 @@ void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
+
+void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
+{
+	//Shift inputs rsamp by 8, to prevent overflow.
+	static FIXED vmag = 0;
+	vmag = double_fxisqrt(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
+	vector_out[X] = fxm(vmag, vector_in[X]);
+	vector_out[Y] = fxm(vmag, vector_in[Y]);
+	vector_out[Z] = fxm(vmag, vector_in[Z]);
+}
+
 
 Bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 {

@@ -1,11 +1,9 @@
 #include "render.h"
 #include "anorm.h"
-#define SCR_SCALE_X (16)
-#define SCR_SCALE_Y (16)
 
-volatile int * DVSR = (volatile int*)0xFFFFFF00;
-volatile int * DVDNTH = (volatile int*)0xFFFFFF10;
-volatile int * DVDNTL = (volatile int*)0xFFFFFF14;
+ int * DVSR = ( int*)0xFFFFFF00;
+ int * DVDNTH = ( int*)0xFFFFFF10;
+ int * DVDNTL = ( int*)0xFFFFFF14;
 
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
@@ -30,8 +28,8 @@ int * transVerts;
 int * transPolys;
 int anims;
 
-const	FIXED	nearP	= 15<<16; // Z DISPLAY LEVEL [Actually a bit more complicated than that, but it works]
-const	FIXED	farP	= 1000<<16; // RENDER DIST
+	FIXED	nearP	= 15<<16; // Z DISPLAY LEVEL [Actually a bit more complicated than that, but it works]
+	FIXED	farP	= 1000<<16; // RENDER DIST
 const unsigned short comm_p_mode = 5264; //Should add color mode table? Color mode is applied here.
 const unsigned short ctrl = 2;
 
@@ -41,7 +39,7 @@ void	init_render_area(void){
 	//This means the data cached in these is only useful within rendering a single model, not for multiple.
 	//If you are rendering multiple small models, you'd rather fill the cache with pntbl and pltbl data.
 	ssh2VertArea = (vertex_t *)((unsigned int)jo_malloc(650 * sizeof(vertex_t))|UNCACHE);
-	msh2VertArea = (vertex_t *)((unsigned int)jo_malloc(650 * sizeof(vertex_t))|UNCACHE);
+	msh2VertArea = (vertex_t *)((unsigned int)jo_malloc(1100 * sizeof(vertex_t))|UNCACHE);
 	//
 	AnimArea = (animationControl *)((unsigned int)jo_malloc(16 * sizeof(animationControl))|UNCACHE);
 	
@@ -112,7 +110,7 @@ DVDNTL[0] = (dividend<<16);
 	
 }
 
-static inline void	ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -145,7 +143,7 @@ static inline void	ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry
 }
 
-static inline void	msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -216,7 +214,7 @@ void ssh2DrawModel(entity_t * ent, POINT lightSrc) //Primary variable sorting re
 	m2z[2] = newMtx[Z][Z];
 	m2z[3] = newMtx[3][Z];
 
-    XPDATA * model = ent->pol[0];
+    PDATA * model = ent->pol[0];
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
@@ -251,7 +249,7 @@ void ssh2DrawModel(entity_t * ent, POINT lightSrc) //Primary variable sorting re
     transVerts[0] += model->nbPoint;
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	short flip = 0;
+	int flip = 0;
 
     /**POLYGON PROCESSING**/ 
 		//Duplicate loops for sorting types.
@@ -494,7 +492,7 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
 	m2z[2] = msMatrix[Z][Z];
 	m2z[3] = msMatrix[3][Z];
 	
-    XPDATA * model = ent->pol[0];
+    PDATA * model = ent->pol[0];
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
@@ -529,7 +527,7 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
     transVerts[0] += model->nbPoint;
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	short flip = 0;
+	int flip = 0;
 
     /**POLYGON PROCESSING**/ 
     for (int i = 0; i < model->nbPolygon; i++)
@@ -631,7 +629,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT lightS
 	m2z[2] = newMtx[Z][Z];
 	m2z[3] = newMtx[3][Z];
 
-    XPDATA * model = ent->pol[0];
+    PDATA * model = ent->pol[0];
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
@@ -745,7 +743,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	VECTOR tNorm = {0, 0, 0};
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	short flip = 0;
+	int flip = 0;
 
     /**POLYGON PROCESSING**/ 
     for (int i = 0; i < model->nbPolygon; i++)

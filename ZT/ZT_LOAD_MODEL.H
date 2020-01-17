@@ -24,8 +24,6 @@ typedef struct
     short           TOT_TEXT;  //total amount of textures
     unsigned int    TEXT_SIZE;  //to quickly load from disk, that's the size of the textures in bytes
     unsigned int    PDATA_SIZE; //to quickly load from disk, total size of pdata in bytes
-    FIXED           Origin[XYZ]; //Origin point used to "center" the culling/collision data and your model's position. Should be 0,0,0 unless you have an offset
-    FIXED           Length[XYZ];  //Lenght along the x,y z axis. Together with the origin, that gives you the bounding box for quick broad collision testing
     unsigned short nbFrames;
     anim_struct *  animation;
 } modelData_t;
@@ -40,7 +38,7 @@ typedef struct
     Uint16 nbMeshes;
     Uint16 nbFrames;
     anim_struct * animation[240];
-    XPDATA * pol[MAX_MESHES];
+    PDATA * pol[MAX_MESHES];
 } entity_t;
 
 

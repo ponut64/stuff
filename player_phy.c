@@ -74,7 +74,6 @@ void	player_phys_affect(void)
 {
 	
 	static short oldRot = 0;
-	Uint16 id = you.id;
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];
 	you.viewRot[Y] -= you.rotState[X];
@@ -115,26 +114,26 @@ void	player_phys_affect(void)
 			you.Velocity[X] = fxm(you.Velocity[X], (you.surfFriction));
 			}
 		if(JO_ABS(you.Velocity[X]) <= (6553) &&
-		!jo_is_input_key_pressed(id, JO_KEY_UP) &&
-		!jo_is_input_key_pressed(id, JO_KEY_DOWN) &&
-		!jo_is_input_key_pressed(id, JO_KEY_LEFT) &&
-		!jo_is_input_key_pressed(id, JO_KEY_RIGHT)) you.Velocity[X] = 0;
+		is_key_up(DIGI_UP) &&
+		is_key_up(DIGI_DOWN) &&
+		is_key_up(DIGI_LEFT) &&
+		is_key_up(DIGI_RIGHT)) you.Velocity[X] = 0;
 
 		if(JO_ABS(you.Velocity[Y]) > (6553)){you.Velocity[Y] = fxm(you.Velocity[Y], (you.surfFriction));}
 		if(JO_ABS(you.Velocity[Y]) <= (6553) &&
-		!jo_is_input_key_pressed(id, JO_KEY_UP) &&
-		!jo_is_input_key_pressed(id, JO_KEY_DOWN) &&
-		!jo_is_input_key_pressed(id, JO_KEY_LEFT) &&
-		!jo_is_input_key_pressed(id, JO_KEY_RIGHT)) you.Velocity[Y] = 0;
+		is_key_up(DIGI_UP) &&
+		is_key_up(DIGI_DOWN) &&
+		is_key_up(DIGI_LEFT) &&
+		is_key_up(DIGI_RIGHT)) you.Velocity[Y] = 0;
 
 		if(JO_ABS(you.Velocity[Z]) > (6553)){
 			you.Velocity[Z] = fxm(you.Velocity[Z], (you.surfFriction));
 			}
 		if(JO_ABS(you.Velocity[Z]) <= (6553) &&
-		!jo_is_input_key_pressed(id, JO_KEY_UP) &&
-		!jo_is_input_key_pressed(id, JO_KEY_DOWN) &&
-		!jo_is_input_key_pressed(id, JO_KEY_LEFT) &&
-		!jo_is_input_key_pressed(id, JO_KEY_RIGHT)) you.Velocity[Z] = 0;
+		is_key_up(DIGI_UP) &&
+		is_key_up(DIGI_DOWN) &&
+		is_key_up(DIGI_LEFT) &&
+		is_key_up(DIGI_RIGHT)) you.Velocity[Z] = 0;
 
 		}
 							
@@ -163,9 +162,9 @@ void	player_phys_affect(void)
 	if(you.onSurface == true){
 		///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
 		///Also, stiction. You shouldn't ALWAYS slide :)
-		gravAcc[X] = fxm(fxm((GRAVITY), framerate<<16), fxm(slSin(you.floorNorm[X] % 16380), 49152)); //% operation used to ensure 0-90 domain of -180 to +180 degrees
-		gravAcc[Y] = fxm(fxm((GRAVITY), framerate<<16), fxm(slSin(you.floorNorm[Y] % 16380), 49152));
-		gravAcc[Z] = fxm(fxm((GRAVITY), framerate<<16), fxm(slSin(you.floorNorm[Z] % 16380), 49152));
+		gravAcc[X] = fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
+		gravAcc[Y] = fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
+		gravAcc[Z] = fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
 		you.Velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
 		you.Velocity[Y] -= (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
 		you.Velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
@@ -190,7 +189,7 @@ void	player_phys_affect(void)
 		}
 		
 	} else {
-		you.Velocity[Y] -= fxm((GRAVITY), framerate<<16);
+		you.Velocity[Y] -= fxm((GRAVITY), frmul);
 	}
 
 	//Wall Collision Decisions
@@ -206,9 +205,9 @@ void	player_phys_affect(void)
 	}
 	//
 	//Add your speed to your position (incremental / per-frame)
-	you.pos[X] += fxm(you.Velocity[X], framerate<<16);
-	you.pos[Y] += fxm(you.Velocity[Y], framerate<<16);
-	you.pos[Z] += fxm(you.Velocity[Z], framerate<<16);
+	you.pos[X] += fxm(you.Velocity[X], frmul);
+	you.pos[Y] += fxm(you.Velocity[Y], frmul);
+	you.pos[Z] += fxm(you.Velocity[Z], frmul);
 	//Create a true direction vector, independent of control vector
 	///I also want to make a one-dimensional "speed" metric which finds out how fast you're going in serms of sanics, important for collisions
 	static VECTOR tempDif = {0, 0, 0};
@@ -233,17 +232,17 @@ void	player_phys_affect(void)
 	if(JO_ABS(you.rotState[X]) < 90) you.rotState[X] = 0;
 	if(JO_ABS(you.rotState[Y]) < 90) you.rotState[Y] = 0;
 	//De-rating
-	if(!jo_is_input_key_pressed(id, JO_KEY_A) && you.rotState[X] < 0) you.rotState[X] += fxm(framerate<<16, fxm(JO_ABS(you.rotState[X]), 16384));//A
-	if(!jo_is_input_key_pressed(id, JO_KEY_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(framerate<<16, fxm(JO_ABS(you.rotState[Y]), 16384));//S
-	if(!jo_is_input_key_pressed(id, JO_KEY_C) && you.rotState[X] > 0) you.rotState[X] -= fxm(framerate<<16, fxm(JO_ABS(you.rotState[X]), 16384));//D
-	if(!jo_is_input_key_pressed(id, JO_KEY_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(framerate<<16, fxm(JO_ABS(you.rotState[Y]), 16384));//W
+	if( is_key_up(DIGI_A) && you.rotState[X] < 0) you.rotState[X] += fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//A
+	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//S
+	if( is_key_up(DIGI_C) && you.rotState[X] > 0) you.rotState[X] -= fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//D
+	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//W
 	
 	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(spdfactr*40,you.IPaccel);
-	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += fxm(300, framerate<<16);
+	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += fxm(300, frmul);
 
 		if(you.onSurface != true){
-			FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), framerate<<16);
-			FIXED setZrotDrate = fxm(fxm((6553), JO_ABS(you.rot[Z])), framerate<<16);
+			FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), frmul);
+			FIXED setZrotDrate = fxm(fxm((6553), JO_ABS(you.rot[Z])), frmul);
 	if(you.rot[X] > 0){
 		you.rot[X] -= setXrotDrate;
 	}
@@ -388,6 +387,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 }
 
 	if(you.hitSurface == true || you.hitMap == true){
+		
 		you.onSurface = true;
 		you.surfFriction = (45875);
 		you.pos[X] = (you.floorPos[X]);
@@ -395,26 +395,34 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 		you.pos[Z] = (you.floorPos[Z]);
 		
 		you.Velocity[Y] -= fxm(you.Velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
-		
-		if(you.sanics > 4<<16 && firstSurfHit == false){
-/*
- 			//d - 2 * d:dot(n) * n
+
+		//if(you.sanics > 2<<16 && firstSurfHit == false){
+
+ 			//d - 2 * dot(d, n) * n
 			//Surface Deflection at oblique angles is desired.
 				//Somewhat Functional. Disabled for now.
+
+		//VECTOR nOfn = {0, 0, 0};
+		//cross_fixed(you.DirUV, you.floorNorm, nOfn);
 		// jo_printf(0, 10, "(%i)", nOfn[X]/182);
 		// jo_printf(0, 11, "(%i)", nOfn[Y]/182);
 		// jo_printf(0, 12, "(%i)", nOfn[Z]/182);
-		VECTOR nOfn = {0, 0, 0};
-		cross_fixed(you.DirUV, you.floorNorm, nOfn);
+		
+		// slPrintFX(you.Velocity[X], slLocate(0, 10));
+		// slPrintFX(you.Velocity[Y], slLocate(0, 11));
+		// slPrintFX(you.Velocity[Z], slLocate(0, 12));
 
-			register FIXED deflectionFactor = slInnerProduct(you.Velocity, you.floorNorm);
+			// FIXED deflectionFactor = fxdot(you.Velocity, you.floorNorm);
 
-			you.Velocity[X] = you.Velocity[X] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[X]), -slSin(nOfn[X]));
-			you.Velocity[Y] = you.Velocity[Y] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Y]), -slSin(nOfn[Y]));		
-			you.Velocity[Z] = you.Velocity[Z] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Z]), -slSin(nOfn[Z]));
-*/
-			firstSurfHit = true;
-		}
+			// you.Velocity[X] = (you.Velocity[X] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[X]), (you.floorNorm[X])));
+			// you.Velocity[Y] = (you.Velocity[Y] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Y]), (you.floorNorm[Y])));		
+			// you.Velocity[Z] = (you.Velocity[Z] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Z]), (you.floorNorm[Z])));
+			
+
+			// firstSurfHit = true;
+			// you.hitSurface = false;
+			// you.hitMap = false;
+		//}
 		
 	} else {
 		you.onSurface = false;

@@ -48,7 +48,8 @@ I am sorry for the pain you had to go through.
 //A zero vector to be used when you want zero.
 POINT zPt = {0, 0, 0};
 extern Sint8 SynchConst; //SGL System Variable
-Sint32 framerate;
+int framerate;
+int frmul;
 
 unsigned char * dirty_buf;
 
@@ -98,6 +99,7 @@ void	update_gamespeed(void)
 	jo_draw_background_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
 		} 
 		//
+		frmul = framerate<<16;
 }
 
 //Loading. Check msfs.c and ZT_LOADMODEL.h for more information.
@@ -135,7 +137,7 @@ ztModelRequest((Sint8*)"PILLAR.ZTP",  &entities[3], true, SORT_CEN, numTex);
 ztModelRequest((Sint8*)"SHADOW.ZTP", &shadow, true, SORT_CEN, numTex);
 	WRAP_NewTexture((Sint8*)"SHADOW.TGA", (void*)dirty_buf);
 
-p64MapRequest((Sint8*)"00", 0);
+p64MapRequest((Sint8*)"01", 0);
 
 }
 
@@ -197,11 +199,10 @@ void	attributions(void)
 	slPrint("that actually work [Kappa]", slLocate(3, 17));
 	slPrint("music from Freedom Planet", slLocate(3, 19));
 	slPrint("[ u h  o h ]", slLocate(3, 20));
-	slPrint("also the sound driver sucks", slLocate(3, 21));
-	slPrint("also 9.2 is slightly slower than 4.0 ;-;", slLocate(0, 22));
+	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
 	slPrint("PRESS START", slLocate(3, 24));
 	fadeIn();
-	do{slSynch();}while(!jo_is_pad1_key_pressed(JO_KEY_START));
+	do{slSynch();}while(!is_key_pressed(DIGI_START));
 	jo_clear_screen();
 	slBack1ColSet((void*)VDP2_RAMBASE, 0xE726);
 }
@@ -212,7 +213,7 @@ void	jo_main(void)
 	//XL2
 	slDynamicFrame(ON); //Dynamic framerate
 	SynchConst = 2;
-//	attributions();
+
 	//
 	//Loading Area
 	//
@@ -228,8 +229,7 @@ void	jo_main(void)
 	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
-	//SYS_SETSCUIM(SYS_GETSCUIM & 8192);
-	//INT_SetScuFunc(0x4D, rt_fail); //Example of interrupt processing. Check SCU manual. Uses sprite draw end vector.
+	//attributions();
 	//
 	fill_obj_list();
 	load_test();
