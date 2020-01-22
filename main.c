@@ -106,14 +106,14 @@ void	update_gamespeed(void)
 void	load_test(void)
 {
 	//
-	snd_lstep = load_16bit_pcm((Sint8*)"LSTEP.PCM", 15360);
-	snd_wind = load_16bit_pcm((Sint8*)"WND.PCM", 15360);
-	snd_bstep = load_16bit_pcm((Sint8*)"BSTEP.PCM", 15360);
-	snd_click = load_16bit_pcm((Sint8*)"CLCK1.PCM", 15360);
-	snd_button = load_16bit_pcm((Sint8*)"BTN1.PCM", 15360);
-	snd_cronch = load_16bit_pcm((Sint8*)"CRONCH.PCM", 15360);
-	snd_alarm = load_16bit_pcm((Sint8*)"ALARM.PCM", 15360);
-	snd_win = load_16bit_pcm((Sint8*)"WIN.PCM", 15360);
+	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
+	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
+	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
+	snd_click = load_8bit_pcm((Sint8*)"CLCK1.PCM", 15360);
+	snd_button = load_8bit_pcm((Sint8*)"BTN1.PCM", 15360);
+	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
+	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
+	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
 	//Next up: TGA file system handler?
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);

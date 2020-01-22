@@ -159,6 +159,9 @@ short			load_16bit_pcm(Sint8 * filename, int sampleRate)
 	
 	if(file_size > (128 * 1024)) return -1; //PCM size too large for general-purpose playback [could still work with timed execution & offets]
 	
+	file_size += ((unsigned int)file_size & 1) ? 1 : 0;
+	file_size += ((unsigned int)file_size & 3) ? 2 : 0;
+	
 	GFS_Load(local_name, 0, (Uint32 *)((unsigned int)scsp_load + SNDRAM), file_size);
 	
 	octr = PCM_CALC_OCT(sampleRate);
@@ -204,6 +207,9 @@ short			load_8bit_pcm(Sint8 * filename, int sampleRate)
 	GFS_Close(s_gfs);
 	
 	if(file_size > (64 * 1024)) return -1; //PCM size too large for general-purpose playback [could still work with timed execution & offets]
+	
+	file_size += ((unsigned int)file_size & 1) ? 1 : 0;
+	file_size += ((unsigned int)file_size & 3) ? 2 : 0;
 	
 	GFS_Load(local_name, 0, (Uint32 *)((unsigned int)scsp_load + SNDRAM), file_size);
 	

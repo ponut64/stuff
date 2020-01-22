@@ -88,8 +88,8 @@ void	player_phys_affect(void)
 	int proportion = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
 	short angDif = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
 	//Will pivot camera towards direction of motion
-	if( /*(you.setSlide == true || you.onSurface != true) &&*/ (JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif) > 1024 &&
-	is_key_up(DIGI_DOWN))
+	if((JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif) > 1024 &&
+	(is_key_up(DIGI_DOWN) | is_key_down(DIGI_LEFT) | is_key_down(DIGI_RIGHT)))
 	{
 		you.viewRot[Y] += (angDif > 0) ? proportion : -proportion; //Determines if we want to rotate view clockwise or counterclockwise
 	}
