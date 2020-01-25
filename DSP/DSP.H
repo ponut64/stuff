@@ -9,8 +9,9 @@
  *----------------------------------------------------------------------------
  */
 
-#ifndef _DSP_H
-#define _DSP_H
+#ifndef __DSP_H__
+# define __DSP_H__
+
 
 /*
  * GLOBAL DEFINES/MACROS DEFINES

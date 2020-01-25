@@ -6,6 +6,9 @@ unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;
 
 unsigned char * GLOBAL_img_addr = (unsigned char *)LWRAM;
 
+unsigned char * sprPalette = 0;
+unsigned int sprPaletteCopy[256];
+
 int numTex = 0;
 
 void	get_file_in_memory(Sint8 * filename, void * destination)
@@ -80,7 +83,10 @@ bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful
 		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
 		
 		cRAM_24bm[i+256] = (final_color);
+		sprPaletteCopy[i] = final_color;
+		
 	}
+		sprPalette = (unsigned char *)&cRAM_24bm[256];
 		cRAM_24bm[1] = (255<<16) | (255<<8) | (255);
 	
 	return true;

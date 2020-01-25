@@ -7,10 +7,8 @@
 Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
-unsigned char * local_hmap;
 char * normTbl;
 unsigned short * minimap;
-int	src_pix_tbl[LCL_MAP_PIX * LCL_MAP_PIX];
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
@@ -139,7 +137,7 @@ void	process_map_for_normals(_heightmap * map)
 	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
 	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
 	
-	jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
+	//jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
 	
 }
 
@@ -151,7 +149,6 @@ void 	init_heightmap(void)
 3 - 2
 */
 	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	local_hmap = (void*)jo_malloc(LCL_MAP_PIX * LCL_MAP_PIX);
 	minimap = (void*)jo_malloc(2550 * sizeof(short));
 }
 
@@ -230,15 +227,17 @@ int		tex2Handler(int index, FIXED * norm, int * flip){
 void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 { //Master SH2 drawing function (needs to be sorted after by slave)
 
-	static int startOffset;
-	startOffset = (main_map_total_pix>>1) - (main_map_x_pix * (LCL_MAP_PIX>>1)) - (LCL_MAP_PIX>>1);
+	//static int startOffset;
+	//startOffset = (main_map_total_pix>>1) - (main_map_x_pix * (LCL_MAP_PIX>>1)) - (LCL_MAP_PIX>>1);
 	static int rowOffset;
 	static int x_pix_sample;
 	static int y_pix_sample;
-	static int src_pix;
+	// static int src_pix;
+	// static int rowLimit;
+	// static int RightBoundPixel;
 	static int dst_pix;
-	static int rowLimit;
-	static int RightBoundPixel;
+	
+	register int dspReturnTgt = 0;
 
 	static FIXED m0x[4];
 	static FIXED m1y[4];
@@ -272,25 +271,33 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 	//Then move the box around. That's exactly that this does.
 	//Well, maybe that's the simple version.
 	//It writes the pixels in that area to polygons, as the polygon's Y value.
+	//We also do vertice transformation here.
 	
-			y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
-		for(int k = 0; k < LCL_MAP_PIX; k++){
-			rowOffset = (k * main_map_x_pix) + startOffset;
-			rowLimit = rowOffset / main_map_x_pix;
-			for(int v = 0; v < LCL_MAP_PIX; v++){
-				x_pix_sample = v + rowOffset + you.dispPos[X];
-				RightBoundPixel = (x_pix_sample - (rowLimit * main_map_x_pix));
-				src_pix = x_pix_sample - y_pix_sample;
-				dst_pix = v+(k*LCL_MAP_PIX);
-				if(src_pix < main_map_total_pix && src_pix >= 0 && RightBoundPixel < main_map_x_pix && RightBoundPixel >= 0){
-				local_hmap[dst_pix] = main_map[src_pix];
+	//The SCU-DSP does this now [including the division, lol].
+	
+			//y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
+		//for(int k = 0; k < LCL_MAP_PIX; k++){
+			//rowOffset = (k * main_map_x_pix) + startOffset;
+			//rowLimit = rowOffset / main_map_x_pix;
+			//for(int v = 0; v < LCL_MAP_PIX; v++){
+			//	x_pix_sample = v + rowOffset + you.dispPos[X];
+			//	RightBoundPixel = (x_pix_sample - (rowLimit * main_map_x_pix));
+			//	src_pix = x_pix_sample - y_pix_sample;
+			//	dst_pix = v+(k*LCL_MAP_PIX);
+			//	if(src_pix < main_map_total_pix && src_pix >= 0 && RightBoundPixel < main_map_x_pix && RightBoundPixel >= 0){
+			//polymap->pntbl[dst_pix][Y] = -(main_map[src_pix]<<16);
+			//	} else { //Fill Set Value if outside of map area
+			//polymap->pntbl[dst_pix][Y] = -(127<<16);
+			//	}
+		for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
+		{
+			dspReturnTgt = dsp_output_addr[dst_pix];
+			if(dspReturnTgt >= 0){
+			polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<16);
 				} else { //Fill Set Value if outside of map area
-				local_hmap[dst_pix] = 127;
-				//Note: Presently if a vertice inside the area that is visible in proximity to pixels outside the area with the same value as this..
-				//their normals are frequently copied incorrectly.
-			}
-			//src_pix_tbl[dst_pix] = src_pix;
-			polymap->pntbl[dst_pix][Y] = -(local_hmap[dst_pix]<<16);
+			polymap->pntbl[dst_pix][Y] = -(127<<16);
+				}
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Vertice 3D Transformation
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -318,7 +325,7 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 			
 			
 			}	// Row Filler Loop End Stub
-		} // Row Selector Loop End Stub
+		//} // Row Selector Loop End Stub
 		
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 
@@ -333,16 +340,18 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 			//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
 			//The vertice map does have a center. So we define our center as the polygon which has the center vertice as its first vertice [vertice 0 of 0-1-2-3].
 			// currently, 12 represents the polymap_width>>1
-	
+			
+			//We also draw the polygons here.
+			
 			int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); //This polygon contains the center pixel (main_map_total_pix>>1)
 			int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); //This is the upper-left polygon of the display area
 			int src_norm = 0;
 			int dst_poly = 0;
-			VECTOR tempNorm = {0, 0, 0};
+			VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
 			
 			vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-			int flip = 0;
-			int texno = 0;
+			int flip = 0; //Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
+			int texno = 0; //Ditto
 			
 			y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
 		for(int k = 0; k < LCL_MAP_PLY; k++){

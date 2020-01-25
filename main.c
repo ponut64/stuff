@@ -33,12 +33,12 @@ I am sorry for the pain you had to go through.
 #include "render.h"
 #include "tga.h"
 #include "ldata.h"
-#include "dspm.h"
 #include "input.h"
 //
 #include "lwram.c"
 //
-
+//
+#include "dspm.h"
 //
 // Game data //
 //Be very careful with uninitialized pointers. [In other words, INITIALIZE POINTERS!]
@@ -151,12 +151,6 @@ void	game_frame(void)
 	master_draw(); 
 
 	file_request_loop();
-	//No Touch Order -- Affects animations/mechanics
-	//player_phys_affect();
-	//	mypad();
-	//player_collision_test_loop();
-	//collide_with_heightmap(&pl_RBB);
-	//object_control_loop(you.dispPos);
 	
 	slSynch();
 }
@@ -164,25 +158,21 @@ void	game_frame(void)
 void	my_vlank(void){
 	vblank_requirements();
 	operate_digital_pad1();
+	//Sound Driver Stuff
 	m68k_com->start = 1;
 	m68k_com->dT_ms = dt>>6;
-///Watch out for SCSP command overflow.
-///Changing the order of these functions may cause that.
 	music_vblIn(6);
+	//
 }
 
 void	load_in_frame(void){
 	do{
 	master_file_system(game_frame);
 	} while (true);
-//	master_file_system(game_frame);
 }
 
 void	attributions(void)
 {
-	load_dsp_prog();
-	run_dsp();
-	while(dsp_output_addr[0] != -1){} //No purpose.
 	fadeOut(0);
 	slPrint("Created by Ponut64", slLocate(3, 4));
 	slPrint("Contributions:", slLocate(3, 6));
@@ -226,6 +216,8 @@ void	jo_main(void)
 	init_heightmap();
 	//Sound Driver
 	load_drv(); 
+	//
+	load_dsp_prog();
 	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);

@@ -39,7 +39,7 @@ void	init_render_area(void){
 	//This means the data cached in these is only useful within rendering a single model, not for multiple.
 	//If you are rendering multiple small models, you'd rather fill the cache with pntbl and pltbl data.
 	ssh2VertArea = (vertex_t *)((unsigned int)jo_malloc(650 * sizeof(vertex_t))|UNCACHE);
-	msh2VertArea = (vertex_t *)((unsigned int)jo_malloc(1100 * sizeof(vertex_t))|UNCACHE);
+	msh2VertArea = (vertex_t *)((unsigned int)jo_malloc(850 * sizeof(vertex_t)));
 	//
 	AnimArea = (animationControl *)((unsigned int)jo_malloc(16 * sizeof(animationControl))|UNCACHE);
 	

@@ -7,6 +7,7 @@
 #include "input.h"
 #include "pcmsys.h"
 
+
 #define CELL_SIZE (25<<16)
 #define INV_CELL_SIZE (slDivFX(25<<16, 1<<16))
 #define CELL_SIZE_INT (25)
@@ -17,8 +18,8 @@
 #define FLIPH (16)
 #define FLIPHV (48)
 #define SQUARE_MAX (9633792) //147<<16
-#define LCL_MAP_PIX (25)
-#define LCL_MAP_PLY (24)
+#define LCL_MAP_PIX (27)
+#define LCL_MAP_PLY (26)
 
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers

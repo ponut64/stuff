@@ -9,7 +9,9 @@
 #include "bounder.h"
 #include "mymath.h"
 #include "physobjet.h"
-#include "DSP/DSP.h"
+//
+#include "dspm.h"
+//
 
 typedef struct{
 	POINT verts[4];
@@ -37,7 +39,6 @@ _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
 extern char * normTbl;
-extern unsigned char * local_hmap;
 extern unsigned short * minimap;
 
 //Used in msfs.c

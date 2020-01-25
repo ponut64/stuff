@@ -15,9 +15,54 @@ entity_t shadow;
 MATRIX hmap_mtx;
 MATRIX unit;
 
+//Note: global light is in order of BLUE, GREEN, RED. [BGR]
+unsigned char globalLight[3] = {0, 0, 0};
+unsigned char glblLightApplied = false;
+
 void	computeLight(void)
 {
-	//RIP
+
+	if(glblLightApplied == false)
+	{
+	unsigned char color[3] = {0, 0, 0};
+	unsigned short finalColors[3] = {0, 0, 0};
+	unsigned char * palPtrCpy = (unsigned char *)&sprPaletteCopy[0];
+		
+	for(int i = 0; i < 1024; ){
+		/*
+		Explanation:
+		Endianess of 24-bits in 32-bits is that byte 0 of the 4-bytes is empty.
+		That's why we start with i+1, then do i+2, i+3 etc.
+		What we do:
+		In Work RAM is a copy of the palette, called sprPaletteCopy.
+		palPtrCopy is a byte-wise pointer to this array.
+		The global light / global palette offset is to be added to ever member of this,
+		and then shoved out to color RAM.
+		**Without modifying the palette copy**
+		sprPalette is a pointer to the palette in color RAM.
+		The color is 24-bit but it's in a 32-bit space.
+		1 byte blue (second, bytewise), 1 byte green (third, bytewise), 1 byte red (fourth, bytewise).
+		*/
+		color[0] = palPtrCpy[i+1];
+		color[1] = palPtrCpy[i+2];
+		color[2] = palPtrCpy[i+3];
+		
+		finalColors[0] = color[0] + globalLight[0];
+		color[0] = (finalColors[0] < 255) ? finalColors[0] : 255;
+		finalColors[1] = color[1] + globalLight[1];
+		color[1] = (finalColors[1] < 255) ? finalColors[1] : 255;
+		finalColors[2] = color[2] + globalLight[2];
+		color[2] = (finalColors[2] < 255) ? finalColors[2] : 255;
+		
+		sprPalette[i+1] = color[0];
+		sprPalette[i+2] = color[1];
+		sprPalette[i+3] = color[2];
+		
+		i+=4;
+	}
+		
+		glblLightApplied = true;
+	}
 }
 
 
@@ -94,13 +139,13 @@ void	player_draw(void)
 						if(you.IPaccel < 0){
 							ssh2DrawAnimation(&stop, &pl_model, plLit);
 							}
-						if(you.IPaccel < 13000 && you.IPaccel > 0){
+						if(you.sanics < 2<<16 && you.IPaccel > 0){
 							ssh2DrawAnimation(&forward, &pl_model, plLit);
 							}
-						if(you.IPaccel < 24000 && you.IPaccel > 13000){
+						if(you.sanics < 3<<16 && you.sanics > 2<<16){
 							ssh2DrawAnimation(&run, &pl_model, plLit);
 							}
-						if(you.IPaccel >= 24000){
+						if(you.sanics >= 3<<16){
 							ssh2DrawAnimation(&dbound, &pl_model, plLit);
 							}
 						} else if((you.Velocity[X] != 0 || you.Velocity[Z] != 0) && !you.dirInp){
@@ -319,12 +364,8 @@ void	object_draw(void)
 }
 
 void	map_draw(void){	
-/*
-Heightmap Occlusion Idea:
-If between the projection window and an entity there exists any yValue between the entitie's bounding box vertices greater than all of the vertices, do not bother sending the putpolygon command.
-First of course we need to figure out how to walk the heightmap in a particular direction.
-*/
 
+	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
 update_hmap(hmap_mtx, surf_lit);
 
 }
@@ -347,12 +388,12 @@ void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it does
 void	master_draw(void)
 {
 	prep_map_mtx();
+	computeLight();
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 
 	hmap_cluster();
 	map_draw();
-	computeLight();
 
 	you.prevCellPos[X] = you.cellPos[X];
 	you.prevCellPos[Y] = you.cellPos[Y];
@@ -361,16 +402,15 @@ void	master_draw(void)
 	//View Distance Extention -- Makes turning view cause performance issue, beware?
 	you.cellPos[X] = (fxm((INV_CELL_SIZE), you.pos[X])>>16);
 	you.cellPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z])>>16);
-	int sineY = fxm(slSin(-you.viewRot[Y]), 250<<16);
-	int sineX = fxm(slCos(-you.viewRot[Y]), 250<<16);
-	sineY += (sineY > 0) ? 25<<16 : 0; 
-	sineX += (sineX > 0) ? 25<<16 : 0; 
+	int sineY = fxm(slSin(-you.viewRot[Y]), 300<<16);
+	int sineX = fxm(slCos(-you.viewRot[Y]), 300<<16);
 	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
 	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
 	//
 	hmap_matrix_pos[X] = (you.pos[X]+you.Velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
 	hmap_matrix_pos[Z] = (you.pos[Z]+you.Velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
 	
+	run_dsp(); //Run the DSP now to give it maximum time to complete (minimize sh2 wait)
 	slSlaveFunc(sort_master_polys, 0);	
 }
 

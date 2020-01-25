@@ -11,6 +11,8 @@
 extern unsigned int * cRAM_24bm;
 extern unsigned short * cRAM_16bm;
 
+extern unsigned char * sprPalette;
+extern unsigned int sprPaletteCopy[256];
 
 extern unsigned char * GLOBAL_img_addr;
 extern short GLOBAL_img_line_count;

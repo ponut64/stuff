@@ -64,7 +64,7 @@ unsigned char NactiveTGA = 0;
 void * active_LWRAM_ptr = (void*)LWRAM;
 void * active_HWRAM_ptr = (void*)LWRAM;
 	
-int bufNums[MUS_BUFCNT] = {123, 124, 125, 126, 127};
+int bufNums[MUS_BUFCNT];
 
 void	music_vblIn(Uint8 vol){
 //NOTICE: Music PCM buffer currently sits at the last 160 KB of sound RAM. m_trig Boolean is the control variable of playback.
@@ -226,7 +226,7 @@ void	pop_load_ztp(void(*game_code)(void)){
 //TIP: GFS_Nw_CdRead cannot be checked for completion. Sorry!
 	GFS_NwCdRead(gfsx, fsize);
 									/** END PROCESS REQUEST CODE **/
-for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
+for( ; fetch_timer >= (mcpy_factor) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
 	workAddress = (activeZTP->useHiMem == true) ? active_HWRAM_ptr : active_LWRAM_ptr;
 	GFS_NwFread(gfsx, rt_sector, (Uint32*)(workAddress +(curRdFrame * rt_step)), rt_step);
 	curRdFrame++;
@@ -331,7 +331,7 @@ void	pop_load_map(void(*game_code)(void)){
 	GFS_SetTmode(gfs_h, GFS_TMODE_CPU);
 	GFS_NwCdRead(gfs_h, fsizeH);
 	
-	for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
+	for( ; fetch_timer >= (mcpy_factor) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
 		GFS_NwFread(gfs_h, sf_sector, (Sint32*)(activePGM->dstAddress + (curRdFrame * sf_step)), sf_step);
 		file_ref += sf_sector;
 		do{
@@ -411,7 +411,7 @@ void	pop_load_tga(void(*game_code)(void)){
 	GFS_SetTmode(gfs_t, GFS_TMODE_CPU);
 	GFS_NwCdRead(gfs_t, fsizeT);
 	
-	for( ; fetch_timer >= (mcpy_factor * 1) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
+	for( ; fetch_timer >= (mcpy_factor) && fetch_timer <= musicTimer && mrd_pos == buf_pos ; ){
 		GFS_NwFread(gfs_t, sf_sector, (Sint32*)(dirty_buf + (curRdFrame * sf_step)), sf_step);
 		file_ref += sf_sector;
 		do{
@@ -455,16 +455,15 @@ void	pop_load_tga(void(*game_code)(void)){
 
 void		cease_all_music(void)
 {
-	pcm_cease(bufNums[0]);
-	pcm_cease(bufNums[1]);
-	pcm_cease(bufNums[2]);
-	pcm_cease(bufNums[3]);
-	pcm_cease(bufNums[4]);
+	for(int i = 0; i < MUS_BUFCNT; i++)
+	{
+		pcm_cease(bufNums[i]);
+	}
 }
 
 void		master_file_system(void(*game_code)(void))
 {	
-	
+
 music_buf[0].rd_pcmbuf = (void*)PCMBUF4;
 music_buf[0].play_pcmbuf = MAP_TO_SCSP(PCMBUF1);
 music_buf[1].rd_pcmbuf = (void*)PCMBUF5;
@@ -477,14 +476,16 @@ music_buf[4].rd_pcmbuf = (void*)PCMBUF3;
 music_buf[4].play_pcmbuf = MAP_TO_SCSP(PCMBUF5);
 
 //Initialize PCM Streams
+	bufNums[0] = 127;
 	if(m68k_com->pcmCtrl[bufNums[0]].playsize == 0)
 	{
 for(int i = 0; i < MUS_BUFCNT; i++)
 {
+	bufNums[i] = 127-i;
 	m68k_com->pcmCtrl[bufNums[i]].hiAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf >> 16);
 	m68k_com->pcmCtrl[bufNums[i]].loAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf & 0xFFFF);
 	m68k_com->pcmCtrl[bufNums[i]].pitchword = S1536KHZ;
-	m68k_com->pcmCtrl[bufNums[i]].playsize = (32768>>1);
+	m68k_com->pcmCtrl[bufNums[i]].playsize = ( (mcpy_factor * m_step)>>1);
 	m68k_com->pcmCtrl[bufNums[i]].bytes_per_blank = 512;
 	m68k_com->pcmCtrl[bufNums[i]].bitDepth = 0; //Select 16-bit
 	m68k_com->pcmCtrl[bufNums[i]].loopType = 1;
@@ -505,9 +506,9 @@ for(int i = 0; i < MUS_BUFCNT; i++)
 		chg_music = false;
 	}
 	if(musicPitch == S3072KHZ){
-		musicTimer = 32;
+		musicTimer = (mcpy_factor<<3);
 	} else if(musicPitch == S1536KHZ){
-		musicTimer = 64;
+		musicTimer = (mcpy_factor<<4);
 	}
 					/**MUSIC SYSTEM SETUP**/
 	//This function is supposed to play a mono PCM sound effect constantly. BY THE WAY: This system is currently unprepared for changing music files.

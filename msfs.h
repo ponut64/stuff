@@ -15,7 +15,7 @@
 #define PCMBUF2 (PCMBUF1 - 32768)
 #define PCMBUF3 (PCMBUF2 - 32768)
 #define PCMBUF4	(PCMBUF3 - 32768)
-#define PCMBUF5 (PCMBUF4 - 32768)
+#define PCMBUF5	(PCMBUF4 - 32768)
 /**END MUSIC BUFFER REGION**/
 
 #define MUS_BUFCNT (5)
@@ -59,7 +59,7 @@ extern void * active_HWRAM_ptr;
 extern request	requests[19];
 extern spr_rq	tga_request[19];
 
-extern snd_ring		music_buf[5];
+extern snd_ring		music_buf[MUS_BUFCNT];
 extern Sint8*		music;
 extern int			musicPitch;
 extern int			musicTimer;

@@ -19,9 +19,9 @@
 #include "minimap.h"
 #include "control.h"
 #include "render.h"
-
-//extern POINT point_static[625];
-//extern volatile POINT * point_0;
+//
+#include "dspm.h"
+//
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
 extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
 extern ATTR attribute_0[LCL_MAP_PLY * LCL_MAP_PLY];

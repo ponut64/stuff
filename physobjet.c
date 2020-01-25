@@ -198,7 +198,7 @@ void	object_control_loop(int ppos[XY])
 		if((dWorldObjects[i].type.ext_dat & 0x7000) == LDATA){ //is LDATA...
 				//Do nothing
 		} else { //is not LDATA...
-			if(difX > -12 && difX < 12 && difY > -12 && difY < 12 && objUP < MAX_PHYS_PROXY){
+			if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY){
 				update_object(objUP, dWorldObjects[i].pix[X], dWorldObjects[i].pix[Y],
 				(dWorldObjects[i].height + dWorldObjects[i].type.radius[Y])<<16, dWorldObjects[i].srot[X], dWorldObjects[i].srot[Y], dWorldObjects[i].srot[Z],
 				dWorldObjects[i].type.radius[X]<<16, dWorldObjects[i].type.radius[Y]<<16, dWorldObjects[i].type.radius[Z]<<16);
@@ -351,8 +351,8 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
 	// jo_printf(12, 14, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
 
-
-	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) //Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
+//Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
+	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) 
 	{
 			dWorldObjects[obj_id1].dist = 0;
 			dWorldObjects[posts[0]].type.ext_dat |= 0x1;

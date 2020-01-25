@@ -9,9 +9,9 @@ JO_MAX_SPRITE = 4
 #JO_480p = 1
 
 JO_GLOBAL_MEMORY_SIZE_FOR_MALLOC = 460800
-SRCS=main.c input.c dspm.c pcmsys.c ldata.c timer.c render.c tga.c vdp2.c mymath.c \
-draw.c bounder.c collision.c player_phy.c hmap.c minimap.c hmap_col.c \
-physobjet.c control.c msfs.c ZT/ZT_LOAD_MODEL.c ZT/ZT_TOOLS.c ZT/ZT_CD.c 
+SRCS=main.c render.c input.c draw.c ldata.c timer.c tga.c pcmsys.c mymath.c \
+msfs.c bounder.c collision.c player_phy.c hmap.c minimap.c hmap_col.c \
+control.c vdp2.c physobjet.c dspm.c ZT/ZT_LOAD_MODEL.c ZT/ZT_TOOLS.c ZT/ZT_CD.c 
 JO_ENGINE_SRC_DIR=./jo_engine
 COMPILER_DIR=./Compiler
 include $(COMPILER_DIR)/COMMON/jo_engine_makefile

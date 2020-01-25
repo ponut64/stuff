@@ -157,8 +157,6 @@ void	player_phys_affect(void)
 
 	//Surface / gravity decisions
 	static VECTOR gravAcc;
-	static FIXED	surfLimitX;
-	static FIXED	surfLimitZ;
 	if(you.onSurface == true){
 		///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
 		///Also, stiction. You shouldn't ALWAYS slide :)
@@ -168,26 +166,6 @@ void	player_phys_affect(void)
 		you.Velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
 		you.Velocity[Y] -= (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
 		you.Velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
-		
-		//The below treats some oblique angles as wall-ish
-		//Problem: The heightmap surfaces are actually triangles, so it's kind of easy to manipulate the X and Z difference
-		//to be minimal, and climb up just about any surface. [climb the seam between the triangles]
-		surfLimitX = fxm(you.ControlUV[X], you.floorNorm[X]);
-		surfLimitZ = fxm(you.ControlUV[Z], you.floorNorm[Z]);
-		
-		//slPrintFX(surfLimitX, slLocate(0, 9));
-		//slPrintFX(surfLimitZ, slLocate(0, 10));
-		
-		if( surfLimitX > 26000 ){
-			you.dirInp = false;
-			you.Velocity[X] += (you.setSlide == true) ? 0 : fxm(32768, you.floorNorm[X]);
-		}
-
-		if( surfLimitZ > 26000 ){
-			you.dirInp = false;
-			you.Velocity[Z] += (you.setSlide == true) ? 0 : fxm(32768, you.floorNorm[Z]);
-		}
-		
 	} else {
 		you.Velocity[Y] -= fxm((GRAVITY), frmul);
 	}
@@ -393,36 +371,28 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 		you.pos[X] = (you.floorPos[X]);
 		you.pos[Y] = (you.floorPos[Y]);
 		you.pos[Z] = (you.floorPos[Z]);
-		
-		you.Velocity[Y] -= fxm(you.Velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 
-		//if(you.sanics > 2<<16 && firstSurfHit == false){
+		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152 && you.setSlide != true)){
 
- 			//d - 2 * dot(d, n) * n
-			//Surface Deflection at oblique angles is desired.
-				//Somewhat Functional. Disabled for now.
+			//Bounce and, incidentally, a decent way to discourage you from going up steep slopes.
+			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
+			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
+			//Or scaling the velocity by some half and not-half of the normal.
+			//What we have below is an "impact dot" by the deflection factor.
+			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
+			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
+			//"0xFFFF" is the elasticity factor. Here, it's just 1.
+			FIXED deflectionFactor = -fxdot(you.Velocity, you.floorNorm);
 
-		//VECTOR nOfn = {0, 0, 0};
-		//cross_fixed(you.DirUV, you.floorNorm, nOfn);
-		// jo_printf(0, 10, "(%i)", nOfn[X]/182);
-		// jo_printf(0, 11, "(%i)", nOfn[Y]/182);
-		// jo_printf(0, 12, "(%i)", nOfn[Z]/182);
-		
-		// slPrintFX(you.Velocity[X], slLocate(0, 10));
-		// slPrintFX(you.Velocity[Y], slLocate(0, 11));
-		// slPrintFX(you.Velocity[Z], slLocate(0, 12));
-
-			// FIXED deflectionFactor = fxdot(you.Velocity, you.floorNorm);
-
-			// you.Velocity[X] = (you.Velocity[X] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[X]), (you.floorNorm[X])));
-			// you.Velocity[Y] = (you.Velocity[Y] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Y]), (you.floorNorm[Y])));		
-			// you.Velocity[Z] = (you.Velocity[Z] - fxm(fxm(fxm(2<<16, deflectionFactor), you.floorNorm[Z]), (you.floorNorm[Z])));
+			you.Velocity[X] += fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
+			you.Velocity[Y] += fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
+			you.Velocity[Z] += fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 
 			
 
-			// firstSurfHit = true;
-			// you.hitSurface = false;
-			// you.hitMap = false;
-		//}
+			firstSurfHit = true;
+		}
+		
+		you.Velocity[Y] -= fxm(you.Velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 		
 	} else {
 		you.onSurface = false;
