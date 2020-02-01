@@ -1,5 +1,4 @@
 
-#include "ZT/ZT_COMMON.h"
 #include <jo/jo.h>
 
 void	init_vdp2(void)

@@ -349,7 +349,7 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 			int dst_poly = 0;
 			VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
 			
-			vertex_t * ptv[5] = {0, 0, 0, 0, 0};
+			vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
 			int flip = 0; //Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
 			int texno = 0; //Ditto
 			
@@ -399,6 +399,35 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 				tempNorm[Z] = normTbl[src_norm+2]<<9;
 
 		texno = tex2Handler(dst_poly, tempNorm, &flip);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Flip logic to keep vertice 0 on-screen
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+			//Incoming Arrangement:
+			// 0 - 1		^
+			//-------- Edge | Y-
+			// 3 - 2		|
+			//				
+            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
+            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
+            flip ^= 1<<5; //sprite flip value [v flip]
+			//Outgoing Arrangement:
+			// 3 - 2		^
+			//-------- Edge | Y-
+			// 0 - 1		|
+		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+			//Incoming Arrangement:
+			//	0 | 1
+			//	3 | 2
+			//	 Edge  ---> X+
+            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
+            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
+            flip ^= 1<<4; //sprite flip value [h flip]
+			//Outgoing Arrangement:
+			// 1 | 0
+			// 2 | 3
+			//	Edge	---> X+
+		}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

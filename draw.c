@@ -16,8 +16,9 @@ MATRIX hmap_mtx;
 MATRIX unit;
 
 //Note: global light is in order of BLUE, GREEN, RED. [BGR]
-unsigned char globalLight[3] = {0, 0, 0};
+char globalLight[3] = {0, 0, 0};
 unsigned char glblLightApplied = false;
+unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
 void	computeLight(void)
 {
@@ -25,8 +26,16 @@ void	computeLight(void)
 	if(glblLightApplied == false)
 	{
 	unsigned char color[3] = {0, 0, 0};
-	unsigned short finalColors[3] = {0, 0, 0};
+	short finalColors[3] = {0, 0, 0};
 	unsigned char * palPtrCpy = (unsigned char *)&sprPaletteCopy[0];
+		
+		slBack1ColSet((void*)VDP2_RAMBASE, 0xE726);
+		finalColors[0] = backScrn[0] + globalLight[0];
+		backScrn[0] = (finalColors[0] < 255) ? (finalColors[0] < 0) ? 0 : finalColors[0] : 255;
+		finalColors[1] = backScrn[1] + globalLight[1];
+		backScrn[1] = (finalColors[1] < 255) ? (finalColors[1] < 0) ? 0 : finalColors[1] : 255;
+		finalColors[2] = backScrn[2] + globalLight[2];
+		backScrn[2] = (finalColors[2] < 255) ? (finalColors[2] < 0) ? 0 : finalColors[2] : 255;
 		
 	for(int i = 0; i < 1024; ){
 		/*
@@ -48,11 +57,11 @@ void	computeLight(void)
 		color[2] = palPtrCpy[i+3];
 		
 		finalColors[0] = color[0] + globalLight[0];
-		color[0] = (finalColors[0] < 255) ? finalColors[0] : 255;
+		color[0] = (finalColors[0] < 255) ? (finalColors[0] < 0) ? 0 : finalColors[0] : 255;
 		finalColors[1] = color[1] + globalLight[1];
-		color[1] = (finalColors[1] < 255) ? finalColors[1] : 255;
+		color[1] = (finalColors[1] < 255) ? (finalColors[1] < 0) ? 0 : finalColors[1] : 255;
 		finalColors[2] = color[2] + globalLight[2];
-		color[2] = (finalColors[2] < 255) ? finalColors[2] : 255;
+		color[2] = (finalColors[2] < 255) ? (finalColors[2] < 0) ? 0 : finalColors[2] : 255;
 		
 		sprPalette[i+1] = color[0];
 		sprPalette[i+2] = color[1];
@@ -172,18 +181,18 @@ void	player_draw(void)
 						airTimer++;
 						if(airTimer < 8 && airTimer != 0 && you.Velocity[Y] != 0){
 							if(you.setSlide == true){
-							ssh2DrawAnimation(&jump2, &pl_model, light);
+							ssh2DrawAnimation(&jump2, &pl_model, plLit);
 							} else {
-							ssh2DrawAnimation(&jump, &pl_model, light);
+							ssh2DrawAnimation(&jump, &pl_model, plLit);
 							}
 						} else if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&airRight, &pl_model, light);
+						ssh2DrawAnimation(&airRight, &pl_model, plLit);
 						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&airLeft, &pl_model, light);
+						ssh2DrawAnimation(&airLeft, &pl_model, plLit);
 						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&airBack, &pl_model, light);
+						ssh2DrawAnimation(&airBack, &pl_model, plLit);
 						} else {
-						ssh2DrawAnimation(&airIdle, &pl_model, light);
+						ssh2DrawAnimation(&airIdle, &pl_model, plLit);
 						}
 				}//IF AIR ENDIF
 			} //IF MODEL LOADED ENDIF

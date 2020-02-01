@@ -25,7 +25,7 @@ I am sorry for the pain you had to go through.
 #include "bounder.h"
 #include "collision.h"
 #include "control.h"
-#include "ZT/ZT_COMMON.h"
+#include "mloader.h"
 #include "hmap.h"
 #include "msfs.h"
 #include "vdp2.h"
@@ -52,6 +52,7 @@ int framerate;
 int frmul;
 
 unsigned char * dirty_buf;
+void * currentAddress;
 
 volatile Uint32 * scuireg = (Uint32*)0x25FE00A4;
 volatile Uint32 * scuimask = (Uint32*)0x25FE00A0;
@@ -122,20 +123,18 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
 	//End tex 35
-ztModelRequest((Sint8*)"BPONY.ZTP", &pl_model, true, SORT_CEN, numTex);
-	WRAP_NewTable((Sint8*)"PONTX.TGA", (void*)dirty_buf, 0);
-	WRAP_NewTexture((Sint8*)"LEYE.TGA", (void*)dirty_buf);
-	WRAP_NewTexture((Sint8*)"REYE.TGA", (void*)dirty_buf);
-ztModelRequest((Sint8*)"TRE.ZTP",  &entities[2], true, SORT_CEN, numTex);
-	WRAP_NewTable((Sint8*)"TRE.TGA", (void*)dirty_buf, 0);
-ztModelRequest((Sint8*)"BRING.ZTP",  &entities[0], true, SORT_CEN, numTex);
-	WRAP_NewTable((Sint8*)"GTEXT.TGA", (void*)dirty_buf, 0);
-ztModelRequest((Sint8*)"JOOSE.ZTP",  &entities[1], true, SORT_CEN, numTex);
-	WRAP_NewTable((Sint8*)"JOSTEX.TGA", (void*)dirty_buf, 0);
-ztModelRequest((Sint8*)"PILLAR.ZTP",  &entities[3], true, SORT_CEN, numTex);
-	WRAP_NewTable((Sint8*)"PILTEX.TGA", (void*)dirty_buf, 0);
-ztModelRequest((Sint8*)"SHADOW.ZTP", &shadow, true, SORT_CEN, numTex);
-	WRAP_NewTexture((Sint8*)"SHADOW.TGA", (void*)dirty_buf);
+ztModelRequest((Sint8*)"BPONY.GVP", &pl_model, true, SORT_CEN);
+
+ztModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN);
+
+ztModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN);
+
+ztModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN);
+
+ztModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN);
+
+ztModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
+
 
 p64MapRequest((Sint8*)"01", 0);
 
@@ -173,7 +172,6 @@ void	load_in_frame(void){
 
 void	attributions(void)
 {
-	fadeOut(0);
 	slPrint("Created by Ponut64", slLocate(3, 4));
 	slPrint("Contributions:", slLocate(3, 6));
 	slPrint("XL2 - Binary model file process", slLocate(3, 7));
@@ -191,10 +189,8 @@ void	attributions(void)
 	slPrint("[ u h  o h ]", slLocate(3, 20));
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
 	slPrint("PRESS START", slLocate(3, 24));
-	fadeIn();
 	do{slSynch();}while(!is_key_pressed(DIGI_START));
 	jo_clear_screen();
-	slBack1ColSet((void*)VDP2_RAMBASE, 0xE726);
 }
 
 void	jo_main(void)

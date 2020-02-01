@@ -87,7 +87,7 @@ void	music_vblIn(Uint8 vol){
 	}
 }
 
-void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType, short base_texture)
+void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType)
 {
 //Fill out the request.
 	requests[NactiveZTP].filename = (Sint8*)GFS_NameToId(name);
@@ -95,7 +95,6 @@ void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType
 	requests[NactiveZTP].active = true;
 	requests[NactiveZTP].useHiMem = useHiMem;
 	model->sortType = sortType;
-	model->base_texture = base_texture;
 
 	NactiveZTP++;
 }
@@ -260,7 +259,7 @@ do{
 	activeZTP->tmodel->nbFrames = bufModelX.nbFrames;
 	
 	//Uint16 first_texture = loadTextures(workAddress, &bufModelX);
-	Sint32 bytesOff = bufModelX.TEXT_SIZE+(sizeof(modelData_t)); 
+	Sint32 bytesOff = (sizeof(modelData_t)); 
 	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
 	
 	activeZTP->tmodel->size = (unsigned int)workAddress;
@@ -268,8 +267,28 @@ do{
 	activeZTP->tmodel->size = (unsigned int)workAddress - activeZTP->tmodel->size;
 
 
-	setTextures(activeZTP->tmodel, activeZTP->tmodel->base_texture, &activeZTP->tmodel->numTexture);
+	setTextures(activeZTP->tmodel, numTex, &activeZTP->tmodel->numTexture);
     workAddress = loadAnimations(workAddress, activeZTP->tmodel, &bufModelX);
+	
+	unsigned short * uAddr = (unsigned short *)workAddress;
+	unsigned char * readByte = (unsigned char *)workAddress;
+	unsigned char tHeight = 0;
+	unsigned char tWidth = 0;
+	unsigned int tSize = 0;
+	for(int j = 0; j < activeZTP->tmodel->numTexture+1; j++)
+	{
+		readByte+=2;	//Skip over a boundary short word, 0xF7F7
+		tHeight = readByte[0];
+		tWidth = readByte[1];
+		tSize = tHeight * tWidth;
+		readByte += 2; //Skip over the H x W bytes
+		GLOBAL_img_addr = readByte;
+		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
+		readByte += tSize; //Get us to the next texture
+	}
+	
+	//NOTE: We do NOT add the size of textures to the work address pointer.
+	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	
 		//Decimate existing sort type bits
 	activeZTP->tmodel->pol[0]->attbl[0].sort &= 252;

@@ -91,7 +91,7 @@ void	player_phys_affect(void)
 	if((JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif) > 1024 &&
 	(is_key_up(DIGI_DOWN) | is_key_down(DIGI_LEFT) | is_key_down(DIGI_RIGHT)))
 	{
-		you.viewRot[Y] += (angDif > 0) ? proportion : -proportion; //Determines if we want to rotate view clockwise or counterclockwise
+		you.viewRot[Y] += (angDif > 0) ? (proportion * framerate)>>1 : -(proportion * framerate)>>1; //Determines if we want to rotate view clockwise or counterclockwise
 	}
 	//
 	
@@ -215,8 +215,8 @@ void	player_phys_affect(void)
 	if( is_key_up(DIGI_C) && you.rotState[X] > 0) you.rotState[X] -= fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//D
 	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//W
 	
-	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(spdfactr*40,you.IPaccel);
-	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += fxm(300, frmul);
+	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(slDivFX(frmul , 65536), you.IPaccel);
+	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += spdfactr;
 
 		if(you.onSurface != true){
 			FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), frmul);

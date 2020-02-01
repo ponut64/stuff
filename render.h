@@ -2,7 +2,7 @@
 # define __RENDER_H__
 
 #include "jo/jo.h"
-#include "ZT/ZT_COMMON.h"
+#include "mloader.h"
 #include "def.h"
 #include "mymath.h"
 

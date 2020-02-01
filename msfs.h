@@ -1,8 +1,7 @@
 #ifndef __MSFS_H__
 # define __MSFS_H__
 
-#include "ZT/ZT_COMMON.H"
-#include "ZT/ZT_LOAD_MODEL.H"
+#include "mloader.h"
 #include "hmap.h"
 #include "ldata.h"
 #include <jo/jo.h>
@@ -74,7 +73,7 @@ extern Bool			chg_music;
 void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg);
 void	music_vblIn(Uint8 vol);
 //
-void	ztModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType, short base_texture);
+void	ztModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType);
 //
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));

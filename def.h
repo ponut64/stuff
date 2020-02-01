@@ -90,6 +90,7 @@ extern POINT zPt;
 //Lives in main.c
 //System
 extern unsigned char * dirty_buf;
+extern void * currentAddress;
 extern int framerate;
 extern int frmul;
 extern volatile Uint32 * scuireg;

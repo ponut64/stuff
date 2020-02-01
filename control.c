@@ -65,14 +65,14 @@ void controls(void)
 {
 
 	if(is_key_down(DIGI_A)){
-		you.rotState[X] -=91 * framerate; //Look/turn left
+		you.rotState[X] -= 91 * framerate; //Look/turn left
 	}
 	if(is_key_down(DIGI_B)){
 
-		you.rotState[Y] -=91 * framerate; //Look down
+		you.rotState[Y] -= 91 * framerate; //Look down
 	}
 	if(is_key_down(DIGI_C)){
-		you.rotState[X] +=91 * framerate; //Look/turn right
+		you.rotState[X] += 91 * framerate; //Look/turn right
 	}
     if (is_key_down(DIGI_X))
     {
@@ -80,7 +80,7 @@ void controls(void)
     }
 	if (is_key_down(DIGI_Y))
     {
-		you.rotState[Y] +=91 * framerate; //Look up
+		you.rotState[Y] += 91 * framerate; //Look up
     }
 	if(is_key_down(DIGI_Z)){
 

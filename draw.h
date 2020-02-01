@@ -6,8 +6,8 @@
 #define VIEW_OFFSET_Y (8)
 #define VIEW_OFFSET_Z (-22)
 
-//ZT Folder from XL2 (some slight modifications)
-#include "ZT/ZT_COMMON.h"
+//Contains stuff linked to XL2
+#include "mloader.h"
 //
 #include "def.h"
 #include "bounder.h"
