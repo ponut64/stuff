@@ -7,19 +7,12 @@
 
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
-//Write-only register! of CRAMoffset[1], bits 6,5,4 control SPR layer offset.
-unsigned short * vdp2_CRAMoffset = (unsigned short *)(0x1800E4 + VDP2_RAMBASE);
-unsigned short * vdp2_TVmode = (unsigned short *)(0x180000 + VDP2_RAMBASE);
-unsigned short * vdp2_shadow = (unsigned short *)(0x1800E2 + VDP2_RAMBASE);
-unsigned short * vdp2_sprMode = (unsigned short *)(0x1800E0 + VDP2_RAMBASE);
-unsigned short * vdp2BackHigh = (unsigned short *)(0x1800AC + VDP2_RAMBASE);
-unsigned short * vdp2BackLow = (unsigned short *)(0x1800AE + VDP2_RAMBASE);
-//
-
 vertex_t * ssh2VertArea;
 vertex_t * msh2VertArea;
 animationControl * AnimArea;
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
+
+point_light active_lights[16];
 
 int dummy[4];
 int * ssh2SentPolys;
@@ -48,15 +41,6 @@ void	init_render_area(void){
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
 	transPolys = (int *)(((unsigned int)&dummy[3])|UNCACHE);
-}
-
-void	vblank_requirements(void)
-{
-	//jo_printf(0, 15, "(%x)", (int)BACK_CRAM);
-	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
-	vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
-	vdp2_shadow[0] = 511;
-	vdp2_sprMode[0] = 3; //Sprite Data Type Mode
 }
 
 void	frame_render_prep(void)
@@ -110,7 +94,7 @@ DVDNTL[0] = (dividend<<16);
 	
 }
 
-void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+__jo_force_inline void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -143,7 +127,7 @@ void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdc
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry
 }
 
-void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+__jo_force_inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -188,7 +172,129 @@ void	sort_master_polys(void)
 	}
 }
 
-void ssh2DrawModel(entity_t * ent, POINT lightSrc) //Primary variable sorting rendering
+//If rendering a matrix-centered object (like a gun model or a third-person player model), set "negate coordinates" to Y.
+int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char negateCoordinates)
+{
+	
+	/*
+	PRE-PROCESSOR
+	
+	Find the nearest light in the active light list.
+	The engine expects you to populate the light list with at least 1 light.
+	It can be a point light, an ambient light, or both.
+	
+	*/
+	int nearest_dot = 1<<30;
+	int active_dot = 0;
+	VECTOR lightDist = {0, 0, 0};
+	point_light * light_used = &active_lights[0];
+	
+		for(int i = 0; i < 16; i++)
+		{
+			if(active_lights[i].pop == 1)
+				{
+	lightDist[X] = wldPos[X] - active_lights[i].location[X];
+	lightDist[Y] = wldPos[Y] - active_lights[i].location[Y];
+	lightDist[Z] = wldPos[Z] - active_lights[i].location[Z];
+		active_dot = fxdot(lightDist, lightDist);
+		light_used = (active_dot < nearest_dot) ? &active_lights[i] : light_used;
+		nearest_dot = (active_dot < nearest_dot) ? active_dot : nearest_dot;
+				}
+		}
+		
+	//Set the ambient light
+	////////////////////////////////////////////////////
+	/*
+	
+	The pre-matrix angle ( " master angle " ) must be passed into the system to rotate the ambient light angle.
+	The pre-matrix angle is what the object's rotation is BEFORE matrix mutliplciation. In other words, how the _object_ is rotated.
+	
+	For some reason, this light angle has to be transformed incorrectly to be correct...
+	
+	*/
+	ambient_light[X] = fxm(-light_used->ambient_light[X], prematrix[0])
+					+ fxm(light_used->ambient_light[Y], prematrix[1])
+					+ fxm(-light_used->ambient_light[Z], prematrix[2]);
+					
+	ambient_light[Y] = fxm(-light_used->ambient_light[X], prematrix[3])
+					+ fxm(light_used->ambient_light[Y], prematrix[4])
+					+ fxm(-light_used->ambient_light[Z], prematrix[5]);
+					
+	ambient_light[Z] = fxm(-light_used->ambient_light[X], prematrix[6])
+					+ fxm(light_used->ambient_light[Y], prematrix[7])
+					+ fxm(-light_used->ambient_light[Z], prematrix[8]);
+	////////////////////////////////////////////////////
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/*
+	LIGHT PROCESSING
+	lightSrc is a point-light.
+	The function needs to take the entities world position as an argument.
+	Then get a vector from the world pos to the light pos.
+	It becomes the light's distance.
+	We then normalize that distance to get the light angle.
+	This normalization process is sensitive, so we use the most accurate method we can.
+	At that point we use the inverse squared law, plus a brightness multiplier, to find the light bright.
+	If the light is far, the light angle is just considered zero. No light is contributed.
+	As a result, dynamic point lights are generally quite dim.
+	*/
+		if(negateCoordinates == 'Y')
+		{
+	lightDist[X] = wldPos[X] - light_used->location[X];
+	lightDist[Y] = wldPos[Y] - light_used->location[Y];
+	lightDist[Z] = wldPos[Z] - light_used->location[Z];
+		} else {
+	lightDist[X] = wldPos[X] + light_used->location[X];
+	lightDist[Y] = wldPos[Y] + light_used->location[Y];
+	lightDist[Z] = wldPos[Z] + light_used->location[Z];
+		}
+	int vmag = 0;
+		if( JO_ABS(lightDist[X]) < (147<<16) && JO_ABS(lightDist[Y]) < (147<<16) && JO_ABS(lightDist[Z]) < (147<<16))
+		{
+	vmag = slSquartFX(fxdot(lightDist, lightDist));
+		
+	vmag = fxdiv(1<<16, vmag);
+	//Normalize the light vector *properly*
+	lightAngle[X] = fxm(vmag, lightDist[X]);
+	lightAngle[Y] = fxm(vmag, lightDist[Y]);
+	lightAngle[Z] = fxm(vmag, lightDist[Z]);
+	
+	//Now we have to transform the light angle by the object's orientation
+	VECTOR tempAngle;
+
+	tempAngle[X] = fxm(lightAngle[X], prematrix[0])
+					+ fxm(lightAngle[Y], prematrix[1])
+					+ fxm(lightAngle[Z], prematrix[2]);
+					
+	tempAngle[Y] = fxm(lightAngle[X], prematrix[3])
+					+ fxm(lightAngle[Y], prematrix[4])
+					+ fxm(lightAngle[Z], prematrix[5]);
+					
+	tempAngle[Z] = fxm(lightAngle[X], prematrix[6])
+					+ fxm(lightAngle[Y], prematrix[7])
+					+ fxm(lightAngle[Z], prematrix[8]);
+			
+		if(negateCoordinates == 'Y')
+		{
+	lightAngle[X] = -tempAngle[X];
+	lightAngle[Y] = -tempAngle[Y];
+	lightAngle[Z] = -tempAngle[Z];
+		} else {
+	lightAngle[X] = tempAngle[X];
+	lightAngle[Y] = tempAngle[Y];
+	lightAngle[Z] = tempAngle[Z];
+		}
+	
+	//Retrieve the inverse square of distance
+	return fxdiv(1<<16, fxdot(lightDist, lightDist)) * (int)light_used->bright;
+	/////////////////////////////////////////////////////////////////////////////////
+		}
+		
+	return 0;
+}
+
+
+void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rendering
 {
 	if(ent->file_done != true){return;}
 	//Recommended, for performance, that large entities be placed in HWRAM.
@@ -218,6 +324,11 @@ void ssh2DrawModel(entity_t * ent, POINT lightSrc) //Primary variable sorting re
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
+	VECTOR lightAngle = {0, 0, 0};
+	VECTOR ambient_light = {0, 0, 0};
+	
+	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->isPlayer);
+
 	FIXED luma;
 	short colorBank;
  
@@ -307,13 +418,14 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			//	Edge	---> X+
 		} */
 		//Preclipping is always enabled
-		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->pltbl[i].norm, lightSrc);
+		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -32768) ? 0 : 1;
-		colorBank = (luma > 16384) ? 2 : colorBank;
-		colorBank = (luma > 32768) ? 3 : colorBank; 
-		colorBank = (luma > 49152) ? 515 : colorBank; //Make really dark? use MSB shadow
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 		
         ssh2SetCommand(ptv[0]->pnt,
 		ptv[1]->pnt,
@@ -375,13 +487,14 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			//	Edge	---> X+
 		} */
 		//Preclipping is always enabled
-		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->pltbl[i].norm, lightSrc);
+		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -32768) ? 0 : 1;
-		colorBank = (luma > 16384) ? 2 : colorBank;
-		colorBank = (luma > 32768) ? 3 : colorBank; 
-		colorBank = (luma > 49152) ? 515 : colorBank; //Make really dark? use MSB shadow
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 
         ssh2SetCommand(ptv[0]->pnt,
 		ptv[1]->pnt,
@@ -440,13 +553,14 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			//	Edge	---> X+
 		} */
 		//Preclipping is always enabled
-		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->pltbl[i].norm, lightSrc);
+		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -32768) ? 0 : 1;
-		colorBank = (luma > 16384) ? 2 : colorBank;
-		colorBank = (luma > 32768) ? 3 : colorBank; 
-		colorBank = (luma > 49152) ? 515 : colorBank; //Make really dark? use MSB shadow
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 
         ssh2SetCommand(ptv[0]->pnt,
 		ptv[1]->pnt,
@@ -602,7 +716,7 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
 
 }
 
-void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT lightSrc) //Draws animted model via SSH2
+void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos, bool transplant) //Draws animated model via SSH2
 {
 	if(ent->file_done != true){return;}
 	//WARNING:
@@ -633,6 +747,11 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT lightS
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
+	VECTOR lightAngle = {0, 0, 0};
+	VECTOR ambient_light = {0, 0, 0};
+	
+	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->isPlayer);
+	
 	FIXED luma;
 	short colorBank;
 	
@@ -645,7 +764,8 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT lightS
 	//6. set the nextKeyFrame to the animCtrl startFrm
 	//7. Interpolate once
 	//8. Return all control data as if set from the animCtrl pose
-
+	bool animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? true : false;
+	
 //
 	unsigned char localArate;
 	unsigned char nextKeyFrm;
@@ -680,7 +800,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	}
 
 	
- if(AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) 
+ if(animation_change == true && transplant != true) 
  {
 	//For single-frame interpolation between poses
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].currentKeyFrm]->cVert;
@@ -801,12 +921,14 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
         tNorm[Y]=ANORMS[*src2][Y];
         tNorm[Z]=ANORMS[*src2][Z];
 		//Transform the polygon's normal by light source vector
-		luma = fxdot(tNorm, lightSrc);
+		luma = fxm(-(fxdot(tNorm, lightAngle) + 32768), bright);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(tNorm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -32768) ? 0 : 1;
-		colorBank = (luma > 16384) ? 2 : colorBank;
-		colorBank = (luma > 32768) ? 3 : colorBank; 
-		colorBank = (luma > 49152) ? 515 : colorBank; //Make really dark? use MSB shadow
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 
         ssh2SetCommand(ptv[0]->pnt,
 		ptv[1]->pnt,
@@ -817,10 +939,21 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
     }
 		transPolys[0] += model->nbPolygon;
 		
- if(AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) // Check to see if the animation matches.
+		
+ if(animation_change == true) // Check to see if the animation matches.
  {
 	AnimArea[anims].uniform = animCtrl->uniform;
+	
+	if(transplant != true)
+	{
 	AnimArea[anims].currentFrm = animCtrl->startFrm<<3;
+	} else {
+		//Transplant the running frame / current frame to its place in the other animation set
+	AnimArea[anims].currentFrm += (animCtrl->startFrm<<3) - (AnimArea[anims].startFrm<<3) + 2;
+		//Transplant the keyframe location so it doesn't spend a frame re-seating the animation
+	AnimArea[anims].currentKeyFrm = AnimArea[anims].currentFrm>>3;
+	}
+	
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
  }

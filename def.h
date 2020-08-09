@@ -18,12 +18,13 @@
 #define FLIPH (16)
 #define FLIPHV (48)
 #define SQUARE_MAX (9633792) //147<<16
-#define LCL_MAP_PIX (27)
-#define LCL_MAP_PLY (26)
+#define LCL_MAP_PIX (25)
+#define LCL_MAP_PLY (24)
 
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
 //////////////////////////////////////////////////////////////////////////////
+int snd_dash;
 int snd_lstep;
 int snd_wind;
 int snd_bstep;
@@ -54,7 +55,6 @@ typedef struct {
 	FIXED ControlUV[XYZ];
 	FIXED DirUV[XYZ];
 	FIXED SurfUV[XYZ];
-	FIXED strafeState;
 	FIXED IPaccel;
 	
 	FIXED moment[XYZ];
@@ -62,6 +62,7 @@ typedef struct {
 	bool dirInp;
 	bool setJump;
 	bool setSlide;
+	bool setDash;
 	bool okayStepSnd;
 	int sanics;
 	
@@ -105,22 +106,28 @@ typedef struct
     Uint8 endFrm;
 } animationControl;
 
-animationControl forward;
+animationControl walk;
 animationControl run;
 animationControl dbound;
-animationControl jump;
-animationControl fall;
+
+animationControl runshoot;
+animationControl runmelee;
+
+animationControl melee;
+animationControl shoot;
+
 animationControl idle;
+
+animationControl jump;
 animationControl stop;
 
-animationControl jump2;
+animationControl airShoot;
+animationControl airMelee;
+
 animationControl airIdle;
 animationControl airRight;
 animationControl airLeft;
-animationControl airBack;
 animationControl slideIdle;
-animationControl slideFwd;
-animationControl slideRvs;
 animationControl slideRln;
 animationControl slideLln;
 

@@ -38,13 +38,14 @@ void	pl_step_snd(void){
 	static char hoofSetBools[5];
 	static char oldHoofSetBools[5];
 	char runSnd = 0;
-	const int HoofLowValue = 310000;
+	const int HoofLowValue = 311296;
+	//int printPos = 0;
 
 		if(you.onSurface == true){
-	hoofSetBools[0] = (pl_model.pol[0]->pntbl[pl_model.pol[0]->pltbl[202].Vertices[0]][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[1] = (pl_model.pol[0]->pntbl[pl_model.pol[0]->pltbl[203].Vertices[0]][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[2] = (pl_model.pol[0]->pntbl[pl_model.pol[0]->pltbl[204].Vertices[0]][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[3] = (pl_model.pol[0]->pntbl[pl_model.pol[0]->pltbl[205].Vertices[0]][Y] > HoofLowValue) ? true : false;
+	hoofSetBools[0] = (pl_model.pol[0]->pntbl[8][Y] > HoofLowValue) ? true : false;
+	hoofSetBools[1] = (pl_model.pol[0]->pntbl[38][Y] > HoofLowValue) ? true : false;
+	hoofSetBools[2] = (pl_model.pol[0]->pntbl[57][Y] > HoofLowValue) ? true : false;
+	hoofSetBools[3] = (pl_model.pol[0]->pntbl[114][Y] > HoofLowValue) ? true : false;
 		}
 
 	hoofSetBools[4] = (you.onSurface);
@@ -187,7 +188,6 @@ void	player_phys_affect(void)
 	you.pos[Y] += fxm(you.Velocity[Y], frmul);
 	you.pos[Z] += fxm(you.Velocity[Z], frmul);
 	//Create a true direction vector, independent of control vector
-	///I also want to make a one-dimensional "speed" metric which finds out how fast you're going in serms of sanics, important for collisions
 	static VECTOR tempDif = {0, 0, 0};
 	tempDif[X] = you.pos[X] - you.prevPos[X];
 	tempDif[Y] = you.pos[Y] - you.prevPos[Y];
@@ -201,9 +201,6 @@ void	player_phys_affect(void)
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
 	//Movement and rotation speed maximum and minimums
-	if(you.strafeState >= PLR_STRF_SPD) you.strafeState = PLR_STRF_SPD;
-	if(you.strafeState <= -PLR_STRF_SPD) you.strafeState = -PLR_STRF_SPD;
-	//
 	if(you.IPaccel >= PLR_FWD_SPD) you.IPaccel = PLR_FWD_SPD;
 	if(you.IPaccel <= -PLR_FWD_SPD) you.IPaccel = -PLR_FWD_SPD;
 	//
@@ -247,7 +244,6 @@ void	player_phys_affect(void)
 	you.prevPos[Z] = you.pos[Z];
 	}
 	
-	//I wanna work on momentum.
 	make2AxisBox(you.pos[X], you.pos[Y], you.pos[Z], you.renderRot[X], (you.renderRot[Y]), you.renderRot[Z], (2<<16), (5<<16), (5<<16), &pl_RBB);
 
 		if(you.setSlide) //Rotational logic changes based on what movement state you are in.

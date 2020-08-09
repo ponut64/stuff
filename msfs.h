@@ -6,7 +6,6 @@
 #include "ldata.h"
 #include <jo/jo.h>
 
-//Playback buffers start 352 KB into sound RAM. From 40Kb into sound RAM to 352 KB, area is OK for storing sound.
 //Each buffer is 8 sectors / 16 KB
 //This is sound RAM, addressable by the MC68EC000 / SCSP
 /**MUSIC BUFFER REGION 160KB / 80 SECTORS / 5 * 32768 **/
@@ -73,7 +72,7 @@ extern Bool			chg_music;
 void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg);
 void	music_vblIn(Uint8 vol);
 //
-void	ztModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType);
+void	gvModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType);
 //
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));

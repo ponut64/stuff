@@ -4,9 +4,7 @@
 #include "draw.h"
 #include "height.h"
 
-FIXED surf_lit[3] = {0, 65535, 0};
-FIXED light[3] = {0, 65535, 0};
-FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
+FIXED sun_light[3] = {32768, 0, 0};
 //Player Model
 entity_t pl_model;
 //Player's Shadow
@@ -14,6 +12,9 @@ entity_t shadow;
 //Heightmap Matrix
 MATRIX hmap_mtx;
 MATRIX unit;
+
+FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
+FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
 
 //Note: global light is in order of BLUE, GREEN, RED. [BGR]
 char globalLight[3] = {0, 0, 0};
@@ -29,7 +30,7 @@ void	computeLight(void)
 	short finalColors[3] = {0, 0, 0};
 	unsigned char * palPtrCpy = (unsigned char *)&sprPaletteCopy[0];
 		
-		slBack1ColSet((void*)VDP2_RAMBASE, 0xE726);
+		
 		finalColors[0] = backScrn[0] + globalLight[0];
 		backScrn[0] = (finalColors[0] < 255) ? (finalColors[0] < 0) ? 0 : finalColors[0] : 255;
 		finalColors[1] = backScrn[1] + globalLight[1];
@@ -69,7 +70,11 @@ void	computeLight(void)
 		
 		i+=4;
 	}
-		
+	
+		//Next, set the sun light.
+		active_lights[0].pop = 1;
+		active_lights[0].ambient_light = &sun_light[0];
+
 		glblLightApplied = true;
 	}
 }
@@ -120,21 +125,22 @@ void	player_draw(void)
 		mat[X][X] = pl_RBB.UVX[X];
 		mat[X][Y] = pl_RBB.UVX[Y];
 		mat[X][Z] = pl_RBB.UVX[Z];
-		mat[3][0] = 0; //POS
+		mat[3][0] = -pl_RBB.pos[X]; //POS
 		
 		mat[Y][X] = pl_RBB.UVY[X];
 		mat[Y][Y] = pl_RBB.UVY[Y];
 		mat[Y][Z] = pl_RBB.UVY[Z];
-		mat[3][1] = 0; //POS
+		mat[3][1] = -pl_RBB.pos[Y]; //POS
 		
 		mat[Z][X] = pl_RBB.UVZ[X];
 		mat[Z][Y] = pl_RBB.UVZ[Y];
 		mat[Z][Z] = pl_RBB.UVZ[Z];
-		mat[3][2] = 0; //Position
+		mat[3][2] = -pl_RBB.pos[Z]; //Position
 
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
 		
-		POINT plLit = {mat[X][Y], mat[Y][Y], mat[Z][Y]};
+		pl_model.prematrix = &pl_RBB.UVX[0];
+		pl_model.isPlayer = 'Y';
 		
 //Animation Chains
 					static int airTimer = 0;
@@ -143,36 +149,36 @@ void	player_draw(void)
 				airTimer = 0;
 					if(you.setSlide != true && airTimer == 0){
 						if(you.Velocity[X] == 0 && you.Velocity[Y] == 0 && you.Velocity[Z] == 0){
-							ssh2DrawAnimation(&idle, &pl_model, plLit);
+							ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
 						} else if( (you.Velocity[X] != 0 || you.Velocity[Z] != 0) && you.dirInp){
 						if(you.IPaccel < 0){
-							ssh2DrawAnimation(&stop, &pl_model, plLit);
+							ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
 							}
 						if(you.sanics < 2<<16 && you.IPaccel > 0){
-							ssh2DrawAnimation(&forward, &pl_model, plLit);
+							ssh2DrawAnimation(&walk, &pl_model, you.pos, true);
 							}
 						if(you.sanics < 3<<16 && you.sanics > 2<<16){
-							ssh2DrawAnimation(&run, &pl_model, plLit);
+							ssh2DrawAnimation(&run, &pl_model, you.pos, true);
 							}
 						if(you.sanics >= 3<<16){
-							ssh2DrawAnimation(&dbound, &pl_model, plLit);
+							ssh2DrawAnimation(&dbound, &pl_model, you.pos, true);
 							}
 						} else if((you.Velocity[X] != 0 || you.Velocity[Z] != 0) && !you.dirInp){
-						ssh2DrawAnimation(&stop, &pl_model, plLit);
+						ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
 						} else {
-						ssh2DrawAnimation(&idle, &pl_model, plLit);
+						ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
 						}	
 					} else {//IF NOT SLIDE ENDIF
 						if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&slideRln, &pl_model, plLit);
+						ssh2DrawAnimation(&slideRln, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&slideLln, &pl_model, plLit);
+						ssh2DrawAnimation(&slideLln, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_UP)){
-						ssh2DrawAnimation(&slideFwd, &pl_model, plLit);
+						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&slideRvs, &pl_model, plLit);
+						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
 						} else {
-						ssh2DrawAnimation(&slideIdle, &pl_model, plLit);
+						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
 						}
 						}//IF SLIDE ENDIF
 						
@@ -180,19 +186,15 @@ void	player_draw(void)
 				} else {//IF SURFACE ENDIF
 						airTimer++;
 						if(airTimer < 8 && airTimer != 0 && you.Velocity[Y] != 0){
-							if(you.setSlide == true){
-							ssh2DrawAnimation(&jump2, &pl_model, plLit);
-							} else {
-							ssh2DrawAnimation(&jump, &pl_model, plLit);
-							}
+							ssh2DrawAnimation(&jump, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&airRight, &pl_model, plLit);
+						ssh2DrawAnimation(&airRight, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&airLeft, &pl_model, plLit);
+						ssh2DrawAnimation(&airLeft, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&airBack, &pl_model, plLit);
+						ssh2DrawAnimation(&airIdle, &pl_model, you.pos, false);
 						} else {
-						ssh2DrawAnimation(&airIdle, &pl_model, plLit);
+						ssh2DrawAnimation(&airIdle, &pl_model, you.pos, false);
 						}
 				}//IF AIR ENDIF
 			} //IF MODEL LOADED ENDIF
@@ -202,60 +204,15 @@ void	player_draw(void)
 
 }
 
-void	disp_pt_as_2D(POINT inpPt, POINT pl_location, Sint32 oldDispPix[XY])
-{
-//Input Point needs to be put as relative to the screen, which is where you are, so player location is used.
-//If it is a point already relative to the player, ignore player location.
-//In addition to this, for some reason I need to invert the matrix to use slConvert3Dto2D.
-	slPushMatrix();
-
-		static MATRIX mat;
-		mat[X][X] = -65536;
-		mat[Y][Y] = -65536;
-		mat[Z][Z] = -65536;
-		slMultiMatrix(mat); 
-		
-		static Sint32 dispPix[XY] = {0, 0};
-		POINT usedPt = { (inpPt[X] - pl_location[X]), (inpPt[Y] - pl_location[Y]), (inpPt[Z] - pl_location[Z]) };
-		if(usedPt[X] != 0 && usedPt[Y] != 0 && usedPt[Z] != 0){
-		slConvert3Dto2D(usedPt, dispPix);
-		}
-		// jo_printf(0, 16, "(%i)", dispPix[X]);
-		// jo_printf(0, 17, "(%i)", dispPix[Y]);
-		jo_draw_background_square(dispPix[X]+172, dispPix[Y]+108, 8, 8, JO_COLOR_Yellow);
-		if(dispPix[X] != oldDispPix[X] || dispPix[Y] != oldDispPix[Y]){
-		jo_draw_background_square(oldDispPix[X]+172, oldDispPix[Y]+108, 8, 8, JO_COLOR_Transparent);
-		}
-		oldDispPix[X] = dispPix[X];
-		oldDispPix[Y] = dispPix[Y];
-	slPopMatrix();
-}
-
-void	box_phys_helper(_boundBox * tbox, FIXED offset[XYZ]){
-		static Sint32 op1[XY] = {0, 0};
-		static Sint32 op2[XY] = {0, 0};
-		static Sint32 op3[XY] = {0, 0};
-		static Sint32 op4[XY] = {0, 0};
-		static Sint32 op5[XY] = {0, 0};
-		static Sint32 op6[XY] = {0, 0};
-		disp_pt_as_2D(tbox->Xplus, offset, op1);
-		disp_pt_as_2D(tbox->Xneg, offset, op2);
-		disp_pt_as_2D(tbox->Yplus, offset, op3);
-		disp_pt_as_2D(tbox->Yneg, offset, op4);
-		disp_pt_as_2D(tbox->Zplus, offset, op5);
-		disp_pt_as_2D(tbox->Zneg, offset, op6);
-}
-
 void	obj_draw_queue(void)
 {
-		static ANGLE spinAngle;
 		static MATRIX mat;
 		static MATRIX matSt;
-		spinAngle+=182;
+		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++){
 		if(RBBs[i].isBoxPop != true) continue;
 		
-		unsigned short objType = (dWorldObjects[objDWO[i]].type.ext_dat & 0x7000);
+		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & 0x7000);
 		
 	slPushMatrix();
 		slGetMatrix(matSt);
@@ -273,22 +230,24 @@ void	obj_draw_queue(void)
 		mat[Z][Y] = RBBs[i].UVZ[Y];
 		mat[Z][Z] = RBBs[i].UVZ[Z];
 		mat[3][2] = RBBs[i].pos[Z]; //Position
-		
-		POINT objLit = {mat[X][Y], mat[Y][Y], mat[Z][Y]};
 	
 					if( objType != ITEM && objType != LDATA ){ //Check if entity is NOT ITEM or LDATA
 
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
-		//Why use my own matrix function? 1. Some separation from SGL, 2. Easier to port (if ever neccessary), 3. Simplified rotation order 
-		ssh2DrawModel(&entities[objDRAW[i]], objLit);
+
+		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
+		
+		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
 		
 					} else if( objType == ITEM ){ //if entity IS ITEM
 		
-			if( !(dWorldObjects[objDWO[i]].type.ext_dat & 8) ) //Check if root entity still exists
+			if( !(dWorldObjects[activeObjects[i]].type.ext_dat & 8) ) //Check if root entity still exists
 			{
 		slMultiMatrix(mat);
-		slRotY(spinAngle);
-		ssh2DrawModel(&entities[objDRAW[i]], objLit);
+		
+		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
+		
+		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
 			}
 		
 					}
@@ -334,7 +293,7 @@ void	shadow_draw(void)
 
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
 
-	ssh2DrawModel(&shadow, light);
+	ssh2DrawModel(&shadow, you.shadowPos);
 	
 	slPopMatrix();
 		}
@@ -343,6 +302,13 @@ void	shadow_draw(void)
 void	object_draw(void)
 {
 	
+			//Test Light
+		active_lights[0].location[X] = you.pos[X];
+		active_lights[0].location[Y] = you.pos[Y] + (15<<16);
+		active_lights[0].location[Z] = you.pos[Z];
+		active_lights[0].bright = 8000;
+			//
+	
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X<<16), (VIEW_OFFSET_Y<<16), (VIEW_OFFSET_Z<<16) );
@@ -350,32 +316,22 @@ void	object_draw(void)
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
-	player_draw();
 
-	//box_phys_helper(&pl_RBB, zPt);
 		//
 	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
+	player_draw();
 	shadow_draw();
 		
 	obj_draw_queue();
 	}
 	slPopMatrix();
 	
-	//No Touch Order -- Affects animations/mechanics
-	player_phys_affect();
-		mypad();
-	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
-	collide_with_heightmap(&pl_RBB);
-	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.
-	//
-	
-	
 }
 
 void	map_draw(void){	
 
 	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
-update_hmap(hmap_mtx, surf_lit);
+update_hmap(hmap_mtx, sun_light);
 
 }
 
@@ -403,7 +359,7 @@ void	master_draw(void)
 
 	hmap_cluster();
 	map_draw();
-
+	
 	you.prevCellPos[X] = you.cellPos[X];
 	you.prevCellPos[Y] = you.cellPos[Y];
 	you.prevDispPos[X] = you.dispPos[X];
@@ -411,13 +367,26 @@ void	master_draw(void)
 	//View Distance Extention -- Makes turning view cause performance issue, beware?
 	you.cellPos[X] = (fxm((INV_CELL_SIZE), you.pos[X])>>16);
 	you.cellPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z])>>16);
-	int sineY = fxm(slSin(-you.viewRot[Y]), 300<<16);
-	int sineX = fxm(slCos(-you.viewRot[Y]), 300<<16);
+	int sineY = fxm(slSin(-you.viewRot[Y]), 275<<16);
+	int sineX = fxm(slCos(-you.viewRot[Y]), 275<<16);
 	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
 	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
 	//
-	hmap_matrix_pos[X] = (you.pos[X]+you.Velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
-	hmap_matrix_pos[Z] = (you.pos[Z]+you.Velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
+	hmap_matrix_pos[X] = (you.pos[X] + you.Velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
+	hmap_matrix_pos[Z] = (you.pos[Z] + you.Velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
+	
+	hmap_actual_pos[X] = hmap_matrix_pos[X] - (you.pos[X] + you.Velocity[X]);
+	hmap_actual_pos[Y] = 0;
+	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.Velocity[Z]);
+	
+	//No Touch Order -- Affects animations/mechanics
+	player_phys_affect();
+		mypad();
+	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
+	collide_with_heightmap(&pl_RBB);
+	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.
+	//
+	
 	
 	run_dsp(); //Run the DSP now to give it maximum time to complete (minimize sh2 wait)
 	slSlaveFunc(sort_master_polys, 0);	

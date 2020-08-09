@@ -127,7 +127,7 @@ void	fill_obj_list(void)
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 unsigned short objNEW = 0;
 unsigned short objDRAW[512];
-unsigned short objDWO[512];
+unsigned short activeObjects[512];
 short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
 int trackTimers[16];
@@ -147,6 +147,7 @@ void	declare_object_at_cell(short pixX, short pixY, int type, ANGLE xrot, ANGLE 
 	dWorldObjects[objNEW].srot[Z] = DEGtoANG(zrot);
 	dWorldObjects[objNEW].height = height; //Vertical offset from ground
 	dWorldObjects[objNEW].link = -1;
+	dWorldObjects[objNEW].status = 0; //give clear status
 	objNEW++;
 		}
 }
@@ -174,7 +175,8 @@ void	declarations(void)
 // .. Yeah. Yeah, it probably is. Even if it's 512.
 void	update_object(Uint8 boxNumber, int pixX, int pixY, FIXED Ydist, ANGLE rotx, ANGLE roty, ANGLE rotz, FIXED radx, FIXED rady, FIXED radz)
 {
-	make2AxisBox((25 * pixX)<<16, -Ydist - (main_map[ (-pixX + (main_map_x_pix * pixY) + (main_map_total_pix>>1)) ]<<16), (25 * pixY)<<16,
+	make2AxisBox((25 * pixX)<<16, -Ydist - (main_map[ (-pixX + (main_map_x_pix * pixY) + (main_map_total_pix>>1)) ]<<16),
+	(25 * pixY)<<16,
 	rotx, roty, rotz,
 	radx, rady, radz, &RBBs[boxNumber]);
 }
@@ -205,11 +207,11 @@ void	object_control_loop(int ppos[XY])
 				
 				RBBs[objUP].isBoxPop = true;
 				dWorldObjects[i].type.ext_dat |= OBJPOP; //Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-				objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-				objDWO[objUP] = i;
-				objUP++;
+				objDRAW[objUP] = dWorldObjects[i].type.entity_ID; //This array is meant as a list where iterative searches find the entity type drawn.
+				activeObjects[objUP] = i; //This array is meant on a list where iterative searches can find the right object in the entire declared list.
+				objUP++; //This tells you how many objects were updated.
 			} else {
-				objDWO[objUP] = 256;
+				activeObjects[objUP] = 256;
 				RBBs[i].isBoxPop = false;
 				dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
 			}
@@ -323,7 +325,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 /* 	if( JO_ABS((tgtRelPos[Y]) - (edgePrj0[Y])) > (dWorldObjects[posts[0]].type.radius[Y]<<16) )
 	{
 		//Data cleanup to prevent errant positive detection when culling logic is passed,
-		dWorldObjects[objDWO[index]].dist = 0; //when previously it may noy have been.
+		dWorldObjects[activeObjects[index]].dist = 0; //when previously it may noy have been.
 		return;
 	}; */
 	
@@ -417,7 +419,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 		VECTOR relPos = {0, 0, 0};
 		FIXED realDist = 0;
 		
-			if( !(dWorldObjects[objDWO[index]].type.ext_dat & 8) ){ //Check if root entity still exists
+			if( !(dWorldObjects[activeObjects[index]].type.ext_dat & 8) ){ //Check if root entity still exists
 	//Root entity collision test
 		relPos[X] = RBBs[index].pos[X] + tgt->pos[X];
 		relPos[Y] = RBBs[index].pos[Y] + tgt->pos[Y];
@@ -425,11 +427,13 @@ void	run_item_collision(int index, _boundBox * tgt)
 		//ABS your too-big-check you idiot
 		if( JO_ABS(relPos[X]) < (SQUARE_MAX) && JO_ABS(relPos[Y]) < (SQUARE_MAX) && JO_ABS(relPos[Z]) < (SQUARE_MAX)) //If too far away, don't test
 		{
+		
 		realDist = slSquartFX( fxm(relPos[X], relPos[X]) + fxm(relPos[Y], relPos[Y]) + fxm(relPos[Z], relPos[Z]) ); //a^2 + b^2 = c^2
-
-			if(realDist < (dWorldObjects[objDWO[index]].type.radius[Y]<<16) ) //Explicit radius collision test
+		dWorldObjects[activeObjects[index]].srot[Y] += 182; //Spin
+		
+			if(realDist < (dWorldObjects[activeObjects[index]].type.radius[Y]<<16) ) //Explicit radius collision test
 				{
-			dWorldObjects[objDWO[index]].type.ext_dat |= 8; //Remove root entity from stack object
+			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
 			you.points++;
 			pcm_play(snd_click, PCM_SEMI, 7);
 				}
@@ -447,7 +451,7 @@ void	test_gate_ring(int index, _boundBox * tgt)
 	// The radius of the ring being the span of the largest axis of the object.
 	//The test method is a dot product test on the plane and whether or not we are within the largest radius distance.
 	//
-			if((dWorldObjects[objDWO[index]].type.ext_dat & 0x1) != 0) return; //Return if the gate is already flagged as passed.
+			if((dWorldObjects[activeObjects[index]].type.ext_dat & 0x1) != 0) return; //Return if the gate is already flagged as passed.
 	VECTOR tgtRelPos = {tgt->pos[X] + RBBs[index].pos[X], tgt->pos[Y] + RBBs[index].pos[Y], tgt->pos[Z] + RBBs[index].pos[Z]}; 
 		//Don't forget to ABS your junk, nut lover
 			if(JO_ABS(tgtRelPos[X]) >= (SQUARE_MAX) || JO_ABS(tgtRelPos[Y]) >= (SQUARE_MAX) || JO_ABS(tgtRelPos[Z]) >= (SQUARE_MAX)) return; //Exit if distance is large
@@ -480,14 +484,14 @@ void	test_gate_ring(int index, _boundBox * tgt)
 		tDist = realpt_to_plane(negPos, RBBs[index].UVZ, RBBs[index].pos);
 	}
 
-		if( fxm(tDist, dWorldObjects[objDWO[index]].dist) < 1 && tRelDist < largeRadius)
+		if( fxm(tDist, dWorldObjects[activeObjects[index]].dist) < 1 && tRelDist < largeRadius)
 		{	//If the sign of tDist varies from the sign of old object dist, and we are within the radius...
 			//we've passed the plane of the gate's span, and are close enough to have done so within it.
-		add_to_track_timer(objDWO[index]);
-		dWorldObjects[objDWO[index]].type.ext_dat |= 0x1; //Flag gate as passed.
+		add_to_track_timer(activeObjects[index]);
+		dWorldObjects[activeObjects[index]].type.ext_dat |= 0x1; //Flag gate as passed.
 		}
 	
-	dWorldObjects[objDWO[index]].dist = tDist;
+	dWorldObjects[activeObjects[index]].dist = tDist;
 }
 
 
@@ -530,6 +534,11 @@ void	gate_track_manager(void)
 	//More to do:
 	//Minimum speed reset [maybe not for now]
 	//First and last gate logic
+	//What is this though?
+	//A control loop for a specific level data type, as "track data". A track is a series of rings or gates that make a... track.
+	//This keeps an eye on what's going on in each track.
+	//The collision math is ran separately, in a more key spot in the entire physics structure.
+	//This is a purpose-built function, but can be viewed as a method of game state tracking through linked lists.
 	
 	short track_select;
 	short object_track;

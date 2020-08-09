@@ -14,7 +14,7 @@
 	static FIXED pFNn[XYZ] = {0, 0, 0};
 
 
-FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
+__jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 {
 	register FIXED rtval;
 	asm(
@@ -30,7 +30,7 @@ FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 }
 
 
-FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal instruction execution... I wonder why... fxm does not
+__jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal instruction execution... I wonder why... fxm does not
 {
 	register FIXED rtval;
 	asm(
@@ -47,6 +47,34 @@ FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal instruction executi
 	);
 	return rtval;
 }
+
+
+
+__jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor)
+{
+	
+const int * DVSR = ( int*)0xFFFFFF00;
+const int * DVDNTH = ( int*)0xFFFFFF10;
+const int * DVDNTL = ( int*)0xFFFFFF14;
+
+register FIXED quotient;
+	asm(
+	"mov.l %[dvs], @%[dvsr];"
+	"mov %[dvd], r1;" //Move the dividend to a general-purpose register, to prevent weird misreading of data.
+	"shlr16 r1;"
+	"mov.l r1, @%[nth];" //Expresses "*DVDNTH = dividend>>16"
+	"mov %[dvd], r1;" 
+	"shll16 r1;"
+	"mov.l r1, @%[ntl];" //Expresses *DVDNTL = dividend<<16";
+	"mov.l @%[ntl], %[out];" //Get result.
+		: 	[out] "=r" (quotient)											//OUT
+		:	[dvs] "r" (divisor) , [dvd] "r" (dividend) ,					//IN
+			[dvsr] "r" (DVSR) ,	[nth] "r" (DVDNTH) , [ntl] "r" (DVDNTL)		//IN
+		:	"r1"															//CLOBBERS
+	);
+	return quotient;
+}
+
 
 
 FIXED		ANGtoDEG(FIXED angle){

@@ -55,8 +55,8 @@ void	read_pgm_header(_heightmap * map)
 				Uint8 bufCharLeft[numLeftOfSpace];
 				Uint8 bufCharRight[numRightOfSpace];
 				for(Uint8 r = 0; r < numLeftOfSpace; r++){
-					bufCharLeft[r] = *arrayOfCharacters[r] - 48;
-				}
+					bufCharLeft[r] = *arrayOfCharacters[r] - 48; //"48" being the number to subtract ASCII numbers by 
+				}												//to get the number in binary.
 				for(Uint8 v = 0; v < numLeftOfSpace; v++){
 					bufCharRight[v] = *arrayOfCharacters[spaceChar+v+1] - 48;
 				}
@@ -76,7 +76,7 @@ void	read_pgm_header(_heightmap * map)
 					} else if(numRightOfSpace == 1){
 					rightFactor += (bufCharRight[numRightOfSpace-1]);
 					}
-					//Here, we set the map's X and Z (Y, actually, not Z) to the data read from the header. And also multiplies them and gets the total pixels.
+					//Here, we set the map's X and Y to the data read from the header. And also multiplies them and gets the total pixels.
 					map->Xval = leftFactor;
 					map->Yval = rightFactor;
 					map->totalPix = leftFactor * rightFactor;
@@ -167,8 +167,8 @@ void	chg_map(_heightmap * tmap){
 }
 
 //Texture Table Assignment based on heights from main map strata table.
-int	strataFinder(int index){
-	static int avgY = 0;
+__jo_force_inline int	strataFinder(int index){
+	int avgY = 0;
 	avgY = -(polymap->pntbl[polymap->pltbl[index].Vertices[0]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[1]][Y] +
 	polymap->pntbl[polymap->pltbl[index].Vertices[2]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[3]][Y])>>18;
 	if(avgY < main_map_strata[0]){ 
@@ -185,7 +185,7 @@ int	strataFinder(int index){
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-int		tex2Handler(int index, FIXED * norm, int * flip){
+__jo_force_inline int		tex2Handler(int index, FIXED * norm, int * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
@@ -224,6 +224,37 @@ int		tex2Handler(int index, FIXED * norm, int * flip){
 	return baseTex+texno;
 }
 
+	//Helper function for a routine which uses per-polygon light processing.
+	//This is different than the normal light processing in that it will get light data from any number of lights,
+	//based only on the distance from the polygon to the light.
+	/** SHOULD BE INLINED **/
+__jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynumber)
+{
+	int luma = 0;
+	for(int i = 0; i < 1; i++)
+	{
+	point_light * lightSrc = &active_lights[i];
+			if(lightSrc->pop == 1)
+			{
+		POINT light_proxima = {
+		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][X] + model->pntbl[model->pltbl[polynumber].Vertices[2]][X])>>1)
+		+ wldPos[X]) + lightSrc->location[X])>>16,
+		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Y] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Y])>>1)
+		+ wldPos[Y]) + lightSrc->location[Y])>>16,
+		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Z] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Z])>>1)
+		+ wldPos[Z]) + lightSrc->location[Z])>>16
+		};
+		int inverted_proxima = (65536 / ( (light_proxima[X] * light_proxima[X]) +
+				(light_proxima[Y] * light_proxima[Y]) +
+				(light_proxima[Z] * light_proxima[Z]) ) )>>1;
+
+		luma += inverted_proxima * (int)lightSrc->bright;
+			}
+	}
+	return luma;
+}
+
+
 void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 { //Master SH2 drawing function (needs to be sorted after by slave)
 
@@ -258,7 +289,7 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 	m2z[2] = msMatrix[Z][Z];
 	m2z[3] = msMatrix[3][Z];
 	
-	FIXED luma;
+	FIXED luma = 0;
 	short colorBank;
 //
 //The only way to increase the render distance is with a non-uniform density.
@@ -431,13 +462,15 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//Transform the polygon's normal by light source vector
-		luma = fxdot(tempNorm, lightSrc);
+
+		luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -59000) ? 0 : 1;
-		colorBank = (luma > -50000) ? 2 : colorBank;
-		colorBank = (luma > -45000) ? 3 : colorBank;
-		colorBank = (luma > 0) ? 515 : colorBank; //Make really dark? use MSB shadow
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 					ptv[2]->pnt, ptv[3]->pnt,
@@ -455,8 +488,10 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 
 void	hmap_cluster(void)
 {
+	
 	chg_map(&maps[0]);
 	//update_hmap();
 	draw_minimap();
 	update_mmap_1pass();
+	
 }

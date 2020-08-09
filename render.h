@@ -26,6 +26,14 @@ typedef struct{
 } vertex_t; //20 bytes each
 
 typedef struct{
+	FIXED * ambient_light;
+	int	location[3];
+	unsigned short bright;
+	unsigned char pop;
+} point_light;
+
+
+typedef struct{
 	unsigned short SIZE; //VDP1 Size Word
 	unsigned short SRCA; //VDP1 Source Address Word (MAP_TO_VRAM)
 } paletteCode;
@@ -43,6 +51,8 @@ extern int * transVerts;
 extern int * transPolys;
 extern paletteCode * pcoTexDefs;
 
+extern point_light active_lights[16];
+
 extern FIXED MsScreenDist;
 extern FIXED MsZlimit;
 
@@ -53,9 +63,9 @@ void	init_render_area(void);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
 void	update_gamespeed(void);
-void	ssh2DrawModel(entity_t * ent, POINT lightSrc);
+void	ssh2DrawModel(entity_t * ent, POINT wldPos);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
-void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT lightSrc);
+void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos, bool transplant);
 void	sort_master_polys(void);
 #endif
 

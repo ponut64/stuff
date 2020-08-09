@@ -17,7 +17,7 @@ void	init_lwram(void)
 //Sound Control Data Table
 	RBBs = (void*)((unsigned int)(pcoTexDefs-(sizeof(_boundBox) * MAX_PHYS_PROXY))|UNCACHE); //In LWRAM // 
 //Object Table
-	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//^UNCACHE);//|UNCACHE); //In LWRAM // 11264 bytes
+	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//^UNCACHE);//|UNCACHE); //In LWRAM // 12KBish
 //Map Normal Table
 	normTbl = (void*)((unsigned int)(LWRAM+(256 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
 

@@ -83,13 +83,14 @@ typedef struct {
 	short height;
 	short link;
 	int dist; //Just *some* static data to keep for every object because so many need it, but not all do.
+	unsigned char status; //Done, in-view, passed, in process, never know
 } _declaredObject;
 
 //extern _declaredObject dWorldObjects[257];
 extern _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 extern unsigned short objNEW;
 extern unsigned short objDRAW[512];
-extern unsigned short objDWO[512];
+extern unsigned short activeObjects[512];
 extern short link_starts[8];
 
 void	fill_obj_list(void);

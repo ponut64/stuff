@@ -4,7 +4,7 @@
 snd_ring		music_buf[MUS_BUFCNT];
 int				musicPitch = S1536KHZ;
 int				musicTimer = 64;
-Sint8*			music = (Sint8*)"MAIN.MUS";
+Sint8*			music = (Sint8*)"EVE.MUS";
 
 static	int	mrd_pos = 0;
 int			buf_pos;
@@ -32,7 +32,7 @@ GfsHn	gfs_t;
 
 //Rate of data reading
 //We will have to see if this is enough buffer time...
-const int			m_step = (4 * 2048);
+const int			m_step = (4 * 2048); //2048 = [assumed] CD sector size
 const int			m_sector = 4;
 const int			mcpy_factor = 4;
 
@@ -75,7 +75,6 @@ void	music_vblIn(Uint8 vol){
 	}
 		fetch_timer++;
 	if(fetch_timer >= musicTimer){
-		pcm_cease(bufNums[buf_pos]);
 		buffers_filled -= 1;
 		buf_pos++;
 ///Ring buffer wrap
@@ -87,7 +86,7 @@ void	music_vblIn(Uint8 vol){
 	}
 }
 
-void ztModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType)
+void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType)
 {
 //Fill out the request.
 	requests[NactiveZTP].filename = (Sint8*)GFS_NameToId(name);
@@ -270,7 +269,6 @@ do{
 	setTextures(activeZTP->tmodel, numTex, &activeZTP->tmodel->numTexture);
     workAddress = loadAnimations(workAddress, activeZTP->tmodel, &bufModelX);
 	
-	unsigned short * uAddr = (unsigned short *)workAddress;
 	unsigned char * readByte = (unsigned char *)workAddress;
 	unsigned char tHeight = 0;
 	unsigned char tWidth = 0;
@@ -321,7 +319,7 @@ do{
 }
 
 void	pop_load_pcm(void(*game_code)(void)){
-
+//Need to re-do
 
 }
 
@@ -612,9 +610,6 @@ for( ; ; ){
 	m_trig = true;
 	} else if(play_ref >= nsct_m){
 	m_trig = false;
-//	slSoundRequest("b", SND_PCM_STOP, 0);
-//	all sound slots in driver do need to die here
-		//cease_all_music();
 		buffers_filled = 0;
 		fetch_timer = 0;
 		mrd_pos = 0;

@@ -27,6 +27,7 @@ extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
 extern ATTR attribute_0[LCL_MAP_PLY * LCL_MAP_PLY];
 extern PDATA polymap[];
 extern FIXED hmap_matrix_pos[XYZ];
+extern FIXED hmap_actual_pos[XYZ];
 //Player Model
 extern entity_t pl_model;
 //Player's Shadow

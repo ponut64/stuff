@@ -10,17 +10,15 @@ I am sorry for the pain you had to go through.
 //
 // Compilation now requires a _very specifically set_ GCC 9.2 that should be included alongside the source code.
 //
-//free music source: https://patrickdearteaga.com/arcade-music/
 //
 #include <jo/jo.h>
 #include "def.h"
 #include <SEGA_INT.H>
 
-//Borrowed/given from XL2
-//vdp2.c was here
+//Outstanding code contributions from XL2 
 //
 #include "anidefs.h"
-//
+
 #include "draw.h"
 #include "bounder.h"
 #include "collision.h"
@@ -91,7 +89,7 @@ void	update_gamespeed(void)
 	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
 	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
 	
-	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210);
+	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210); //(last argument is color)
 	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
 		if(time_selector > 1){
 	jo_draw_background_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
@@ -103,10 +101,11 @@ void	update_gamespeed(void)
 		frmul = framerate<<16;
 }
 
-//Loading. Check msfs.c and ZT_LOADMODEL.h for more information.
+//Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
 	//
+	snd_dash = load_8bit_pcm((Sint8*)"DSH.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
@@ -123,17 +122,17 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
 	//End tex 35
-ztModelRequest((Sint8*)"BPONY.GVP", &pl_model, true, SORT_CEN);
+gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN);
 
-ztModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN);
+gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], false, SORT_CEN);
 
-ztModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN);
+gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], false, SORT_CEN);
 
-ztModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN);
+gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], false, SORT_CEN);
 
-ztModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN);
+gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], false, SORT_CEN);
 
-ztModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
+gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
 
 
 p64MapRequest((Sint8*)"01", 0);
@@ -195,7 +194,7 @@ void	attributions(void)
 
 void	jo_main(void)
 {
-	jo_core_init(0xE726); //Teal Colour is the value
+	jo_core_init(0xE726); 
 	//XL2
 	slDynamicFrame(ON); //Dynamic framerate
 	SynchConst = 2;

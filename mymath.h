@@ -6,6 +6,7 @@
 
 FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(VECTOR ptA, VECTOR ptB);
+FIXED		fxdiv(FIXED dividend, FIXED divisor);
 
 FIXED	ANGtoDEG(FIXED angle);
 bool	chk_matching_sign(FIXED io1[XYZ], FIXED io2[XYZ]);

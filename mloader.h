@@ -4,8 +4,6 @@
 #include <jo/jo.h>
 #include "tga.h"
 
-//Mostly from XL2
-
 #define MAX_MESHES (5)
 #define MAX_MODELS (40)
 
@@ -14,8 +12,8 @@ typedef     Uint8   compNorm;
 
 typedef struct
 {
- compVert * cVert;
- compNorm * cNorm;
+ compVert * cVert; //Pointer to cVert list, stored in memory for an animated model
+ compNorm * cNorm; //Pointed to cNorm list, stored in memory for an animated model
 
 } anim_struct;
 
@@ -36,10 +34,12 @@ typedef struct
 	short base_texture;
 	char numTexture;
 	char sortType;
+	char isPlayer;
     Uint16 nbMeshes;
     Uint16 nbFrames;
     anim_struct * animation[240];
     PDATA * pol[MAX_MESHES];
+	FIXED * prematrix;
 } entity_t;
 
 

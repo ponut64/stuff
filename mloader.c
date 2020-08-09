@@ -41,7 +41,7 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
     void * workAddress = startAddress;
     unsigned int a, i; //, ii;
 
-    for (a=0; a<modelData->nbFrames; a++)  /**NEED TO DIVIDE NBFRAMES BY INTERPOLATION**/
+    for (a=0; a<modelData->nbFrames; a++) 
     {
         model->animation[a]=(anim_struct*)(workAddress);
         workAddress=(void*)(workAddress+sizeof(anim_struct));
@@ -59,9 +59,9 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
             model->animation[a]->cVert = (compVert*)(workAddress);
             workAddress=(void*)(workAddress+(sizeof(compVert) * totPoints));
 
-            if (totPoints % 2 != 0)
+            if (totPoints % 2 != 0){
                workAddress=(void*)(workAddress+(sizeof(short)));
-
+			}
             model->animation[a]->cNorm = (compNorm*)(workAddress);
             workAddress=(void*)(workAddress+(sizeof(compNorm) * totNormals));
             while (totNormals % 4 != 0)
@@ -100,7 +100,7 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
 
 void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType)
 {
-	/** Not useful anymore due to ZTP changes, must be redone **/
+
 	modelData_t model_header;
 	void * workAddress = startAddress;
 	
@@ -142,8 +142,8 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	unsigned char tHeight = 0;
 	unsigned char tWidth = 0;
 	unsigned int tSize = 0;
-	// jo_printf(0, 14, "(%i)", model->numTexture);
-	// jo_printf(0, 15, "(%i)", uAddr[0]);
+	jo_printf(0, 14, "(%i)", model->numTexture);
+	jo_printf(0, 15, "(%i)", uAddr[0]);
 	for(int j = 0; j < model->numTexture+1; j++)
 	{
 		readByte+=2;	//Skip over a boundary short word, 0xF7F7
@@ -153,15 +153,15 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		readByte += 2; //Skip over the H x W bytes
 		GLOBAL_img_addr = readByte;
 		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
-		readByte += tSize; //Get us to the next texture
+		readByte += tSize;
 	}
 	
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	
-	// jo_printf(0, 9, "(%i)H", tHeight);
-	// jo_printf(0, 10, "(%i)W", tWidth);
-	// jo_printf(0, 11, "(%i)T", tSize);
+	jo_printf(0, 9, "(%i)H", tHeight);
+	jo_printf(0, 10, "(%i)W", tWidth);
+	jo_printf(0, 11, "(%i)T", tSize);
 	
 		//Decimate existing sort type bits
 	model->pol[0]->attbl[0].sort &= 252;
