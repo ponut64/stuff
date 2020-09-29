@@ -82,7 +82,7 @@ void	vblank_requirements(void)
 	//jo_printf(0, 15, "(%x)", (int)BACK_CRAM);
 	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
-	vdp2_sprMode[0] = 3; //Sprite Data Type Mode
+	vdp2_sprMode[0] = 4; //Sprite Data Type Mode
 }
 
 void	init_vdp2(void)

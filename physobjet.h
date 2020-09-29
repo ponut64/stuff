@@ -74,6 +74,8 @@ typedef struct {
 	unsigned short entity_ID;
 	unsigned short radius[XYZ];
 	unsigned short ext_dat;
+	unsigned short light_bright;
+	unsigned short light_y_offset;
 } _sobject;
 
 typedef struct {
@@ -92,6 +94,7 @@ extern unsigned short objNEW;
 extern unsigned short objDRAW[512];
 extern unsigned short activeObjects[512];
 extern short link_starts[8];
+extern int objUP;
 
 void	fill_obj_list(void);
 
@@ -102,6 +105,8 @@ void	declarations(void);
 void	update_object(Uint8 boxNumber, int pixX, int pixY, FIXED Ydist, ANGLE rotx, ANGLE roty, ANGLE rotz, FIXED radx, FIXED rady, FIXED radz);
 
 void	object_control_loop(int ppos[XY]);
+
+void	light_control_loop(void);
 
 void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt);
 void	walk_map_between_objects(short obj_id1, short obj_id2);

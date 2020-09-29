@@ -20,7 +20,7 @@ void pl_jump(void){
 			you.Velocity[X] += fxm(196608, you.floorNorm[X]); 
 			you.Velocity[Y] += fxm(196608, you.floorNorm[Y]);
 			you.Velocity[Z] += fxm(196608, you.floorNorm[Z]);
-		pcm_play(snd_bstep, PCM_SEMI, 7);
+		pcm_play(snd_bstep, PCM_SEMI, 7, 0);
 }
 
 void	pl_step_snd(void){
@@ -58,7 +58,7 @@ void	pl_step_snd(void){
 	
 	if(runSnd == 1)
 	{
-		pcm_play(snd_lstep, PCM_SEMI, 6);
+		pcm_play(snd_lstep, PCM_SEMI, 6, 0);
 	}
 	
 	oldHoofSetBools[0] = hoofSetBools[0];
@@ -196,7 +196,7 @@ void	player_phys_affect(void)
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
 	
 	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
-	pcm_play(snd_wind, PCM_FWD_LOOP, windVol); //Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
+	pcm_play(snd_wind, PCM_FWD_LOOP, windVol, 0); //Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
@@ -244,8 +244,21 @@ void	player_phys_affect(void)
 	you.prevPos[Z] = you.pos[Z];
 	}
 	
-	make2AxisBox(you.pos[X], you.pos[Y], you.pos[Z], you.renderRot[X], (you.renderRot[Y]), you.renderRot[Z], (2<<16), (5<<16), (5<<16), &pl_RBB);
-
+	bound_box_starter.modified_box = &pl_RBB;
+	bound_box_starter.x_location = you.pos[X];
+	bound_box_starter.y_location = you.pos[Y];
+	bound_box_starter.z_location = you.pos[Z];
+	
+	bound_box_starter.x_rotation = you.renderRot[X];
+	bound_box_starter.y_rotation = you.renderRot[Y];
+	bound_box_starter.z_rotation = you.renderRot[Z];
+	
+	bound_box_starter.x_radius = 2<<16;
+	bound_box_starter.y_radius = 5<<16;
+	bound_box_starter.z_radius = 5<<16;
+				
+		make2AxisBox(&bound_box_starter);
+	
 		if(you.setSlide) //Rotational logic changes based on what movement state you are in.
 		{				//This is *after* the rotation is set to the matrix so that when it is drawn (by slave SH2), it is appropriate.
 				you.renderRot[X] = you.rot[X];

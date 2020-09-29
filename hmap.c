@@ -167,7 +167,7 @@ void	chg_map(_heightmap * tmap){
 }
 
 //Texture Table Assignment based on heights from main map strata table.
-__jo_force_inline int	strataFinder(int index){
+__jo_force_inline int	texture_table_by_height(int index){
 	int avgY = 0;
 	avgY = -(polymap->pntbl[polymap->pltbl[index].Vertices[0]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[1]][Y] +
 	polymap->pntbl[polymap->pltbl[index].Vertices[2]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[3]][Y])>>18;
@@ -185,11 +185,11 @@ __jo_force_inline int	strataFinder(int index){
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-__jo_force_inline int		tex2Handler(int index, FIXED * norm, int * flip){
+__jo_force_inline int		texture_angle_resolver(int index, FIXED * norm, int * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
-	int baseTex = strataFinder(index);
+	int baseTex = texture_table_by_height(index);
 	int texno = 0;
 	*flip = 0;
 	
@@ -231,19 +231,21 @@ __jo_force_inline int		tex2Handler(int index, FIXED * norm, int * flip){
 __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynumber)
 {
 	int luma = 0;
-	for(int i = 0; i < 1; i++)
+	for(int i = 0; i < 16; i++)
 	{
 	point_light * lightSrc = &active_lights[i];
 			if(lightSrc->pop == 1)
 			{
+		//Get distance to the polygon approximate center (v0 + v2) - map_pos - light_pos (+ because the map is moved inverse) 
 		POINT light_proxima = {
 		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][X] + model->pntbl[model->pltbl[polynumber].Vertices[2]][X])>>1)
-		+ wldPos[X]) + lightSrc->location[X])>>16,
+		+ wldPos[X]) + lightSrc->pos[X])>>16,
 		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Y] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Y])>>1)
-		+ wldPos[Y]) + lightSrc->location[Y])>>16,
+		+ wldPos[Y]) + lightSrc->pos[Y])>>16,
 		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Z] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Z])>>1)
-		+ wldPos[Z]) + lightSrc->location[Z])>>16
+		+ wldPos[Z]) + lightSrc->pos[Z])>>16
 		};
+		// Get inverse distance (some extrapolation of 1/sqrt(d) 
 		int inverted_proxima = (65536 / ( (light_proxima[X] * light_proxima[X]) +
 				(light_proxima[Y] * light_proxima[Y]) +
 				(light_proxima[Z] * light_proxima[Z]) ) )>>1;
@@ -367,15 +369,18 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 			//However, this complicates assigning our "compressed" normals to polygons.
 			//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
 			//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
-			//Very important is to find the local polygon 0 ("top left") to use as the offset for our location.
+			//Very important is to find the local polygon 0 ("top left") to use as the offset for our pos.
 			//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
-			//The vertice map does have a center. So we define our center as the polygon which has the center vertice as its first vertice [vertice 0 of 0-1-2-3].
+			//The vertice map does have a center. So we define our center as the polygon which has the center vertice (of the main map)
+			// as its first vertice [vertice 0 of 0-1-2-3].
 			// currently, 12 represents the polymap_width>>1
 			
 			//We also draw the polygons here.
 			
-			int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); //This polygon contains the center pixel (main_map_total_pix>>1)
-			int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); //This is the upper-left polygon of the display area
+			//This polygon contains the center pixel (main_map_total_pix>>1)
+			int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); 
+			//This is the upper-left polygon of the display area
+			int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); 
 			int src_norm = 0;
 			int dst_poly = 0;
 			VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
@@ -429,7 +434,7 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 				tempNorm[Y] = normTbl[src_norm+1]<<9;
 				tempNorm[Z] = normTbl[src_norm+2]<<9;
 
-		texno = tex2Handler(dst_poly, tempNorm, &flip);
+		texno = texture_angle_resolver(dst_poly, tempNorm, &flip);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Flip logic to keep vertice 0 on-screen
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

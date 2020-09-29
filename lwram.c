@@ -19,7 +19,7 @@ void	init_lwram(void)
 //Object Table
 	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//^UNCACHE);//|UNCACHE); //In LWRAM // 12KBish
 //Map Normal Table
-	normTbl = (void*)((unsigned int)(LWRAM+(256 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
+	normTbl = (void*)((unsigned int)(LWRAM+(512 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
 
 
 

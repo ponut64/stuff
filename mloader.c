@@ -142,8 +142,8 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	unsigned char tHeight = 0;
 	unsigned char tWidth = 0;
 	unsigned int tSize = 0;
-	jo_printf(0, 14, "(%i)", model->numTexture);
-	jo_printf(0, 15, "(%i)", uAddr[0]);
+	// jo_printf(0, 14, "(%i)", model->numTexture);
+	// jo_printf(0, 15, "(%i)", uAddr[0]);
 	for(int j = 0; j < model->numTexture+1; j++)
 	{
 		readByte+=2;	//Skip over a boundary short word, 0xF7F7
@@ -159,9 +159,9 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	
-	jo_printf(0, 9, "(%i)H", tHeight);
-	jo_printf(0, 10, "(%i)W", tWidth);
-	jo_printf(0, 11, "(%i)T", tSize);
+	// jo_printf(0, 9, "(%i)H", tHeight);
+	// jo_printf(0, 10, "(%i)W", tWidth);
+	// jo_printf(0, 11, "(%i)T", tSize);
 	
 		//Decimate existing sort type bits
 	model->pol[0]->attbl[0].sort &= 252;

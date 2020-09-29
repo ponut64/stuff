@@ -9,251 +9,252 @@ This file is compiled separately.
 
 _boundBox * RBBs; //In LWRAM // 
 _boundBox pl_RBB;
+_object_arguments bound_box_starter;
 Uint8 curBoxes = 0;
 
 //Usage:
 // param X, Y, Z: The location of the box (center)
 // param xrot, yrot, zrot: the rotation of the box.
-// param r1x, r2y, r3z: the X, Y, and Z radius of the box.
+// param source_data->x_radius, source_data->y_radius, source_data->z_radius: the X, Y, and Z radius of the box.
 //note: export models as -Y forward, Z up.
 // param bbox: the bounding box struct to be modified.
-void	makeBoundBox(FIXED x, FIXED y, FIXED z, ANGLE xrot, ANGLE yrot, ANGLE zrot, FIXED r1x, FIXED r2y, FIXED r3z, _boundBox * bbox)
+void	makeBoundBox(_object_arguments * source_data)
 {
 	FIXED prevXpos[XYZ]; 
-	prevXpos[X] = bbox->Xplus[X];
-	prevXpos[Y] = bbox->Xplus[Y];
-	prevXpos[Z] = bbox->Xplus[Z];
+	prevXpos[X] = source_data->modified_box->Xplus[X];
+	prevXpos[Y] = source_data->modified_box->Xplus[Y];
+	prevXpos[Z] = source_data->modified_box->Xplus[Z];
 	FIXED prevYpos[XYZ]; 
-	prevYpos[X] = bbox->Yplus[X];
-	prevYpos[Y] = bbox->Yplus[Y]; 
-	prevYpos[Z] = bbox->Yplus[Z];
+	prevYpos[X] = source_data->modified_box->Yplus[X];
+	prevYpos[Y] = source_data->modified_box->Yplus[Y]; 
+	prevYpos[Z] = source_data->modified_box->Yplus[Z];
 	FIXED prevZpos[XYZ];
-	prevZpos[X] = bbox->Zplus[X];
-	prevZpos[Y] = bbox->Zplus[Y];
-	prevZpos[Z] = bbox->Zplus[Z];
+	prevZpos[X] = source_data->modified_box->Zplus[X];
+	prevZpos[Y] = source_data->modified_box->Zplus[Y];
+	prevZpos[Z] = source_data->modified_box->Zplus[Z];
 	FIXED prevNXpos[XYZ];
-	prevNXpos[X] = bbox->Xneg[X];
-	prevNXpos[Y] = bbox->Xneg[Y];
-	prevNXpos[Z] = bbox->Xneg[Z];
+	prevNXpos[X] = source_data->modified_box->Xneg[X];
+	prevNXpos[Y] = source_data->modified_box->Xneg[Y];
+	prevNXpos[Z] = source_data->modified_box->Xneg[Z];
 	FIXED prevNYpos[XYZ];
-	prevNYpos[X] = bbox->Yneg[X]; 
-	prevNYpos[Y] = bbox->Yneg[Y];
-	prevNYpos[Z] = bbox->Yneg[Z];
+	prevNYpos[X] = source_data->modified_box->Yneg[X]; 
+	prevNYpos[Y] = source_data->modified_box->Yneg[Y];
+	prevNYpos[Z] = source_data->modified_box->Yneg[Z];
 	FIXED prevNZpos[XYZ];
-	prevNZpos[X] = bbox->Zneg[X]; 
-	prevNZpos[Y] = bbox->Zneg[Y];
-	prevNZpos[Z] = bbox->Zneg[Z];
+	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
+	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
+	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
 	//Give the box its location
-	bbox->pos[X] = -x;
-	bbox->pos[Y] = -y;
-	bbox->pos[Z] = -z;
+	source_data->modified_box->pos[X] = -source_data->x_location;
+	source_data->modified_box->pos[Y] = -source_data->y_location;
+	source_data->modified_box->pos[Z] = -source_data->z_location;
 	//Give the box its rotation
-	bbox->boxRot[X] = xrot;
-	bbox->boxRot[Y] = yrot;
-	bbox->boxRot[Z] = zrot;
+	source_data->modified_box->boxRot[X] = source_data->x_rotation;
+	source_data->modified_box->boxRot[Y] = source_data->y_rotation;
+	source_data->modified_box->boxRot[Z] = source_data->z_rotation;
 	//Give the box its radius
-	bbox->brad[X] = r1x;
-	bbox->brad[Y] = r2y;
-	bbox->brad[Z] = r3z;
+	source_data->modified_box->brad[X] = source_data->x_radius;
+	source_data->modified_box->brad[Y] = source_data->y_radius;
+	source_data->modified_box->brad[Z] = source_data->z_radius;
 
-	register FIXED sinX = slSin(bbox->boxRot[X]);
-	register FIXED cosX = slCos(bbox->boxRot[Y]);
-	register FIXED sinY = slSin(bbox->boxRot[Y]);
-	register FIXED cosY = slCos(bbox->boxRot[Y]);
-	register FIXED sinZ = slSin(bbox->boxRot[Z]);
-	register FIXED cosZ = slCos(bbox->boxRot[Z]);
+	register FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
+	register FIXED cosX = slCos(source_data->modified_box->boxRot[Y]);
+	register FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
+	register FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
+	register FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
+	register FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
 	//SETUP UNIT VECTOR X
-	bbox->UVX[X] = fxm(cosY, cosZ);
-	bbox->UVX[Y] = fxm(sinZ, cosX) + fxm(fxm(sinX, sinY), cosZ);
-	bbox->UVX[Z] = -fxm(fxm(sinY, cosZ), cosX) + fxm(sinZ, sinX);
+	source_data->modified_box->UVX[X] = fxm(cosY, cosZ);
+	source_data->modified_box->UVX[Y] = fxm(sinZ, cosX) + fxm(fxm(sinX, sinY), cosZ);
+	source_data->modified_box->UVX[Z] = -fxm(fxm(sinY, cosZ), cosX) + fxm(sinZ, sinX);
 	
-	(*bbox).Xplus[X] = fxm((bbox->brad[X]), bbox->UVX[X]);
-	(*bbox).Xplus[Y] = fxm((bbox->brad[X]), bbox->UVX[Y]);
-	(*bbox).Xplus[Z] = fxm((bbox->brad[X]), bbox->UVX[Z]);
+	source_data->modified_box->Xplus[X] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[X]);
+	source_data->modified_box->Xplus[Y] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Y]);
+	source_data->modified_box->Xplus[Z] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Z]);
 
 	//SETUP UNIT VECTOR Y
-	bbox->UVY[X] = -fxm(sinZ, cosY);
-	bbox->UVY[Y] = fxm(cosZ, cosX) - fxm(fxm(sinX, sinY), sinZ);
-	bbox->UVY[Z] = fxm(sinX, cosZ) + fxm(fxm(sinY, sinZ), cosX);
+	source_data->modified_box->UVY[X] = -fxm(sinZ, cosY);
+	source_data->modified_box->UVY[Y] = fxm(cosZ, cosX) - fxm(fxm(sinX, sinY), sinZ);
+	source_data->modified_box->UVY[Z] = fxm(sinX, cosZ) + fxm(fxm(sinY, sinZ), cosX);
 
-	(*bbox).Yplus[X] = fxm((bbox->brad[Y]), bbox->UVY[X]);
-	(*bbox).Yplus[Y] = fxm((bbox->brad[Y]), bbox->UVY[Y]);
-	(*bbox).Yplus[Z] = fxm((bbox->brad[Y]), bbox->UVY[Z]);
+	source_data->modified_box->Yplus[X] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[X]);
+	source_data->modified_box->Yplus[Y] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Y]);
+	source_data->modified_box->Yplus[Z] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Z]);
 	
 	//SETUP UNIT VECTOR Z
-	bbox->UVZ[X] = (sinY);
-	bbox->UVZ[Y] = -fxm(sinX, cosY);
-	bbox->UVZ[Z] = fxm(cosX, cosY);
+	source_data->modified_box->UVZ[X] = (sinY);
+	source_data->modified_box->UVZ[Y] = -fxm(sinX, cosY);
+	source_data->modified_box->UVZ[Z] = fxm(cosX, cosY);
 	
-	(*bbox).Zplus[X] = fxm((bbox->brad[Z]), bbox->UVZ[X]);
-	(*bbox).Zplus[Y] = fxm((bbox->brad[Z]), bbox->UVZ[Y]);
-	(*bbox).Zplus[Z] = fxm((bbox->brad[Z]), bbox->UVZ[Z]);
+	source_data->modified_box->Zplus[X] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[X]);
+	source_data->modified_box->Zplus[Y] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Y]);
+	source_data->modified_box->Zplus[Z] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Z]);
 	//---------------------------------------------------------------------------------------------------------------
-	bbox->UVNX[X] = -bbox->UVX[X];
-	bbox->UVNX[Y] = -bbox->UVX[Y];
-	bbox->UVNX[Z] = -bbox->UVX[Z];
-	bbox->UVNY[X] = -bbox->UVY[X];
-	bbox->UVNY[Y] = -bbox->UVY[Y];
-	bbox->UVNY[Z] = -bbox->UVY[Z];
-	bbox->UVNZ[X] = -bbox->UVZ[X];
-	bbox->UVNZ[Y] = -bbox->UVZ[Y];
-	bbox->UVNZ[Z] = -bbox->UVZ[Z];
+	source_data->modified_box->UVNX[X] = -source_data->modified_box->UVX[X];
+	source_data->modified_box->UVNX[Y] = -source_data->modified_box->UVX[Y];
+	source_data->modified_box->UVNX[Z] = -source_data->modified_box->UVX[Z];
+	source_data->modified_box->UVNY[X] = -source_data->modified_box->UVY[X];
+	source_data->modified_box->UVNY[Y] = -source_data->modified_box->UVY[Y];
+	source_data->modified_box->UVNY[Z] = -source_data->modified_box->UVY[Z];
+	source_data->modified_box->UVNZ[X] = -source_data->modified_box->UVZ[X];
+	source_data->modified_box->UVNZ[Y] = -source_data->modified_box->UVZ[Y];
+	source_data->modified_box->UVNZ[Z] = -source_data->modified_box->UVZ[Z];
 	//axis given: Y (on Z axis and does not change Y axis) circle going only right/left, forward/backward
-	(*bbox).Xneg[X] = -fxm((bbox->brad[X]), bbox->UVX[X]);
-	(*bbox).Xneg[Y] = -fxm((bbox->brad[X]), bbox->UVX[Y]);
-	(*bbox).Xneg[Z] = -fxm((bbox->brad[X]), bbox->UVX[Z]);
+	source_data->modified_box->Xneg[X] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[X]);
+	source_data->modified_box->Xneg[Y] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Y]);
+	source_data->modified_box->Xneg[Z] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Z]);
 	//axis given: X (on Y axis and does not change X axis) circle going only up/down, forward/backward
-	(*bbox).Yneg[X] = -fxm((bbox->brad[Y]), bbox->UVY[X]);
-	(*bbox).Yneg[Y] = -fxm((bbox->brad[Y]), bbox->UVY[Y]);
-	(*bbox).Yneg[Z] = -fxm((bbox->brad[Y]), bbox->UVY[Z]);
+	source_data->modified_box->Yneg[X] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[X]);
+	source_data->modified_box->Yneg[Y] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Y]);
+	source_data->modified_box->Yneg[Z] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Z]);
 	//axis given: Z (on X axis and does not change Z axis) Circle going only up/down, left/right
-	(*bbox).Zneg[X] = -fxm((bbox->brad[Z]), bbox->UVZ[X]);
-	(*bbox).Zneg[Y] = -fxm((bbox->brad[Z]), bbox->UVZ[Y]);
-	(*bbox).Zneg[Z] = -fxm((bbox->brad[Z]), bbox->UVZ[Z]);
+	source_data->modified_box->Zneg[X] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[X]);
+	source_data->modified_box->Zneg[Y] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Y]);
+	source_data->modified_box->Zneg[Z] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Z]);
 	//end of negative
 
 	//Sort and assign X, Y, and Z maximum normals. (For macros)
 	//Warning: Sorting is GONE. :(
 
 	//Determine a velocity from the difference of current and last position
-	segment_to_vector(bbox->prevPos, bbox->pos, bbox->velocity);
-	segment_to_vector(prevXpos, bbox->Xplus, bbox->veloX);
-	segment_to_vector(prevYpos, bbox->Yplus, bbox->veloY);
-	segment_to_vector(prevZpos, bbox->Zplus, bbox->veloZ);
+	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
+	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
+	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
+	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
 	
-	segment_to_vector(prevNXpos, bbox->Xneg, bbox->veloNX);
-	segment_to_vector(prevNYpos, bbox->Yneg, bbox->veloNY);
-	segment_to_vector(prevNZpos, bbox->Zneg, bbox->veloNZ);
+	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
+	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
+	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
 	
 	//Fill this crap out.
-	bbox->prevPos[X] = bbox->pos[X];
-	bbox->prevPos[Y] = bbox->pos[Y];
-	bbox->prevPos[Z] = bbox->pos[Z];
+	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
+	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
+	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
 	
 }
 
 //Usage:
 // param X, Y, Z: The location of the box (center)
 // param xrot, yrot, zrot: the rotation of the box.
-// param r1x, r2y, r3z: the X, Y, and Z radius of the box.
+// param source_data->x_radius, source_data->y_radius, source_data->z_radius: the X, Y, and Z radius of the box.
 // param bbox: the bounding box struct to be modified.
 //Modified version to suit a Y axis gimbal lock. In other words, Y rotation is around a fixed post.
 ///Also, this doesn't make a box. It's just matrix generation, but with a radius and some velocities sprinkled on top; you can _make_ a box from it.
-void	make2AxisBox(FIXED x, FIXED y, FIXED z, ANGLE xrot, ANGLE yrot, ANGLE zrot, FIXED r1x, FIXED r2y, FIXED r3z, _boundBox * bbox)
+void	make2AxisBox(_object_arguments * source_data)
 {
 	FIXED prevXpos[XYZ]; 
-	prevXpos[X] = bbox->Xplus[X];
-	prevXpos[Y] = bbox->Xplus[Y];
-	prevXpos[Z] = bbox->Xplus[Z];
+	prevXpos[X] = source_data->modified_box->Xplus[X];
+	prevXpos[Y] = source_data->modified_box->Xplus[Y];
+	prevXpos[Z] = source_data->modified_box->Xplus[Z];
 	FIXED prevYpos[XYZ]; 
-	prevYpos[X] = bbox->Yplus[X];
-	prevYpos[Y] = bbox->Yplus[Y]; 
-	prevYpos[Z] = bbox->Yplus[Z];
+	prevYpos[X] = source_data->modified_box->Yplus[X];
+	prevYpos[Y] = source_data->modified_box->Yplus[Y]; 
+	prevYpos[Z] = source_data->modified_box->Yplus[Z];
 	FIXED prevZpos[XYZ];
-	prevZpos[X] = bbox->Zplus[X];
-	prevZpos[Y] = bbox->Zplus[Y];
-	prevZpos[Z] = bbox->Zplus[Z];
+	prevZpos[X] = source_data->modified_box->Zplus[X];
+	prevZpos[Y] = source_data->modified_box->Zplus[Y];
+	prevZpos[Z] = source_data->modified_box->Zplus[Z];
 	FIXED prevNXpos[XYZ];
-	prevNXpos[X] = bbox->Xneg[X];
-	prevNXpos[Y] = bbox->Xneg[Y];
-	prevNXpos[Z] = bbox->Xneg[Z];
+	prevNXpos[X] = source_data->modified_box->Xneg[X];
+	prevNXpos[Y] = source_data->modified_box->Xneg[Y];
+	prevNXpos[Z] = source_data->modified_box->Xneg[Z];
 	FIXED prevNYpos[XYZ];
-	prevNYpos[X] = bbox->Yneg[X]; 
-	prevNYpos[Y] = bbox->Yneg[Y];
-	prevNYpos[Z] = bbox->Yneg[Z];
+	prevNYpos[X] = source_data->modified_box->Yneg[X]; 
+	prevNYpos[Y] = source_data->modified_box->Yneg[Y];
+	prevNYpos[Z] = source_data->modified_box->Yneg[Z];
 	FIXED prevNZpos[XYZ];
-	prevNZpos[X] = bbox->Zneg[X]; 
-	prevNZpos[Y] = bbox->Zneg[Y];
-	prevNZpos[Z] = bbox->Zneg[Z];
+	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
+	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
+	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
 	//Give the box its location
-	bbox->pos[X] = x;
-	bbox->pos[Y] = y;
-	bbox->pos[Z] = z;
+	source_data->modified_box->pos[X] = source_data->x_location;
+	source_data->modified_box->pos[Y] = source_data->y_location;
+	source_data->modified_box->pos[Z] = source_data->z_location;
 	//Give the box its rotation
-	bbox->boxRot[X] = xrot;
-	bbox->boxRot[Y] = yrot;
-	bbox->boxRot[Z] = zrot;
+	source_data->modified_box->boxRot[X] = source_data->x_rotation;
+	source_data->modified_box->boxRot[Y] = source_data->y_rotation;
+	source_data->modified_box->boxRot[Z] = source_data->z_rotation;
 	//Give the box its radius
-	bbox->brad[X] = r1x;
-	bbox->brad[Y] = r2y;
-	bbox->brad[Z] = r3z;
+	source_data->modified_box->brad[X] = source_data->x_radius;
+	source_data->modified_box->brad[Y] = source_data->y_radius;
+	source_data->modified_box->brad[Z] = source_data->z_radius;
 
-	register FIXED sinX = slSin(bbox->boxRot[X]);
-	register FIXED cosX = slCos(bbox->boxRot[X]);
-	register FIXED sinY = slSin(bbox->boxRot[Y]);
-	register FIXED cosY = slCos(bbox->boxRot[Y]);
-	register FIXED sinZ = slSin(bbox->boxRot[Z]);
-	register FIXED cosZ = slCos(bbox->boxRot[Z]);
+	register FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
+	register FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
+	register FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
+	register FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
+	register FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
+	register FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
 	//SETUP UNIT VECTOR X
 	///left - right points. Affected as: X rotation causes no movement. Y rotation causes movement on X-Z axis. Z rotation causes movement on Y-X axis.
-	bbox->UVX[X] = fxm(cosY, cosZ) - fxm(fxm(sinY, -sinX), -sinZ);
-	bbox->UVX[Y] = fxm(sinZ, cosX);
-	bbox->UVX[Z] = -fxm(sinY, cosZ) - fxm(fxm(-sinX, -sinZ), cosY);
+	source_data->modified_box->UVX[X] = fxm(cosY, cosZ) - fxm(fxm(sinY, -sinX), -sinZ);
+	source_data->modified_box->UVX[Y] = fxm(sinZ, cosX);
+	source_data->modified_box->UVX[Z] = -fxm(sinY, cosZ) - fxm(fxm(-sinX, -sinZ), cosY);
 	
-	(*bbox).Xplus[X] = fxm((r1x), bbox->UVX[X]);
-	(*bbox).Xplus[Y] = fxm((r1x), bbox->UVX[Y]);
-	(*bbox).Xplus[Z] = fxm((r1x), bbox->UVX[Z]);
+	source_data->modified_box->Xplus[X] = fxm((source_data->x_radius), source_data->modified_box->UVX[X]);
+	source_data->modified_box->Xplus[Y] = fxm((source_data->x_radius), source_data->modified_box->UVX[Y]);
+	source_data->modified_box->Xplus[Z] = fxm((source_data->x_radius), source_data->modified_box->UVX[Z]);
 
 	//SETUP UNIT VECTOR Y
 	///up - down points. Affected as: X rotation causes movement on Y-Z axis. Y rotation causes no movement. Z rotation causes movement on Y-X axis.
-	bbox->UVY[X] = -fxm(fxm(sinY, sinX), cosZ) - fxm(sinZ, cosY);
-	bbox->UVY[Y] = fxm(cosX, cosZ);
-	bbox->UVY[Z] = fxm(fxm(-sinX, cosY), cosZ) + fxm(sinZ, sinY);
+	source_data->modified_box->UVY[X] = -fxm(fxm(sinY, sinX), cosZ) - fxm(sinZ, cosY);
+	source_data->modified_box->UVY[Y] = fxm(cosX, cosZ);
+	source_data->modified_box->UVY[Z] = fxm(fxm(-sinX, cosY), cosZ) + fxm(sinZ, sinY);
 
-	(*bbox).Yplus[X] = fxm((r2y), bbox->UVY[X]);
-	(*bbox).Yplus[Y] = fxm((r2y), bbox->UVY[Y]);
-	(*bbox).Yplus[Z] = fxm((r2y), bbox->UVY[Z]);
+	source_data->modified_box->Yplus[X] = fxm((source_data->y_radius), source_data->modified_box->UVY[X]);
+	source_data->modified_box->Yplus[Y] = fxm((source_data->y_radius), source_data->modified_box->UVY[Y]);
+	source_data->modified_box->Yplus[Z] = fxm((source_data->y_radius), source_data->modified_box->UVY[Z]);
 
 	///Fwd - back points. Affected as: Y rotation causes movement on X-Z axis. X rotation causes movement on Y-Z. Z rotation causes no movement.
 	//SETUP UNIT VECTOR Z
-	bbox->UVZ[X] = fxm(sinY, cosX);
-	bbox->UVZ[Y] = (sinX);
-	bbox->UVZ[Z] = fxm(cosX, cosY);
+	source_data->modified_box->UVZ[X] = fxm(sinY, cosX);
+	source_data->modified_box->UVZ[Y] = (sinX);
+	source_data->modified_box->UVZ[Z] = fxm(cosX, cosY);
 	
-	(*bbox).Zplus[X] = fxm((r3z), bbox->UVZ[X]);
-	(*bbox).Zplus[Y] = fxm((r3z), bbox->UVZ[Y]);
-	(*bbox).Zplus[Z] = fxm((r3z), bbox->UVZ[Z]);
+	source_data->modified_box->Zplus[X] = fxm((source_data->z_radius), source_data->modified_box->UVZ[X]);
+	source_data->modified_box->Zplus[Y] = fxm((source_data->z_radius), source_data->modified_box->UVZ[Y]);
+	source_data->modified_box->Zplus[Z] = fxm((source_data->z_radius), source_data->modified_box->UVZ[Z]);
 	//---------------------------------------------------------------------------------------------------------------
-	bbox->UVNX[X] = -bbox->UVX[X];
-	bbox->UVNX[Y] = -bbox->UVX[Y];
-	bbox->UVNX[Z] = -bbox->UVX[Z];
-	bbox->UVNY[X] = -bbox->UVY[X];
-	bbox->UVNY[Y] = -bbox->UVY[Y];
-	bbox->UVNY[Z] = -bbox->UVY[Z];
-	bbox->UVNZ[X] = -bbox->UVZ[X];
-	bbox->UVNZ[Y] = -bbox->UVZ[Y];
-	bbox->UVNZ[Z] = -bbox->UVZ[Z];
+	source_data->modified_box->UVNX[X] = -source_data->modified_box->UVX[X];
+	source_data->modified_box->UVNX[Y] = -source_data->modified_box->UVX[Y];
+	source_data->modified_box->UVNX[Z] = -source_data->modified_box->UVX[Z];
+	source_data->modified_box->UVNY[X] = -source_data->modified_box->UVY[X];
+	source_data->modified_box->UVNY[Y] = -source_data->modified_box->UVY[Y];
+	source_data->modified_box->UVNY[Z] = -source_data->modified_box->UVY[Z];
+	source_data->modified_box->UVNZ[X] = -source_data->modified_box->UVZ[X];
+	source_data->modified_box->UVNZ[Y] = -source_data->modified_box->UVZ[Y];
+	source_data->modified_box->UVNZ[Z] = -source_data->modified_box->UVZ[Z];
 	//axis given: Y (on Z axis and does not change Y axis) circle going only right/left, forward/backward
-	(*bbox).Xneg[X] = -fxm((r1x), bbox->UVX[X]);
-	(*bbox).Xneg[Y] = -fxm((r1x), bbox->UVX[Y]);
-	(*bbox).Xneg[Z] = -fxm((r1x), bbox->UVX[Z]);
+	source_data->modified_box->Xneg[X] = -fxm((source_data->x_radius), source_data->modified_box->UVX[X]);
+	source_data->modified_box->Xneg[Y] = -fxm((source_data->x_radius), source_data->modified_box->UVX[Y]);
+	source_data->modified_box->Xneg[Z] = -fxm((source_data->x_radius), source_data->modified_box->UVX[Z]);
 	//axis given: X (on Y axis and does not change X axis) circle going only up/down, forward/backward
-	(*bbox).Yneg[X] = -fxm((r2y), bbox->UVY[X]);
-	(*bbox).Yneg[Y] = -fxm((r2y), bbox->UVY[Y]);
-	(*bbox).Yneg[Z] = -fxm((r2y), bbox->UVY[Z]);
+	source_data->modified_box->Yneg[X] = -fxm((source_data->y_radius), source_data->modified_box->UVY[X]);
+	source_data->modified_box->Yneg[Y] = -fxm((source_data->y_radius), source_data->modified_box->UVY[Y]);
+	source_data->modified_box->Yneg[Z] = -fxm((source_data->y_radius), source_data->modified_box->UVY[Z]);
 	//axis given: Z (on X axis and does not change Z axis) Circle going only up/down, left/right
-	(*bbox).Zneg[X] = -fxm((r3z), bbox->UVZ[X]);
-	(*bbox).Zneg[Y] = -fxm((r3z), bbox->UVZ[Y]);
-	(*bbox).Zneg[Z] = -fxm((r3z), bbox->UVZ[Z]);
+	source_data->modified_box->Zneg[X] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[X]);
+	source_data->modified_box->Zneg[Y] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[Y]);
+	source_data->modified_box->Zneg[Z] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[Z]);
 	//end of negative
 	
 	//Sort and assign X, Y, and Z maximum normals. (For macros)
 	//Warning: Sorting is GONE. :(
 
 	//Determine a velocity from the difference of current and last position
-	segment_to_vector(bbox->prevPos, bbox->pos, bbox->velocity);
-	segment_to_vector(prevXpos, bbox->Xplus, bbox->veloX);
-	segment_to_vector(prevYpos, bbox->Yplus, bbox->veloY);
-	segment_to_vector(prevZpos, bbox->Zplus, bbox->veloZ);
+	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
+	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
+	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
+	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
 	
-	segment_to_vector(prevNXpos, bbox->Xneg, bbox->veloNX);
-	segment_to_vector(prevNYpos, bbox->Yneg, bbox->veloNY);
-	segment_to_vector(prevNZpos, bbox->Zneg, bbox->veloNZ);
+	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
+	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
+	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
 	
 	//Fill this crap out.
-	bbox->prevPos[X] = bbox->pos[X];
-	bbox->prevPos[Y] = bbox->pos[Y];
-	bbox->prevPos[Z] = bbox->pos[Z];
+	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
+	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
+	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
 }
 
 void	initPhys(void){

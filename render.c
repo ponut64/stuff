@@ -12,7 +12,8 @@ vertex_t * msh2VertArea;
 animationControl * AnimArea;
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
 
-point_light active_lights[16];
+point_light light_host[16];
+point_light * active_lights;
 
 int dummy[4];
 int * ssh2SentPolys;
@@ -41,6 +42,7 @@ void	init_render_area(void){
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
 	transPolys = (int *)(((unsigned int)&dummy[3])|UNCACHE);
+	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
 }
 
 void	frame_render_prep(void)
@@ -184,21 +186,37 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 	It can be a point light, an ambient light, or both.
 	
 	*/
-	int nearest_dot = 1<<30;
+	int nearest_dot = 0;
 	int active_dot = 0;
 	VECTOR lightDist = {0, 0, 0};
 	point_light * light_used = &active_lights[0];
+	
+	nearest_dot = JO_ABS(wldPos[X] - light_used->pos[X]) +
+					JO_ABS(wldPos[Y] - light_used->pos[Y]) +
+					JO_ABS(wldPos[Z] - light_used->pos[Z]);
 	
 		for(int i = 0; i < 16; i++)
 		{
 			if(active_lights[i].pop == 1)
 				{
-	lightDist[X] = wldPos[X] - active_lights[i].location[X];
-	lightDist[Y] = wldPos[Y] - active_lights[i].location[Y];
-	lightDist[Z] = wldPos[Z] - active_lights[i].location[Z];
-		active_dot = fxdot(lightDist, lightDist);
-		light_used = (active_dot < nearest_dot) ? &active_lights[i] : light_used;
-		nearest_dot = (active_dot < nearest_dot) ? active_dot : nearest_dot;
+					// " Manhattan Distance "
+					if(negateCoordinates == 'Y')
+					{
+		active_dot = JO_ABS(wldPos[X] - active_lights[i].pos[X]) +
+					JO_ABS(wldPos[Y] - active_lights[i].pos[Y]) +
+					JO_ABS(wldPos[Z] - active_lights[i].pos[Z]);
+					} else {
+		active_dot = JO_ABS(wldPos[X] + active_lights[i].pos[X]) +
+					JO_ABS(wldPos[Y] + active_lights[i].pos[Y]) +
+					JO_ABS(wldPos[Z] + active_lights[i].pos[Z]);
+					}
+	
+				if(active_dot < nearest_dot)
+				{
+					light_used = &active_lights[i];
+					nearest_dot = active_dot;
+				}
+				
 				}
 		}
 		
@@ -240,13 +258,13 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 	*/
 		if(negateCoordinates == 'Y')
 		{
-	lightDist[X] = wldPos[X] - light_used->location[X];
-	lightDist[Y] = wldPos[Y] - light_used->location[Y];
-	lightDist[Z] = wldPos[Z] - light_used->location[Z];
+	lightDist[X] = wldPos[X] - light_used->pos[X];
+	lightDist[Y] = wldPos[Y] - light_used->pos[Y];
+	lightDist[Z] = wldPos[Z] - light_used->pos[Z];
 		} else {
-	lightDist[X] = wldPos[X] + light_used->location[X];
-	lightDist[Y] = wldPos[Y] + light_used->location[Y];
-	lightDist[Z] = wldPos[Z] + light_used->location[Z];
+	lightDist[X] = wldPos[X] + light_used->pos[X];
+	lightDist[Y] = wldPos[Y] + light_used->pos[Y];
+	lightDist[Z] = wldPos[Z] + light_used->pos[Z];
 		}
 	int vmag = 0;
 		if( JO_ABS(lightDist[X]) < (147<<16) && JO_ABS(lightDist[Y]) < (147<<16) && JO_ABS(lightDist[Z]) < (147<<16))
@@ -950,7 +968,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	} else {
 		//Transplant the running frame / current frame to its place in the other animation set
 	AnimArea[anims].currentFrm += (animCtrl->startFrm<<3) - (AnimArea[anims].startFrm<<3) + 2;
-		//Transplant the keyframe location so it doesn't spend a frame re-seating the animation
+		//Transplant the keyframe pos so it doesn't spend a frame re-seating the animation
 	AnimArea[anims].currentKeyFrm = AnimArea[anims].currentFrm>>3;
 	}
 	

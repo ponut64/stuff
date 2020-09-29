@@ -46,6 +46,20 @@ typedef struct {
 	Uint8 boxID;
 } _boundBox;
 
+typedef struct {
+	int x_location;
+	int y_location;
+	int z_location;
+	short x_rotation;
+	short y_rotation;
+	short z_rotation;
+	int x_radius;
+	int y_radius;
+	int z_radius;
+	_boundBox * modified_box;
+} _object_arguments;
+
+extern _object_arguments bound_box_starter;
 
 extern _boundBox * RBBs; //In LWRAM // 
 extern _boundBox pl_RBB;
@@ -54,8 +68,8 @@ extern _boundBox pl_RBB;
 //FUNCTION SECTIONS FOR VARIOUS FILES
 //------------------------------------------------------------------------------------
 
-void	makeBoundBox(FIXED x, FIXED y, FIXED z, ANGLE xrot, ANGLE yrot, ANGLE zrot, FIXED r1x, FIXED r2y, FIXED r3z, _boundBox * ModifiedBox);
-void	make2AxisBox(FIXED x, FIXED y, FIXED z, ANGLE xrot, ANGLE yrot, ANGLE zrot, FIXED r1x, FIXED r2y, FIXED r3z, _boundBox * bbox);
+void	makeBoundBox(_object_arguments * source_data);
+void	make2AxisBox(_object_arguments * source_data);
 void	initPhys(void);
 
 

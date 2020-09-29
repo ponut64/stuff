@@ -159,7 +159,7 @@ void	my_vlank(void){
 	//Sound Driver Stuff
 	m68k_com->start = 1;
 	m68k_com->dT_ms = dt>>6;
-	music_vblIn(6);
+	music_vblIn(7);
 	//
 }
 

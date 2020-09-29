@@ -5,7 +5,8 @@ _sobject Post0 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P
+	.ext_dat = GATE_P,
+	.light_bright = 4000
 };
 
 _sobject Post1 = {
@@ -13,7 +14,8 @@ _sobject Post1 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P | 1<<4
+	.ext_dat = GATE_P | 1<<4,
+	.light_bright = 4000
 };
 
 _sobject Post2 = {
@@ -21,7 +23,8 @@ _sobject Post2 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P | 2<<4
+	.ext_dat = GATE_P | 2<<4,
+	.light_bright = 4000
 };
 
 _sobject Post3 = {
@@ -29,7 +32,8 @@ _sobject Post3 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P | 3<<4
+	.ext_dat = GATE_P | 3<<4,
+	.light_bright = 4000
 };
 
 _sobject Post4 = {
@@ -37,7 +41,8 @@ _sobject Post4 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P | 4<<4
+	.ext_dat = GATE_P | 4<<4,
+	.light_bright = 4000
 };
 
 _sobject Post5 = {
@@ -45,7 +50,8 @@ _sobject Post5 = {
 	.radius[X] = 5,
 	.radius[Y] = 35,
 	.radius[Z] = 5,
-	.ext_dat = GATE_P | 5<<4
+	.ext_dat = GATE_P | 5<<4,
+	.light_bright = 4000
 };
 
 _sobject SingleGate = {
@@ -132,6 +138,7 @@ short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
 int trackTimers[16];
 int activeTrack = -1;
+int objUP = 0;
 
 void	declare_object_at_cell(short pixX, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, char height)
 {
@@ -173,21 +180,28 @@ void	declarations(void)
 //But if I really do end up limited to 256 objects, really.. honestly... it should be okay, it's not logically intensive, and not intense on the bus either.
 // Yet for collectibles, on these big maps, is that enough?
 // .. Yeah. Yeah, it probably is. Even if it's 512.
-void	update_object(Uint8 boxNumber, int pixX, int pixY, FIXED Ydist, ANGLE rotx, ANGLE roty, ANGLE rotz, FIXED radx, FIXED rady, FIXED radz)
-{
-	make2AxisBox((25 * pixX)<<16, -Ydist - (main_map[ (-pixX + (main_map_x_pix * pixY) + (main_map_total_pix>>1)) ]<<16),
-	(25 * pixY)<<16,
-	rotx, roty, rotz,
-	radx, rady, radz, &RBBs[boxNumber]);
-}
 
 void	object_control_loop(int ppos[XY])
 {	
 	if(ldata_ready != true) return; //Just in case.
 	static char difX = 0;
 	static char difY = 0;
-	int objUP = 0;
+	objUP = 0;
 
+////////////////////////////////////////////////////
+//Flush boxes
+//This is somewhat important.
+//It's kind of funny, the engine mostly works if you don't do this.
+//Since every box was in a rational location to begin with, it will just render stuff off-screen.
+//But for the light source data, it'll get confused as it will start using old box data
+// that has a nonsensical 3D location.
+////////////////////////////////////////////////////
+	for(int f = 0; f < MAX_PHYS_PROXY; f++)
+	{
+		RBBs[f].isBoxPop = false;
+	}
+////////////////////////////////////////////////////
+	
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(unsigned char i = 0; i < objNEW; i++){
 		
@@ -201,23 +215,83 @@ void	object_control_loop(int ppos[XY])
 				//Do nothing
 		} else { //is not LDATA...
 			if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY){
-				update_object(objUP, dWorldObjects[i].pix[X], dWorldObjects[i].pix[Y],
-				(dWorldObjects[i].height + dWorldObjects[i].type.radius[Y])<<16, dWorldObjects[i].srot[X], dWorldObjects[i].srot[Y], dWorldObjects[i].srot[Z],
-				dWorldObjects[i].type.radius[X]<<16, dWorldObjects[i].type.radius[Y]<<16, dWorldObjects[i].type.radius[Z]<<16);
+
+////////////////////////////////////////////////////
+//Prepare and update the box
+////////////////////////////////////////////////////
+	bound_box_starter.modified_box = &RBBs[objUP];
+	bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+	//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+	bound_box_starter.y_location = (-(dWorldObjects[i].height + dWorldObjects[i].type.radius[Y])<<16)
+	- (main_map[
+	(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+	]<<16);
+	//
+	bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+	bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
+	bound_box_starter.y_rotation = dWorldObjects[i].srot[Y];
+	bound_box_starter.z_rotation = dWorldObjects[i].srot[Z];
+	bound_box_starter.x_radius = dWorldObjects[i].type.radius[X]<<16;
+	bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
+	bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
+				
+		make2AxisBox(&bound_box_starter);
+////////////////////////////////////////////////////
 				
 				RBBs[objUP].isBoxPop = true;
-				dWorldObjects[i].type.ext_dat |= OBJPOP; //Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-				objDRAW[objUP] = dWorldObjects[i].type.entity_ID; //This array is meant as a list where iterative searches find the entity type drawn.
-				activeObjects[objUP] = i; //This array is meant on a list where iterative searches can find the right object in the entire declared list.
-				objUP++; //This tells you how many objects were updated.
+				//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+				dWorldObjects[i].type.ext_dat |= OBJPOP;
+				//This array is meant as a list where iterative searches find the entity type drawn.
+				objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+				//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+				activeObjects[objUP] = i;
+				//This tells you how many objects were updated.
+				objUP++; 
 			} else {
 				activeObjects[objUP] = 256;
-				RBBs[i].isBoxPop = false;
+				//There *was* an RBBs[i].isBoxPop = false here, BUT THAT IS A SOURCE OF MEMORY CORRUPTION ALSO DIDNT WORK
 				dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
 			}
 		}//Is not LDATA end
 	}
 //	jo_printf(0, 4, "(%i)", objUP);
+}
+
+void	light_control_loop(void)
+{
+	//First, purge the light list.
+	for(int p = 0; p < 16; p++)
+	{
+		active_lights[p].pop = 0;
+	}
+	//Then, check if any active object, up to the light source limit, should emit a light. If it does, add it to the light list,
+	//given the light_y_offset of the light's source alongside the object's location.
+	unsigned char lights_created = 0;
+	
+	for(int i = 0; i < MAX_PHYS_PROXY; i++)
+	{
+			
+		if(dWorldObjects[activeObjects[i]].type.light_bright != 0
+		&& RBBs[i].isBoxPop == true
+		&& lights_created < 16)
+			{
+				active_lights[i].pop = 1;
+				active_lights[i].ambient_light = active_lights[0].ambient_light;
+				active_lights[i].bright = dWorldObjects[activeObjects[i]].type.light_bright;
+				active_lights[i].pos[X] = -RBBs[i].pos[X];
+				active_lights[i].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
+				active_lights[i].pos[Z] = -RBBs[i].pos[Z];
+				lights_created++;
+				//slPrintFX(0, slLocate(2, 6+i));
+				// slPrintFX(active_lights[i].pos[X], slLocate(2, 7));
+				// slPrintFX(active_lights[i].pos[Y], slLocate(2, 8));
+				// slPrintFX(active_lights[i].pos[Z], slLocate(2, 9));
+			}
+	}
+	
+	jo_printf(2, 10, "(%i) lights", lights_created);
+	jo_printf(2, 12, "(%i) obj", objUP);
+	
 }
 
 void	add_to_track_timer(int index) //Careful with index -- This function does not internally "DWO" - so only DWO outside, not inside here.
@@ -235,7 +309,7 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 			{
 				activeTrack = trackedLDATA;
 				trackTimers[object_track] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
-				pcm_play(snd_button, PCM_PROTECTED, 7);
+				pcm_play(snd_button, PCM_PROTECTED, 7, 0);
 				break;
 			}
 		}//PAST TRACK DATA
@@ -435,7 +509,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 				{
 			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
 			you.points++;
-			pcm_play(snd_click, PCM_SEMI, 7);
+			pcm_play(snd_click, PCM_SEMI, 7, 0);
 				}
 		}
 			}//Root entity check end
@@ -611,7 +685,7 @@ void	gate_track_manager(void)
 				activeTrack = -1;	//Release active track
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
 				complete_ldat++;
-				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
+				pcm_play(snd_cronch, PCM_PROTECTED, 7, 0); //Sound
 			}
 
 			//Timer run & check
@@ -625,7 +699,7 @@ void	gate_track_manager(void)
 						trackTimers[track_select] = 0;
 						activeTrack = -1; //Release active track
 						//Sound stuff
-						pcm_play(snd_alarm, PCM_PROTECTED, 7);
+						pcm_play(snd_alarm, PCM_PROTECTED, 7, 0);
 					}
 			}
 					}//if active track \ track end
@@ -635,7 +709,7 @@ void	gate_track_manager(void)
 	
 	if(complete_ldat == numldat && link_starts[LDATA>>12] > -1)
 	{
-		pcm_play(snd_win, PCM_PROTECTED, 7);
+		pcm_play(snd_win, PCM_PROTECTED, 7, 0);
 		complete_ldat = 0;
 		map_chg = false;
 		p64MapRequest((Sint8*)"01", 0); //ALRIGHT SO I CAN MAKE TWO LEVELS

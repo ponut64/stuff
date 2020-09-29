@@ -4,7 +4,7 @@
 #include "draw.h"
 #include "height.h"
 
-FIXED sun_light[3] = {32768, 0, 0};
+FIXED sun_light[3] = {0, -45000, 0};
 //Player Model
 entity_t pl_model;
 //Player's Shadow
@@ -74,6 +74,23 @@ void	computeLight(void)
 		//Next, set the sun light.
 		active_lights[0].pop = 1;
 		active_lights[0].ambient_light = &sun_light[0];
+		//////////////////////////////////////////////////////////////////////////////////////
+		// Math Cluster to brighten or darken the background color, depending on how high the sun light is.
+		//////////////////////////////////////////////////////////////////////////////////////
+		unsigned short back_color = 0xE726;
+	//	unsigned short big_vector = JO_ABS(sun_light[1]);
+		unsigned short big_vector = JO_ABS(sun_light[0]);
+		big_vector = (JO_ABS(sun_light[1]) > big_vector) ? JO_ABS(sun_light[1]) : big_vector;
+		big_vector = (JO_ABS(sun_light[2]) > big_vector) ? JO_ABS(sun_light[2]) : big_vector;
+		unsigned int back_red = fxm((back_color & 0x1F), big_vector);
+		unsigned int back_green = fxm((back_color & (0x1F << 5))>>5, big_vector);
+		unsigned int back_blue = fxm((back_color & (0x1F << 10))>>10, big_vector);
+		back_red = (back_red > 31) ? 31 : back_red;
+		back_green = (back_green > 31) ? (31<<5) : back_green<<5;
+		back_blue = (back_blue > 31) ? (31<<10) : back_blue<<10;
+		back_color = back_red | back_green | back_blue;
+		slBack1ColSet((void *)BACK_CRAM, back_color);
+		//////////////////////////////////////////////////////////////////////////////////////
 
 		glblLightApplied = true;
 	}
@@ -303,12 +320,12 @@ void	object_draw(void)
 {
 	
 			//Test Light
-		active_lights[0].location[X] = you.pos[X];
-		active_lights[0].location[Y] = you.pos[Y] + (15<<16);
-		active_lights[0].location[Z] = you.pos[Z];
-		active_lights[0].bright = 8000;
+		// active_lights[0].pos[X] = you.pos[X];
+		// active_lights[0].pos[Y] = you.pos[Y] + (15<<16);
+		// active_lights[0].pos[Z] = you.pos[Z];
+		// active_lights[0].bright = 1000;
 			//
-	
+		
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X<<16), (VIEW_OFFSET_Y<<16), (VIEW_OFFSET_Z<<16) );
@@ -354,6 +371,7 @@ void	master_draw(void)
 {
 	prep_map_mtx();
 	computeLight();
+	
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 
@@ -384,9 +402,9 @@ void	master_draw(void)
 		mypad();
 	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
 	collide_with_heightmap(&pl_RBB);
+	light_control_loop(); //lit
 	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.
 	//
-	
 	
 	run_dsp(); //Run the DSP now to give it maximum time to complete (minimize sh2 wait)
 	slSlaveFunc(sort_master_polys, 0);	

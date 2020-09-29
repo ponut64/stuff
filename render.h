@@ -27,7 +27,7 @@ typedef struct{
 
 typedef struct{
 	FIXED * ambient_light;
-	int	location[3];
+	int	pos[3];
 	unsigned short bright;
 	unsigned char pop;
 } point_light;
@@ -51,7 +51,7 @@ extern int * transVerts;
 extern int * transPolys;
 extern paletteCode * pcoTexDefs;
 
-extern point_light active_lights[16];
+extern point_light * active_lights;
 
 extern FIXED MsScreenDist;
 extern FIXED MsZlimit;
