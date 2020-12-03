@@ -57,12 +57,12 @@ void	makeBoundBox(_object_arguments * source_data)
 	source_data->modified_box->brad[Y] = source_data->y_radius;
 	source_data->modified_box->brad[Z] = source_data->z_radius;
 
-	register FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
-	register FIXED cosX = slCos(source_data->modified_box->boxRot[Y]);
-	register FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
-	register FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
-	register FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
-	register FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
+	 FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
+	 FIXED cosX = slCos(source_data->modified_box->boxRot[Y]);
+	 FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
+	 FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
+	 FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
+	 FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
 	//SETUP UNIT VECTOR X
 	source_data->modified_box->UVX[X] = fxm(cosY, cosZ);
 	source_data->modified_box->UVX[Y] = fxm(sinZ, cosX) + fxm(fxm(sinX, sinY), cosZ);
@@ -179,12 +179,12 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->brad[Y] = source_data->y_radius;
 	source_data->modified_box->brad[Z] = source_data->z_radius;
 
-	register FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
-	register FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
-	register FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
-	register FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
-	register FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
-	register FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
+	 FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
+	 FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
+	 FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
+	 FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
+	 FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
+	 FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
 	//SETUP UNIT VECTOR X
 	///left - right points. Affected as: X rotation causes no movement. Y rotation causes movement on X-Z axis. Z rotation causes movement on Y-X axis.
 	source_data->modified_box->UVX[X] = fxm(cosY, cosZ) - fxm(fxm(sinY, -sinX), -sinZ);

@@ -28,16 +28,13 @@ const unsigned short comm_p_mode = 5264; //Should add color mode table? Color mo
 const unsigned short ctrl = 2;
 
 void	init_render_area(void){
-	//Hello XL2. I bet you are wondering, why the hell are we uncaching this?
-	//The theory is that these work areas are invariably going to be re-written every time a model is rendered.
-	//This means the data cached in these is only useful within rendering a single model, not for multiple.
-	//If you are rendering multiple small models, you'd rather fill the cache with pntbl and pltbl data.
-	ssh2VertArea = (vertex_t *)((unsigned int)jo_malloc(650 * sizeof(vertex_t))|UNCACHE);
-	msh2VertArea = (vertex_t *)((unsigned int)jo_malloc(850 * sizeof(vertex_t)));
+
+	ssh2VertArea = (vertex_t *)(jo_malloc(650 * sizeof(vertex_t)));
+	msh2VertArea = (vertex_t *)(jo_malloc(850 * sizeof(vertex_t)));
 	//
-	AnimArea = (animationControl *)((unsigned int)jo_malloc(16 * sizeof(animationControl))|UNCACHE);
+	AnimArea = (animationControl *)(jo_malloc(16 * sizeof(animationControl)));
 	
-	localSprBuf = (SPRITE *)((unsigned int)jo_malloc( (2 * sizeof(SPRITE)) ));
+	localSprBuf = (SPRITE *)(jo_malloc( (2 * sizeof(SPRITE)) ));
 	ssh2SentPolys = (int *)(((unsigned int)&dummy[0])|UNCACHE);
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
@@ -96,7 +93,7 @@ DVDNTL[0] = (dividend<<16);
 	
 }
 
-__jo_force_inline void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -109,6 +106,7 @@ __jo_force_inline void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED
    user_sprite->SRCA = cmdsrca; //TEXTURE ADDRESS IN VDP1 VRAM
    user_sprite->COLR = cmdcolr; //COLOR BANK CODE IN COLOR BANK MODES, DRAW COLOR IN UNTEXTURED MODES, LUT ADDRESS IN CL16LK, IGNORED RGB
    user_sprite->SIZE = cmdsize; //VALID FOR TEXTURE DRAW COMMANDS
+   user_sprite->GRDA = cmdgrda;
 
    user_sprite->XA=p1[X];
    user_sprite->YA=p1[Y];
@@ -142,6 +140,7 @@ __jo_force_inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED
    user_sprite->SRCA = cmdsrca; //TEXTURE ADDRESS IN VDP1 VRAM
    user_sprite->COLR = cmdcolr; //COLOR BANK CODE IN COLOR BANK MODES, DRAW COLOR IN UNTEXTURED MODES, LUT ADDRESS IN CL16LK, IGNORED RGB
    user_sprite->SIZE = cmdsize; //VALID FOR TEXTURE DRAW COMMANDS
+   user_sprite->GRDA = cmdgrda;
 
    user_sprite->XA=p1[X];
    user_sprite->YA=p1[Y];
@@ -195,7 +194,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 					JO_ABS(wldPos[Y] - light_used->pos[Y]) +
 					JO_ABS(wldPos[Z] - light_used->pos[Z]);
 	
-		for(int i = 0; i < 16; i++)
+		for(unsigned int i = 0; i < 16; i++)
 		{
 			if(active_lights[i].pop == 1)
 				{
@@ -349,8 +348,9 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
 
 	FIXED luma;
 	short colorBank;
+	int inverseZ = 0;
  
-    for (int i = 0; i < model->nbPoint; i++)
+    for (unsigned int i = 0; i < model->nbPoint; i++)
     {
         /**calculate z**/
         ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
@@ -364,14 +364,15 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
         ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
 		
         /** Retrieves the result of the division **/
-		ssh2VertArea[i].inverseZ = *DVDNTL;
+		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], ssh2VertArea[i].inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], ssh2VertArea[i].inverseZ)>>SCR_SCALE_Y;
+        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[i].clipFlag = (JO_ABS(ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
+		//Simplified to increase CPU performance
+		ssh2VertArea[i].clipFlag = (JO_ABS(ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; 
 		ssh2VertArea[i].clipFlag |= (JO_ABS(ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
     }
 
@@ -385,7 +386,7 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
 		//WHY: Maximum performance
 if( (model->attbl[0].sort & 3) == SORT_MAX)
 {
-    for (int i = 0; i < model->nbPolygon; i++)
+    for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
 		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
@@ -454,7 +455,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
     } //Sort Max Endif
 } else if((model->attbl[0].sort & 3) == SORT_MIN) //Sort Minimum
 {
-    for (int i = 0; i < model->nbPolygon; i++)
+    for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
 		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
@@ -522,7 +523,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
 	}
 } else {//Sort Min endif
-    for (int i = 0; i < model->nbPolygon; i++) //Sort Center-ish
+    for (unsigned int i = 0; i < model->nbPolygon; i++) //Sort Center-ish
     {
 		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
@@ -630,8 +631,9 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
 	
 	FIXED luma;
 	short colorBank;
+	int inverseZ = 0;
 
-    for (int i = 0; i < model->nbPoint; i++)
+    for (unsigned int i = 0; i < model->nbPoint; i++)
     {
         /**calculate z**/
         msh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
@@ -645,11 +647,11 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
         msh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
 		
         /** Retrieves the result of the division **/
-		msh2VertArea[i].inverseZ = *DVDNTL;
+		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        msh2VertArea[i].pnt[X] = fxm(msh2VertArea[i].pnt[X], msh2VertArea[i].inverseZ)>>SCR_SCALE_X;
-        msh2VertArea[i].pnt[Y] = fxm(msh2VertArea[i].pnt[Y], msh2VertArea[i].inverseZ)>>SCR_SCALE_Y;
+        msh2VertArea[i].pnt[X] = fxm(msh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+        msh2VertArea[i].pnt[Y] = fxm(msh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
 		msh2VertArea[i].clipFlag = (JO_ABS(msh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
@@ -662,7 +664,7 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
 	int flip = 0;
 
     /**POLYGON PROCESSING**/ 
-    for (int i = 0; i < model->nbPolygon; i++)
+    for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
 		ptv[0] = &msh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &msh2VertArea[model->pltbl[i].Vertices[1]];
@@ -837,20 +839,17 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
     Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
+	int inverseZ = 0;
  
-    for (int i = 0; i < model->nbPoint; i++)
+    for (unsigned int i = 0; i < model->nbPoint; i++)
     {
 		/**Uncompress the vertices and apply linear interpolation**/
-		*dst++=( *src + ((( *nxt - *src) * frDelta)>>4))<<8;
-		*src++;
-		*nxt++;
-		*dst++=( *src + ((( *nxt - *src) * frDelta)>>4))<<8;
-		*src++;
-		*nxt++;
-		*dst++=( *src + ((( *nxt - *src) * frDelta)>>4))<<8;
-		*src++;
-		*nxt++;
-		//
+		#pragma GCC push_options
+		#pragma GCC diagnostic ignored "-Wsequence-point"
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
+		#pragma GCC pop_options
         /**calculate z**/
         ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
 		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > nearP) ? ssh2VertArea[i].pnt[Z] : nearP;
@@ -863,11 +862,11 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
         ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
 		
         /** Retrieves the result of the division **/
-		ssh2VertArea[i].inverseZ = *DVDNTL;
+		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], ssh2VertArea[i].inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], ssh2VertArea[i].inverseZ)>>SCR_SCALE_Y;
+        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
 		ssh2VertArea[i].clipFlag = (JO_ABS(ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
@@ -884,7 +883,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	int flip = 0;
 
     /**POLYGON PROCESSING**/ 
-    for (int i = 0; i < model->nbPolygon; i++)
+    for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
 		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];

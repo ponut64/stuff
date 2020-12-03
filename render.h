@@ -22,7 +22,6 @@ typedef struct{
     POINT  pnt;
 	char clipFlag;
 	short vbright;
-    FIXED  inverseZ;
 } vertex_t; //20 bytes each
 
 typedef struct{

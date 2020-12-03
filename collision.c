@@ -118,29 +118,30 @@ static int angleComponents[XYZ];
 separateAngles(unitOrient, unitNormal, angleComponents);
 Uint8 domain = solve_domain(unitNormal);
 //jo_printf(0, 20, "(%i)", domain);
+// deg * 182 = angle
 if(domain == 1){ //++
 output[X] = (fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49140) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] + DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] + (90 * 182))) )); 
 output[Z] = (fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49140), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] + DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] + (90 * 182))) )); 
 						//return;
 } else if(domain == 2){ //-+
 output[X] = (fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49140) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] - DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] - (90 * 182))) )); 
 output[Z] = (fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49140), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] - DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] - (90 * 182))) )); 
 						//return;
 } else if(domain == 3){ //+-
 output[X] = -(fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49140) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] - DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] - (90 * 182))) )); 
 output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49140), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] - DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] - (90 * 182))) )); 
 						//return;
 } else if(domain == 4){ //--
 output[X] = -(fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49140) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] + DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49140) ), slSin((output[Y] + (90 * 182))) )); 
 output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49140), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] + DEGtoANG(90))) )); 
+						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49140), slCos((output[Y] + (90 * 182))) )); 
 						//return;
 }	
 }
@@ -192,9 +193,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	if(hitFace == 4){
 			if(stator->UVNY[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVNY[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVNY[Y];
-		you.floorNorm[Z] = -stator->UVNY[Z];
+		you.floorNorm[X] = stator->UVY[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVY[Y];
+		you.floorNorm[Z] = stator->UVY[Z];
 		
 	sort_angle_to_domain(stator->UVY, alwaysLow, you.rot);
 		
@@ -222,9 +223,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 		
 			if(stator->UVY[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVY[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVY[Y];
-		you.floorNorm[Z] = -stator->UVY[Z];
+		you.floorNorm[X] = stator->UVNY[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNY[Y];
+		you.floorNorm[Z] = stator->UVNY[Z];
 		
 	sort_angle_to_domain(stator->UVY, alwaysLow, you.rot);
 		
@@ -252,9 +253,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 		
 			if(stator->UVZ[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVZ[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVZ[Y];
-		you.floorNorm[Z] = -stator->UVZ[Z];
+		you.floorNorm[X] = stator->UVNZ[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNZ[Y];
+		you.floorNorm[Z] = stator->UVNZ[Z];
 		
 	sort_angle_to_domain(stator->UVZ, alwaysLow, you.rot);
 		
@@ -282,9 +283,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 		
 			if(stator->UVNZ[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVNZ[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVNZ[Y];
-		you.floorNorm[Z] = -stator->UVNZ[Z];
+		you.floorNorm[X] = stator->UVZ[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVZ[Y];
+		you.floorNorm[Z] = stator->UVZ[Z];
 		
 	sort_angle_to_domain(stator->UVZ, alwaysLow, you.rot);
 		
@@ -312,9 +313,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 
 			if(stator->UVX[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVX[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVX[Y];
-		you.floorNorm[Z] = -stator->UVX[Z];
+		you.floorNorm[X] = stator->UVNX[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNX[Y];
+		you.floorNorm[Z] = stator->UVNX[Z];
 		
 	sort_angle_to_domain(stator->UVX, alwaysLow, you.rot);
 		
@@ -342,9 +343,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 
 			if(stator->UVNX[Y] < -32768){
 		
-		you.floorNorm[X] = -stator->UVNX[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = -stator->UVNX[Y];
-		you.floorNorm[Z] = -stator->UVNX[Z];
+		you.floorNorm[X] = stator->UVX[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVX[Y];
+		you.floorNorm[Z] = stator->UVX[Z];
 		
 	sort_angle_to_domain(stator->UVX, alwaysLow, you.rot);
 		

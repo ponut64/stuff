@@ -4,7 +4,7 @@
 #include <jo/jo.h>
 #include "tga.h"
 
-#define MAX_MESHES (5)
+#define MAX_MESHES (1)
 #define MAX_MODELS (40)
 
 typedef     Sint16	compVert[XYZ];
@@ -37,7 +37,7 @@ typedef struct
 	char isPlayer;
     Uint16 nbMeshes;
     Uint16 nbFrames;
-    anim_struct * animation[240];
+    anim_struct * animation[96];
     PDATA * pol[MAX_MESHES];
 	FIXED * prematrix;
 } entity_t;
@@ -57,7 +57,7 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
 
 void * loadAnimations(void * startAddress, entity_t * model, modelData_t * modelData);
 
-/** This function loads a 3d polygonal model. Returns the last address in LWRAM (to allow loading multiple meshes)**/
+/** This function loads a 3d polygonal model. Returns the last address in RAM (to allow loading multiple meshes)**/
 void *	gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType);
 
 

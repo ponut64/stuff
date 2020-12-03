@@ -149,9 +149,9 @@ void	declare_object_at_cell(short pixX, short pixY, int type, ANGLE xrot, ANGLE 
 	//I want to set type entry here to be an array index rather than a explicit mention
 	//It's less clear but it is much better for reading from binary data
 	dWorldObjects[objNEW].type = *objList[type];
-	dWorldObjects[objNEW].srot[X] = DEGtoANG(xrot);
-	dWorldObjects[objNEW].srot[Y] = DEGtoANG(yrot);
-	dWorldObjects[objNEW].srot[Z] = DEGtoANG(zrot);
+	dWorldObjects[objNEW].srot[X] = (xrot * 182); // deg * 182 = angle
+	dWorldObjects[objNEW].srot[Y] = (yrot * 182);
+	dWorldObjects[objNEW].srot[Z] = (zrot * 182);
 	dWorldObjects[objNEW].height = height; //Vertical offset from ground
 	dWorldObjects[objNEW].link = -1;
 	dWorldObjects[objNEW].status = 0; //give clear status
@@ -289,8 +289,8 @@ void	light_control_loop(void)
 			}
 	}
 	
-	jo_printf(2, 10, "(%i) lights", lights_created);
-	jo_printf(2, 12, "(%i) obj", objUP);
+	// jo_printf(2, 10, "(%i) lights", lights_created);
+	// jo_printf(2, 12, "(%i) obj", objUP);
 	
 }
 
@@ -444,7 +444,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 
 		//Presently function is unused so is technically incomplete (doesn't return or point to useful data).
 		//For AI pathing, you.. uhh.. find a way.
-void	walk_map_between_objects(short obj_id1, short obj_id2)
+/* void	walk_map_between_objects(short obj_id1, short obj_id2)
 {
 		//arrays below contain the in-order X and Y coordinates of cells that draw a line between the two objects.
 		short pixXs[64];
@@ -485,7 +485,7 @@ void	walk_map_between_objects(short obj_id1, short obj_id2)
     } 
 	
 }
-
+ */
 //Function will check collision with a ITEM-type object and flag entities that have been collided with for removal.
 //It will play a sound, and add to your points too.
 void	run_item_collision(int index, _boundBox * tgt)
@@ -691,7 +691,7 @@ void	gate_track_manager(void)
 			//Timer run & check
 			if((dWorldObjects[trackedLDATA].type.ext_dat & OBJPOP) != 0)
 			{
-				trackTimers[track_select] -= dt;
+				trackTimers[track_select] -= delta_time;
 					if(trackTimers[track_select] < 0) //If timer expired...
 					{
 						dWorldObjects[trackedLDATA].type.ext_dat &= UNPOP;
@@ -712,7 +712,7 @@ void	gate_track_manager(void)
 		pcm_play(snd_win, PCM_PROTECTED, 7, 0);
 		complete_ldat = 0;
 		map_chg = false;
-		p64MapRequest((Sint8*)"01", 0); //ALRIGHT SO I CAN MAKE TWO LEVELS
+		p64MapRequest((Sint8*)"01"); //ALRIGHT SO I CAN MAKE TWO LEVELS
 	}
 	
 			if(activeTrack != -1){

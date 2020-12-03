@@ -13,13 +13,13 @@ void setTextures(entity_t * model, short baseTexture, char * numTexture)
 	
 	model->base_texture = baseTexture;
 	
-	for(int i = 0; i < model->pol[0]->nbPolygon; i++)
+	for(unsigned int i = 0; i < model->pol[0]->nbPolygon; i++)
 	{
 		smpAttr = model->pol[0]->attbl[i];
 		maxTex = (maxTex < smpAttr.texno) ? smpAttr.texno : maxTex;
 	}
 	
-	for(int i = 0; i < model->pol[0]->nbPolygon; i++)
+	for(unsigned int i = 0; i < model->pol[0]->nbPolygon; i++)
 	{
 		smpAttr = model->pol[0]->attbl[i];
 		
@@ -27,13 +27,6 @@ void setTextures(entity_t * model, short baseTexture, char * numTexture)
 	}
 
 	*numTexture = maxTex;
-}
-
-
-Uint16 loadTextures(void * startAddress, modelData_t * modelData)
-{
-	/** Empty **/
-	return 0;
 }
 
 void * loadAnimations(void * startAddress, entity_t * model, modelData_t * modelData)
@@ -125,7 +118,6 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
     model->nbMeshes = model_header.TOTAL_MESH;
 	model->nbFrames = model_header.nbFrames;
 	
-	//Uint16 first_texture = loadTextures(workAddress, &model_header);
 	Sint32 bytesOff = (sizeof(modelData_t)); 
 	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
 	
@@ -137,13 +129,13 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	setTextures(model, numTex, &model->numTexture); //numTex is a tga.c directive
     workAddress = loadAnimations(workAddress, model, &model_header);
 	
-	unsigned short * uAddr = (unsigned short *)workAddress;
+	//unsigned short * debug_addr = (unsigned short *)workAddress;
 	unsigned char * readByte = (unsigned char *)workAddress;
 	unsigned char tHeight = 0;
 	unsigned char tWidth = 0;
 	unsigned int tSize = 0;
 	// jo_printf(0, 14, "(%i)", model->numTexture);
-	// jo_printf(0, 15, "(%i)", uAddr[0]);
+	// jo_printf(0, 15, "(%i)", debug_addr[0]);
 	for(int j = 0; j < model->numTexture+1; j++)
 	{
 		readByte+=2;	//Skip over a boundary short word, 0xF7F7

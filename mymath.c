@@ -62,6 +62,7 @@ register FIXED quotient;
 	"mov.l %[dvs], @%[dvsr];"
 	"mov %[dvd], r1;" //Move the dividend to a general-purpose register, to prevent weird misreading of data.
 	"shlr16 r1;"
+	"exts.w r1, r1;" //Sign extension in case value is negative
 	"mov.l r1, @%[nth];" //Expresses "*DVDNTH = dividend>>16"
 	"mov %[dvd], r1;" 
 	"shll16 r1;"
@@ -375,9 +376,9 @@ Bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED centreFace[XYZ], FI
 	//We divide the scalar of an expression of distance between the plane and the segment and the centreFace.
 	//By themselves, these factors are linear. When we divide them, we get a dynamic scalar that responds to proportionate changes in distance between the vector-segment, a point on the plane, and a point on the segment.
 	//We use the unit vectors of the normals to prevent overflows of FIXED (16.16 bit) values.
-	//Warning about slDivFX: Subscripted value is SECOND. Divisor is FIRST. BACK ASSWARDS!
+	//Warning about slDivFX: DIVIDEND value is SECOND. Divisor is FIRST. BACK ASSWARDS!
 	line_scalar = slDivFX(slInnerProduct(vseg, unitNormal), slInnerProduct(w, unitNormal));
-	if(line_scalar > (1000<<16) || line_scalar < (-1000<<16)){
+	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
 		return false;
 	}
 	//p0 is used as an offset (real position) for the final calculation, relative to the line (and not the plane).

@@ -1,17 +1,17 @@
 @ECHO Off
 SET COMPILER_DIR=..\..\Compiler
-SET JO_ENGINE_SRC_DIR=./jo_engine
-SET PATH=%COMPILER_DIR%\SH_COFF\Other Utilities;%PATH%
+SET JO_ENGINE_SRC_DIR=../../jo_engine
+SET PATH=%COMPILER_DIR%\Windows\Other Utilities;%PATH%
 
 rm -f ./cd/0.bin
 rm -f *.o
 rm -f *.s
 rm -f *.i
 rm -f %JO_ENGINE_SRC_DIR%/*.o
-rm -f ./sl_coff.bin
-rm -f ./sl_coff.coff
-rm -f ./sl_coff.map
-rm -f ./sl_coff.iso
-rm -f ./sl_coff.cue
+rm -f ./game.bin
+rm -f ./game.elf
+rm -f ./game.map
+rm -f ./game.iso
+rm -f ./game.cue
 
 ECHO Done.

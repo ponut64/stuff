@@ -14,6 +14,7 @@ int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
 int main_map_y_pix = LCL_MAP_PIX;
 int main_map_strata[4] = {40, 70, 100, 170};
+_heightmap maps[4];
 bool map_update_complete;
 bool * sysbool;
 bool map_chg = false;
@@ -83,7 +84,7 @@ void	read_pgm_header(_heightmap * map)
 					//Not included: GFS load sys, but that's ez
 }
 
-void	process_map_for_normals(_heightmap * map)
+void	process_map_for_normals(void)
 {
 	int e = 0;
 	int y0 = 0;
@@ -161,7 +162,7 @@ void	chg_map(_heightmap * tmap){
 				main_map_total_pix = tmap->totalPix;
 				init_minimap();
 				map_chg = true;
-				process_map_for_normals(tmap);
+				process_map_for_normals();
 			}
 		}
 }
@@ -257,7 +258,7 @@ __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynu
 }
 
 
-void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
+void	update_hmap(MATRIX msMatrix)
 { //Master SH2 drawing function (needs to be sorted after by slave)
 
 	//static int startOffset;
@@ -293,6 +294,7 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
 	
 	FIXED luma = 0;
 	short colorBank;
+	int inverseZ = 0;
 //
 //The only way to increase the render distance is with a non-uniform density.
 //
@@ -346,11 +348,11 @@ void	update_hmap(MATRIX msMatrix, FIXED * lightSrc)
         msh2VertArea[dst_pix].pnt[X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
 		
         /** Retrieves the result of the division **/
-		msh2VertArea[dst_pix].inverseZ = *DVDNTL;
+		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        msh2VertArea[dst_pix].pnt[X] = fxm(msh2VertArea[dst_pix].pnt[X], msh2VertArea[dst_pix].inverseZ)>>SCR_SCALE_X;
-        msh2VertArea[dst_pix].pnt[Y] = fxm(msh2VertArea[dst_pix].pnt[Y], msh2VertArea[dst_pix].inverseZ)>>SCR_SCALE_Y;
+        msh2VertArea[dst_pix].pnt[X] = fxm(msh2VertArea[dst_pix].pnt[X], inverseZ)>>SCR_SCALE_X;
+        msh2VertArea[dst_pix].pnt[Y] = fxm(msh2VertArea[dst_pix].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
 		msh2VertArea[dst_pix].clipFlag = (JO_ABS(msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance

@@ -35,7 +35,7 @@ extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 // Eventua
 extern bool map_update_complete;
 extern bool * sysbool;
 extern bool map_chg;
-_heightmap maps[4];
+extern _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
 extern char * normTbl;
@@ -43,10 +43,10 @@ extern unsigned short * minimap;
 
 //Used in msfs.c
 void	read_pgm_header(_heightmap * map);
-void	process_map_for_normals(_heightmap * map);
+void	process_map_for_normals(void);
 //
 void	init_heightmap(void);
-void	update_hmap(MATRIX msMatrix, FIXED * lightSrc);
+void	update_hmap(MATRIX msMatrix);
 void	chg_map(_heightmap * tmap);
 void	hmap_cluster(void);
 //from hmap_col.c

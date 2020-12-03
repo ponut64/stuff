@@ -270,19 +270,18 @@
 	;	src_pix			->		RAM3 0-24
 	;	This loop will not set CT3 beyond MC3 command.
 	;-------------------------------------------------------------------------------------------------------------------------
-															mov 0,ct2
-				mov m2,p									mov 10,ct0
-	ad2			mov m0,p			mov alu,a				
-	sub								clr a					
-	MVI -1,mc0,zs
-	ad2								mov alu,a				mov 10,ct0
-
-	MVI -1,mc0,s											
-									clr a					mov 1,ct2
-				mov m2,p									mov 9,ct0
-	ad2			mov m0,p			mov alu,a				mov 10,ct0
-	sub								clr a					
-	MVI -1,mc0,zs											;There was an error here. It's fixed now.
+															mov 0,ct2	; CT0 = 2
+															mov 10,ct0	; CT0 = 10
+				mov m0,p			mov m2,a							;
+	sub								clr a								;
+	MVI -1,mc0,zs														; if main_map_total_pix - temp_pix is zero or negative...
+	ad2								clr a					mov 10,ct0	; We need to reset CT0 as the MVI makes the state uncertain.
+	MVI -1,mc0,s														; if temp_pix + 0 is negative...
+															mov 1,ct2	; CT2 = 1
+															mov 9,ct0	; CT0 = 9
+				mov mc0,p			mov m2,a							; CT0 = 10
+	sub								clr a								; 
+	MVI -1,mc0,zs														; if main_map_x_pix - RightBoundPixel is zero or negative...
 	ad2								mov alu,a				mov 10,ct0
 	MVI -1,mc0,s
 									clr a					mov 10,ct0
@@ -354,8 +353,8 @@
 	;	quotient ->			RAM1 1
 	;	WARNING				Quotient is not cleared at program end or start thus will accumulate. Clear RAM1 1 before jumping to function!
 	;
-    ;	unsigned int tempdividend;
-    ;	unsigned int tempdivisor;
+    ;	unsigned int tempdividend = dividend;
+    ;	unsigned int tempdivisor = divisor;
 	;	unsigned int tempquotient = 1;
 	;	
 	;	DATA
@@ -363,12 +362,12 @@
 	;	tempdivisor ->		RAM0 3
 	;	tempquotient ->		RAM1 0
 	;-------------------------------------------------------------------------------------------------------------------------
-	DIVIDE:
-					mov mc0,p 									clr a			mov 0,ct1 						;ct0 = 1
-	ad2  			mov mc0,p 									mov alu,a		mov 1,mc1						;ct0 = 2 Store temporary quotient of 1 at RAM1 0
-																clr a 			mov all,mc0						;ct0 = 3 Store copy of dividend at RAM0 2
-	ad2 														mov alu,a										;
-																clr a 			mov all,mc0						;ct0 = 4 Store copy of divisor at RAM0 3
+	DIVIDE: ; (this sequence seems weird but it works by using the ALU registers as a temporary stack while we increment some pointers)
+					mov mc0,p 									clr a			mov 0,ct1 				;ct0 = 1
+	ad2  			mov mc0,p 									mov alu,a		mov 1,mc1				;ct0 = 2 Store temporary quotient of 1 at RAM1 0
+																clr a 			mov all,mc0				;ct0 = 3 Store copy of dividend at RAM0 2
+	ad2 														mov alu,a								;
+																clr a 			mov all,mc0				;ct0 = 4 Store copy of divisor at RAM0 3
 	;-------------------------------------------------------------------------------------------------------------------------
     ;	if (tempdivisor >= tempdividend) {
 	;		if(tempdivisor > tempdividend) tempquotient = 0;
@@ -380,9 +379,9 @@
 	;	tempdivisor ->		RAM0 3
 	;	tempquotient ->		RAM1 0
 	;-------------------------------------------------------------------------------------------------------------------------
-																				mov 2,ct0						;ct0 = 2
-					mov mc0,p									clr a 											;ct0 = 3
-	ad2				mov mc0,p 									mov alu,a		mov 0,ct1						;ct0 = 4
+																				mov 2,ct0				;ct0 = 2
+																mov mc0,a								;ct0 = 3
+					mov mc0,p 													mov 0,ct1				;ct0 = 4
 	sub 														clr a			mov 3,ct0
 	jmp ZS,DIVEND
 	mvi 0,mc1,s	; Remember, the DSP caches instructions. Therefore, this instruction gets run even if we jump.
@@ -400,19 +399,17 @@
 	;-------------------------------------------------------------------------------------------------------------------------
 	jmp SLCOND:
 	SLLOOP:
-					mov m0,p									clr a 			mov 0,ct1						 ; CT0 = 3
-	ad2 														mov alu,a
-	sl 															mov alu,a
-					mov m1,p									clr a			mov all,mc0
-	ad2															mov alu,a
-	sl															mov alu,a		mov 3,ct0
-																clr a			mov all,mc1
+																mov m0,a		mov 0,ct1						; CT0 = 3
+	sl 															mov alu,a										; CT1 = 0
+																mov m1,a		mov all,mc0						; CT0 = 4 
+	sl															mov alu,a		mov 3,ct0						; CT0 = 3
+																clr a			mov all,mc1						; CT1 = 1
 	SLCOND:
-					mov m0,p									clr a			mov 2,ct0
-	ad2				mov m0,p									mov alu,a 
-	sl															mov alu,a
-	sub															mov alu,a		mov 0,ct1
-	jmp S,SLLOOP:
+																mov m0,a		mov 2,ct0	; tempdivisor in A	; CT0 = 2
+					mov m0,p																; tempdividend in P
+	sl															mov alu,a					; tempdivisor<<1
+	sub															mov alu,a		mov 0,ct1	; tempdivisor<<1  - tempdividend
+	jmp S,SLLOOP:																			; if negative, jmp
 																clr a			mov 3,ct0	;Prepares CT0 for next function segment
 	;-------------------------------------------------------------------------------------------------------------------------
 	;    // Call division recursively
@@ -433,17 +430,16 @@
 	;	(tempdividend-tempdivisor) to RAM0 0
 	;
 	;-------------------------------------------------------------------------------------------------------------------------
-					mov mc1,p
-	ad2				mov mc1,p									mov alu,a
-	ad2															mov alu,a		mov 1,ct1
-																clr a			mov all,mc1 		; Move current quotient result added to previous quotient result to RAM1 1.
-																clr a			mov 2,ct0
-					mov mc0,p													mov 0,ct1
-	ad2				mov mc0,p									mov alu,a							;
-	sub															mov alu,a		mov 0,ct0
-																				mov all,mc0
-	jmp DIVIDE:
-																				mov 0,ct0			;
+					mov mc1,p																	; CT1 = 1
+																mov m1,a						; (quotient is selected)
+	ad2															mov alu,a		mov 2,ct0		; CT0 = 2 ; (quotient += tempquotient)
+																clr a			mov all,mc1 	; (to quotient in RAM1 1) ; CT1 = 2	
+																mov mc0,a		mov 0,ct1		; CT0 = 3 ; CT1 = 0 ; tempdividend to A
+					mov m0,p																	; tempdivisor to P
+	sub															mov alu,a		mov 0,ct0		; CT0 = 0 ; tempdividend - tempdivisor
+																clr a			mov all,mc0		; to RAM0 0
+	jmp DIVIDE:																					;
+																				mov 0,ct0		;
 	;-------------------------------------------------------------------------------------------------------------------------
 	;	return tempquotient+quotient;
 	;
@@ -452,12 +448,13 @@
 	;	quotient ->		RAM1 1
 	;	RETURN ->		RAM1 1
 	;-------------------------------------------------------------------------------------------------------------------------
-	DIVEND:																		mov 0,ct1
-	mov mc1,p													clr a			
-	ad2				mov mc1,p									mov alu,a		mov 0,ct0			; Return used RAM bank to zero (no results here)
-	ad2															mov alu,a		mov 1,ct1
-																clr a			mov all,mc1
-																				mov 1,ct1			; Return used RAM bank to result
+	DIVEND:
+																clr a			mov 0,ct1		; CT1 = 0 (its state is uncertain before)
+																mov mc1,a						; CT1 = 1
+					mov m1,p													mov 0,ct0		; Return used RAM bank to zero (no results here)
+	ad2															mov alu,a						; 
+																clr a			mov all,mc1		; CT1 = 2
+																				mov 1,ct1		; Return used RAM bank to result
 	BTM
 	nop
 	

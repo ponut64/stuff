@@ -77,7 +77,7 @@ void	gvModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType)
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));
 //
-void	p64MapRequest(Sint8 * levelNo, Uint8 mapNum);
+void	p64MapRequest(Sint8 * levelNo);
 
 #endif
 

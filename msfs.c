@@ -9,7 +9,6 @@ Sint8*			music = (Sint8*)"EVE.MUS";
 static	int	mrd_pos = 0;
 int			buf_pos;
 int			music_frames = 0;
-static	int	music_sectors = 0;
 int			buffers_filled = 0;
 int			fetch_timer = 0;
 Bool			m_trig;
@@ -92,7 +91,10 @@ void	music_vblIn(Uint8 vol){
 void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType)
 {
 //Fill out the request.
+#pragma GCC push_options
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
 	requests[NactiveGVP].filename = (Sint8*)GFS_NameToId(name);
+#pragma GCC pop_options
 	requests[NactiveGVP].tmodel = model;
 	requests[NactiveGVP].active = true;
 	requests[NactiveGVP].useHiMem = useHiMem;
@@ -102,8 +104,8 @@ void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType
 }
 
 ///Notice: In loading order, put sound requests below model requests.
-void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg)
-{
+//void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg)
+//{
 //Fill out the request.
 	// pcm_slot[NactivePCM].pitchword = bitrate;
 	// pcm_slot[NactivePCM].loctbl = destBufSeg;
@@ -113,12 +115,12 @@ void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg)
 	// pcm_slot[NactivePCM].file_done = false;
 
 // NactivePCM++;
-}
+//}
 
 Sint8 pgm_name[11];
 Sint8 ldat_name[11];
 
-void	p64MapRequest(Sint8 * levelNo, Uint8 mapNum)
+void	p64MapRequest(Sint8 * levelNo)
 {
 ///Fill out the request.
 	pgm_name[0] = 'L';
@@ -146,7 +148,10 @@ void	p64MapRequest(Sint8 * levelNo, Uint8 mapNum)
 	ldat_name[10] = 'A';
 					
 	maps[NactivePGM].dstAddress = dirty_buf;
+#pragma GCC push_options
+#pragma GCC diagnostic ignored "-Wbad-function-cast"
 	maps[NactivePGM].fid = (Sint8*)GFS_NameToId(pgm_name);
+#pragma GCC pop_options
 	maps[NactivePGM].active = true;
 	maps[NactivePGM].file_done = false;
 	maps[NactivePGM].Xval = 0;
@@ -321,10 +326,10 @@ do{
 //PROCESS REQUEST END STUB
 }
 
-void	pop_load_pcm(void(*game_code)(void)){
+//void	pop_load_pcm(void(*game_code)(void)){
 //Need to re-do
 
-}
+//}
 
 void	pop_load_map(void(*game_code)(void)){
 	Sint32	fsizeH;
@@ -656,7 +661,7 @@ for( ; ; ){
 if(model_requested == true){
 	pop_load_gvp(game_code);
 	} else if(sound_requested == true){
-		pop_load_pcm(game_code);
+		//pop_load_pcm(game_code);
 		} else if(map_requested == true){
 			pop_load_map(game_code);
 			} else if(tga_requested == true){

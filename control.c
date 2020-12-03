@@ -55,6 +55,7 @@ void reset_player(void)
     you.Force[Z]=0;
 	you.IPaccel=0;
 	you.id = 0;
+	you.power = 0;
 }
 
 // D-PAD -> Move cardinally relative to camera (up -> fwd, right -> mov right, etc)
@@ -64,14 +65,14 @@ void reset_player(void)
 void controls(void)
 {
 
-	if(is_key_down(DIGI_A)){
+	if(is_key_down(DIGI_X)){
 		you.rotState[X] -= 91 * framerate; //Look/turn left
 	}
 	if(is_key_down(DIGI_B)){
 
 		you.rotState[Y] -= 91 * framerate; //Look down
 	}
-	if(is_key_down(DIGI_C)){
+	if(is_key_down(DIGI_Z)){
 		you.rotState[X] += 91 * framerate; //Look/turn right
 	}
     if (is_key_down(DIGI_X))
@@ -93,31 +94,31 @@ void controls(void)
 	I always want the D-pad inputs to change control angle.
 	Only sometimes do I want them to change the render angle.
 	*/
-
+	// deg * 182 = angle
 		you.dirInp = false;
 	if(is_key_down(DIGI_UP) && is_key_down(DIGI_RIGHT)){
-		you.rot[Y] = DEGtoANG(45) - you.viewRot[Y]; 
+		you.rot[Y] = (45 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_UP) && is_key_down(DIGI_LEFT)){
-		you.rot[Y] = -DEGtoANG(45) - you.viewRot[Y]; 
+		you.rot[Y] = -(45 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_RIGHT)){
-		you.rot[Y] = DEGtoANG(135) - you.viewRot[Y]; 
+		you.rot[Y] = (135 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_LEFT)){
-		you.rot[Y] = -DEGtoANG(135) - you.viewRot[Y]; 
+		you.rot[Y] = -(135 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_UP)){
 		you.rot[Y] = -you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN)){
-		you.rot[Y] = -DEGtoANG(180) - you.viewRot[Y]; 
+		you.rot[Y] = -(180 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_LEFT)){
-		you.rot[Y] = -DEGtoANG(90) - you.viewRot[Y]; 
+		you.rot[Y] = -(90 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_RIGHT)){
-		you.rot[Y] = DEGtoANG(90) - you.viewRot[Y]; 
+		you.rot[Y] = (90 * 182) - you.viewRot[Y]; 
 		you.dirInp = true;
 	}
 	
@@ -133,13 +134,8 @@ void controls(void)
 		you.setSlide = false;
 	}
 	static FIXED rKeyTimer = 0;
-	//This bit, my friends, is spaghetti.
-	//There is a timer here for three purposes:
-	//One, to ensure we can't just hold down the jump button and repeatedly jump.
-	//Two, to ensure that there is some time after pressing the jump button that we may be allowed to jump.
-	//Three, to ensure that the step sound doesn't destroy the jump sound if the timer is in a condition that would allow it to jump.
-	//They share a channel and they never need to play at the same time, but they could logically, so this skirts around that gingerly.
-	if(is_key_down(DIGI_R) ){
+
+	if(is_key_down(DIGI_A) ){
 		if(rKeyTimer <= (66 / framerate)){ 
 			if(you.onSurface == true){
 				you.setJump = true;
@@ -154,6 +150,13 @@ void controls(void)
 	} else {
 		you.okayStepSnd = true;
 		rKeyTimer = 0;
+	}
+	
+	if(is_key_down(DIGI_R))
+	{
+		you.setJet = true;
+	} else {
+		you.setJet = false;
 	}
 	//
 

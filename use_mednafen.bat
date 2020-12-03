@@ -1,8 +1,7 @@
 @ECHO Off
-SET EMULATOR_DIR=..\..\Emulators
 
-if exist sl_coff.iso (
-"%EMULATOR_DIR%\med\mednafen.exe" sl_coff.cue
+if exist game.iso (
+"D:\games\med\mednafen.exe" game.cue
 ) else (
 echo Please compile first !
 )

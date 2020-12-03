@@ -55,8 +55,8 @@ void	process_tga_as_ldata(void)
 //Rotational increments: 16 degrees / 240 max, signed [via sign bits]
 	
 	unsigned int imdat = id_field_size + 18;
-	int totalPix = xSize * ySize;
-	int yspot;
+	//int totalPix = xSize * ySize;
+	//int yspot;
 	
 	//	jo_printf(0, 0, "(%i)", totalPix);
 	
@@ -65,7 +65,7 @@ void	process_tga_as_ldata(void)
 		for(int i = 0; i < ySize; i++)
 		{
 		//jo_printf(0, 0, "(DECL)"); //Debug ONLY
-			yspot = i * ySize;
+			//yspot = i * ySize;
 			for(int k = 0; k < xSize; k++)
 			{
 		if(readByte[imdat] != 0xFF && readByte[imdat+1] != 0xFF && readByte[imdat+2] != 0xFF) //This skip condition is not valid.

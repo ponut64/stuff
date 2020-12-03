@@ -8,7 +8,7 @@ my grandmother. 1937 - 2019.
 I am sorry for the pain you had to go through.
 **/
 //
-// Compilation now requires a _very specifically set_ GCC 9.2 that should be included alongside the source code.
+// Compilation updated to use latest version of Jo Engine standard compiler.
 //
 //
 #include <jo/jo.h>
@@ -56,6 +56,51 @@ volatile Uint32 * scuireg = (Uint32*)0x25FE00A4;
 volatile Uint32 * scuimask = (Uint32*)0x25FE00A0;
 volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
 
+//////////////////////////////////////////////////////////////////////////////
+//Sound Numbers
+//////////////////////////////////////////////////////////////////////////////
+ int snd_dash;
+ int snd_lstep;
+ int snd_wind;
+ int snd_bstep;
+ int snd_click;
+ int snd_button;
+ int snd_cronch;
+ int snd_alarm;
+ int snd_win;
+ int snd_bwee;
+//////////////////////////////////////////////////////////////////////////////
+//Animation Structs
+//////////////////////////////////////////////////////////////////////////////
+ animationControl walk;
+ animationControl run;
+ animationControl dbound;
+
+ animationControl runshoot;
+ animationControl runmelee;
+
+ animationControl melee;
+ animationControl shoot;
+
+ animationControl idle;
+
+ animationControl jump;
+ animationControl stop;
+
+ animationControl airShoot;
+ animationControl airMelee;
+
+ animationControl airIdle;
+ animationControl airRight;
+ animationControl airLeft;
+ animationControl slideIdle;
+ animationControl slideRln;
+ animationControl slideLln;
+//////////////////////////////////////////////////////////////////////////////
+// Player data struct
+//////////////////////////////////////////////////////////////////////////////
+	_player you;
+
 void	dpinit(void)
 {
 	init_vdp2();
@@ -67,8 +112,8 @@ void	dpinit(void)
 //borrowed/given by XL2 -- Frame limiter to 30 FPS. EXTREMELY USEFUL.
 void	update_gamespeed(void)
 {
-	int frmrt = dt>>6;
-	timer();
+	int frmrt = delta_time>>6;
+	jo_fixed_point_time();
 	
  	static int lastTimes[66];
 	static int time_selector = 0;
@@ -105,7 +150,7 @@ void	update_gamespeed(void)
 void	load_test(void)
 {
 	//
-	snd_dash = load_8bit_pcm((Sint8*)"DSH.PCM", 15360);
+	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
@@ -135,7 +180,7 @@ gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], false, SORT_CEN);
 gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
 
 
-p64MapRequest((Sint8*)"01", 0);
+p64MapRequest((Sint8*)"01");
 
 }
 
@@ -158,7 +203,7 @@ void	my_vlank(void){
 	operate_digital_pad1();
 	//Sound Driver Stuff
 	m68k_com->start = 1;
-	m68k_com->dT_ms = dt>>6;
+	m68k_com->dT_ms = delta_time>>6;
 	music_vblIn(7);
 	//
 }

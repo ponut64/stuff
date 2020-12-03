@@ -3,7 +3,6 @@
 # define __DEF_H__
 
 //def.h -- the catch-all "i dunno where else this goes" file
-#include "timer.h"
 #include "input.h"
 #include "pcmsys.h"
 
@@ -24,15 +23,16 @@
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
 //////////////////////////////////////////////////////////////////////////////
-int snd_dash;
-int snd_lstep;
-int snd_wind;
-int snd_bstep;
-int snd_click;
-int snd_button;
-int snd_cronch;
-int snd_alarm;
-int snd_win;
+extern int snd_dash;
+extern int snd_lstep;
+extern int snd_wind;
+extern int snd_bstep;
+extern int snd_click;
+extern int snd_button;
+extern int snd_cronch;
+extern int snd_alarm;
+extern int snd_win;
+extern int snd_bwee;
 //////////////////////////////////////////////////////////////////////////////
 
 //Structs
@@ -62,9 +62,11 @@ typedef struct {
 	bool dirInp;
 	bool setJump;
 	bool setSlide;
-	bool setDash;
 	bool okayStepSnd;
 	int sanics;
+	
+	int power;
+	bool setJet;
 	
 	int surfaceHeight;
 	POINT	shadowPos;
@@ -83,7 +85,10 @@ typedef struct {
 	Bool onSurface;
 } _player;
 
-_player you;
+//////////////////////////////////////////////////////////////////////////////
+// Player data struct
+//////////////////////////////////////////////////////////////////////////////
+extern _player you;
 
 //Variables
 extern bool usePolyLine;
@@ -99,37 +104,37 @@ extern volatile Uint32 * scuireg;
 typedef struct
 {
 	Bool uniform;
-	Uint8 arate[256];
+	Uint8 arate[64];
     Uint16 currentFrm;
     Uint8 currentKeyFrm;
     Uint8 startFrm;
     Uint8 endFrm;
 } animationControl;
 
-animationControl walk;
-animationControl run;
-animationControl dbound;
+extern animationControl walk;
+extern animationControl run;
+extern animationControl dbound;
 
-animationControl runshoot;
-animationControl runmelee;
+extern animationControl runshoot;
+extern animationControl runmelee;
 
-animationControl melee;
-animationControl shoot;
+extern animationControl melee;
+extern animationControl shoot;
 
-animationControl idle;
+extern animationControl idle;
 
-animationControl jump;
-animationControl stop;
+extern animationControl jump;
+extern animationControl stop;
 
-animationControl airShoot;
-animationControl airMelee;
+extern animationControl airShoot;
+extern animationControl airMelee;
 
-animationControl airIdle;
-animationControl airRight;
-animationControl airLeft;
-animationControl slideIdle;
-animationControl slideRln;
-animationControl slideLln;
+extern animationControl airIdle;
+extern animationControl airRight;
+extern animationControl airLeft;
+extern animationControl slideIdle;
+extern animationControl slideRln;
+extern animationControl slideLln;
 
 
 #endif

@@ -62,10 +62,10 @@ if(pos[Z] >= 0){
 	cellY3off =  -((cellPos[Y]+1)*main_map_x_pix);
 }
 
-	Uint32 vert0pix = cellX0off + cellY0off + (main_map_total_pix>>1); //offsets are calculated from map center.
-	Uint32 vert1pix = cellX1off + cellY1off + (main_map_total_pix>>1); //Thus the pixel that is exactly in the middle of the map is used.
-	Uint32 vert2pix = cellX2off + cellY2off + (main_map_total_pix>>1); //This pixel # is found simply by dividing the total pixels in half by a bit shift.
-	Uint32 vert3pix = cellX3off + cellY3off + (main_map_total_pix>>1);
+	int vert0pix = cellX0off + cellY0off + (main_map_total_pix>>1); //offsets are calculated from map center.
+	int vert1pix = cellX1off + cellY1off + (main_map_total_pix>>1); //Thus the pixel that is exactly in the middle of the map is used.
+	int vert2pix = cellX2off + cellY2off + (main_map_total_pix>>1); //This pixel # is found simply by dividing the total pixels in half by a bit shift.
+	int vert3pix = cellX3off + cellY3off + (main_map_total_pix>>1);
 //------------------------------------------------------------------------------------------------	
 	// jo_printf(0, 10, "(%i)", vert0pix);
 	// jo_printf(0, 11, "(%i)", vert1pix);
@@ -74,10 +74,10 @@ if(pos[Z] >= 0){
 //------------------------------------------------------------------------------------------------		
 	//Note: The order of application to vertices is intentionally reversed. [Vert 3 uses Vert 0's offset]
 	//Remember: We will NEVER sample a negative pixel. Hitherto, our sampling numbers are unsigned.
-	cell->verts[3][Y] = (vert0pix < main_map_total_pix && (JO_ABS(cellX0off)-1 < (main_map_x_pix>>1))) ? -main_map[vert0pix]<<16 : -127<<16;
-	cell->verts[2][Y] = (vert1pix < main_map_total_pix && (JO_ABS(cellX1off)-1 < (main_map_x_pix>>1))) ? -main_map[vert1pix]<<16 : -127<<16;	
-	cell->verts[1][Y] = (vert2pix < main_map_total_pix && (JO_ABS(cellX2off)-1 < (main_map_x_pix>>1))) ? -main_map[vert2pix]<<16 : -127<<16;	
-	cell->verts[0][Y] = (vert3pix < main_map_total_pix && (JO_ABS(cellX3off)-1 < (main_map_x_pix>>1))) ? -main_map[vert3pix]<<16 : -127<<16;	
+	cell->verts[3][Y] = (vert0pix < main_map_total_pix && (JO_ABS(cellX0off)-1 < (main_map_x_pix>>1))) ? -main_map[vert0pix]<<16 : -(127<<16);
+	cell->verts[2][Y] = (vert1pix < main_map_total_pix && (JO_ABS(cellX1off)-1 < (main_map_x_pix>>1))) ? -main_map[vert1pix]<<16 : -(127<<16);	
+	cell->verts[1][Y] = (vert2pix < main_map_total_pix && (JO_ABS(cellX2off)-1 < (main_map_x_pix>>1))) ? -main_map[vert2pix]<<16 : -(127<<16);	
+	cell->verts[0][Y] = (vert3pix < main_map_total_pix && (JO_ABS(cellX3off)-1 < (main_map_x_pix>>1))) ? -main_map[vert3pix]<<16 : -(127<<16);	
 }
 
 void	divide_cell_return_cfnorms(_pquad quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2)
@@ -117,11 +117,11 @@ tri1CF[X] = fxm(21845,tri1p1[X] + tri1p2[X] + tri1p3[X]);
 tri1CF[Y] = fxm(21845,tri1p1[Y] + tri1p2[Y] + tri1p3[Y]);
 tri1CF[Z] = fxm(21845,tri1p1[Z] + tri1p2[Z] + tri1p3[Z]);
 
-tri1V1[X] = -25<<16;
+tri1V1[X] = -(25<<16);
 tri1V1[Y] = (tri1p3[Y]) - (tri1p1[Y]);
 tri1V1[Z] = 25<<16;
 
-tri1V2[X] = -25<<16;
+tri1V2[X] = -(25<<16);
 tri1V2[Y] = (tri1p2[Y]) - (tri1p1[Y]);
 tri1V2[Z] = 0;
 
@@ -169,7 +169,7 @@ tri2CF[X] = fxm(21845,tri2p1[X] + tri2p2[X] + tri2p3[X]);
 tri2CF[Y] = fxm(21845,tri2p1[Y] + tri2p2[Y] + tri2p3[Y]);
 tri2CF[Z] = fxm(21845,tri2p1[Z] + tri2p2[Z] + tri2p3[Z]);
 
-tri2V1[X] = -25<<16;
+tri2V1[X] = -(25<<16);
 tri2V1[Y] = (tri2p3[Y]) - (tri2p1[Y]);
 tri2V1[Z] = 25<<16;
 

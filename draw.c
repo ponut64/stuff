@@ -102,7 +102,7 @@ void	initCamera(void)
 	//slWindow(16, 8, 336, 232, draw_distance, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
 	slWindow(0, 0, JO_TV_WIDTH-1, JO_TV_HEIGHT-1, 2000, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
 	slZdspLevel(0);
-	slPerspective(DEGtoANG(90)); //FOV
+	slPerspective((90 * 182)); //FOV
 }
 
 void	set_camera(void)
@@ -280,7 +280,7 @@ void	shadow_draw(void)
 		{
 			if(first_run != true){
 	//Special Shadow Param (just for MESHon lol)
-	for(int i = 0; i < shadow.pol[0]->nbPolygon; i++){
+	for(unsigned int i = 0; i < shadow.pol[0]->nbPolygon; i++){
 	shadow.pol[0]->attbl[i] = (ATTR)ATTRIBUTE(Dual_Plane, SORT_CEN, shadow.pol[0]->attbl[i].texno, 0, No_Gouraud,Window_In|MESHoff|HSSon|ECdis | SPenb |CL64Bnk |MSBon,sprNoflip,UseNearClip);
 	shadow.pol[0]->pltbl[i].norm[X] = 0;
 	shadow.pol[0]->pltbl[i].norm[Y] = 0;
@@ -328,7 +328,7 @@ void	object_draw(void)
 		
 	slPushMatrix();
 	{	
-	slTranslate((VIEW_OFFSET_X<<16), (VIEW_OFFSET_Y<<16), (VIEW_OFFSET_Z<<16) );
+	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
 	
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
@@ -348,7 +348,7 @@ void	object_draw(void)
 void	map_draw(void){	
 
 	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
-update_hmap(hmap_mtx, sun_light);
+update_hmap(hmap_mtx);
 
 }
 
@@ -358,7 +358,7 @@ void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it does
 	set_camera();
 	slPushMatrix();
 	{
-	slTranslate((VIEW_OFFSET_X<<16), (VIEW_OFFSET_Y<<16), (VIEW_OFFSET_Z<<16) );
+	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
 	slTranslate(hmap_matrix_pos[X], you.pos[Y], hmap_matrix_pos[Z]);

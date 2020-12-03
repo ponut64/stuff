@@ -2,9 +2,9 @@
 #ifndef __DRAW_H__
 # define __DRAW_H__
 
-#define VIEW_OFFSET_X (0)
-#define VIEW_OFFSET_Y (8)
-#define VIEW_OFFSET_Z (-22)
+#define VIEW_OFFSET_X (0 * 65536)
+#define VIEW_OFFSET_Y (8 * 65536)
+#define VIEW_OFFSET_Z (-22 * 65536)
 
 //Contains stuff linked to XL2
 #include "mloader.h"

@@ -5,9 +5,20 @@
 #define PLR_STRF_SPD (32768)
 #define GRAVITY (6553)
 
-POINT alwaysLow = {0, (-1<<16), 0};
+POINT alwaysLow = {0, -(1<<16), 0};
 POINT alwaysHigh = {0, (1<<16), 0};
 FIXED	lowPoint[XYZ] = {0, 0, 0};
+
+/*
+
+Maybe just straight-up add "jetpack"
+You press button, move up slightly, but mostly you get directional   in the air.
+Perhaps I can make the Y very weak if you're trying to move in a direction,
+so jetting near the ground when skiing will be your control method.
+
+I mean, this *was* an essential part of what made tribes fun to play. Limited capacity to move like an angel...
+
+*/
 
 void pl_jump(void){
 		if(you.Velocity[Y] > 0){
@@ -22,6 +33,29 @@ void pl_jump(void){
 			you.Velocity[Z] += fxm(196608, you.floorNorm[Z]);
 		pcm_play(snd_bstep, PCM_SEMI, 7, 0);
 }
+
+void pl_jet(void){
+	
+		if(you.onSurface == true)
+		{
+			//I guess a micro-jump?
+			//It helps release you from the surface when jetting.
+			you.Velocity[Y] += fxm(GRAVITY<<1, frmul)<<2;
+		}
+	
+		you.onSurface = false;
+		you.power -= 1;
+			if(you.dirInp == true)
+			{
+			you.Velocity[X] += fxm(fxm(512, -you.ControlUV[X]), frmul); 
+			you.Velocity[Y] += fxm(6553, frmul); 
+			you.Velocity[Z] += fxm(fxm(512, -you.ControlUV[Z]), frmul); 
+			} else {
+			you.Velocity[Y] += fxm(6553, frmul); 
+			}
+		pcm_play(snd_bwee, PCM_PROTECTED, 7, 0);
+}
+
 
 void	pl_step_snd(void){
 	
@@ -74,7 +108,6 @@ static const int airFriction = 65400;
 void	player_phys_affect(void)
 {
 	
-	static short oldRot = 0;
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];
 	you.viewRot[Y] -= you.rotState[X];
@@ -85,14 +118,33 @@ void	player_phys_affect(void)
 	you.ControlUV[Z] = -slCos((you.rot[Y]));
 	
 	//Smart Camera Setup
-	VECTOR uview = {-slSin(you.viewRot[Y]), 0, slCos(you.viewRot[Y])};
-	int proportion = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
-	short angDif = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
+	// "uview" is the discrete vector notation of the player's viewport.
+	VECTOR uview = {-slSin(you.viewRot[Y]), slSin(you.viewRot[X]), slCos(you.viewRot[Y])};
+	// proportion_y is a mathemagical value that is the positive or negative propotion of the view vector,
+	// as compared to the movement vector. While we are doing multiplication here, it's ostensibly division (these are <1 values).
+	int proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
+	//angDif_y is an expression of how different the movement vector and viewing vector is,
+	//as it relates to the axis that Y view rotation controls (X and Z).
+	short angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
+	
+	//This is simply the difference betweent he movement vector's Y and the viewing vector's Y.
+	//prop y and prop x are shifted down to scale it as desired. Magic shift, in other words.
+	int proportion_x = (you.DirUV[Y] - uview[Y])>>7;
+	//This angle will amount to a propotion of angle we're not yet facing towards the ground.
+	int propotion_facing_ground = (-32768 - uview[Y])>>7;
 	//Will pivot camera towards direction of motion
-	if((JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif) > 1024 &&
+	if((JO_ABS(you.Velocity[X]) > 1024 || JO_ABS(you.Velocity[Z]) > 1024) &&  JO_ABS(angDif_y) > 1024 &&
 	(is_key_up(DIGI_DOWN) | is_key_down(DIGI_LEFT) | is_key_down(DIGI_RIGHT)))
 	{
-		you.viewRot[Y] += (angDif > 0) ? (proportion * framerate)>>1 : -(proportion * framerate)>>1; //Determines if we want to rotate view clockwise or counterclockwise
+		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
+		you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
+	}
+	if(JO_ABS(you.Velocity[Y]) > 1024 || you.dirInp == true)
+	{
+		//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
+		//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
+		you.viewRot[X] += (you.onSurface == true) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
+
 	}
 	//
 	
@@ -154,6 +206,23 @@ void	player_phys_affect(void)
 			pl_jump();
 			you.setJump = false;
 		}
+		
+		static int powerTimer = 0;
+		
+		if(you.setJet == true && you.power > 0)
+		{
+			pl_jet();
+		} else if(you.power < 64){
+			powerTimer += delta_time;
+			if(powerTimer > (255))
+			{
+				you.power += 1;
+				powerTimer = 0;
+			}
+		}
+		
+		jo_printf(1, 10, "(%i)", you.power);
+		
 		if( you.okayStepSnd ) pl_step_snd();
 
 	//Surface / gravity decisions
@@ -207,9 +276,9 @@ void	player_phys_affect(void)
 	if(JO_ABS(you.rotState[X]) < 90) you.rotState[X] = 0;
 	if(JO_ABS(you.rotState[Y]) < 90) you.rotState[Y] = 0;
 	//De-rating
-	if( is_key_up(DIGI_A) && you.rotState[X] < 0) you.rotState[X] += fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//A
+	if( is_key_up(DIGI_X) && you.rotState[X] < 0) you.rotState[X] += fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//A
 	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//S
-	if( is_key_up(DIGI_C) && you.rotState[X] > 0) you.rotState[X] -= fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//D
+	if( is_key_up(DIGI_Z) && you.rotState[X] > 0) you.rotState[X] -= fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//D
 	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//W
 	
 	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(slDivFX(frmul , 65536), you.IPaccel);
@@ -232,13 +301,13 @@ void	player_phys_affect(void)
 	}
 
 		} //OFF SURFACE ROTATION DERATING ENDIF
+		
 	//Moment
 	you.moment[X] = fxm(you.mass, you.Velocity[X]);
 	you.moment[Y] = fxm(you.mass, you.Velocity[Y]);
 	you.moment[Z] = fxm(you.mass, you.Velocity[Z]);
 	//
 	if(you.hitWall != true){
-		oldRot = you.rot[Y];
 	you.prevPos[X] = you.pos[X];
 	you.prevPos[Y] = you.pos[Y];
 	you.prevPos[Z] = you.pos[Z];
@@ -277,8 +346,6 @@ void	player_phys_affect(void)
 void	collide_with_heightmap(_boundBox * sbox)
 {
 
-static int prevCellCenterPos[2] = {0, 0};
-static int cellCenterPos[2] = {0, 0};
 static bool firstSurfHit = false;
 
 static _lineTable realCFs;
@@ -295,12 +362,6 @@ static POINT nyNearTriCF2 = {0, 0, 0};
 static VECTOR nyTriNorm2 = {0, 0, 0};
 static FIXED nyToTri1 = 0;
 static FIXED nyToTri2 = 0;
-
-prevCellCenterPos[0] = cellCenterPos[0];
-prevCellCenterPos[1] = cellCenterPos[1];
-
-cellCenterPos[0] = (sbox->pos[X] > 0) ? ((fxm((INV_CELL_SIZE), sbox->pos[X])>>16)) + 1 : ((fxm((INV_CELL_SIZE), sbox->pos[X])>>16)); // - 1?
-cellCenterPos[1] = (sbox->pos[Z] > 0) ? ((fxm((INV_CELL_SIZE), sbox->pos[Z])>>16)) + 1 : ((fxm((INV_CELL_SIZE), sbox->pos[Z])>>16)); // ? +1 : - 1
 
 realCFs.xp0[X] = sbox->Xplus[X] + sbox->pos[X]; realCFs.xp0[Y] = sbox->Xplus[Y] + sbox->pos[Y]; realCFs.xp0[Z] = sbox->Xplus[Z] + sbox->pos[Z];
 realCFs.xp1[X] = sbox->Xneg[X] + sbox->pos[X]; realCFs.xp1[Y] = sbox->Xneg[Y] + sbox->pos[Y]; realCFs.xp1[Z] = sbox->Xneg[Z] + sbox->pos[Z];
