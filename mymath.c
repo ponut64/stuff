@@ -209,7 +209,7 @@ void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 }
 
 
-Bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
+bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 {
 	FIXED max[XYZ];
 	FIXED min[XYZ];

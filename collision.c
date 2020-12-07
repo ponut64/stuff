@@ -12,7 +12,7 @@ int numBoxChecks = 0;
 
 ///Alternative point collision detection. Faster, though less strict. Works entirely with integers, mostly 16-bit.
 //FIXED point operation is commented out as it has issues with domain, particularly of Y axis rotation.
-Bool sort_collide(FIXED pos[XYZ], _boundBox * targetBox, Uint8* nearNormalID, int tolerance)
+Bool sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance)
 {
 	int dotX = realpt_to_plane(pos, targetBox->Xplus, targetBox->pos);
 		if(dotX < tolerance){return false;}
@@ -30,17 +30,17 @@ Bool sort_collide(FIXED pos[XYZ], _boundBox * targetBox, Uint8* nearNormalID, in
 	int leastDistance;
 		leastDistance = JO_MIN(JO_MIN(JO_MIN(JO_MIN(JO_MIN(JO_ABS(dotZ), JO_ABS(dotNZ)), JO_ABS(dotX)), JO_ABS(dotNX)), JO_ABS(dotY)), JO_ABS(dotNY));
 		if(leastDistance == JO_ABS(dotZ) ){
-			*nearNormalID = (Uint8)5;
+			*nearNormalID = N_Zp;
 		} else if(leastDistance == JO_ABS(dotNZ) ){
-			*nearNormalID = (Uint8)6;
+			*nearNormalID = N_Zn;
 		} else if(leastDistance == JO_ABS(dotX) ){
-			*nearNormalID = (Uint8)1;
+			*nearNormalID = N_Xp;
 		} else if(leastDistance == JO_ABS(dotNX) ){
-			*nearNormalID = (Uint8)2;
+			*nearNormalID = N_Xn;
 		} else if(leastDistance == JO_ABS(dotY) ){
-			*nearNormalID = (Uint8)3;
+			*nearNormalID = N_Yp;
 		} else if(leastDistance == JO_ABS(dotNY) ){
-			*nearNormalID = (Uint8)4;
+			*nearNormalID = N_Yn;
 			}
 //End surface collision detection.
 
@@ -152,27 +152,27 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 	
 	//jo_printf(12, 9, "(%i)", normID);
 	
-	if(normID == 1){
+	if(normID == N_Xp){
 		setNormal[X] = stator.UVX[X];
 		setNormal[Y] = stator.UVX[Y];
 		setNormal[Z] = stator.UVX[Z];
-	} else if(normID == 2){
+	} else if(normID == N_Xn){
 		setNormal[X] = stator.UVNX[X];
 		setNormal[Y] = stator.UVNX[Y];
 		setNormal[Z] = stator.UVNX[Z];
-	} else if(normID == 3){
+	} else if(normID == N_Yp){
 		setNormal[X] = stator.UVY[X];
 		setNormal[Y] = stator.UVY[Y];
 		setNormal[Z] = stator.UVY[Z];
-	} else if(normID == 4){
+	} else if(normID == N_Yn){
 		setNormal[X] = stator.UVNY[X];
 		setNormal[Y] = stator.UVNY[Y];
 		setNormal[Z] = stator.UVNY[Z];
-	} else if(normID == 5){
+	} else if(normID == N_Zp){
 		setNormal[X] = stator.UVZ[X];
 		setNormal[Y] = stator.UVZ[Y];
 		setNormal[Z] = stator.UVZ[Z];
-	} else if(normID == 6){
+	} else if(normID == N_Zn){
 		setNormal[X] = stator.UVNZ[X];
 		setNormal[Y] = stator.UVNZ[Y];
 		setNormal[Z] = stator.UVNZ[Z];
@@ -185,12 +185,12 @@ void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, Uint
 
 	/*
 	
-Floor collisions pass the boolean "onSurface" that is processed in "collide with heightmap" function in player_phy.c 
-Wall collisions pass the boolean "hitWall" that is processed in "player phys affect" function in player_phy.c
+Floor collisions pass the boolean "hitSurface" that is processed in player_phy.c
+Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 	
 	*/
 
-	if(hitFace == 4){
+	if(hitFace == N_Yn){
 			if(stator->UVNY[Y] < -32768){
 		
 		you.floorNorm[X] = stator->UVY[X]; //[could just use UVY instead of -UVNY]
@@ -206,7 +206,6 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
 		
-	you.hitWall = false;
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVNY[X];
@@ -217,9 +216,8 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
-	} else if(hitFace == 3){
+	} else if(hitFace == N_Yp){
 		
 			if(stator->UVY[Y] < -32768){
 		
@@ -236,7 +234,6 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
 		
-	you.hitWall = false;
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVY[X];
@@ -247,9 +244,8 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
-	} else if(hitFace == 5){
+	} else if(hitFace == N_Zp){
 		
 			if(stator->UVZ[Y] < -32768){
 		
@@ -266,7 +262,6 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
 		
-	you.hitWall = false;
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVZ[X];
@@ -277,9 +272,8 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
-	} else if(hitFace == 6){
+	} else if(hitFace == N_Zn){
 		
 			if(stator->UVNZ[Y] < -32768){
 		
@@ -296,7 +290,6 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
 		
-	you.hitWall = false;
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVNZ[X];
@@ -307,9 +300,8 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
-	} else if(hitFace == 1){
+	} else if(hitFace == N_Xp){
 
 			if(stator->UVX[Y] < -32768){
 		
@@ -325,8 +317,7 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[X] = -hitPt[X];
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitWall = false;
+	
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVX[X];
@@ -337,9 +328,8 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
-	} else if(hitFace == 2){
+	} else if(hitFace == N_Xn){
 
 			if(stator->UVNX[Y] < -32768){
 		
@@ -356,7 +346,6 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.shadowPos[Y] = -hitPt[Y];
 	you.shadowPos[Z] = -hitPt[Z];
 		
-	you.hitWall = false;
 	you.hitSurface = true;
 			} else {
 	you.wallNorm[X] = stator->UVNX[X];
@@ -367,9 +356,9 @@ Wall collisions pass the boolean "hitWall" that is processed in "player phys aff
 	you.wallPos[Z] = hitPt[Z];
 		
 	you.hitWall = true;
-	you.hitSurface = false;
 			}
 	}
+
 }
 
 void	player_shadow_object(_boundBox * stator, POINT centerDif)
@@ -381,7 +370,7 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 	POINT xHit;
 	POINT yHit;
 	POINT zHit;
-	char hitBools[XYZ];
+	int hitBools[XYZ];
 	POINT highHit = {0, 0, 0};
 
 	if( centerDif[X] < 0){
@@ -459,7 +448,7 @@ static POINT lineEnds[9];
 
 static bool lineChecks[9];
 
-static Uint8 hitFace;
+static int hitFace;
 		
 static FIXED bigDif = 0;
 
@@ -571,14 +560,13 @@ _lineTable moverCFs = {
 			if(sort_collide(lineEnds[i], stator, &hitFace, -HIT_TOLERANCE) == true){
 				//Step 3: Use the normal of that face for collision.
 				pl_physics_handler(stator, mover, lineEnds[i], hitFace);
+				you.hitBox = true;
 				return true;
 			}
 		}
 		
 	}
-
-				you.hitWall = false;
-				you.hitSurface = false; //Neccessary to release from surface
+		you.hitBox = false;
 		return false;
 }
 

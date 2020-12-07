@@ -7,7 +7,7 @@ JO_DEBUG = 1
 
 SRCS=main.c render.c input.c draw.c ldata.c tga.c pcmsys.c mymath.c \
 msfs.c bounder.c collision.c player_phy.c hmap.c minimap.c hmap_col.c \
-control.c vdp2.c physobjet.c dspm.c mloader.c
+control.c vdp2.c physobjet.c dspm.c mloader.c object_col.c
 JO_ENGINE_SRC_DIR=../../jo_engine
 COMPILER_DIR=../../Compiler
 include $(COMPILER_DIR)/COMMON/jo_engine_makefile

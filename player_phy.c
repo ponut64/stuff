@@ -26,7 +26,7 @@ void pl_jump(void){
 		} else {
 			you.Velocity[Y] = 0;
 		}
-		you.onSurface = false;
+		you.hitSurface = false;
 		you.pos[Y] += (6553);
 			you.Velocity[X] += fxm(196608, you.floorNorm[X]); 
 			you.Velocity[Y] += fxm(196608, you.floorNorm[Y]);
@@ -36,14 +36,14 @@ void pl_jump(void){
 
 void pl_jet(void){
 	
-		if(you.onSurface == true)
+		if(you.hitSurface == true)
 		{
 			//I guess a micro-jump?
 			//It helps release you from the surface when jetting.
 			you.Velocity[Y] += fxm(GRAVITY<<1, frmul)<<2;
 		}
 	
-		you.onSurface = false;
+		you.hitSurface = false;
 		you.power -= 1;
 			if(you.dirInp == true)
 			{
@@ -75,14 +75,14 @@ void	pl_step_snd(void){
 	const int HoofLowValue = 311296;
 	//int printPos = 0;
 
-		if(you.onSurface == true){
+		if(you.hitSurface == true){
 	hoofSetBools[0] = (pl_model.pol[0]->pntbl[8][Y] > HoofLowValue) ? true : false;
 	hoofSetBools[1] = (pl_model.pol[0]->pntbl[38][Y] > HoofLowValue) ? true : false;
 	hoofSetBools[2] = (pl_model.pol[0]->pntbl[57][Y] > HoofLowValue) ? true : false;
 	hoofSetBools[3] = (pl_model.pol[0]->pntbl[114][Y] > HoofLowValue) ? true : false;
 		}
 
-	hoofSetBools[4] = (you.onSurface);
+	hoofSetBools[4] = (you.hitSurface);
 		
 		runSnd = (hoofSetBools[0] != oldHoofSetBools[0]) ? 1 : runSnd;
 		runSnd = (hoofSetBools[1] != oldHoofSetBools[1]) ? 1 : runSnd;
@@ -107,6 +107,19 @@ static const int airFriction = 65400;
  
 void	player_phys_affect(void)
 {
+	if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
+	{
+				//Release from surface
+				you.hitWall = false;
+				you.hitSurface = false; 
+	}
+	
+		// jo_printf(1, 6, "hitObject: (%i)", you.hitObject);
+		// jo_printf(1, 7, "hitBox: (%i)", you.hitBox);
+		// jo_printf(1, 8, "hitMap: (%i)", you.hitMap);			
+		// jo_printf(1, 9, "hitWall: (%i)", you.hitWall);
+		// jo_printf(1, 12, "hitSurface: (%i)", you.hitSurface);
+		// slPrintFX(time_in_seconds, slLocate(1, 14));
 	
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];
@@ -143,7 +156,7 @@ void	player_phys_affect(void)
 	{
 		//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
 		//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
-		you.viewRot[X] += (you.onSurface == true) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
+		you.viewRot[X] += (you.hitSurface == true) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
 
 	}
 	//
@@ -156,7 +169,7 @@ void	player_phys_affect(void)
 		you.Velocity[Y] = fxm(you.Velocity[Y], (airFriction));
 		you.Velocity[Z] = fxm(you.Velocity[Z], (airFriction));
 
-							if(you.onSurface == true){
+							if(you.hitSurface == true){
 		//Skiing Decisions
 		if(you.setSlide == true){
 			you.surfFriction = 65000;
@@ -192,7 +205,7 @@ void	player_phys_affect(void)
 							
 		//Velocity add by input decisions
 		//Acclimate speed on each axis to your rotation on each axis defined by two-axis input
-		if(you.setSlide != true && you.onSurface == true){
+		if(you.setSlide != true && you.hitSurface == true){
 		you.Velocity[X] += fxm(-you.IPaccel, you.ControlUV[X]);
 		you.Velocity[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
 		you.Velocity[Z] += fxm(-you.IPaccel, you.ControlUV[Z]);
@@ -221,13 +234,13 @@ void	player_phys_affect(void)
 			}
 		}
 		
-		jo_printf(1, 10, "(%i)", you.power);
+		jo_printf(1, 4, "Fuel: (%i)", you.power);
 		
 		if( you.okayStepSnd ) pl_step_snd();
 
 	//Surface / gravity decisions
 	static VECTOR gravAcc;
-	if(you.onSurface == true){
+	if(you.hitSurface == true){
 		///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
 		///Also, stiction. You shouldn't ALWAYS slide :)
 		gravAcc[X] = fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
@@ -236,6 +249,10 @@ void	player_phys_affect(void)
 		you.Velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
 		you.Velocity[Y] -= (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
 		you.Velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
+		
+		you.pos[X] = (you.floorPos[X]);
+		you.pos[Y] = (you.floorPos[Y]);
+		you.pos[Z] = (you.floorPos[Z]);
 	} else {
 		you.Velocity[Y] -= fxm((GRAVITY), frmul);
 	}
@@ -243,13 +260,14 @@ void	player_phys_affect(void)
 	//Wall Collision Decisions
 	if(you.hitWall == true){
 	you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]);
-	you.pos[Y] =	you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]);
+	you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]);
 	you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]);
 	
 	you.Velocity[X] += (you.Velocity[X] > 0) ? -fxm(you.wallNorm[X], you.Velocity[X])<<1 : fxm(you.wallNorm[X], you.Velocity[X])<<1;
 	you.Velocity[Y] += (you.Velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.Velocity[Y])<<1 : fxm(you.wallNorm[Y], you.Velocity[Y])<<1;
 	you.Velocity[Z] += (you.Velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.Velocity[Z])<<1 : fxm(you.wallNorm[Z], you.Velocity[Z])<<1;
-	
+	//Wall Math is Done
+	you.hitWall = false;
 	}
 	//
 	//Add your speed to your position (incremental / per-frame)
@@ -284,7 +302,7 @@ void	player_phys_affect(void)
 	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(slDivFX(frmul , 65536), you.IPaccel);
 	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += spdfactr;
 
-		if(you.onSurface != true){
+		if(you.hitSurface != true){
 			FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), frmul);
 			FIXED setZrotDrate = fxm(fxm((6553), JO_ABS(you.rot[Z])), frmul);
 	if(you.rot[X] > 0){
@@ -326,6 +344,7 @@ void	player_phys_affect(void)
 	bound_box_starter.y_radius = 5<<16;
 	bound_box_starter.z_radius = 5<<16;
 				
+			
 		make2AxisBox(&bound_box_starter);
 	
 		if(you.setSlide) //Rotational logic changes based on what movement state you are in.
@@ -389,8 +408,10 @@ nyToTri1 = realpt_to_plane(realCFs.yp1, nyTriNorm1, nyNearTriCF1);
 nyToTri2 = realpt_to_plane(realCFs.yp1, nyTriNorm2, nyNearTriCF2);
 //Collision detection is using heightmap data
 
-if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
+if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hitBox == false)){
 	you.hitMap = true;
+	you.hitSurface = true;
+	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, lowPoint);
 	sort_angle_to_domain(nyTriNorm2, alwaysLow, you.renderRot);
 
@@ -403,8 +424,10 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 	you.floorNorm[X] = nyTriNorm2[X];
 	you.floorNorm[Y] = nyTriNorm2[Y];
 	you.floorNorm[Z] = nyTriNorm2[Z];
-} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && you.hitSurface == false){
+} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (you.hitObject == false && you.hitBox == false)){
 	you.hitMap = true;
+	you.hitSurface = true;
+	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, lowPoint);
 	sort_angle_to_domain(nyTriNorm1, alwaysLow, you.renderRot);
 
@@ -436,11 +459,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 
 	if(you.hitSurface == true || you.hitMap == true){
 		
-		you.onSurface = true;
 		you.surfFriction = (45875);
-		you.pos[X] = (you.floorPos[X]);
-		you.pos[Y] = (you.floorPos[Y]);
-		you.pos[Z] = (you.floorPos[Z]);
 
 		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152 && you.setSlide != true)){
 
@@ -465,7 +484,6 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && you.hitSurface == false){
 		you.Velocity[Y] -= fxm(you.Velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 		
 	} else {
-		you.onSurface = false;
 		firstSurfHit = false;
 	}
 

@@ -80,9 +80,10 @@ typedef struct {
 	
 	bool aboveObject;
 	bool hitMap;
+	bool hitObject;
+	bool hitBox;
 	bool hitSurface;
 	bool hitWall;
-	Bool onSurface;
 } _player;
 
 //////////////////////////////////////////////////////////////////////////////

@@ -32,6 +32,7 @@ I am sorry for the pain you had to go through.
 #include "tga.h"
 #include "ldata.h"
 #include "input.h"
+#include "object_col.h"
 //
 #include "lwram.c"
 //
@@ -169,18 +170,20 @@ void	load_test(void)
 	//End tex 35
 gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN);
 
-gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], false, SORT_CEN);
+// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], false, SORT_CEN);
 
-gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], false, SORT_CEN);
+// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], false, SORT_CEN);
 
-gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], false, SORT_CEN);
+// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], false, SORT_CEN);
 
-gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], false, SORT_CEN);
+// gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], false, SORT_CEN);
+
+gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], false, SORT_CEN);
 
 gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
 
 
-p64MapRequest((Sint8*)"01");
+p64MapRequest((Sint8*)"00");
 
 }
 

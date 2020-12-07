@@ -1,6 +1,11 @@
 #include "render.h"
 #include "anorm.h"
 
+#define SCRN_CLIP_X (1)
+#define SCRN_CLIP_NX (1<<1)
+#define SCRN_CLIP_Z (1<<2)
+#define SCRN_CLIP_NZ (1<<3)
+
  int * DVSR = ( int*)0xFFFFFF00;
  int * DVDNTH = ( int*)0xFFFFFF10;
  int * DVDNTL = ( int*)0xFFFFFF14;
@@ -53,12 +58,12 @@ void	frame_render_prep(void)
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 {
-	register FIXED transPt;
+	 FIXED transPt;
 	asm(
 		"clrmac;"
-		"mov %[ptptr], r0;" //Moves pt ptr to discrete registers to prevent the C-level variable from being modified.
-		"mov %[nmptr], r1;" //Calls the nmptr to a discrete register to "encourage" C to refresh the pointer every function call
-		"mac.l @r0+,@r1+;"	//Denoting @r0+ is "data pointed to by data in register r0, r0+=(sizeof(instr_depth))"
+		"mov %[ptptr], r0;" //Moves pt ptr to discrete s to prevent the C-level variable from being modified.
+		"mov %[nmptr], r1;" //Calls the nmptr to a discrete  to "encourage" C to refresh the pointer every function call
+		"mac.l @r0+,@r1+;"	//Denoting @r0+ is "data pointed to by data in  r0, r0+=(sizeof(instr_depth))"
 		"mac.l @r0+,@r1+;"	//where instr_depth can be byte for mov.b , 2 bytes for mov.w, 4 bytes for mov.l
 		"mac.l @r0+,@r1+;"	//MAC also stands for "multiply and accumulate" - you can probably figure that one out
 		"sts MACH,r0;"		//This, by the way, is representative of matrix[comp] * pt ->
@@ -73,18 +78,18 @@ FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 	return transPt;
 }							
 
-//Set data in registers for division unit.
+//Set data in s for division unit.
 void		SetFixDiv(FIXED dividend, FIXED divisor) //Defined as "dividend / divisor", for fixed points, using division unit
 {
 
 /*
 SH7604 Manual Information:
 
-The 64-bit dividend is set in dividend registers H and L (DVDNTH and DVDNTL).
+The 64-bit dividend is set in dividend s H and L (DVDNTH and DVDNTL).
 First set the value in DVDNTH. When a value is written to DVDNTL, the 64-bit ÷ 32-bit operation begins.
 After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTL.
 
-[ME:]These registers can only be accessed via pointers. . . because our compiler is not aware of them.
+[ME:]These s can only be accessed via pointers. . . because our compiler is not aware of them.
 */	
 
 DVSR[0] = divisor;
@@ -372,8 +377,10 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
  
         //Screen Clip Flags for on-off screen decimation
 		//Simplified to increase CPU performance
-		ssh2VertArea[i].clipFlag = (JO_ABS(ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; 
-		ssh2VertArea[i].clipFlag |= (JO_ABS(ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
+		ssh2VertArea[i].clipFlag = ((ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[i].clipFlag; 
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Z : ssh2VertArea[i].clipFlag;
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NZ : ssh2VertArea[i].clipFlag;
     }
 
     transVerts[0] += model->nbPoint;
@@ -398,16 +405,15 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses max.
-		register int zDepthTgt = JO_MAX(
+		 int zDepthTgt = JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		register int onScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag &
-										ptv[1]->clipFlag & ptv[3]->clipFlag);
+		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
@@ -467,16 +473,15 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses min.
-		register int zDepthTgt = JO_MIN(
+		 int zDepthTgt = JO_MIN(
 		JO_MIN(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MIN(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		register int onScrn = (ptv[0]->clipFlag | ptv[2]->clipFlag |
-										ptv[1]->clipFlag | ptv[3]->clipFlag);
+		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
@@ -535,17 +540,16 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses average of top-left and bottom-right. Adding logic to change sorting per-polygon HAMMERS performance in unacceptable ways.
-		register int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		((ptv[0]->clipFlag &
-		ptv[2]->clipFlag) == 1) ||
-		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
 /* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^
@@ -593,7 +597,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 
 }
 
-inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
+void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
 {
 	if(ent->file_done != true){return;}
 	//Recommended, for performance, that large entities be placed in HWRAM.
@@ -676,15 +680,15 @@ inline void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //M
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses max.
-		register int zDepthTgt = JO_MAX(
+		 int zDepthTgt = JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		register int onScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
+		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
@@ -895,12 +899,12 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses average of top-left and bottom-right. Adding logic to change sorting per-polygon HAMMERS performance in unacceptable ways.
-		register int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  

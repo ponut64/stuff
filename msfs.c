@@ -462,7 +462,7 @@ void	pop_load_tga(void(*game_code)(void)){
 		if(curRdFrame >= rd_frames){
 			if(activeTGA->file_done != true){
 				if(activeTGA->type == 'L'){
-					process_tga_as_ldata();
+					//process_tga_as_ldata();
 				}
 
 			NactiveTGA--;

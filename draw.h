@@ -19,6 +19,7 @@
 #include "minimap.h"
 #include "control.h"
 #include "render.h"
+#include "object_col.h"
 //
 #include "dspm.h"
 //

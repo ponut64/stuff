@@ -78,6 +78,14 @@ _sobject Joose = {
 	.ext_dat = ITEM
 };
 
+_sobject Slant = {
+	.entity_ID = 4,
+	.radius[X] = 10,
+	.radius[Y] = 0,
+	.radius[Z] = 10,
+	.ext_dat = GHOST
+};
+
 _sobject Track0Data = {
 	.entity_ID = 0,
 	.radius[X] = 0,
@@ -122,7 +130,7 @@ void	fill_obj_list(void)
 	objList[6] = &Post4;
 	objList[7] = &Post5;
 	objList[8] = &SingleGate;
-	objList[9] = &Joose;
+	objList[9] = &Slant; //&Joose;
 	objList[10] = &Tree;
 	objList[11] = &Track0Data;
 	objList[12] = &Track1Data;
@@ -173,7 +181,6 @@ void	declarations(void)
 		dWorldObjects[i].link = link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 		link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12] = i; //Set the current link of this type to this entry
 	}
-
 }
 
 //I'm not sure if this whole system is ideal.
@@ -183,7 +190,18 @@ void	declarations(void)
 
 void	object_control_loop(int ppos[XY])
 {	
-	if(ldata_ready != true) return; //Just in case.
+	if(ldata_ready != true) 
+	{
+	//////////////////////////////////////////////////////////////////////
+	// **TESTING**
+	//////////////////////////////////////////////////////////////////////
+	ldata_ready = true;
+	declare_object_at_cell(-3, 3, 9 /*Slant*/, 0, 0, 0, 30);
+	//////////////////////////////////////////////////////////////////////
+	// **TESTING**
+	//////////////////////////////////////////////////////////////////////
+		return;
+	}		//Just in case.
 	static char difX = 0;
 	static char difY = 0;
 	objUP = 0;
@@ -700,6 +718,9 @@ void	gate_track_manager(void)
 						activeTrack = -1; //Release active track
 						//Sound stuff
 						pcm_play(snd_alarm, PCM_PROTECTED, 7, 0);
+						//Clear screen in this zone
+				slPrint("                           ", slLocate(0, 5));
+				slPrint("                           ", slLocate(0, 6));
 					}
 			}
 					}//if active track \ track end
@@ -718,9 +739,6 @@ void	gate_track_manager(void)
 			if(activeTrack != -1){
 				slPrint("Beat the timer!", slLocate(0, 5));
 				slPrintFX(trackTimers[activeTrack], slLocate(0, 6));
-			} else {				
-				slPrint("                           ", slLocate(0, 5));
-				slPrint("                           ", slLocate(0, 6));
 			}
 			
 	// slPrintHex(dWorldObjects[5].height, slLocate(0, 15));

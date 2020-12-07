@@ -162,7 +162,7 @@ void	player_draw(void)
 //Animation Chains
 					static int airTimer = 0;
 			if(pl_model.file_done == true){
-				if(you.onSurface == true){
+				if(you.hitSurface == true){
 				airTimer = 0;
 					if(you.setSlide != true && airTimer == 0){
 						if(you.Velocity[X] == 0 && you.Velocity[Y] == 0 && you.Velocity[Z] == 0){
@@ -398,9 +398,25 @@ void	master_draw(void)
 	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.Velocity[Z]);
 	
 	//No Touch Order -- Affects animations/mechanics
-	player_phys_affect();
 		mypad();
+	player_phys_affect();
 	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
+	//////////////////////////////////////////////////////////////////////
+	// **TESTING**
+	//////////////////////////////////////////////////////////////////////
+	//jo_printf(2, 18, "object 0: (%i)", dWorldObjects[0].type.entity_ID);
+	if(entities[4].file_done == true)
+	{
+		POINT object_position = {(25 * dWorldObjects[0].pix[X])<<16,
+									(-(dWorldObjects[0].height + dWorldObjects[0].type.radius[Y])<<16) - 
+	(main_map[(-dWorldObjects[0].pix[X] + (main_map_x_pix * dWorldObjects[0].pix[Y]) + (main_map_total_pix>>1)) ]<<16),
+		(25 * dWorldObjects[0].pix[Y])<<16};
+	per_poly_collide(entities[4].pol[0], object_position, &pl_RBB);
+	jo_printf(2, 20, "hitObject: (%i)",	you.hitObject);
+	}
+	//////////////////////////////////////////////////////////////////////
+	// **TESTING**
+	//////////////////////////////////////////////////////////////////////
 	collide_with_heightmap(&pl_RBB);
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.

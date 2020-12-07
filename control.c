@@ -27,7 +27,6 @@ void reset_player(void)
 	
 	hmap_matrix_pos[X] = 0;
 	hmap_matrix_pos[Z] = 0;
-	you.onSurface = false;
 	you.hitMap = false;
 	you.hitSurface = false;
 	you.hitWall = false;
@@ -137,7 +136,7 @@ void controls(void)
 
 	if(is_key_down(DIGI_A) ){
 		if(rKeyTimer <= (66 / framerate)){ 
-			if(you.onSurface == true){
+			if(you.hitSurface == true){
 				you.setJump = true;
 				rKeyTimer += 50;
 			}

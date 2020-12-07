@@ -9,6 +9,12 @@
 
 #define HIT_TOLERANCE (6553)
 
+#define N_Xp (0)
+#define N_Xn (1)
+#define N_Yp (2)
+#define N_Yn (3)
+#define N_Zp (4)
+#define N_Zn (5)
 
 typedef struct {
 	FIXED xp0[XYZ];
@@ -41,7 +47,7 @@ typedef struct {
 	int nXpYnZ[XYZ];
 } _16bePrimitive;
 
-Bool 	sort_collide(FIXED pos[XYZ], _boundBox * targetBox, Uint8* nearNormalID, int tolerance);
+Bool 	sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	sort_angle_to_domain(FIXED unitNormal[XYZ], FIXED unitOrient[XYZ], int output[XYZ]);
 void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ]);

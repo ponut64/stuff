@@ -19,7 +19,7 @@ void	segment_to_vector(FIXED start[XYZ], FIXED end[XYZ], FIXED out[XYZ]);
 void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ]);
 void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ]);
 void	project_to_segment(POINT tgt, POINT p1, POINT p2, POINT outPt, VECTOR outV);
-Bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ]);
+bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ]);
 void	cross_fixed(FIXED vector1[XYZ], FIXED vector2[XYZ], FIXED output[XYZ]);
 Uint8	solve_domain(FIXED normal[XYZ]);
 FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ]);
