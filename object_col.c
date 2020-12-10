@@ -80,32 +80,32 @@ bool		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 	{
 		left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		slPrint("Discard X+", slLocate(2, 5));
+		//slPrint("Discard X+", slLocate(2, 5));
 	} else if(discard == N_Zp)
 	{
 		left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		slPrint("Discard Z+", slLocate(2, 5));
+		//slPrint("Discard Z+", slLocate(2, 5));
 	} else if(discard == N_Yn)
 	{
 		left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X]));
-		slPrint("Discard Y+", slLocate(2, 5));
+		//slPrint("Discard Y+", slLocate(2, 5));
 	} else if(discard == N_Xn)
 	{
 		right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		slPrint("Discard X-", slLocate(2, 5));
+		//slPrint("Discard X-", slLocate(2, 5));
 	} else if(discard == N_Zn)
 	{
 		right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		slPrint("Discard Z-", slLocate(2, 5));
+		//slPrint("Discard Z-", slLocate(2, 5));
 	} else if(discard == N_Yp)
 	{
 		right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X]));
-		slPrint("Discard Y-", slLocate(2, 5));
+		//slPrint("Discard Y-", slLocate(2, 5));
 	}
 	// slPrint("Left:", slLocate(2, 7 + (prntidx * 2)));
 	// slPrintFX(left, slLocate(2, 8 + (prntidx * 2)));
@@ -167,7 +167,7 @@ prntidx = 0;
 	// slPrint("Dot product:", slLocate(1, 13));
 	// slPrintFX(normal_discard, slLocate(2, 14));
 				
-				if(normal_discard >= -(1<<16) && total_planes < 128){
+				if(normal_discard >= -(5<<16) && total_planes < 128){
 					testing_planes[total_planes] = dst_poly;
 					total_planes++;
 				}
@@ -325,7 +325,7 @@ for(int i = 0; i < total_planes; i++)
 	if(!hitY)
 	{
 		if(lineChecks[Y]){
-			slPrint("Testing Y", slLocate(2, 6));
+			//slPrint("Testing Y", slLocate(2, 6));
 			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis))
 			{
 				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis))
@@ -353,8 +353,7 @@ for(int i = 0; i < total_planes; i++)
 								you.shadowPos[Z] = lineEnds[Y][Z];
 								
 								you.hitSurface = true;
-							} else if(dominant_axis == N_Yp)
-							{
+							} else {
 								you.wallNorm[X] = used_normal[X];
 								you.wallNorm[Y] = used_normal[Y];
 								you.wallNorm[Z] = used_normal[Z];
@@ -378,7 +377,7 @@ for(int i = 0; i < total_planes; i++)
 	if(!hitXZ)
 	{
 		if(lineChecks[Z]){
-			slPrint("Testing Z", slLocate(2, 6));
+			//slPrint("Testing Z", slLocate(2, 6));
 			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Z], dominant_axis))
 			{
 				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Z], dominant_axis))
@@ -409,7 +408,7 @@ for(int i = 0; i < total_planes; i++)
 	// Line Checks X
 	//////////////////////////////////////////////////////////////
 		if(lineChecks[X]){
-			slPrint("Testing X", slLocate(2, 6));
+			//slPrint("Testing X", slLocate(2, 6));
 			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[X], dominant_axis))
 			{
 				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[X], dominant_axis))

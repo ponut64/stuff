@@ -20,11 +20,11 @@ typedef struct
 typedef struct
 {
     unsigned short  TOTAL_MESH; //total amount of PDATA
-    short           TOT_TEXT;  //total amount of textures
+    unsigned short	TOT_TEXT;  //total amount of textures
     unsigned int    PDATA_SIZE; //to quickly load from disk, total size of pdata in bytes
     unsigned int    TEXT_SIZE;  //to quickly load from disk, that's the size of the textures in bytes
     unsigned short nbFrames;
-    anim_struct *  animation;
+	unsigned short radius[XYZ];
 } modelData_t;
 
 typedef struct
@@ -32,6 +32,7 @@ typedef struct
 	bool file_done;
 	unsigned int size;
 	short base_texture;
+	unsigned short radius[XYZ];
 	char numTexture;
 	char sortType;
 	char isPlayer;

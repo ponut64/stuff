@@ -454,7 +454,7 @@ static FIXED bigDif = 0;
 
 
 //Box Populated Check
-if(stator->isBoxPop != true){
+if(stator->status[1] != 'C'){
 	return false;
 }
 

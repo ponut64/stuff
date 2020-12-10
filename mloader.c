@@ -44,8 +44,8 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
 
         for (i=0; i<model->nbMeshes; i++)
         {
-            totPoints+=model->pol[i]->nbPoint;
-            totNormals+=model->pol[i]->nbPolygon;
+            totPoints += model->pol[i]->nbPoint;
+            totNormals += model->pol[i]->nbPolygon;
         }
         {
 
@@ -148,6 +148,12 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		readByte += tSize;
 	}
 	
+	//////////////////////////////////////////////////////////////////////
+	// Set radius
+	//////////////////////////////////////////////////////////////////////
+	model->radius[X] = model_header.radius[X];
+	model->radius[Y] = model_header.radius[Y];
+	model->radius[Z] = model_header.radius[Z];
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	

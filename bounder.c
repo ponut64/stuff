@@ -259,7 +259,9 @@ void	make2AxisBox(_object_arguments * source_data)
 
 void	initPhys(void){
 	for(Uint8 x = 0; x<MAX_PHYS_PROXY; x++){
-		RBBs[x].isBoxPop = false;
+		RBBs[x].status[0] = 'N';
+		RBBs[x].status[1] = 'N';
+		RBBs[x].status[2] = 'N';
 		RBBs[x].velocity[X] = 0;
 		RBBs[x].velocity[Y] = 0;
 		RBBs[x].velocity[Z] = 0;

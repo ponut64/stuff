@@ -41,7 +41,12 @@ I am sorry for the pain you had to go through.
 //
 // Game data //
 //Be very careful with uninitialized pointers. [In other words, INITIALIZE POINTERS!]
-//Discovery: the MC68EC00 in the Saturn is a .. 68k. I tell people its 32-bit, but.. is it really? no, dont think so
+// SGL Work Area is using the last 200KB of High Work RAM. The game binary is using about 200KB.
+// Jo Engine is using at least 100KB. 
+// My heightmap polygon model is using about 32KB.
+// And then there's just some... "raff" being used, here or there.
+// Let's say then your game code can use about 400KB of HWRAM.
+unsigned char hwram_model_data[256 * 1024];
 //
 
 //A zero vector to be used when you want zero.
@@ -170,17 +175,17 @@ void	load_test(void)
 	//End tex 35
 gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN);
 
-// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], false, SORT_CEN);
-
-// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], false, SORT_CEN);
-
-// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], false, SORT_CEN);
-
-// gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], false, SORT_CEN);
-
-gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], false, SORT_CEN);
-
 gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
+
+// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN);
+
+// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN);
+
+// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN);
+
+gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN);
+
+//gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], true, SORT_CEN);
 
 
 p64MapRequest((Sint8*)"00");
@@ -251,7 +256,7 @@ void	jo_main(void)
 	//Loading Area
 	//
 	init_lwram();
-	active_HWRAM_ptr = (void*)jo_malloc(150 * 1024); //High Work Ram Entity Area 
+	active_HWRAM_ptr = &hwram_model_data[0];
 	dpinit();
 	init_render_area();
 	initPhys();

@@ -12,9 +12,9 @@
 
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
-vertex_t * ssh2VertArea;
-vertex_t * msh2VertArea;
-animationControl * AnimArea;
+vertex_t ssh2VertArea[500];
+vertex_t msh2VertArea[650];
+animationControl AnimArea[16];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
 
 point_light light_host[16];
@@ -34,12 +34,6 @@ const unsigned short ctrl = 2;
 
 void	init_render_area(void){
 
-	ssh2VertArea = (vertex_t *)(jo_malloc(650 * sizeof(vertex_t)));
-	msh2VertArea = (vertex_t *)(jo_malloc(850 * sizeof(vertex_t)));
-	//
-	AnimArea = (animationControl *)(jo_malloc(16 * sizeof(animationControl)));
-	
-	localSprBuf = (SPRITE *)(jo_malloc( (2 * sizeof(SPRITE)) ));
 	ssh2SentPolys = (int *)(((unsigned int)&dummy[0])|UNCACHE);
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);

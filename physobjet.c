@@ -2,54 +2,54 @@
 
 _sobject Post0 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P,
 	.light_bright = 4000
 };
 
 _sobject Post1 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P | 1<<4,
 	.light_bright = 4000
 };
 
 _sobject Post2 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P | 2<<4,
 	.light_bright = 4000
 };
 
 _sobject Post3 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P | 3<<4,
 	.light_bright = 4000
 };
 
 _sobject Post4 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P | 4<<4,
 	.light_bright = 4000
 };
 
 _sobject Post5 = {
 	.entity_ID = 3,
-	.radius[X] = 5,
-	.radius[Y] = 35,
-	.radius[Z] = 5,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = GATE_P | 5<<4,
 	.light_bright = 4000
 };
@@ -79,11 +79,12 @@ _sobject Joose = {
 };
 
 _sobject Slant = {
-	.entity_ID = 4,
-	.radius[X] = 10,
+	.entity_ID = 3,
+	.radius[X] = 0,
 	.radius[Y] = 0,
-	.radius[Z] = 10,
-	.ext_dat = GHOST
+	.radius[Z] = 0,
+	.ext_dat = OBJECT,
+	.light_bright = 4000
 };
 
 _sobject Track0Data = {
@@ -196,7 +197,7 @@ void	object_control_loop(int ppos[XY])
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
 	ldata_ready = true;
-	declare_object_at_cell(-3, 3, 9 /*Slant*/, 0, 0, 0, 30);
+	declare_object_at_cell(-3, 4, 9 /*Slant*/, 0, 0, 0, 0);
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
@@ -206,6 +207,7 @@ void	object_control_loop(int ppos[XY])
 	static char difY = 0;
 	objUP = 0;
 
+	unsigned short * used_radius;
 ////////////////////////////////////////////////////
 //Flush boxes
 //This is somewhat important.
@@ -216,7 +218,9 @@ void	object_control_loop(int ppos[XY])
 ////////////////////////////////////////////////////
 	for(int f = 0; f < MAX_PHYS_PROXY; f++)
 	{
-		RBBs[f].isBoxPop = false;
+		RBBs[f].status[0] = 0;
+		RBBs[f].status[1] = 0;
+		RBBs[f].status[2] = 0;
 	}
 ////////////////////////////////////////////////////
 	
@@ -228,51 +232,225 @@ void	object_control_loop(int ppos[XY])
 		difX = ppos[X] + dWorldObjects[i].pix[X]; //I have no idea how my coordinate systems get so reliably inverted...
 		difY = ppos[Y] + dWorldObjects[i].pix[Y];
 
-		dWorldObjects[i].type.ext_dat &= ((dWorldObjects[i].type.ext_dat & 0x7000) == GATE_P) ? 0xFFFD : 0xFFFF;
-		if((dWorldObjects[i].type.ext_dat & 0x7000) == LDATA){ //is LDATA...
-				//Do nothing
-		} else { //is not LDATA...
-			if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY){
+				////////////////////////////////////////////////////
+				//Flush specific data for gate posts. Don't remember why.
+				////////////////////////////////////////////////////
+		dWorldObjects[i].type.ext_dat &= ((dWorldObjects[i].type.ext_dat & OTYPE) == GATE_P) ? 0xFFFD : 0xFFFF;
+				////////////////////////////////////////////////////
+		
+		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
+		{ 		
+				////////////////////////////////////////////////////
+				//If the object type declared is LDATA (level data), do nothing.
+				////////////////////////////////////////////////////
+		} else if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY)
+			{
+				////////////////////////////////////////////////////
+				// If no radius was defined for the object, use the radius from the entity.
+				// Must check if the entity is loaded, or else out of bounds access may occur.
+				////////////////////////////////////////////////////
+				if(dWorldObjects[i].type.radius[X] == 0 &&
+					dWorldObjects[i].type.radius[Y] == 0 &&
+					dWorldObjects[i].type.radius[Z] == 0
+					&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+				{
+				used_radius = entities[dWorldObjects[i].type.entity_ID].radius;
+				} else {
+				used_radius = dWorldObjects[i].type.radius;
+				}
+					if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
+					{
+							////////////////////////////////////////////////////
+							//If a non-building object was in rendering range, specify it as being populated, 
+							//and give it matrix/bounding box parameters.
+							////////////////////////////////////////////////////
+						bound_box_starter.modified_box = &RBBs[objUP];
+						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						- (main_map[
+						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+						]<<16);
+						//
+						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
+						bound_box_starter.y_rotation = dWorldObjects[i].srot[Y];
+						bound_box_starter.z_rotation = dWorldObjects[i].srot[Z];
 
-////////////////////////////////////////////////////
-//Prepare and update the box
-////////////////////////////////////////////////////
-	bound_box_starter.modified_box = &RBBs[objUP];
-	bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
-	//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-	bound_box_starter.y_location = (-(dWorldObjects[i].height + dWorldObjects[i].type.radius[Y])<<16)
-	- (main_map[
-	(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-	]<<16);
-	//
-	bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
-	bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
-	bound_box_starter.y_rotation = dWorldObjects[i].srot[Y];
-	bound_box_starter.z_rotation = dWorldObjects[i].srot[Z];
-	bound_box_starter.x_radius = dWorldObjects[i].type.radius[X]<<16;
-	bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
-	bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
-				
-		make2AxisBox(&bound_box_starter);
-////////////////////////////////////////////////////
-				
-				RBBs[objUP].isBoxPop = true;
-				//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-				dWorldObjects[i].type.ext_dat |= OBJPOP;
-				//This array is meant as a list where iterative searches find the entity type drawn.
-				objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-				//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-				activeObjects[objUP] = i;
-				//This tells you how many objects were updated.
-				objUP++; 
-			} else {
-				activeObjects[objUP] = 256;
-				//There *was* an RBBs[i].isBoxPop = false here, BUT THAT IS A SOURCE OF MEMORY CORRUPTION ALSO DIDNT WORK
-				dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
-			}
-		}//Is not LDATA end
-	}
-//	jo_printf(0, 4, "(%i)", objUP);
+						bound_box_starter.x_radius = used_radius[X]<<16;
+						bound_box_starter.y_radius = used_radius[Y]<<16;
+						bound_box_starter.z_radius = used_radius[Z]<<16;
+
+								
+						make2AxisBox(&bound_box_starter);
+
+							////////////////////////////////////////////////////
+							//Set the box status. This branch of the logic dictates the box is:
+							// 1. Render-able
+							// 2. Collidable
+							// 3. May or may not emit light
+							////////////////////////////////////////////////////
+							RBBs[objUP].status[0] = 'R';
+							RBBs[objUP].status[1] = 'C';
+							RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
+						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+						dWorldObjects[i].type.ext_dat |= OBJPOP;
+						//This array is meant as a list where iterative searches find the entity type drawn.
+						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+						activeObjects[objUP] = i;
+						//This tells you how many objects were updated.
+						objUP++; 
+						} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+					{
+							////////////////////////////////////////////////////
+							// Generate valid matrix parameters for the building.
+							////////////////////////////////////////////////////
+						bound_box_starter.modified_box = &RBBs[objUP];
+						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						- (main_map[
+						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+						]<<16);
+						//
+						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.x_rotation = 0;
+						bound_box_starter.y_rotation = 0;
+						bound_box_starter.z_rotation = 0;
+						
+						bound_box_starter.x_radius = used_radius[X]<<16;
+						bound_box_starter.y_radius = used_radius[Y]<<16;
+						bound_box_starter.z_radius = used_radius[Z]<<16;
+								
+						make2AxisBox(&bound_box_starter);
+
+							////////////////////////////////////////////////////
+							//Set the box status. 
+							//There isn't really a bound box for buildings.
+							//They only need to be rendered, and in a special way, too.
+							////////////////////////////////////////////////////
+							RBBs[objUP].status[0] = 'R';
+							RBBs[objUP].status[1] = 'N';
+							RBBs[objUP].status[2] = 'N';
+						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+						dWorldObjects[i].type.ext_dat |= OBJPOP;
+						//This array is meant as a list where iterative searches find the entity type drawn.
+						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+						activeObjects[objUP] = i;
+						//This tells you how many objects were updated.
+						objUP++; 
+					}
+			////////////////////////////////////////////////////
+			// Object in render-range end stub
+			////////////////////////////////////////////////////
+		} else if(difX > -18 && difX < 18 && difY > -18 && difY < 18 && objUP < MAX_PHYS_PROXY)
+			{
+				////////////////////////////////////////////////////
+				// If no radius was defined for the object, use the radius from the entity.
+				// Must check if the entity is loaded, or else out of bounds access may occur.
+				////////////////////////////////////////////////////
+				if(dWorldObjects[i].type.radius[X] == 0 &&
+					dWorldObjects[i].type.radius[Y] == 0 &&
+					dWorldObjects[i].type.radius[Z] == 0
+					&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+				{
+				used_radius = entities[dWorldObjects[i].type.entity_ID].radius;
+				} else {
+				used_radius = dWorldObjects[i].type.radius;
+				}
+					if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD && dWorldObjects[i].type.light_bright != 0)
+					{
+					////////////////////////////////////////////////////
+					//If a non-building light-emitting object is in this larger range, add its light data to the light list.
+					//But do not flag it to render or be collision-tested.
+					////////////////////////////////////////////////////
+						bound_box_starter.modified_box = &RBBs[objUP];
+						RBBs[objUP].pos[X] = (25 * dWorldObjects[i].pix[X])<<16;
+						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+						RBBs[objUP].pos[Y] = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						- (main_map[
+						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+						]<<16);
+						//
+						RBBs[objUP].pos[Z] = (25 * dWorldObjects[i].pix[Y])<<16;
+							////////////////////////////////////////////////////
+							//Set the box status. This branch of the logic dictates the box is:
+							// 1. Not render-able
+							// 2. Not collide-able
+							// 3. May or may not emit light
+							////////////////////////////////////////////////////
+							RBBs[objUP].status[0] = 'N';
+							RBBs[objUP].status[1] = 'N';
+							RBBs[objUP].status[2] = 'L';
+						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+						dWorldObjects[i].type.ext_dat |= OBJPOP;
+						//This array is meant as a list where iterative searches find the entity type drawn.
+						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+						activeObjects[objUP] = i;
+						//This tells you how many objects were updated.
+						objUP++; 
+					} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+					{
+							////////////////////////////////////////////////////
+							// Generate valid matrix parameters for the building.
+							////////////////////////////////////////////////////
+						bound_box_starter.modified_box = &RBBs[objUP];
+						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						- (main_map[
+						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+						]<<16);
+						//
+						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.x_rotation = 0;
+						bound_box_starter.y_rotation = 0;
+						bound_box_starter.z_rotation = 0;
+						
+						bound_box_starter.x_radius = used_radius[X]<<16;
+						bound_box_starter.y_radius = used_radius[Y]<<16;
+						bound_box_starter.z_radius = used_radius[Z]<<16;
+								
+						make2AxisBox(&bound_box_starter);
+
+							////////////////////////////////////////////////////
+							//Set the box status. 
+							//There isn't really a bound box for buildings.
+							//They only need to be rendered, and in a special way, too.
+							////////////////////////////////////////////////////
+							RBBs[objUP].status[0] = 'R';
+							RBBs[objUP].status[1] = 'N';
+							RBBs[objUP].status[2] = 'N';
+						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+						dWorldObjects[i].type.ext_dat |= OBJPOP;
+						//This array is meant as a list where iterative searches find the entity type drawn.
+						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+						activeObjects[objUP] = i;
+						//This tells you how many objects were updated.
+						objUP++; 
+					}
+			////////////////////////////////////////////////////
+			// Object in light-range end stub
+			////////////////////////////////////////////////////
+					} else {
+						////////////////////////////////////////////////////
+						//If the declared object was not in range, specify it as being unpopulated.
+						////////////////////////////////////////////////////
+						activeObjects[objUP] = 256;
+						dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
+					}
+			////////////////////////////////////////////////////
+			//Object control loop end stub
+			////////////////////////////////////////////////////
+		}
+	jo_printf(0, 6, "objUP:(%i)", objUP);
+	////////////////////////////////////////////////////
+	//Object control function end stub
+	////////////////////////////////////////////////////
 }
 
 void	light_control_loop(void)
@@ -290,7 +468,7 @@ void	light_control_loop(void)
 	{
 			
 		if(dWorldObjects[activeObjects[i]].type.light_bright != 0
-		&& RBBs[i].isBoxPop == true
+		&& RBBs[i].status[2] == 'L'
 		&& lights_created < 16)
 			{
 				active_lights[i].pop = 1;

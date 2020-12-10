@@ -359,7 +359,9 @@ void	player_phys_affect(void)
 		}
 
 	pl_RBB.boxID = 0;
-	pl_RBB.isBoxPop = true;	
+	pl_RBB.status[0] = 'R';	
+	pl_RBB.status[1] = 'C';	
+	pl_RBB.status[2] = 'L';	
 }
 
 void	collide_with_heightmap(_boundBox * sbox)

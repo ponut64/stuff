@@ -227,9 +227,9 @@ void	obj_draw_queue(void)
 		static MATRIX matSt;
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++){
-		if(RBBs[i].isBoxPop != true) continue;
+		if(RBBs[i].status[0] != 'R') continue;
 		
-		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & 0x7000);
+		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
 		
 	slPushMatrix();
 		slGetMatrix(matSt);

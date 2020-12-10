@@ -10,12 +10,14 @@
 
 #define OBJPOP	(0x8000) //Is populated?
 #define UNPOP	(0x7FFF) //Unpop
+#define OTYPE	(0x7000) //Entity type bits (may also define a specific entity type)
 #define OBJECT	(0x0000) //Normal entity
 #define ITEM	(0x1000) //Collectible item
 #define GATE_P	(0x2000) //Gate post [has collision]
 #define GATE_R	(0x3000) //Ring-type gate entity
 #define LDATA	(0x4000) //Level data definition
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
+#define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
 
 #define LDATA_TRACK (0x100) //Level data, gate data definition
 
@@ -27,9 +29,9 @@
 // 11-4 <- ?
 // 3 	<- Root entity bitflag [booleans]
 // 2-0 <- ?
-//ext_dat bitflag orientation for NORMAL:
+//ext_dat bitflag orientation for OBJECT:
 // 15 <- pop
-// 14-12 <- pattern is "0 0 0" for normal
+// 14-12 <- pattern is "0 0 0" for OBJECT
 // all else unused
 //ext_dat bitflag orientation for GATE POST:
 // 15 <- pop

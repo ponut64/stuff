@@ -40,8 +40,9 @@ typedef struct {
 	FIXED brad[XYZ];
 	//The box' rotation (expressed as ANGLE type data)
 	ANGLE	boxRot[XYZ];
-	//A flag for whether or not this box data is populated.
-	Bool isBoxPop;
+	//Three separate flags to tell the engine if the box is populated, and ready to ..
+	// [0] == 'R', render, [1] == 'C', collide, [2] == 'L', light.
+	char status[3];
 	//ID
 	Uint8 boxID;
 } _boundBox;

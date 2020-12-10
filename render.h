@@ -12,7 +12,7 @@
 #define INTERNAL_MAX_POLY 2600 //Slave only 1700
 #define INTERNAL_MAX_VERTS 2800 //Slave only 2800
 #define MAX_SSH2_SENT_POLYS (1200) //SpriteBuf size limitation // thanks VBT for fixing sglarea.o for me
-#define MAX_MSH2_SENT_POLYS (1200) //SpriteBuf size limitation 
+#define MAX_MSH2_SENT_POLYS (800) //SpriteBuf size limitation 
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 //VDP1 perf limit depends on how many pixels it's drawing.
@@ -42,8 +42,8 @@ extern int * DVDNTH;
 extern int * DVDNTL;
 extern FIXED nearP;
 extern FIXED farP;
-extern vertex_t * ssh2VertArea;
-extern vertex_t * msh2VertArea;
+extern vertex_t ssh2VertArea[500];
+extern vertex_t msh2VertArea[650];
 extern int * ssh2SentPolys;
 extern int * msh2SentPolys;
 extern int * transVerts;

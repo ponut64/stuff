@@ -261,11 +261,10 @@ do{
 		if(activeGVP->file_done != true){
  	// Copy gfsx payload to modelData_t bufmodel
 	slDMACopy(workAddress, ptr2, sizeof(modelData_t));
-	//ADDED
+	
     activeGVP->tmodel->nbMeshes = bufModelX.TOTAL_MESH;
 	activeGVP->tmodel->nbFrames = bufModelX.nbFrames;
 	
-	//Uint16 first_texture = loadTextures(workAddress, &bufModelX);
 	Sint32 bytesOff = (sizeof(modelData_t)); 
 	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
 	
@@ -296,7 +295,14 @@ do{
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	
-		//Decimate existing sort type bits
+	//////////////////////////////////////////////////////////////////////
+	// Set radius
+	//////////////////////////////////////////////////////////////////////
+	activeGVP->tmodel->radius[X] = bufModelX.radius[X];
+	activeGVP->tmodel->radius[Y] = bufModelX.radius[Y];
+	activeGVP->tmodel->radius[Z] = bufModelX.radius[Z];
+	
+		//Remove existing sort type bits
 	activeGVP->tmodel->pol[0]->attbl[0].sort &= 252;
 		//Inject new sort type bits
 	activeGVP->tmodel->pol[0]->attbl[0].sort |= activeGVP->tmodel->sortType;
@@ -309,10 +315,12 @@ do{
 	active_LWRAM_ptr = workAddress;
 	}
 	
-	// jo_printf(0, 12, "MODEL");
-	// jo_printf(0, 13, "(%i)", bufModelX.TOTAL_MESH);
-	// jo_printf(3, 13, "(%i)", bufModelX.PDATA_SIZE);
-	// jo_printf(10, 13, "(%i)", activeGVP->tmodel->nbMeshes);
+	// jo_printf(1, 9, "MODEL");
+	// jo_printf(1, 10, "TOTAL_MESH (%i)", bufModelX.TOTAL_MESH);
+	// jo_printf(1, 11, "PDATA_SIZE (%i)", bufModelX.PDATA_SIZE);
+	// jo_printf(1, 12, "radX (%i)", bufModelX.radius[X]);
+	// jo_printf(1, 13, "radY (%i)", bufModelX.radius[Y]);
+	// jo_printf(1, 14, "radZ (%i)", bufModelX.radius[Z]);
 		NactiveGVP--;
 		file_ref = 0;
 		rd_frames = 0;
