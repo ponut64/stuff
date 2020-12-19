@@ -185,7 +185,7 @@ gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
 
 gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN);
 
-//gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], true, SORT_CEN);
+gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], true, SORT_MAX);
 
 
 p64MapRequest((Sint8*)"00");

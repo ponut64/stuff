@@ -281,9 +281,10 @@ void	player_phys_affect(void)
 	tempDif[Z] = you.pos[Z] - you.prevPos[Z];
 	normalize(tempDif, you.DirUV);
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
-	
+
+	//Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
-	pcm_play(snd_wind, PCM_FWD_LOOP, windVol, 0); //Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
+	pcm_play(snd_wind, PCM_FWD_LOOP, windVol, 0); 
 	
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		

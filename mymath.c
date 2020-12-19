@@ -30,7 +30,7 @@ __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 }
 
 
-__jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal instruction execution... I wonder why... fxm does not
+__jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //Fixed-point dot product
 {
 	register FIXED rtval;
 	asm(
@@ -50,7 +50,7 @@ __jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //This can cause illegal i
 
 
 
-__jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor)
+__jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
 	
 const int * DVSR = ( int*)0xFFFFFF00;
@@ -76,50 +76,17 @@ register FIXED quotient;
 	return quotient;
 }
 
-
-
-FIXED		ANGtoDEG(FIXED angle){
-	return (fxm(angle, 360.0))>>16;
-}
-
-bool	chk_matching_sign(FIXED io1[XYZ], FIXED io2[XYZ])
-{
-	if(io1[X] >= 0 && io2[X] < 0) return false;
-	if(io1[X] < 0 && io2[X] >= 0) return false;
-	
-	if(io1[Y] >= 0 && io2[Y] < 0) return false;
-	if(io1[Y] < 0 && io2[Y] >= 0) return false;
-	
-	if(io1[Z] >= 0 && io2[Z] < 0) return false;
-	if(io1[Z] < 0 && io2[Z] >= 0) return false;
-	
-	return true;
-}
-
-int		unfix_dot(FIXED v1[XYZ], FIXED v2[XYZ])
-{
-	return (int)( ((v1[X]>>16) * (v2[X]>>16)) + ((v1[Y]>>16) * (v2[Y]>>16)) + ((v1[Z]>>16) * (v2[Z]>>16)) );
-}
-
+//////////////////////////////////
+// un-fixed point the vectors and get a length out of it
+//////////////////////////////////
 int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 {
 	return slSquart(JO_SQUARE( (Max[X]>>16) - (Min[X]>>16) ) + JO_SQUARE( (Max[Y]>>16) - (Min[Y]>>16) ) + JO_SQUARE( (Max[Z]>>16) - (Min[Z]>>16) ));
 }
 
-int unfix_mag(FIXED vectorX, FIXED vectorY, FIXED vectorZ)
-{
-	return slSquart(JO_SQUARE(vectorX>>16) + JO_SQUARE(vectorY>>16) + JO_SQUARE(vectorZ>>16));
-}
-
-//void	subtract_and_compare_points(POINT p1, POINT p2, POINT subPoint)
-
-void	unfix(FIXED in[XYZ], int out[XYZ])
-{
-	out[X] = in[X]>>16;
-	out[Y] = in[Y]>>16;
-	out[Z] = in[Z]>>16;
-}
-
+//////////////////////////////////
+// Shorthand to turn two points (to represent a segment) into a vector
+//////////////////////////////////
 void	segment_to_vector(FIXED start[XYZ], FIXED end[XYZ], FIXED out[XYZ])
 {
 	out[X] = (start[X] - end[X]);
@@ -127,14 +94,16 @@ void	segment_to_vector(FIXED start[XYZ], FIXED end[XYZ], FIXED out[XYZ])
 	out[Z] = (start[Z] - end[Z]);
 }
 
-
+//////////////////////////////////
+// "fast inverse square root", but fixed-point
+//////////////////////////////////
 FIXED		fxisqrt(FIXED input){
 	
-	static FIXED xSR = 0;
-	static FIXED pushrsamp = 0;
-	static FIXED msb = 0;
-	static FIXED shoffset = 0;
-	static FIXED yIsqr = 0;
+	FIXED xSR = 0;
+	FIXED pushrsamp = 0;
+	FIXED msb = 0;
+	FIXED shoffset = 0;
+	FIXED yIsqr = 0;
 	
 	if(input <= 65536){
 		return 65536;
@@ -142,9 +111,6 @@ FIXED		fxisqrt(FIXED input){
 	
 	xSR = input>>1;
 	pushrsamp = input;
-	msb = 0;
-	shoffset = 0;
-	yIsqr = 0;
 	
 	while(pushrsamp >= 65536){
 		pushrsamp >>=1;
@@ -157,13 +123,16 @@ FIXED		fxisqrt(FIXED input){
 	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
 }
 
+//////////////////////////////////
+// "fast inverse square root x2", but fixed-point
+//////////////////////////////////
 FIXED		double_fxisqrt(FIXED input){
 	
-	static FIXED xSR = 0;
-	static FIXED pushrsamp = 0;
-	static FIXED msb = 0;
-	static FIXED shoffset = 0;
-	static FIXED yIsqr = 0;
+	FIXED xSR = 0;
+	FIXED pushrsamp = 0;
+	FIXED msb = 0;
+	FIXED shoffset = 0;
+	FIXED yIsqr = 0;
 	
 	if(input <= 65536){
 		return 65536;
@@ -171,9 +140,6 @@ FIXED		double_fxisqrt(FIXED input){
 	
 	xSR = input>>1;
 	pushrsamp = input;
-	msb = 0;
-	shoffset = 0;
-	yIsqr = 0;
 	
 	while(pushrsamp >= 65536){
 		pushrsamp >>=1;
@@ -208,7 +174,9 @@ void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
-
+//////////////////////////////////
+// Checks if "point" is between "start" and "end".
+//////////////////////////////////
 bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 {
 	FIXED max[XYZ];
@@ -231,6 +199,11 @@ bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 	}
 }
 
+//////////////////////////////////
+// Given a segment represented by two points "p1" and "p2,
+// project a third point "tgt" onto the the same segment.
+// Method is: Unit vector "p1->p2", dot product that unit with tgt, multiply dot result with unit.
+//////////////////////////////////
 void	project_to_segment(POINT tgt, POINT p1, POINT p2, POINT outPt, VECTOR outV)
 {
 	
@@ -272,26 +245,29 @@ void	cross_fixed(FIXED vector1[XYZ], FIXED vector2[XYZ], FIXED output[XYZ])
 
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
 {
-	if(normid == 1){
+	if(normid == N_Xp){
 		jo_printf(spotX, spotY, "((X)");
 	}
-	if(normid == 2){
+	if(normid == N_Xn){
 		jo_printf(spotX, spotY, "(NX)");
 	}
-	if(normid == 3){
+	if(normid == N_Yp){
 		jo_printf(spotX, spotY, "((Y)");
 	}
-	if(normid == 4){
+	if(normid == N_Yn){
 		jo_printf(spotX, spotY, "(NY)");
 	}
-	if(normid == 5){
+	if(normid == N_Zp){
 		jo_printf(spotX, spotY, "((Z)");
 	}
-	if(normid == 6){
+	if(normid == N_Zn){
 		jo_printf(spotX, spotY, "(NZ)");
 	}
 }
 
+//////////////////////////////////
+//A helper function which checks the X and Z signs of a vector to find its domain.
+//////////////////////////////////
 Uint8	solve_domain(FIXED normal[XYZ]){
 	if(normal[X] >= 0 && normal[Z] >= 0){
 		//PP
@@ -329,7 +305,7 @@ FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], F
 	pFNn[Z] = realNormal[Z] - realpt[Z];
 	//The NORMAL of the plane has NO REAL POSITION. it is FROM ORIGIN. We use the normal here.
 	//If the dot product here is zero, the point lies on the plane.
-	return slInnerProduct(pFNn, unitNormal);
+	return fxdot(pFNn, unitNormal);
 }
 
 int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shifts down the pFNn to suppress overflows
@@ -343,7 +319,6 @@ int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shift
 	return fxdot(pFNn, normal);
 }
 
-//Why is there a duplicate? I had to make one to handle the data type conversion from FIXED to 16-bit integer without errors if I wanted to skip the first parameter.
 FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 {
 	realNormal[X] = normal[X] + (offset[X]);
@@ -352,43 +327,43 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 	pFNn[X] = realNormal[X] - ptreal[X];
 	pFNn[Y] = realNormal[Y] - ptreal[Y];
 	pFNn[Z] = realNormal[Z] - ptreal[Z];
-	return slInnerProduct(pFNn, normal);
+	return fxdot(pFNn, normal);
 }
 
-Bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED centreFace[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED output[XYZ])
+//////////////////////////////////
+// Line-to-plane projection function
+// Line: p0->p1
+// point_on_plane : a point on the plane
+// unitNormal : the unit vector normal of the plane
+// offset : world-space position of the point_on_plane. If point_on_plane is already, substitute with "zPt". (do not leave blank)
+// output : the point at which the line intersects the plane
+// return value : whether or not the output point is between p0 and p1
+//////////////////////////////////
+bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED output[XYZ])
 {
-	//Line scalar: This factor determines where the calculated point lands.
-	static FIXED line_scalar = 0;
-	//Vector-segment: A vector that expresses the length and direction of the segment.
-	static FIXED vseg[XYZ] = {0, 0, 0};
-	vseg[X] = p0[X] - p1[X];
-	vseg[Y] = p0[Y] - p1[Y];
-	vseg[Z] = p0[Z] - p1[Z];
-	//W is an expression of a vector that is from a point on the segment to a point on the plane. You would normally use addition, but it doesn't change anything.
-	//centreFace + the offset finds a real point on the plane as we are using the centreFace which is also a point on the plane, when added to the plane's positional offset. This centreFace isn't actually used as a centreFace here.
-	//This is backwards. I know. It doesn't matter.
-	static FIXED w[XYZ] = {0, 0, 0};
-	w[X] = (centreFace[X] + (offset[X])) - p0[X];
-	w[Y] = (centreFace[Y] + (offset[Y])) - p0[Y];
-	w[Z] = (centreFace[Z] + (offset[Z])) - p0[Z];
+
+	FIXED line_scalar;
+	FIXED vector_of_line[XYZ];
+	FIXED vector_to_plane[XYZ];
 	
-	//This finds the unit scalar as a dot product to find a distance scalar between the vector-segment and the centreFace.
-	//We divide the scalar of an expression of distance between the plane and the segment and the centreFace.
-	//By themselves, these factors are linear. When we divide them, we get a dynamic scalar that responds to proportionate changes in distance between the vector-segment, a point on the plane, and a point on the segment.
-	//We use the unit vectors of the normals to prevent overflows of FIXED (16.16 bit) values.
-	//Warning about slDivFX: DIVIDEND value is SECOND. Divisor is FIRST. BACK ASSWARDS!
-	line_scalar = slDivFX(slInnerProduct(vseg, unitNormal), slInnerProduct(w, unitNormal));
+	vector_of_line[X] = p0[X] - p1[X];
+	vector_of_line[Y] = p0[Y] - p1[Y];
+	vector_of_line[Z] = p0[Z] - p1[Z];
+
+	vector_to_plane[X] = (point_on_plane[X] + (offset[X])) - p0[X];
+	vector_to_plane[Y] = (point_on_plane[Y] + (offset[Y])) - p0[Y];
+	vector_to_plane[Z] = (point_on_plane[Z] + (offset[Z])) - p0[Z];
+
+	line_scalar = slDivFX(slInnerProduct(vector_of_line, unitNormal), slInnerProduct(vector_to_plane, unitNormal));
 	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
 		return false;
 	}
-	//p0 is used as an offset (real position) for the final calculation, relative to the line (and not the plane).
-	output[X] = (p0[X] + fxm(vseg[X], line_scalar));
-	output[Y] = (p0[Y] + fxm(vseg[Y], line_scalar));
-	output[Z] = (p0[Z] + fxm(vseg[Z], line_scalar));
-//	slPrintFX(line_scalar, slLocate(0, 19));
 	
+	output[X] = (p0[X] + fxm(vector_of_line[X], line_scalar));
+	output[Y] = (p0[Y] + fxm(vector_of_line[Y], line_scalar));
+	output[Z] = (p0[Z] + fxm(vector_of_line[Z], line_scalar));
+
 	return isPointonSegment(output, p0, p1);
 }
-
 
 

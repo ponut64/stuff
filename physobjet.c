@@ -79,11 +79,11 @@ _sobject Joose = {
 };
 
 _sobject Slant = {
-	.entity_ID = 3,
+	.entity_ID = 4,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT,
+	.ext_dat = BUILD,
 	.light_bright = 4000
 };
 
@@ -331,7 +331,7 @@ void	object_control_loop(int ppos[XY])
 							//They only need to be rendered, and in a special way, too.
 							////////////////////////////////////////////////////
 							RBBs[objUP].status[0] = 'R';
-							RBBs[objUP].status[1] = 'N';
+							RBBs[objUP].status[1] = 'C';
 							RBBs[objUP].status[2] = 'N';
 						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 						dWorldObjects[i].type.ext_dat |= OBJPOP;
@@ -379,7 +379,7 @@ void	object_control_loop(int ppos[XY])
 							//Set the box status. This branch of the logic dictates the box is:
 							// 1. Not render-able
 							// 2. Not collide-able
-							// 3. May or may not emit light
+							// 3. May emit light
 							////////////////////////////////////////////////////
 							RBBs[objUP].status[0] = 'N';
 							RBBs[objUP].status[1] = 'N';
@@ -422,7 +422,7 @@ void	object_control_loop(int ppos[XY])
 							//They only need to be rendered, and in a special way, too.
 							////////////////////////////////////////////////////
 							RBBs[objUP].status[0] = 'R';
-							RBBs[objUP].status[1] = 'N';
+							RBBs[objUP].status[1] = 'C';
 							RBBs[objUP].status[2] = 'N';
 						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 						dWorldObjects[i].type.ext_dat |= OBJPOP;
@@ -467,8 +467,7 @@ void	light_control_loop(void)
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 			
-		if(dWorldObjects[activeObjects[i]].type.light_bright != 0
-		&& RBBs[i].status[2] == 'L'
+		if(RBBs[i].status[2] == 'L'
 		&& lights_created < 16)
 			{
 				active_lights[i].pop = 1;

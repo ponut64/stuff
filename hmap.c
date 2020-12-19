@@ -310,6 +310,8 @@ void	update_hmap(MATRIX msMatrix)
 	
 	//The SCU-DSP does this now [including the division, lol].
 	
+	//The whole way its being done is very stupid, though ?
+	
 			//y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
 		//for(int k = 0; k < LCL_MAP_PIX; k++){
 			//rowOffset = (k * main_map_x_pix) + startOffset;
@@ -355,9 +357,11 @@ void	update_hmap(MATRIX msMatrix)
         msh2VertArea[dst_pix].pnt[Y] = fxm(msh2VertArea[dst_pix].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
-		msh2VertArea[dst_pix].clipFlag = (JO_ABS(msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
-		msh2VertArea[dst_pix].clipFlag |= (JO_ABS(msh2VertArea[dst_pix].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
-			
+		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
 			
 			}	// Row Filler Loop End Stub
 		//} // Row Selector Loop End Stub
@@ -414,17 +418,17 @@ void	update_hmap(MATRIX msMatrix)
 		// 0 - 1
 		// 3 - 2
 		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		register int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		register int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses max.
-		register int zDepthTgt = JO_MAX(
+		 int zDepthTgt = JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		register int onScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
+		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
-		if((cross0 >= cross1) || onScrn || zDepthTgt <= nearP || zDepthTgt >= farP || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		if((cross0 >= cross1) || offScrn || zDepthTgt <= nearP || zDepthTgt >= farP || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //HMAP Normal/Texture Finder
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

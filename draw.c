@@ -248,7 +248,7 @@ void	obj_draw_queue(void)
 		mat[Z][Z] = RBBs[i].UVZ[Z];
 		mat[3][2] = RBBs[i].pos[Z]; //Position
 	
-					if( objType != ITEM && objType != LDATA ){ //Check if entity is NOT ITEM or LDATA
+					if( objType != ITEM && objType != LDATA && objType != BUILD ){ //Check if entity is NOT ITEM or LDATA
 
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
 
@@ -267,6 +267,13 @@ void	obj_draw_queue(void)
 		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
 			}
 		
+					} else if( objType == BUILD && entities[objDRAW[i]].file_done == true)
+					{
+		slMultiMatrix(mat);
+		
+		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
+		
+		plane_rendering_with_subdivision(entities[objDRAW[i]].pol[0], RBBs[i].pos);
 					}
 	slPopMatrix();
 	}
@@ -400,26 +407,10 @@ void	master_draw(void)
 	//No Touch Order -- Affects animations/mechanics
 		mypad();
 	player_phys_affect();
-	player_collision_test_loop();		//These are here because actually, the MSH2 is getting pretty hammered.
-	//////////////////////////////////////////////////////////////////////
-	// **TESTING**
-	//////////////////////////////////////////////////////////////////////
-	//jo_printf(2, 18, "object 0: (%i)", dWorldObjects[0].type.entity_ID);
-	if(entities[4].file_done == true)
-	{
-		POINT object_position = {(25 * dWorldObjects[0].pix[X])<<16,
-									(-(dWorldObjects[0].height + dWorldObjects[0].type.radius[Y])<<16) - 
-	(main_map[(-dWorldObjects[0].pix[X] + (main_map_x_pix * dWorldObjects[0].pix[Y]) + (main_map_total_pix>>1)) ]<<16),
-		(25 * dWorldObjects[0].pix[Y])<<16};
-	per_poly_collide(entities[4].pol[0], object_position, &pl_RBB);
-	jo_printf(2, 20, "hitObject: (%i)",	you.hitObject);
-	}
-	//////////////////////////////////////////////////////////////////////
-	// **TESTING**
-	//////////////////////////////////////////////////////////////////////
+	player_collision_test_loop();
 	collide_with_heightmap(&pl_RBB);
 	light_control_loop(); //lit
-	object_control_loop(you.dispPos);	//It does reduce the max poly # but the MSH2 is very focused on the map and must draw it, so we are freed up there.
+	object_control_loop(you.dispPos);
 	//
 	
 	run_dsp(); //Run the DSP now to give it maximum time to complete (minimize sh2 wait)

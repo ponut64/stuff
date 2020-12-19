@@ -1,11 +1,6 @@
 #include "render.h"
 #include "anorm.h"
 
-#define SCRN_CLIP_X (1)
-#define SCRN_CLIP_NX (1<<1)
-#define SCRN_CLIP_Z (1<<2)
-#define SCRN_CLIP_NZ (1<<3)
-
  int * DVSR = ( int*)0xFFFFFF00;
  int * DVDNTH = ( int*)0xFFFFFF10;
  int * DVDNTL = ( int*)0xFFFFFF14;
@@ -373,8 +368,9 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
 		//Simplified to increase CPU performance
 		ssh2VertArea[i].clipFlag = ((ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
 		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[i].clipFlag; 
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Z : ssh2VertArea[i].clipFlag;
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NZ : ssh2VertArea[i].clipFlag;
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[i].clipFlag;
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[i].clipFlag;
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Z]) <= nearP) ? CLIP_Z : ssh2VertArea[i].clipFlag;
     }
 
     transVerts[0] += model->nbPoint;
@@ -407,10 +403,10 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		 int zDepthTgt = JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
+		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
+		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
 /* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			// 0 - 1		^

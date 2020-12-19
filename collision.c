@@ -605,6 +605,12 @@ void	player_collision_test_loop(void)
 			} else if(skipdat == (GATE_P | OBJPOP)) {
 		test_gate_posts(activeObjects[i], &pl_RBB);
 		if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
+			} else if(skipdat == (BUILD | OBJPOP))
+			{
+				if(RBBs[i].status[1] == 'C' && entities[dWorldObjects[activeObjects[i]].type.entity_ID].file_done == true)
+				{
+				per_poly_collide(entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol[0], RBBs[i].pos, &pl_RBB);
+				}
 			}
 	}
 	

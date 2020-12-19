@@ -86,13 +86,6 @@ void controls(void)
 
 	}
 
-
-	/*
-	Major Process Error.
-	Render angle and control angle must be separated.
-	I always want the D-pad inputs to change control angle.
-	Only sometimes do I want them to change the render angle.
-	*/
 	// deg * 182 = angle
 		you.dirInp = false;
 	if(is_key_down(DIGI_UP) && is_key_down(DIGI_RIGHT)){
@@ -160,8 +153,6 @@ void controls(void)
 	//
 
 
-	//
-	//This is here because the _player struct is already here and all the math for it is here	
 	if(is_key_pressed(DIGI_START)){
 		reset_player();
 	}

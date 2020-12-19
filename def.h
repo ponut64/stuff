@@ -6,20 +6,42 @@
 #include "input.h"
 #include "pcmsys.h"
 
-
+//////////////////////////////////
+// Uniform grid cell information / shorthands
+//////////////////////////////////
 #define CELL_SIZE (25<<16)
-#define INV_CELL_SIZE (slDivFX(25<<16, 1<<16))
+#define INV_CELL_SIZE (2621) // 25 / 1
 #define CELL_SIZE_INT (25)
+//////////////////////////////////
+//////////////////////////////////
 #define UNCACHE (0x20000000)
 #define VDP2_RAMBASE (0x25E00000)
 #define LWRAM	(2097152)
+//////////////////////////////////
+// Polygon draw direction flipping flags
+//////////////////////////////////
 #define FLIPV (32)
 #define FLIPH (16)
 #define FLIPHV (48)
+//////////////////////////////////
+// Fixed point safe-square value
+//////////////////////////////////
 #define SQUARE_MAX (9633792) //147<<16
+//////////////////////////////////
+//	The line width of the polygon map area, in vertices (pix) and polygons (ply).
+//	The total size is the square of these values.
+//////////////////////////////////
 #define LCL_MAP_PIX (25)
 #define LCL_MAP_PLY (24)
-
+//////////////////////////////////
+//	Numerical Normal ID Shorthands
+//////////////////////////////////
+#define N_Xp (0)
+#define N_Xn (1)
+#define N_Yp (2)
+#define N_Yn (3)
+#define N_Zp (4)
+#define N_Zn (5)
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
 //////////////////////////////////////////////////////////////////////////////
