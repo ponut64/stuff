@@ -168,8 +168,10 @@ void	sort_master_polys(void)
 }
 
 //If rendering a matrix-centered object (like a gun model or a third-person player model), set "negate coordinates" to Y.
-int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char negateCoordinates)
+int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char model_purpose)
 {
+	
+	//model_purpose  .. where 'P' means "PLAYER".
 	
 	/*
 	PRE-PROCESSOR
@@ -193,7 +195,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 			if(active_lights[i].pop == 1)
 				{
 					// " Manhattan Distance "
-					if(negateCoordinates == 'Y')
+					if(model_purpose == 'P')
 					{
 		active_dot = JO_ABS(wldPos[X] - active_lights[i].pos[X]) +
 					JO_ABS(wldPos[Y] - active_lights[i].pos[Y]) +
@@ -249,7 +251,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 	If the light is far, the light angle is just considered zero. No light is contributed.
 	As a result, dynamic point lights are generally quite dim.
 	*/
-		if(negateCoordinates == 'Y')
+		if(model_purpose == 'P')
 		{
 	lightDist[X] = wldPos[X] - light_used->pos[X];
 	lightDist[Y] = wldPos[Y] - light_used->pos[Y];
@@ -285,7 +287,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 					+ fxm(lightAngle[Y], prematrix[7])
 					+ fxm(lightAngle[Z], prematrix[8]);
 			
-		if(negateCoordinates == 'Y')
+		if(model_purpose == 'P')
 		{
 	lightAngle[X] = -tempAngle[X];
 	lightAngle[Y] = -tempAngle[Y];
@@ -338,7 +340,7 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
 	VECTOR lightAngle = {0, 0, 0};
 	VECTOR ambient_light = {0, 0, 0};
 	
-	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->isPlayer);
+	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->type);
 
 	FIXED luma;
 	short colorBank;
@@ -764,7 +766,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos
 	VECTOR lightAngle = {0, 0, 0};
 	VECTOR ambient_light = {0, 0, 0};
 	
-	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->isPlayer);
+	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->type);
 	
 	FIXED luma;
 	short colorBank;

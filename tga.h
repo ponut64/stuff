@@ -18,6 +18,7 @@ extern short GLOBAL_img_line_count;
 extern short GLOBAL_img_line_width;
 extern int numTex;
 
+void	make_combined_textures(int texture_number);
 void	add_texture_to_vram(int width, int height);
 void	get_file_in_memory(Sint8 * filename, void * destination);
 bool	WRAP_NewPalette(Sint8 * filename, void * file_start);

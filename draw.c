@@ -157,7 +157,6 @@ void	player_draw(void)
 		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
 		
 		pl_model.prematrix = &pl_RBB.UVX[0];
-		pl_model.isPlayer = 'Y';
 		
 //Animation Chains
 					static int airTimer = 0;
@@ -267,13 +266,13 @@ void	obj_draw_queue(void)
 		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
 			}
 		
-					} else if( objType == BUILD && entities[objDRAW[i]].file_done == true)
+					} else if( objType == BUILD)
 					{
 		slMultiMatrix(mat);
 		
 		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
 		
-		plane_rendering_with_subdivision(entities[objDRAW[i]].pol[0], RBBs[i].pos);
+		plane_rendering_with_subdivision(&entities[objDRAW[i]], RBBs[i].pos);
 					}
 	slPopMatrix();
 	}

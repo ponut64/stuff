@@ -6,6 +6,7 @@ unsigned int * cRAM_24bm = (unsigned int *)0x05F00000;
 unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;
 
 unsigned char * GLOBAL_img_addr = (unsigned char *)LWRAM;
+unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
 
 unsigned char * sprPalette = 0;
 unsigned int sprPaletteCopy[256];
@@ -95,15 +96,87 @@ bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful
 
 void	add_texture_to_vram(int width, int height)
 {
-	static unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
-	
 	int totalPix = width * height;
 	
-	pcoTexDefs[numTex].SIZE = (width>>3)<<8 | height; //This table is //In LWRAM - see lwram.c
+	pcoTexDefs[numTex].SIZE = ((width>>3)<<8) | height; //This table is //In LWRAM - see lwram.c
 	slDMACopy((void*)GLOBAL_img_addr, (void*)curVRAMptr, totalPix);
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); //This table is //In LWRAM - see lwram.c
 	curVRAMptr += totalPix;
 	numTex++;
+}
+
+void	make_combined_textures(int texture_number)
+{
+	
+	///////////////////////////////////////////
+	// The goal here is to make 3 new textures that are combined versions of the original texture.
+	// This is specifically for polygon subdivision.
+	// These are added after the original texture sets complete payload, so we don't re-use the data from the original.
+	// To mask the change from the divided and subdivided polygons, we want larger, combined variants of the original.
+	// The first texture combination is X * (Y*2). This is the easiest, because you can just copy the texture over once.	// The second texture is (X*2) * Y.
+	// This is complex, because you first must allocate a space twice the original's size,
+	// then write each line from the first texture twice.
+	// The final texture is (X*2) * (Y*2).
+	// This texture can just be (X*2) * Y, duplicated once, using the same source address as (X*2) * Y.
+	///////////////////////////////////////////
+
+	unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texture_number].SRCA<<3)));
+	unsigned char * readByte = source_texture_data;
+	int base_x = (pcoTexDefs[texture_number].SIZE & 0x3F00)>>5;
+	int base_y = (pcoTexDefs[texture_number].SIZE & 0xFF);
+	
+	// jo_printf(5, 10, "bx(%i)", base_x);
+	// jo_printf(5, 11, "by(%i)", base_y);
+	
+	int total_bytes_of_original_texture = base_x * base_y;
+
+	//Set up the texture structs.
+	//First texture --> X , Y*2
+	unsigned char * first_texture_start = curVRAMptr;
+	pcoTexDefs[numTex].SIZE = (((base_x)>>3)<<8) | base_y<<1;
+	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)first_texture_start); 
+	numTex++;
+	//Second texture -> X*2, Y
+	unsigned char * second_texture_start = curVRAMptr + (total_bytes_of_original_texture<<1);
+	pcoTexDefs[numTex].SIZE = (((base_x*2)>>3)<<8) | base_y;
+	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)second_texture_start); 
+	numTex++;
+	//Third texture -> X*2, Y*2 -- starts at same place as second texture
+	unsigned char * third_texture_start = second_texture_start;
+	pcoTexDefs[numTex].SIZE = (((base_x*2)>>3)<<8) | base_y<<1;
+	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)third_texture_start); 
+	numTex++;
+	//Texture 1: Copy the data from the original, twice over.
+	for(int j = 0; j < total_bytes_of_original_texture; j++)
+	{
+		*first_texture_start++ = readByte[j];
+	}
+	for(int j = 0; j < total_bytes_of_original_texture; j++)
+	{
+		*first_texture_start++ = readByte[j];
+	}
+	//Texture 2: Copy the data from the original, but copy each line twice.
+	for(int j = 0; j < base_y; j++)
+	{
+		for(int w = 0; w < base_x; w++)
+		{
+			*second_texture_start++ = readByte[(j * base_x) + w];
+		}
+		for(int w = 0; w < base_x; w++)
+		{
+			*second_texture_start++ = readByte[(j * base_x) + w];
+		}
+	}
+	//Texture 3: Copy the data from texture 2. Do some pointer juggling.
+		second_texture_start = third_texture_start;
+		third_texture_start += (total_bytes_of_original_texture<<1);
+	for(int j = 0; j < (total_bytes_of_original_texture<<1); j++)
+	{
+		*third_texture_start++ = second_texture_start[j];
+	}
+	//Total combined texture data is the original texture size, copied six times over.
+	//Twice for the first duplicate, four times for the second.
+	curVRAMptr += (total_bytes_of_original_texture * 6);
 }
 
 /*

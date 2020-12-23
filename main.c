@@ -173,19 +173,19 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
 	//End tex 35
-gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN);
+gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
 
-gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN);
+gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN);
+// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN);
+// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN);
+// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN);
+gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"SLANT.GVP",  &entities[4], true, SORT_MAX);
+gvModelRequest((Sint8*)"BUILD.GVP",  &entities[4], true, SORT_MAX, 'B');
 
 
 p64MapRequest((Sint8*)"00");

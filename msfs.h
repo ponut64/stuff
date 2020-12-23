@@ -72,7 +72,7 @@ extern Bool			chg_music;
 void	p64SoundRequest(Sint8* name, Sint32 bitrate, Uint8 destBufSeg);
 void	music_vblIn(Uint8 vol);
 //
-void	gvModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType);
+void	gvModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType, char type);
 //
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));

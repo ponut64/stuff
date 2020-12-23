@@ -35,7 +35,7 @@ typedef struct
 	unsigned short radius[XYZ];
 	char numTexture;
 	char sortType;
-	char isPlayer;
+	char type;
     Uint16 nbMeshes;
     Uint16 nbFrames;
     anim_struct * animation[96];

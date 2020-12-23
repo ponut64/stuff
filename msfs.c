@@ -88,7 +88,7 @@ void	music_vblIn(Uint8 vol){
 	}
 }
 
-void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType)
+void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType, char type)
 {
 //Fill out the request.
 #pragma GCC push_options
@@ -97,6 +97,7 @@ void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType
 #pragma GCC pop_options
 	requests[NactiveGVP].tmodel = model;
 	requests[NactiveGVP].active = true;
+	model->type = type;
 	requests[NactiveGVP].useHiMem = useHiMem;
 	model->sortType = sortType;
 
@@ -291,6 +292,18 @@ do{
 		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
 		readByte += tSize; //Get us to the next texture
 	}
+	
+	////////////////
+	// If the model type is 'B' (for BUILDING), create combined textures.
+	////////////////
+	if(activeGVP->tmodel->type == 'B')
+	{
+		for(int j = 0; j < activeGVP->tmodel->numTexture+1; j++)
+		{
+			make_combined_textures(activeGVP->tmodel->base_texture + j);
+		}
+	}
+
 	
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
