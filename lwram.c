@@ -1,6 +1,13 @@
 //lwram.c
 //this file is included in main.c
 
+void	init_division_table(void)
+{
+	for(int i = 0; i < 65536; i++)
+	{
+		division_table[i] = 65536 / i;
+	}
+}
 
 void	init_lwram(void)
 {
@@ -17,11 +24,15 @@ void	init_lwram(void)
 //Sound Control Data Table
 	RBBs = (void*)((unsigned int)(pcoTexDefs-(sizeof(_boundBox) * MAX_PHYS_PROXY))|UNCACHE); //In LWRAM // 
 //Object Table
-	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * 512)));//^UNCACHE);//|UNCACHE); //In LWRAM // 12KBish
+	dWorldObjects = (void*)((unsigned int)(RBBs-(sizeof(_declaredObject) * MAX_WOBJS)));//^UNCACHE);//|UNCACHE); //In LWRAM // 12KBish
+//Building (Source Data) Object Table
+	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
 //Map Normal Table
 	normTbl = (void*)((unsigned int)(LWRAM+(512 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
+// 65536/x table // 128KB // 256KB into RAM
+	division_table = (void*)((unsigned int)(LWRAM+(256 * 1024)));
 
-
+	init_division_table();
 
 //I have detected a 'black spot' in LWRAM, between 256 and 512KB from the end of LWRAM is what seems to be an illegal area.
 }

@@ -21,7 +21,8 @@
 
 #define LDATA_TRACK (0x100) //Level data, gate data definition
 
-#define MAX_WOBJS (257)
+#define MAX_WOBJS (512)
+#define MAX_BUILD_OBJECTS (256)
 
 //ext_dat bitflag orientation for ITEM:
 // 15 <- pop
@@ -69,7 +70,7 @@
 //entity_ID : 0-3: TRACK select. In other words, this TRACK data is used for this TRACK.
 //pix[X] : Passed # of gates in the series
 //pix[Y] : total # of gates in the series
-//height : bit 15 is TRACK COMPLETE!
+//more_data : bit 15 is TRACK COMPLETE!
 //
 
 typedef struct {
@@ -81,26 +82,33 @@ typedef struct {
 } _sobject;
 
 typedef struct {
-	short pix[XY];
+	unsigned short object_type;
+	short pos[XYZ];
+	unsigned short root_entity;
+} _buildingObject;
+
+typedef struct {
+	int		pos[XYZ];
+	short 	pix[XY];
+	ANGLE	srot[XYZ];
 	_sobject type;
-	ANGLE srot[XYZ];
-	short height;
-	short link;
-	int dist; //Just *some* static data to keep for every object because so many need it, but not all do.
-	unsigned char status; //Done, in-view, passed, in process, never know
+	int		dist; 
+	short	more_data;
+	short	link;
 } _declaredObject;
 
 //extern _declaredObject dWorldObjects[257];
 extern _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 extern unsigned short objNEW;
-extern unsigned short objDRAW[512];
-extern unsigned short activeObjects[512];
+extern unsigned short objDRAW[MAX_WOBJS];
+extern unsigned short activeObjects[MAX_WOBJS];
+extern _buildingObject * BuildingPayload; //In LWRAM
 extern short link_starts[8];
 extern int objUP;
 
 void	fill_obj_list(void);
 
-void	declare_object_at_cell(short pixX, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, char height);
+void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot);
 
 void	declarations(void);
 

@@ -94,6 +94,7 @@ typedef struct {
 	POINT	shadowPos;
 	POINT	floorPos;
 	POINT	wallPos;
+	POINT	viewpoint;
 	VECTOR	floorNorm;
 	VECTOR	wallNorm;
 	FIXED surfFriction;
@@ -117,6 +118,7 @@ extern _player you;
 extern bool usePolyLine;
 extern POINT zPt;
 //Lives in main.c
+extern short * division_table;
 //System
 extern unsigned char * dirty_buf;
 extern void * currentAddress;

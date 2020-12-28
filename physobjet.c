@@ -75,7 +75,8 @@ _sobject Joose = {
 	.radius[X] = 3,
 	.radius[Y] = 7,
 	.radius[Z] = 3,
-	.ext_dat = ITEM
+	.ext_dat = ITEM,
+	.light_bright = 1000
 };
 
 _sobject Slant = {
@@ -131,43 +132,64 @@ void	fill_obj_list(void)
 	objList[6] = &Post4;
 	objList[7] = &Post5;
 	objList[8] = &SingleGate;
-	objList[9] = &Slant; //&Joose;
+	objList[9] = &Joose;
 	objList[10] = &Tree;
 	objList[11] = &Track0Data;
 	objList[12] = &Track1Data;
 	objList[13] = &L01T00Dat;
 	objList[14] = &L01T01Dat;
+	objList[15] = &Slant;
 }
 
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
+_buildingObject * BuildingPayload;
 unsigned short objNEW = 0;
-unsigned short objDRAW[512];
-unsigned short activeObjects[512];
+unsigned short objDRAW[MAX_WOBJS];
+unsigned short activeObjects[MAX_WOBJS];
 short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
 int trackTimers[16];
 int activeTrack = -1;
 int objUP = 0;
 
-void	declare_object_at_cell(short pixX, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, char height)
+void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot)
 {
-		if(objNEW < 511)
+		if(objNEW < MAX_WOBJS)
 		{
-	dWorldObjects[objNEW].pix[X] = -pixX;
-	dWorldObjects[objNEW].pix[Y] = -pixY;
+	dWorldObjects[objNEW].pos[X] = -(pixX * CELL_SIZE_INT)<<16;
+	dWorldObjects[objNEW].pos[Z] = -(pixY * CELL_SIZE_INT)<<16;
+	dWorldObjects[objNEW].pos[Y] = height<<16; //Vertical offset from ground
+	dWorldObjects[objNEW].pix[X] = -(pixX);
+	dWorldObjects[objNEW].pix[Y] = -(pixY);
 	//I want to set type entry here to be an array index rather than a explicit mention
 	//It's less clear but it is much better for reading from binary data
 	dWorldObjects[objNEW].type = *objList[type];
 	dWorldObjects[objNEW].srot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].srot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].srot[Z] = (zrot * 182);
-	dWorldObjects[objNEW].height = height; //Vertical offset from ground
 	dWorldObjects[objNEW].link = -1;
-	dWorldObjects[objNEW].status = 0; //give clear status
 	objNEW++;
 		}
 }
 
+void	declare_building_object(_declaredObject * root_object, _buildingObject * building_item)
+{
+	//If the root object does not possess the entity ID of the item's root entity, do not add it.
+		if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
+		{
+	dWorldObjects[objNEW].pos[X] = (root_object->pos[X] + ((int)building_item->pos[X]<<16));
+	dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] - ((int)building_item->pos[Y]<<16));
+	dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
+	
+	dWorldObjects[objNEW].pix[X] = root_object->pix[X];
+	dWorldObjects[objNEW].pix[Y] = root_object->pix[Y];
+	dWorldObjects[objNEW].type = *objList[building_item->object_type];
+	dWorldObjects[objNEW].srot[X] = 0;
+	dWorldObjects[objNEW].srot[Y] = 0;
+	dWorldObjects[objNEW].srot[Z] = 0;
+	objNEW++;
+		}
+}
 
 void	declarations(void)
 {
@@ -197,14 +219,14 @@ void	object_control_loop(int ppos[XY])
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
 	ldata_ready = true;
-	declare_object_at_cell(-3, 4, 9 /*Slant*/, 0, 0, 0, 0);
+	declare_object_at_cell(-3, 0, 4, 15 /*Slant*/, 0, 0, 0);
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
 		return;
 	}		//Just in case.
-	static char difX = 0;
-	static char difY = 0;
+	static int difX = 0;
+	static int difY = 0;
 	objUP = 0;
 
 	unsigned short * used_radius;
@@ -229,9 +251,8 @@ void	object_control_loop(int ppos[XY])
 		
 		//jo_printf(0, 0, "(CTRL)"); //Debug ONLY
 		
-		difX = ppos[X] + dWorldObjects[i].pix[X]; //I have no idea how my coordinate systems get so reliably inverted...
-		difY = ppos[Y] + dWorldObjects[i].pix[Y];
-
+		difX = fxm(((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]), INV_CELL_SIZE)>>16; 
+		difY = fxm(((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]), INV_CELL_SIZE)>>16; 
 				////////////////////////////////////////////////////
 				//Flush specific data for gate posts. Don't remember why.
 				////////////////////////////////////////////////////
@@ -260,19 +281,20 @@ void	object_control_loop(int ppos[XY])
 				}
 					if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
 					{
+						
 							////////////////////////////////////////////////////
 							//If a non-building object was in rendering range, specify it as being populated, 
 							//and give it matrix/bounding box parameters.
 							////////////////////////////////////////////////////
 						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
 						]<<16);
 						//
-						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
 						bound_box_starter.y_rotation = dWorldObjects[i].srot[Y];
 						bound_box_starter.z_rotation = dWorldObjects[i].srot[Z];
@@ -280,7 +302,6 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.x_radius = used_radius[X]<<16;
 						bound_box_starter.y_radius = used_radius[Y]<<16;
 						bound_box_starter.z_radius = used_radius[Z]<<16;
-
 								
 						make2AxisBox(&bound_box_starter);
 
@@ -307,14 +328,14 @@ void	object_control_loop(int ppos[XY])
 							// Generate valid matrix parameters for the building.
 							////////////////////////////////////////////////////
 						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
 						]<<16);
 						//
-						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;
 						bound_box_starter.y_rotation = 0;
 						bound_box_starter.z_rotation = 0;
@@ -324,7 +345,26 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.z_radius = used_radius[Z]<<16;
 								
 						make2AxisBox(&bound_box_starter);
-
+						
+						/////////////////////////////////////////////////////
+						// This object is a building. 
+						// If this building has not yet been checked for items registered to it,
+						// check the building payload list to see if there are any items assigned to its entity ID.
+						// If there are any, register them in the declared object list.
+						// After that, flag this building object's "more data" with something to say
+						// its items have already been registered.
+						/////////////////////////////////////////////////////
+						if(dWorldObjects[i].more_data == 0 &&
+							entities[dWorldObjects[i].type.entity_ID].file_done == true)
+						{
+							for(int b = 0; b < MAX_BUILD_OBJECTS; b++)
+							{
+								if(BuildingPayload[b].root_entity != dWorldObjects[i].type.entity_ID) continue;
+								declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
+							}
+							
+							dWorldObjects[i].more_data = 1;
+						}
 							////////////////////////////////////////////////////
 							//Set the box status. 
 							//There isn't really a bound box for buildings.
@@ -367,14 +407,15 @@ void	object_control_loop(int ppos[XY])
 					//But do not flag it to render or be collision-tested.
 					////////////////////////////////////////////////////
 						bound_box_starter.modified_box = &RBBs[objUP];
-						RBBs[objUP].pos[X] = (25 * dWorldObjects[i].pix[X])<<16;
+						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						RBBs[objUP].pos[Y] = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
 						]<<16);
 						//
-						RBBs[objUP].pos[Z] = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
+						make2AxisBox(&bound_box_starter);
 							////////////////////////////////////////////////////
 							//Set the box status. This branch of the logic dictates the box is:
 							// 1. Not render-able
@@ -398,14 +439,14 @@ void	object_control_loop(int ppos[XY])
 							// Generate valid matrix parameters for the building.
 							////////////////////////////////////////////////////
 						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = (25 * dWorldObjects[i].pix[X])<<16;
+						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = (-(dWorldObjects[i].height + used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
 						]<<16);
 						//
-						bound_box_starter.z_location = (25 * dWorldObjects[i].pix[Y])<<16;
+						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;
 						bound_box_starter.y_rotation = 0;
 						bound_box_starter.z_rotation = 0;
@@ -447,7 +488,8 @@ void	object_control_loop(int ppos[XY])
 			//Object control loop end stub
 			////////////////////////////////////////////////////
 		}
-	jo_printf(0, 6, "objUP:(%i)", objUP);
+	jo_printf(18, 6, "objUP:(%i)", objUP);
+	jo_printf(18, 7, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -456,7 +498,7 @@ void	object_control_loop(int ppos[XY])
 void	light_control_loop(void)
 {
 	//First, purge the light list.
-	for(int p = 0; p < 16; p++)
+	for(int p = 0; p < MAX_DYNAMIC_LIGHTS; p++)
 	{
 		active_lights[p].pop = 0;
 	}
@@ -464,18 +506,26 @@ void	light_control_loop(void)
 	//given the light_y_offset of the light's source alongside the object's location.
 	unsigned char lights_created = 0;
 	
+	///////////////////////////
+	// Test light
+	// DO NOT leave active when pushing live!!!
+	///////////////////////////
+	// active_lights[0].bright = 2000;
+	// active_lights[0].pos[X] = -(160<<16);
+	// active_lights[0].pos[Y] = 60<<16;
+	// active_lights[0].pos[Z] = (100<<16);
+	// active_lights[0].pop = 1;
+	
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
-			
-		if(RBBs[i].status[2] == 'L'
-		&& lights_created < 16)
+		if(RBBs[i].status[2] == 'L' && lights_created < MAX_DYNAMIC_LIGHTS)
 			{
-				active_lights[i].pop = 1;
-				active_lights[i].ambient_light = active_lights[0].ambient_light;
-				active_lights[i].bright = dWorldObjects[activeObjects[i]].type.light_bright;
-				active_lights[i].pos[X] = -RBBs[i].pos[X];
-				active_lights[i].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
-				active_lights[i].pos[Z] = -RBBs[i].pos[Z];
+				active_lights[lights_created].pop = 1;
+				active_lights[lights_created].ambient_light = active_lights[0].ambient_light;
+				active_lights[lights_created].bright = dWorldObjects[activeObjects[i]].type.light_bright;
+				active_lights[lights_created].pos[X] = -RBBs[i].pos[X];
+				active_lights[lights_created].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
+				active_lights[lights_created].pos[Z] = -RBBs[i].pos[Z];
 				lights_created++;
 				//slPrintFX(0, slLocate(2, 6+i));
 				// slPrintFX(active_lights[i].pos[X], slLocate(2, 7));
@@ -515,10 +565,22 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 
 void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 {	
+	//////////////////
+	// If the gate has no pair, return.
+	// If the entity has yet to be loaded, return.
+	// Otherwise, flag the posts has having been checked this frame, then continue.
+	//////////////////
 	if(obj_id1 == obj_id2) return;
+	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
 	dWorldObjects[obj_id1].type.ext_dat |= 2; 
 	dWorldObjects[obj_id2].type.ext_dat |= 2; //Set checked flag up
 	
+	//////////////////
+	// By default, use the entity radius.
+	// If a radius was manually set, use that instead.
+	//////////////////
+	unsigned short * used_radius = &entities[dWorldObjects[obj_id1].type.entity_ID].radius[X];
+	if(dWorldObjects[obj_id1].type.radius[Y] > 0) used_radius = &dWorldObjects[obj_id1].type.radius[X];
 	POINT fenceA;
 	POINT fenceB;
 	POINT fenceC;
@@ -543,20 +605,20 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//Extrapolate a quad out of the pix given
 	//	0 - 1 // B - D
 	//	3 - 2 // A - C
-	fenceA[X] = -dWorldObjects[posts[0]].pix[X] * (25<<16);
-	fenceA[Y] = -(-(dWorldObjects[posts[0]].height<<16) - (main_map[ (-dWorldObjects[posts[0]].pix[X] + (main_map_x_pix * dWorldObjects[posts[0]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
-	fenceA[Z] = -dWorldObjects[posts[0]].pix[Y] * (25<<16);
+	fenceA[X] = -dWorldObjects[posts[0]].pos[X];
+	fenceA[Y] = -((dWorldObjects[posts[0]].pos[Y]) - (main_map[ (-dWorldObjects[posts[0]].pix[X] + (main_map_x_pix * dWorldObjects[posts[0]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
+	fenceA[Z] = -dWorldObjects[posts[0]].pos[Z];
 	
 	fenceB[X] = fenceA[X];
-	fenceB[Y] = fenceA[Y] + (dWorldObjects[posts[0]].type.radius[Y]<<17);
+	fenceB[Y] = fenceA[Y] + (used_radius[Y]<<16);
 	fenceB[Z] = fenceA[Z];
 	
-	fenceC[X] = -dWorldObjects[posts[1]].pix[X] * (25<<16);
-	fenceC[Y] = -(-(dWorldObjects[posts[1]].height<<16) - (main_map[ (-dWorldObjects[posts[1]].pix[X] + (main_map_x_pix * dWorldObjects[posts[1]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
-	fenceC[Z] = -dWorldObjects[posts[1]].pix[Y] * (25<<16);
+	fenceC[X] = -dWorldObjects[posts[1]].pos[X];
+	fenceC[Y] = -((dWorldObjects[posts[1]].pos[Y]) - (main_map[ (-dWorldObjects[posts[1]].pix[X] + (main_map_x_pix * dWorldObjects[posts[1]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
+	fenceC[Z] = -dWorldObjects[posts[1]].pos[Z];
 	
 	fenceD[X] = fenceC[X];
-	fenceD[Y] = fenceC[Y] + (dWorldObjects[posts[1]].type.radius[Y]<<17);
+	fenceD[Y] = fenceC[Y] + (used_radius[Y]<<16);
 	fenceD[Z] = fenceC[Z];
 
 		//Start math for projection
@@ -703,6 +765,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 			if(realDist < (dWorldObjects[activeObjects[index]].type.radius[Y]<<16) ) //Explicit radius collision test
 				{
 			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
+			dWorldObjects[activeObjects[index]].type.light_bright = 0; //Remove brightness
 			you.points++;
 			pcm_play(snd_click, PCM_SEMI, 7, 0);
 				}
@@ -833,7 +896,7 @@ void	gate_track_manager(void)
 				
 					if(track_select == object_track)
 					{
-						if(dWorldObjects[trackedRING].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].height & OBJPOP))
+						if(dWorldObjects[trackedRING].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
 						{
 							dWorldObjects[trackedLDATA].type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
 							dWorldObjects[trackedLDATA].pix[X]++;
@@ -855,7 +918,7 @@ void	gate_track_manager(void)
 
 					if(track_select == object_track)
 					{
-						if(dWorldObjects[trackedPOST].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].height & OBJPOP))
+						if(dWorldObjects[trackedPOST].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
 						{
 							dWorldObjects[trackedLDATA].type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
 							dWorldObjects[trackedLDATA].pix[X]++;
@@ -875,7 +938,7 @@ void	gate_track_manager(void)
 			if(dWorldObjects[trackedLDATA].pix[X] == dWorldObjects[trackedLDATA].pix[Y] && dWorldObjects[trackedLDATA].pix[X] != 0)
 			{
 				dWorldObjects[trackedLDATA].type.ext_dat &= UNPOP;	//Set track as inactive
-				dWorldObjects[trackedLDATA].height |= OBJPOP;	//Set track as complete
+				dWorldObjects[trackedLDATA].more_data |= OBJPOP;	//Set track as complete
 				trackTimers[track_select] = 0;	//Re-set the track timer
 				activeTrack = -1;	//Release active track
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
@@ -918,8 +981,8 @@ void	gate_track_manager(void)
 				slPrintFX(trackTimers[activeTrack], slLocate(0, 6));
 			}
 			
-	// slPrintHex(dWorldObjects[5].height, slLocate(0, 15));
-	// slPrintHex(dWorldObjects[6].height, slLocate(0, 16));
+	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));
+	// slPrintHex(dWorldObjects[6].dist, slLocate(0, 16));
 				// slPrintFX(trackTimers[0], slLocate(0, 5));
 				// slPrintFX(trackTimers[1], slLocate(0, 6));
 	// slPrintHex(dWorldObjects[5].pix[X], slLocate(0, 7));

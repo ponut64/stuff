@@ -23,6 +23,8 @@
 #define SCRN_CLIP_NY (1<<3)
 #define CLIP_Z (1<<4)
 
+#define	MAX_DYNAMIC_LIGHTS (4)
+
 //////////////////////////////////
 // Post-transformed vertice data struct
 //////////////////////////////////

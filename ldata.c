@@ -70,11 +70,11 @@ void	process_tga_as_ldata(void)
 			{
 		if(readByte[imdat] != 0xFF && readByte[imdat+1] != 0xFF && readByte[imdat+2] != 0xFF) //This skip condition is not valid.
 		{
-	declare_object_at_cell(k-(xSize>>1), i-(ySize>>1), readByte[imdat] & 0x1F,
+			//Item location x y z, item type, item rotation x y z.
+	declare_object_at_cell(k-(xSize>>1), ((readByte[imdat] & 0xE0) | ((readByte[imdat+1] & 1)<<8))>>3, i-(ySize>>1), readByte[imdat] & 0x1F, 
 	(readByte[imdat+1] & 2) ? -(readByte[imdat+1] & 0xF0) : (readByte[imdat+1] & 0xF0),
 	(readByte[imdat+1] & 4) ? -(readByte[imdat+2] & 0xF)<<4 : (readByte[imdat+2] & 0xF)<<4,
-	(readByte[imdat+1] & 8) ? -(readByte[imdat+2] & 0xF0) : (readByte[imdat+2] & 0xF0),
-	((readByte[imdat] & 0xE0) | ((readByte[imdat+1] & 1)<<8))>>3);
+	(readByte[imdat+1] & 8) ? -(readByte[imdat+2] & 0xF0) : (readByte[imdat+2] & 0xF0));
 		}
 			imdat += 3;
 			}

@@ -35,6 +35,8 @@ extern entity_t pl_model;
 extern entity_t shadow;
 //Texture Tables
 extern entity_t txtbl_e[5];
+//Root perspective matrix, including translation and rotation of third-person camera (or first person, if not?)
+extern MATRIX perspective_root;
 
 void	display_ztp(entity_t * model);
 void	set_camera(void);

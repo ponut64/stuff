@@ -49,6 +49,9 @@ I am sorry for the pain you had to go through.
 unsigned char hwram_model_data[256 * 1024];
 //
 
+//
+short * division_table;
+
 //A zero vector to be used when you want zero.
 POINT zPt = {0, 0, 0};
 extern Sint8 SynchConst; //SGL System Variable
@@ -177,11 +180,11 @@ gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
 
 gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN, 'N');
 
-// gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN, 'N');
 
 gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN, 'N');
 

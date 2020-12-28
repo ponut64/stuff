@@ -232,7 +232,7 @@ __jo_force_inline int		texture_angle_resolver(int index, FIXED * norm, int * fli
 __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynumber)
 {
 	int luma = 0;
-	for(int i = 0; i < 16; i++)
+	for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
 	{
 	point_light * lightSrc = &active_lights[i];
 			if(lightSrc->pop == 1)
@@ -247,9 +247,10 @@ __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynu
 		+ wldPos[Z]) + lightSrc->pos[Z])>>16
 		};
 		// Get inverse distance (some extrapolation of 1/sqrt(d) 
-		int inverted_proxima = (65536 / ( (light_proxima[X] * light_proxima[X]) +
-				(light_proxima[Y] * light_proxima[Y]) +
-				(light_proxima[Z] * light_proxima[Z]) ) )>>1;
+		int inverted_proxima = ((light_proxima[X] * light_proxima[X]) +
+								(light_proxima[Y] * light_proxima[Y]) +
+								(light_proxima[Z] * light_proxima[Z]));
+		inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima]>>1 : 0;
 
 		luma += inverted_proxima * (int)lightSrc->bright;
 			}

@@ -292,9 +292,9 @@ do{
 		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
 		readByte += tSize; //Get us to the next texture
 	}
-	
 	////////////////
 	// If the model type is 'B' (for BUILDING), create combined textures.
+	// Also read the item data at the end of the payload.
 	////////////////
 	if(activeGVP->tmodel->type == 'B')
 	{
@@ -302,6 +302,39 @@ do{
 		{
 			make_combined_textures(activeGVP->tmodel->base_texture + j);
 		}
+		
+		unsigned char * total_items = &readByte[0];
+		//unsigned char * unique_items = &readByte[1];
+		short * item_data = (short *)&readByte[2];	
+		
+		/////////////////////////////////////////////
+		// Item Data Payload
+		// It is appended at the end of the binary, past the textures.
+		// It is copied out of this region for permanent use in the BuildingPayload struct.
+		// It's order is:
+		// 0 byte: total items
+		// 1 byte: unique items
+		// every 8 bytes after
+		// item number, x, y, z, position (relative to entity) as 16-bit int
+		/////////////////////////////////////////////
+		for(int q = 0; q < *total_items; q++)
+		{
+			BuildingPayload[q].object_type = *item_data++;
+			BuildingPayload[q].pos[X] = *item_data++;
+			BuildingPayload[q].pos[Y] = *item_data++;
+			BuildingPayload[q].pos[Z] = *item_data++;
+			//Some way to find what entity # we're working with right now
+			BuildingPayload[q].root_entity = (unsigned short)(activeGVP->tmodel - entities);
+		// jo_printf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
+		// jo_printf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);
+		// jo_printf(1, 15+q, "x(%i)", BuildingPayload[q].pos[X]);
+		// jo_printf(13, 15+q, "y(%i)", BuildingPayload[q].pos[Y]);
+		// jo_printf(26, 15+q, "z(%i)", BuildingPayload[q].pos[Z]);
+		}
+		
+		// jo_printf(1, 11, "uitem(%i)", *total_items);
+		// jo_printf(1, 13, "amnti(%i)", *unique_items);
+
 	}
 
 	

@@ -12,7 +12,7 @@ vertex_t msh2VertArea[650];
 animationControl AnimArea[16];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
 
-point_light light_host[16];
+point_light light_host[MAX_DYNAMIC_LIGHTS];
 point_light * active_lights;
 
 int dummy[4];
@@ -190,7 +190,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 					JO_ABS(wldPos[Y] - light_used->pos[Y]) +
 					JO_ABS(wldPos[Z] - light_used->pos[Z]);
 	
-		for(unsigned int i = 0; i < 16; i++)
+		for(unsigned int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
 		{
 			if(active_lights[i].pop == 1)
 				{

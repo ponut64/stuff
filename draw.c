@@ -4,13 +4,16 @@
 #include "draw.h"
 #include "height.h"
 
-FIXED sun_light[3] = {0, -45000, 0};
+FIXED sun_light[3] = {0, -16384, 0};
 //Player Model
 entity_t pl_model;
 //Player's Shadow
 entity_t shadow;
 //Heightmap Matrix
 MATRIX hmap_mtx;
+//Root matrix after perspective transform
+MATRIX perspective_root;
+// ???
 MATRIX unit;
 
 FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
@@ -285,7 +288,7 @@ void	shadow_draw(void)
 		if(shadow.file_done == true)
 		{
 			if(first_run != true){
-	//Special Shadow Param (just for MESHon lol)
+	//Special Shadow Param (for MESHOn and MSBOn)
 	for(unsigned int i = 0; i < shadow.pol[0]->nbPolygon; i++){
 	shadow.pol[0]->attbl[i] = (ATTR)ATTRIBUTE(Dual_Plane, SORT_CEN, shadow.pol[0]->attbl[i].texno, 0, No_Gouraud,Window_In|MESHoff|HSSon|ECdis | SPenb |CL64Bnk |MSBon,sprNoflip,UseNearClip);
 	shadow.pol[0]->pltbl[i].norm[X] = 0;
@@ -320,18 +323,12 @@ void	shadow_draw(void)
 	
 	slPopMatrix();
 		}
+	// Reset the shadow position controller
+	you.aboveObject = false;
 }
 
 void	object_draw(void)
 {
-	
-			//Test Light
-		// active_lights[0].pos[X] = you.pos[X];
-		// active_lights[0].pos[Y] = you.pos[Y] + (15<<16);
-		// active_lights[0].pos[Z] = you.pos[Z];
-		// active_lights[0].bright = 1000;
-			//
-		
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
@@ -339,7 +336,21 @@ void	object_draw(void)
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
-
+	slGetMatrix(perspective_root);
+	//////////////////////////////////////////////////////////////
+	// "viewpoint" is the point from which the perspective will originate (contains view translation/rotation).
+	//////////////////////////////////////////////////////////////
+	you.viewpoint[X] = fxm(perspective_root[X][X], perspective_root[3][X]) +
+						fxm(perspective_root[Y][X], perspective_root[3][Y]) +
+						fxm(perspective_root[Z][X], perspective_root[3][Z]);
+						
+	you.viewpoint[Y] = fxm(perspective_root[X][Y], perspective_root[3][X]) +
+						fxm(perspective_root[Y][Y], perspective_root[3][Y]) +
+						fxm(perspective_root[Z][Y], perspective_root[3][Z]);
+						
+	you.viewpoint[Z] = fxm(perspective_root[X][Z], perspective_root[3][X]) +
+						fxm(perspective_root[Y][Z], perspective_root[3][Y]) +
+						fxm(perspective_root[Z][Z], perspective_root[3][Z]);
 		//
 	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
 	player_draw();

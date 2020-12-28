@@ -431,8 +431,6 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 		you.shadowPos[Y] = -highHit[Y];
 		you.shadowPos[Z] = -highHit[Z];
 		you.aboveObject = true;
-	} else {
-		you.aboveObject = false;
 	}
 
 }
@@ -624,8 +622,8 @@ void	player_collision_test_loop(void)
 	// slPrintHex(dWorldObjects[5].type.ext_dat, slLocate(13, 12));
 	// slPrintHex(dWorldObjects[6].type.ext_dat, slLocate(13, 13));
 	
-	// slPrintHex(dWorldObjects[5].height, slLocate(0, 15));
-	// slPrintHex(dWorldObjects[6].height, slLocate(0, 16));
+	// slPrintHex(dWorldObjects[5].pos[Y], slLocate(0, 15));
+	// slPrintHex(dWorldObjects[6].pos[Y], slLocate(0, 16));
 	
 //	jo_printf(0, 14, "(%i)E", numBoxChecks);
 	numBoxChecks = 0;
