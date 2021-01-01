@@ -26,6 +26,7 @@
 #define S1536TIMER	(512)
 #define S1536PALT	(633)
 //
+#define MAX_FILE_REQUESTS (32)
 
 typedef struct{
 	void* rd_pcmbuf;
@@ -54,8 +55,8 @@ typedef struct
 extern void * active_LWRAM_ptr;
 extern void * active_HWRAM_ptr;
 
-extern request	requests[19];
-extern spr_rq	tga_request[19];
+extern request	requests[MAX_FILE_REQUESTS];
+extern spr_rq	tga_request[MAX_FILE_REQUESTS];
 
 extern snd_ring		music_buf[MUS_BUFCNT];
 extern Sint8*		music;
@@ -77,7 +78,7 @@ void	gvModelRequest(Sint8 * name, entity_t * model, char workRAM, char sortType,
 void	file_request_loop(void);
 void	master_file_system(void(*game_code)(void));
 //
-void	p64MapRequest(Sint8 * levelNo);
+void	p64MapRequest(short levelNo);
 
 #endif
 

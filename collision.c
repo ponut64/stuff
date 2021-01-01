@@ -587,7 +587,7 @@ void	player_collision_test_loop(void)
 	//Also makes me afraid of projectile logic, since I am using RBB (not AABB). But it is just one point to test, so maybe not so bad.
 	//In any case, you end up with projectiles operating on a different control and data method than normal physics proxies.
 	
-	
+	you.hitObject = false;
 	if(ldata_ready != true) return; //Just in case.
 	int skipdat;
 	for(Uint8 i = 0; i < MAX_PHYS_PROXY; i++)

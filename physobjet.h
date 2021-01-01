@@ -19,7 +19,9 @@
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
 #define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
 
-#define LDATA_TRACK (0x100) //Level data, gate data definition
+#define LDATA_TYPE (0xF00) //Level data type bits
+#define TRACK_DATA (0x100) //Level data, gate data definition
+#define LEVEL_CHNG (0x200) //Level data, level change location definition
 
 #define MAX_WOBJS (512)
 #define MAX_BUILD_OBJECTS (256)
@@ -62,17 +64,36 @@
 //15 <- "1" if track is active. "0" if track is inactive.
 //14-12 <- "0x4000" for level data specification
 //11-8 <- Specifications beneath the LEVEL_DATA tree.
-// 0x100 for TRACK DATA.
-//TRACK data orientation:
+// 0x100 for TRACK_DATA
+// 0x200 for LEVEL_CHNG
+//////////////////////////////////////////////////////////////////
+//TRACK_DATA orientation:
 //ext_dat
-// 4-7: TRACK fail speed setting (if player ever goes lower than this set speed, the gates reset)
-// 3-0: TRACK timer setting (if player takes longer than this setting to get between gates, the gates reset)
-//entity_ID : 0-3: TRACK select. In other words, this TRACK data is used for this TRACK.
+//	4-7: TRACK fail speed setting (if player ever goes lower than this set speed, the gates reset)
+//	3-0: TRACK timer setting (if player takes longer than this setting to get between gates, the gates reset)
+//entity_ID :
+//	0-3: TRACK select. In other words, this TRACK data is used for this TRACK.
 //pix[X] : Passed # of gates in the series
 //pix[Y] : total # of gates in the series
 //more_data : bit 15 is TRACK COMPLETE!
-//
-
+//////////////////////////////////////////////////////////////////
+/**
+	LEVEL_CHNG orientation:
+	_sobject
+		entity_ID :
+			0-7 : Level to load
+		radius[xyz]
+			Distance from position in which to trigger, if enabled
+		ext_dat
+			15 	: Boolean. True if the trigger has been used, false if it has not.
+			7 	: Boolean. True if trigger is enabled, false if trigger is disabled.
+			0-6	: Information about what information to check to enable or disable the level changer.
+	_declaredObject
+		pos[xyz] 
+			Location of the trigger
+		link 
+			delcared object array entry of another level change
+**/
 typedef struct {
 	unsigned short entity_ID;
 	unsigned short radius[XYZ];
@@ -104,6 +125,7 @@ extern unsigned short objDRAW[MAX_WOBJS];
 extern unsigned short activeObjects[MAX_WOBJS];
 extern _buildingObject * BuildingPayload; //In LWRAM
 extern short link_starts[8];
+extern int total_building_payload;
 extern int objUP;
 
 void	fill_obj_list(void);

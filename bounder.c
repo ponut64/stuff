@@ -44,6 +44,10 @@ void	makeBoundBox(_object_arguments * source_data)
 	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
 	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
 	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
+	//Give the box its previous location
+	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
+	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
+	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
 	//Give the box its location
 	source_data->modified_box->pos[X] = -source_data->x_location;
 	source_data->modified_box->pos[Y] = -source_data->y_location;
@@ -125,12 +129,6 @@ void	makeBoundBox(_object_arguments * source_data)
 	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
-	
-	//Fill this crap out.
-	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
-	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
-	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
-	
 }
 
 //Usage:
@@ -166,6 +164,10 @@ void	make2AxisBox(_object_arguments * source_data)
 	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
 	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
 	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
+	//Give the box its previous location
+	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
+	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
+	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
 	//Give the box its location
 	source_data->modified_box->pos[X] = source_data->x_location;
 	source_data->modified_box->pos[Y] = source_data->y_location;
@@ -250,11 +252,27 @@ void	make2AxisBox(_object_arguments * source_data)
 	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
+}
+
+void	flush_boxes(int start)
+{
 	
-	//Fill this crap out.
-	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
-	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
-	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
+////////////////////////////////////////////////////
+//Flush boxes
+//This is somewhat important.
+//It's kind of funny, the engine mostly works if you don't do this.
+//Since every box was in a rational location to begin with, it will just render stuff off-screen.
+//But for the light source data, it'll get confused as it will start using old box data
+// that has a nonsensical 3D location.
+////////////////////////////////////////////////////
+	for(int f = start; f < MAX_PHYS_PROXY; f++)
+	{
+		RBBs[f].status[0] = 0;
+		RBBs[f].status[1] = 0;
+		RBBs[f].status[2] = 0;
+	}
+////////////////////////////////////////////////////
+	
 }
 
 void	initPhys(void){

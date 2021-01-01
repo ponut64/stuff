@@ -4,7 +4,7 @@
 #include "draw.h"
 #include "height.h"
 
-FIXED sun_light[3] = {0, -16384, 0};
+FIXED sun_light[3] = {0, -20000, 0};
 //Player Model
 entity_t pl_model;
 //Player's Shadow
@@ -117,22 +117,22 @@ void	set_camera(void)
 
 void	master_draw_stats(void)
 {
-	slPrintFX(you.pos[X], slLocate(9, 1));
-	slPrintFX(you.pos[Y], slLocate(19, 1));
-	slPrintFX(you.pos[Z], slLocate(29, 1));
+	//slPrintFX(you.pos[X], slLocate(9, 1));
+	//slPrintFX(you.pos[Y], slLocate(19, 1));
+	//slPrintFX(you.pos[Z], slLocate(29, 1));
 
-	jo_printf(18, 0, "(File System Status)");
+	//jo_printf(18, 0, "(File System Status)");
 	jo_printf(27, 2, "Pts :%x:", you.points);
-	jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
-	slPrintFX(you.sanics, slLocate(26, 3));
-	jo_printf(8, 25, "TRPLY:                ");
-	jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
-	jo_printf(8, 26, "SNTPL:                ");
-	jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
-	jo_printf(8, 27, "VERTS:                ");
-	jo_printf(8, 27, "VERTS:%i", transVerts[0]);
-	jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
-	jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
+	//jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
+	//slPrintFX(you.sanics, slLocate(26, 3));
+	//jo_printf(8, 25, "TRPLY:                ");
+	//jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
+	//jo_printf(8, 26, "SNTPL:                ");
+	//jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	//jo_printf(8, 27, "VERTS:                ");
+	//jo_printf(8, 27, "VERTS:%i", transVerts[0]);
+	//jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
+	//jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
 }
 
 void	player_draw(void)
@@ -228,7 +228,8 @@ void	obj_draw_queue(void)
 		static MATRIX mat;
 		static MATRIX matSt;
 		
-	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++){
+	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
+	{
 		if(RBBs[i].status[0] != 'R') continue;
 		
 		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
@@ -278,6 +279,7 @@ void	obj_draw_queue(void)
 		plane_rendering_with_subdivision(&entities[objDRAW[i]], RBBs[i].pos);
 					}
 	slPopMatrix();
+	
 	}
 	
 }
@@ -388,7 +390,6 @@ void	master_draw(void)
 {
 	prep_map_mtx();
 	computeLight();
-	
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 
@@ -414,6 +415,8 @@ void	master_draw(void)
 	hmap_actual_pos[Y] = 0;
 	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.Velocity[Z]);
 	
+	run_dsp();
+	
 	//No Touch Order -- Affects animations/mechanics
 		mypad();
 	player_phys_affect();
@@ -423,7 +426,6 @@ void	master_draw(void)
 	object_control_loop(you.dispPos);
 	//
 	
-	run_dsp(); //Run the DSP now to give it maximum time to complete (minimize sh2 wait)
 	slSlaveFunc(sort_master_polys, 0);	
 }
 

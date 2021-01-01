@@ -1,148 +1,10 @@
 #include "physobjet.h"
+#include "object_definitions.c"
 
-_sobject Post0 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P,
-	.light_bright = 4000
-};
-
-_sobject Post1 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P | 1<<4,
-	.light_bright = 4000
-};
-
-_sobject Post2 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P | 2<<4,
-	.light_bright = 4000
-};
-
-_sobject Post3 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P | 3<<4,
-	.light_bright = 4000
-};
-
-_sobject Post4 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P | 4<<4,
-	.light_bright = 4000
-};
-
-_sobject Post5 = {
-	.entity_ID = 3,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = GATE_P | 5<<4,
-	.light_bright = 4000
-};
-
-_sobject SingleGate = {
-	.entity_ID = 0,
-	.radius[X] = 3,
-	.radius[Y] = 30,
-	.radius[Z] = 30,
-	.ext_dat = GATE_R | 1<<8
-};
-
-_sobject Tree = {
-	.entity_ID = 2,
-	.radius[X] = 3,
-	.radius[Y] = 15,
-	.radius[Z] = 3,
-	.ext_dat = OBJECT
-};
-
-_sobject Joose = {
-	.entity_ID = 1,
-	.radius[X] = 3,
-	.radius[Y] = 7,
-	.radius[Z] = 3,
-	.ext_dat = ITEM,
-	.light_bright = 1000
-};
-
-_sobject Slant = {
-	.entity_ID = 4,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = BUILD,
-	.light_bright = 4000
-};
-
-_sobject Track0Data = {
-	.entity_ID = 0,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = LDATA | LDATA_TRACK | 1<<4 | 6
-};
-
-_sobject Track1Data = {
-	.entity_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = LDATA | LDATA_TRACK | 1<<4 | 3
-};
-
-_sobject L01T00Dat = {
-	.entity_ID = 0,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = LDATA | LDATA_TRACK | 1<<4 | 3
-};
-
-_sobject L01T01Dat = {
-	.entity_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = LDATA | LDATA_TRACK | 1<<4 | 2
-};
-
-_sobject * objList[64];
-
-void	fill_obj_list(void)
-{
-	
-	objList[2] = &Post0;
-	objList[3] = &Post1;
-	objList[4] = &Post2;
-	objList[5] = &Post3;
-	objList[6] = &Post4;
-	objList[7] = &Post5;
-	objList[8] = &SingleGate;
-	objList[9] = &Joose;
-	objList[10] = &Tree;
-	objList[11] = &Track0Data;
-	objList[12] = &Track1Data;
-	objList[13] = &L01T00Dat;
-	objList[14] = &L01T01Dat;
-	objList[15] = &Slant;
-}
 
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 _buildingObject * BuildingPayload;
+
 unsigned short objNEW = 0;
 unsigned short objDRAW[MAX_WOBJS];
 unsigned short activeObjects[MAX_WOBJS];
@@ -151,6 +13,7 @@ short link_starts[8] = {-1, -1, -1, -1,
 int trackTimers[16];
 int activeTrack = -1;
 int objUP = 0;
+int total_building_payload = 0;
 
 void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot)
 {
@@ -161,13 +24,12 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].pos[Y] = height<<16; //Vertical offset from ground
 	dWorldObjects[objNEW].pix[X] = -(pixX);
 	dWorldObjects[objNEW].pix[Y] = -(pixY);
-	//I want to set type entry here to be an array index rather than a explicit mention
-	//It's less clear but it is much better for reading from binary data
 	dWorldObjects[objNEW].type = *objList[type];
 	dWorldObjects[objNEW].srot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].srot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].srot[Z] = (zrot * 182);
 	dWorldObjects[objNEW].link = -1;
+	dWorldObjects[objNEW].more_data = 0;
 	objNEW++;
 		}
 }
@@ -177,8 +39,9 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	//If the root object does not possess the entity ID of the item's root entity, do not add it.
 		if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
 		{
+	int root_object_y = (entities[root_object->type.entity_ID].radius[Y]<<16);
 	dWorldObjects[objNEW].pos[X] = (root_object->pos[X] + ((int)building_item->pos[X]<<16));
-	dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] - ((int)building_item->pos[Y]<<16));
+	dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16)) - root_object_y;
 	dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
 	
 	dWorldObjects[objNEW].pix[X] = root_object->pix[X];
@@ -187,13 +50,14 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	dWorldObjects[objNEW].srot[X] = 0;
 	dWorldObjects[objNEW].srot[Y] = 0;
 	dWorldObjects[objNEW].srot[Z] = 0;
+	dWorldObjects[objNEW].more_data = 0;
 	objNEW++;
 		}
 }
 
 void	declarations(void)
 {
-
+	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
 	for(int k = 0; k < 8; k++)
 	{
 		link_starts[k] = -1; //Re-set link starts to no links conidition
@@ -218,8 +82,11 @@ void	object_control_loop(int ppos[XY])
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
-	ldata_ready = true;
-	declare_object_at_cell(-3, 0, 4, 15 /*Slant*/, 0, 0, 0);
+	// ldata_ready = true;
+	// declare_object_at_cell(-8, 0, -8, 26 /*House*/, 0, 0, 0);
+	// declare_object_at_cell(8, 0, -8, 27 /*House*/, 0, 0, 0);
+	// declare_object_at_cell(8, 0, 8, 28 /*House*/, 0, 0, 0);
+	// declare_object_at_cell(-8, 0, 8, 29 /*House*/, 0, 0, 0);
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
@@ -228,26 +95,11 @@ void	object_control_loop(int ppos[XY])
 	static int difX = 0;
 	static int difY = 0;
 	objUP = 0;
-
-	unsigned short * used_radius;
-////////////////////////////////////////////////////
-//Flush boxes
-//This is somewhat important.
-//It's kind of funny, the engine mostly works if you don't do this.
-//Since every box was in a rational location to begin with, it will just render stuff off-screen.
-//But for the light source data, it'll get confused as it will start using old box data
-// that has a nonsensical 3D location.
-////////////////////////////////////////////////////
-	for(int f = 0; f < MAX_PHYS_PROXY; f++)
-	{
-		RBBs[f].status[0] = 0;
-		RBBs[f].status[1] = 0;
-		RBBs[f].status[2] = 0;
-	}
-////////////////////////////////////////////////////
 	
+	unsigned short * used_radius;
+
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
-	for(unsigned char i = 0; i < objNEW; i++){
+	for(int i = 0; i < objNEW; i++){
 		
 		//jo_printf(0, 0, "(CTRL)"); //Debug ONLY
 		
@@ -262,8 +114,40 @@ void	object_control_loop(int ppos[XY])
 		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
 		{ 		
 				////////////////////////////////////////////////////
-				//If the object type declared is LDATA (level data), do nothing.
+				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
+				if(difX > -14 && difX < 14 && difY > -14 && difY < 14 &&
+				(dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
+				{
+					// We've found a level change trigger close to the player.
+					// If we are close enough to the level change trigger and it is enabled, change levels.
+					int pos_difs[3] = {
+										(you.pos[X] + dWorldObjects[i].pos[X]),
+										you.pos[Y] + (dWorldObjects[i].pos[Y] - (main_map[
+(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1))
+																			]<<16)),
+										(you.pos[Z] + dWorldObjects[i].pos[Z])
+										};	
+					if(JO_ABS(pos_difs[X]) < (dWorldObjects[i].type.radius[X]<<16)
+					&& JO_ABS(pos_difs[Y]) < (dWorldObjects[i].type.radius[Y]<<16)
+					&& JO_ABS(pos_difs[Z]) < (dWorldObjects[i].type.radius[Z]<<16)
+					//Enabling Booleans
+					&& !(dWorldObjects[i].type.ext_dat & OBJPOP) && (dWorldObjects[i].type.ext_dat & 0x80))
+					{
+						//////////////////////////////////////////
+						// Temporary, but will change levels.
+						//////////////////////////////////////////
+						dWorldObjects[i].type.ext_dat |= OBJPOP;
+						pcm_play(snd_win, PCM_PROTECTED, 7, 0);
+						map_chg = false;
+						p64MapRequest(dWorldObjects[i].type.entity_ID);
+						///////////////////////////////////////////
+						// More temporary stuff.
+						///////////////////////////////////////////
+						you.points = 0;
+						//declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
+					}
+				}
 		} else if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY)
 			{
 				////////////////////////////////////////////////////
@@ -357,12 +241,10 @@ void	object_control_loop(int ppos[XY])
 						if(dWorldObjects[i].more_data == 0 &&
 							entities[dWorldObjects[i].type.entity_ID].file_done == true)
 						{
-							for(int b = 0; b < MAX_BUILD_OBJECTS; b++)
+							for(int b = 0; b < total_building_payload; b++)
 							{
-								if(BuildingPayload[b].root_entity != dWorldObjects[i].type.entity_ID) continue;
 								declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 							}
-							
 							dWorldObjects[i].more_data = 1;
 						}
 							////////////////////////////////////////////////////
@@ -488,8 +370,11 @@ void	object_control_loop(int ppos[XY])
 			//Object control loop end stub
 			////////////////////////////////////////////////////
 		}
-	jo_printf(18, 6, "objUP:(%i)", objUP);
-	jo_printf(18, 7, "objNW:(%i)", objNEW);
+		
+	flush_boxes(objUP);
+		
+	//jo_printf(18, 6, "objUP:(%i)", objUP);
+	//jo_printf(18, 7, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -547,7 +432,7 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 	short object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; //Get the level data's track #
 
 	while(trackedLDATA != -1){
-		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TRACK) == LDATA_TRACK)
+		if( (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DATA) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
 			track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
 			if(track_select == object_track && (activeTrack == trackedLDATA || activeTrack == -1))
@@ -560,7 +445,6 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 		}//PAST TRACK DATA
 			trackedLDATA = dWorldObjects[trackedLDATA].link;
 	}
-	
 }
 
 void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
@@ -875,21 +759,29 @@ void	gate_track_manager(void)
 	short track_select;
 	short object_track;
 	
-	char numldat = 0;
+	int num_track_dat = 0;
 	static char complete_ldat = 0;
+	
+	// jo_printf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
+	// jo_printf(0, 16, "act(%i)", activeTrack);
+
 	
 	while(trackedLDATA != -1){
 				//jo_printf(0, 0, "(GTMN)"); //Debug ONLY
-		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TRACK) == LDATA_TRACK)
+		if( (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DATA) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
 		track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; //Get the level data's track #
 		dWorldObjects[trackedLDATA].pix[X] = 0;
 		dWorldObjects[trackedLDATA].pix[Y] = 0;
 		trackedRING = link_starts[GATE_R>>12]; //Re-set this link pointer (so we can re-scan)
 		trackedPOST = link_starts[GATE_P>>12]; //Re-set this link pointer (so we can re-scan)
-		numldat++;
+		num_track_dat++;
+		//jo_printf(1, 12, "ldats(%i)", num_track_dat);
+		//jo_printf(1, 13, "track(%i)", track_select);
 				if(activeTrack == -1 || (activeTrack == trackedLDATA)) // if active track.. or track released
 					{
+					// jo_printf(0, 17, "ldt(%i)", trackedLDATA);
+					// jo_printf(0, 17, "ldt(%i)", dWorldObjects[trackedLDATA].more_data);
 			while(trackedRING != -1){
 				//jo_printf(0, 0, "(RING)"); //Debug ONLY
 				object_track = (dWorldObjects[trackedRING].type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
@@ -944,6 +836,8 @@ void	gate_track_manager(void)
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
 				complete_ldat++;
 				pcm_play(snd_cronch, PCM_PROTECTED, 7, 0); //Sound
+				slPrint("                           ", slLocate(0, 6));
+				slPrint("                           ", slLocate(0, 7));
 			}
 
 			//Timer run & check
@@ -959,27 +853,47 @@ void	gate_track_manager(void)
 						//Sound stuff
 						pcm_play(snd_alarm, PCM_PROTECTED, 7, 0);
 						//Clear screen in this zone
-				slPrint("                           ", slLocate(0, 5));
 				slPrint("                           ", slLocate(0, 6));
+				slPrint("                           ", slLocate(0, 7));
 					}
 			}
 					}//if active track \ track end
-		}//PAST TRACK DATA
+		////////////////////////////////
+		/// Track data manager end stub
+		////////////////////////////////
+		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
+		{
+				if(complete_ldat != num_track_dat && num_track_dat != 0)
+				{
+					//If you haven't crossed all the tracks, disable the level changer.
+					dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
+				} else if(complete_ldat == num_track_dat && you.points >= 10)
+				{
+					//If you have enough points and crossed all the tracks, enable the level changer.
+					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
+				}
+		}
+
+
 		trackedLDATA = dWorldObjects[trackedLDATA].link;
 	}//while LDATA end
 	
-	if(complete_ldat == numldat && link_starts[LDATA>>12] > -1)
+	//Completed all tracks
+	if(complete_ldat == num_track_dat && link_starts[LDATA>>12] > -1)
 	{
 		pcm_play(snd_win, PCM_PROTECTED, 7, 0);
 		complete_ldat = 0;
-		map_chg = false;
-		p64MapRequest((Sint8*)"01"); //ALRIGHT SO I CAN MAKE TWO LEVELS
+		//map_chg = false;
+		//p64MapRequest(1);
 	}
 	
 			if(activeTrack != -1){
-				slPrint("Beat the timer!", slLocate(0, 5));
-				slPrintFX(trackTimers[activeTrack], slLocate(0, 6));
+				slPrint("Find the other wreath!", slLocate(0, 6));
+				slPrintFX(trackTimers[dWorldObjects[activeTrack].type.entity_ID & 0xF], slLocate(0, 7));
 			}
+			
+	//slPrintHex(dWorldObjects[trackedLDATA].type.ext_dat, slLocate(13, 12));
+	//jo_printf(13, 12, "ac_trk(%i)", activeTrack);
 			
 	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));
 	// slPrintHex(dWorldObjects[6].dist, slLocate(0, 16));

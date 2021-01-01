@@ -3,7 +3,8 @@
 
 void	init_division_table(void)
 {
-	for(int i = 0; i < 65536; i++)
+	division_table[0] = 65535;
+	for(int i = 1; i < 65536; i++)
 	{
 		division_table[i] = 65536 / i;
 	}

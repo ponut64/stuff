@@ -4,7 +4,7 @@
 snd_ring		music_buf[MUS_BUFCNT];
 int				musicPitch = S1536KHZ;
 int				musicTimer = 64;
-Sint8*			music = (Sint8*)"EVE.MUS";
+Sint8*			music = (Sint8*)"FROZEN.MUS";
 
 static	int	mrd_pos = 0;
 int			buf_pos;
@@ -47,8 +47,8 @@ static Bool sound_requested;
 static Bool map_requested;
 static Bool tga_requested;
 
-request requests[19]; //ZTP Requests
-spr_rq	tga_request[19];
+request requests[MAX_FILE_REQUESTS]; //ZTP Requests
+spr_rq	tga_request[MAX_FILE_REQUESTS];
 
 request * activeGVP; //Pointers to currently serving file structures
 //p64pcm * activePCM;
@@ -121,16 +121,23 @@ void gvModelRequest(Sint8 * name, entity_t * model, char useHiMem, char sortType
 Sint8 pgm_name[11];
 Sint8 ldat_name[11];
 
-void	p64MapRequest(Sint8 * levelNo)
+void	p64MapRequest(short levelNo)
 {
+	char the_number[3] = {'0', '0', '0'};
+	int num_char = sprintf(the_number, "%i", levelNo);
+	if(num_char == 1)
+	{
+		the_number[1] = the_number[0];
+		the_number[0] = '0';
+	}
 ///Fill out the request.
 	pgm_name[0] = 'L';
 	pgm_name[1] = 'E';
 	pgm_name[2] = 'V';
 	pgm_name[3] = 'E';
 	pgm_name[4] = 'L';
-	pgm_name[5] = levelNo[0];
-	pgm_name[6] = levelNo[1];
+	pgm_name[5] = the_number[0];
+	pgm_name[6] = the_number[1];
 	pgm_name[7] = '.';
 	pgm_name[8] = 'P';
 	pgm_name[9] = 'G';
@@ -141,8 +148,8 @@ void	p64MapRequest(Sint8 * levelNo)
 	ldat_name[2] = 'V';
 	ldat_name[3] = 'E';
 	ldat_name[4] = 'L';
-	ldat_name[5] = levelNo[0];
-	ldat_name[6] = levelNo[1];
+	ldat_name[5] = the_number[0];
+	ldat_name[6] = the_number[1];
 	ldat_name[7] = '.';
 	ldat_name[8] = 'T';
 	ldat_name[9] = 'G';
@@ -175,7 +182,7 @@ void	file_request_loop(void)
 	
 	jo_printf(9, 0, "(%i:%i:%i:%i)", NactiveGVP, NactivePCM, NactivePGM, NactiveTGA);
 		//PRINT STATEMENTS IN LOOPS = BAD
-	for(unsigned char i = 0; i < 19; i++){
+	for(unsigned char i = 0; i < MAX_FILE_REQUESTS; i++){
 		if(requests[i].active == true){
 			activeGVP = &requests[i]; //Remember: "&" qualifies "address of". You kind of thought that as what a struct would be in the first place?
 			model_requested = true; //Too bad.
@@ -319,12 +326,13 @@ do{
 		/////////////////////////////////////////////
 		for(int q = 0; q < *total_items; q++)
 		{
-			BuildingPayload[q].object_type = *item_data++;
-			BuildingPayload[q].pos[X] = *item_data++;
-			BuildingPayload[q].pos[Y] = *item_data++;
-			BuildingPayload[q].pos[Z] = *item_data++;
+			BuildingPayload[total_building_payload].object_type = *item_data++;
+			BuildingPayload[total_building_payload].pos[X] = *item_data++;
+			BuildingPayload[total_building_payload].pos[Y] = *item_data++;
+			BuildingPayload[total_building_payload].pos[Z] = *item_data++;
 			//Some way to find what entity # we're working with right now
-			BuildingPayload[q].root_entity = (unsigned short)(activeGVP->tmodel - entities);
+			BuildingPayload[total_building_payload].root_entity = (unsigned short)(activeGVP->tmodel - entities);
+			total_building_payload++;
 		// jo_printf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
 		// jo_printf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);
 		// jo_printf(1, 15+q, "x(%i)", BuildingPayload[q].pos[X]);
@@ -438,12 +446,10 @@ void	pop_load_map(void(*game_code)(void)){
 				read_pgm_header(activePGM);
 				//
 					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Yval)){
-					//slDMACopy(activePGM->dstAddress, buf_map, activePGM->totalPix);
 						for(int i = 0; i < activePGM->totalPix; i++)
 						{
 							buf_map[i] = *((Uint8*)activePGM->dstAddress + i);
 						}
-						//process_map_for_normals(activePGM);
 				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
 				// jo_printf(15, 20, "(%i)", activePGM->Xval);
 				// jo_printf(20, 20, "(%i)", activePGM->Yval);
@@ -516,7 +522,7 @@ void	pop_load_tga(void(*game_code)(void)){
 		if(curRdFrame >= rd_frames){
 			if(activeTGA->file_done != true){
 				if(activeTGA->type == 'L'){
-					//process_tga_as_ldata();
+					process_tga_as_ldata();
 				}
 
 			NactiveTGA--;

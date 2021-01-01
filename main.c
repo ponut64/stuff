@@ -129,7 +129,8 @@ void	update_gamespeed(void)
 	static int bad_frames = 0;
 	
 	lastTimes[time_selector] = frmrt;
-	bad_frames += (frmrt > 40) ? 1 : 0;
+	//If the frame-time is too fast or too slow, mark it as a bad frame.
+	bad_frames += (frmrt < 30 || frmrt > 35) ? 1 : 0;
 	time_selector = (time_selector > 66) ? 0 : time_selector+1;
 	
     framerate = (frmrt)>>4;
@@ -180,18 +181,41 @@ gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
 
 gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"TRE.GVP",  &entities[2], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"PINE.GVP",		&entities[2], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"LOG.GVP",		&entities[3], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"BRING.GVP",  &entities[0], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"BENCH.GVP",		&entities[4], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"TABLE.GVP",		&entities[5], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"COUCH.GVP",		&entities[6], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"CRATE.GVP",		&entities[7], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"JOOSE.GVP",  &entities[1], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"FIRE.GVP",		&entities[8], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"FURNACE.GVP",	&entities[9], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"LAMP.GVP",		&entities[10], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"LANTERN.GVP",	&entities[11], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"PILLAR.GVP",  &entities[3], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"CANE.GVP",		&entities[12], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"SNOWMAN.GVP",	&entities[13], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"WREATH.GVP",	&entities[14], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"GIFT.GVP",		&entities[15], true, SORT_CEN, 'N');
 
-gvModelRequest((Sint8*)"BUILD.GVP",  &entities[4], true, SORT_MAX, 'B');
+gvModelRequest((Sint8*)"CART.GVP",		&entities[16], true, SORT_CEN, 'N');
+gvModelRequest((Sint8*)"PILE.GVP",		&entities[17], true, SORT_CEN, 'N');
 
+gvModelRequest((Sint8*)"HOUSE.GVP",		&entities[18], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"IGLOO.GVP",		&entities[19], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"AIRPLAT.GVP",	&entities[20], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"TRAILER.GVP",	&entities[21], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"CAMP.GVP",		&entities[22], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"ISLE.GVP",		&entities[23], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"TOWER.GVP",		&entities[24], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"GATE0.GVP",		&entities[25], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"GATE1.GVP",		&entities[26], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"GATE2.GVP",		&entities[27], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"GATE3.GVP",		&entities[28], true, SORT_CEN, 'B');
+gvModelRequest((Sint8*)"GATE4.GVP",		&entities[29], true, SORT_CEN, 'B');
 
-p64MapRequest((Sint8*)"00");
+p64MapRequest(0);
 
 }
 

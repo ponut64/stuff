@@ -3,7 +3,7 @@
 #include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
-#define SUBDIVISION_SCALE (75)
+#define SUBDIVISION_SCALE (50)
 
 int prntidx = 0;
 
@@ -149,7 +149,10 @@ bool		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 void	per_poly_collide(PDATA * mesh, POINT mesh_position, _boundBox * mover)
 {
 
-short testing_planes[128];
+		if(you.hitObject == true) return;
+
+static short testing_planes[128];
+static unsigned char backfaced[128];
 short total_planes = 0;
 POINT discard_vector = {0, 0, 0};
 bool hitY = false;
@@ -178,15 +181,12 @@ prntidx = 0;
 	//////////////////////////////////////////////////////////////
 	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
 	{
-			if(mesh->attbl[dst_poly].flag != 0)
-			{
-				testing_planes[total_planes] = dst_poly;
-				total_planes++;
-				continue;
-			}
-			discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X]) - mover->pos[X] - mesh_position[X];
-			discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y]) - mover->pos[Y] - mesh_position[Y];
-			discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z]) - mover->pos[Z] - mesh_position[Z];
+			discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X])
+			- mover->prevPos[X] - mesh_position[X];
+			discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y])
+			- mover->prevPos[Y] - mesh_position[Y];
+			discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z])
+			- mover->prevPos[Z] - mesh_position[Z];
 
 			int normal_discard = fxdot(discard_vector, mesh->pltbl[dst_poly].norm);
 				
@@ -196,9 +196,24 @@ prntidx = 0;
 	// slPrintFX(discard_vector[Z], slLocate(2, 12));
 	// slPrint("Dot product:", slLocate(1, 13));
 	// slPrintFX(normal_discard, slLocate(2, 14));
-				
-			if(normal_discard >= -(5<<16) && total_planes < 128){
+			
+			/////////
+			// Dual-plane handling
+			/////////
+			if(mesh->attbl[dst_poly].flag != 0 && total_planes < 128)
+			{
 				testing_planes[total_planes] = dst_poly;
+				backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
+				total_planes++;
+				continue;
+			}
+			/////////
+			// Single-plane handling
+			/////////
+			if(normal_discard >= -(5<<16) && total_planes < 128)
+			{
+				testing_planes[total_planes] = dst_poly;
+				backfaced[total_planes] = 0;
 				total_planes++;
 			}
 	}
@@ -276,6 +291,7 @@ for(int i = 0; i < total_planes; i++)
 	used_normal[X] = (mesh->pltbl[testing_planes[i]].norm[X]);
 	used_normal[Y] = (mesh->pltbl[testing_planes[i]].norm[Y]);
 	used_normal[Z] = (mesh->pltbl[testing_planes[i]].norm[Z]);
+
 	if(dominant_axis == N_Xp && used_normal[X] < 0) dominant_axis = N_Xn;
 	if(dominant_axis == N_Yp && used_normal[Y] < 0) dominant_axis = N_Yn;
 	if(dominant_axis == N_Zp && used_normal[Z] < 0) dominant_axis = N_Zn;
@@ -330,7 +346,13 @@ for(int i = 0; i < total_planes; i++)
 	// Since we know that, we can start with a winding test comparing the point to the plane.
 	// When we do this, we will discard the major axis of the normal to make it 2D.
 	//////////////////////////////////////////////////////////////
-
+	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
+	if(backfaced[i])
+	{
+		used_normal[X] = -used_normal[X];
+		used_normal[Y] = -used_normal[Y];
+		used_normal[Z] = -used_normal[Z];
+	}
 	//////////////////////////////////////////////////////////////
 	// Line Checks Y
 	//////////////////////////////////////////////////////////////
@@ -346,7 +368,7 @@ for(int i = 0; i < total_planes; i++)
 					{
 						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis))
 						{
-							if(dominant_axis == N_Yn)
+							if(dominant_axis == N_Yn && !backfaced[i])
 							{
 								used_normal[X] = -used_normal[X]; 
 								used_normal[Y] = -used_normal[Y];
@@ -456,10 +478,6 @@ for(int i = 0; i < total_planes; i++)
 	// Per testing plane loop end stub
 	//////////////////////////////////////////////////////////////
 }
-	if(!hitY && !hitXZ)
-	{
-	you.hitObject = false;
-	}
 	//////////////////////////////////////////////////////////////
 	// Per polygon collision function end stub
 	//////////////////////////////////////////////////////////////
@@ -898,7 +916,6 @@ prntidx = 0;
 	/**
 	Rendering Planes
 	With polygon subdivision based on the Z (depth)
-	
 
 	Load up a plane.
 	Transform its vertices by the matrix, but don't explicitly screenspace transform it.
@@ -1010,7 +1027,27 @@ for(int i = 0; i < total_planes; i++)
         subdivided_points[u][X] = trans_pt_by_component(pl_pts[u], m0x);
 
 		subdivided_polygons[0][u] = u;
+	//////////////////////////////////////////////////////////////
+	// Early screenspace transform to throw out off-screen planes
+	//////////////////////////////////////////////////////////////
+		//Push to near-plane
+		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > 20<<16) ? subdivided_points[u][Z] : 20<<16;
+		//Get 1/z
+		inverseZ = fxdiv(MsScreenDist, ssh2VertArea[u].pnt[Z]);
+        //Transform to screen-space
+        ssh2VertArea[u].pnt[X] = fxm(subdivided_points[u][X], inverseZ)>>SCR_SCALE_X;
+        ssh2VertArea[u].pnt[Y] = fxm(subdivided_points[u][Y], inverseZ)>>SCR_SCALE_Y;
+        //Screen Clip Flags for on-off screen decimation
+		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[u].clipFlag;
 	}
+		 if(ssh2VertArea[0].clipFlag
+		 & ssh2VertArea[1].clipFlag
+		 & ssh2VertArea[2].clipFlag
+		 & ssh2VertArea[3].clipFlag) continue;
 	//////////////////////////////////////////////////////////////
 	// We have at least four vertices, and at least one polygon (the plane's data itself).
 	//////////////////////////////////////////////////////////////
@@ -1179,12 +1216,14 @@ for(int i = 0; i < total_planes; i++)
 			if(active_lights[l].pop == 1)
 			{
 				relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
-														+ subdivided_points[subdivided_polygons[j][2]][X])>>1));
+														+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>16;
 				relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
-														+ subdivided_points[subdivided_polygons[j][2]][Y])>>1));
+														+ subdivided_points[subdivided_polygons[j][2]][Y])>>1))>>16;
 				relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
-														+ subdivided_points[subdivided_polygons[j][2]][Z])>>1));
-				inverted_proxima = fxdot(relative_light_pos, relative_light_pos)>>16;
+														+ subdivided_points[subdivided_polygons[j][2]][Z])>>1))>>16;
+				inverted_proxima = (relative_light_pos[X] * relative_light_pos[X]) +
+									(relative_light_pos[Y] * relative_light_pos[Y]) +
+									(relative_light_pos[Z] * relative_light_pos[Z]);
 				inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
 						
 				luma += inverted_proxima * (int)active_lights[l].bright;

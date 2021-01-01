@@ -72,7 +72,7 @@ extern _boundBox pl_RBB;
 void	makeBoundBox(_object_arguments * source_data);
 void	make2AxisBox(_object_arguments * source_data);
 void	initPhys(void);
-
+void	flush_boxes(int start);
 
 #endif
 
