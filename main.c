@@ -253,22 +253,22 @@ void	attributions(void)
 {
 	slPrint("Created by Ponut64", slLocate(3, 4));
 	slPrint("Contributions:", slLocate(3, 6));
-	slPrint("XL2 - Binary model file process", slLocate(3, 7));
-	slPrint("XL2 - Animation data (de)compression", slLocate(3, 8));
-	slPrint("XL2 - Renderpath Prototype", slLocate(3, 9));
-	slPrint("XL2 - Teaching", slLocate(3, 10));
+	slPrint("XL2 - Essential knowledge & tools", slLocate(3, 7));
 	slPrint("Emerald Nova - fixed-point timer", slLocate(3, 11));
-	slPrint("vbt - GCC 9.2 & SGL fixes", slLocate(3, 12));
 	slPrint("fafling - actually read VDP2 manual", slLocate(3, 13));
-	slPrint("mrkotftw - DMA & RISC education", slLocate(3, 14));
-	slPrint("Johannez Fetz - dev environment", slLocate(3, 15));
-	slPrint("& the few parts of jo engine", slLocate(3, 16));
-	slPrint("that actually work [Kappa]", slLocate(3, 17));
-	slPrint("music from Freedom Planet", slLocate(3, 19));
-	slPrint("[ u h  o h ]", slLocate(3, 20));
+	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
+	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
+	slPrint("music from The Horde [TfB]", slLocate(3, 19));
+
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
-	slPrint("PRESS START", slLocate(3, 24));
-	do{slSynch();}while(!is_key_pressed(DIGI_START));
+	slPrint("Give it a second", slLocate(3, 24));
+	
+	int add = 0;
+	
+	do{
+		slSynch();
+		add++;
+		}while(add < 300);
 	jo_clear_screen();
 }
 
@@ -296,7 +296,7 @@ void	jo_main(void)
 	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
-	//attributions();
+	attributions();
 	//
 	fill_obj_list();
 	load_test();

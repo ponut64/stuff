@@ -11,8 +11,8 @@
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
 #define INTERNAL_MAX_POLY 2600 //Slave only 1700
 #define INTERNAL_MAX_VERTS 2800 //Slave only 2800
-#define MAX_SSH2_SENT_POLYS (1200) //SpriteBuf size limitation // thanks VBT for fixing sglarea.o for me
-#define MAX_MSH2_SENT_POLYS (800) //SpriteBuf size limitation 
+#define MAX_SSH2_SENT_POLYS (700) //SpriteBuf size limitation // thanks VBT for fixing sglarea.o for me
+#define MAX_MSH2_SENT_POLYS (600) //SpriteBuf size limitation 
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 //VDP1 perf limit depends on how many pixels it's drawing.

@@ -205,8 +205,8 @@ SYSOBJS =
 
 # remove the comment below when nosgl.linker is fixed
 #ifeq (1,${JO_COMPILE_USING_SGL})
-	#SYSOBJS += $(SGLLDR)/SGLAREA.O
-	SYSOBJS += $(SGLIDR)/workarea.c
+	SYSOBJS += $(SGLLDR)/SGLAREA.O
+	#SYSOBJS += $(SGLIDR)/workarea.c
 #endif
 
 OBJS = $(SRCS:.c=.o)

@@ -31,7 +31,7 @@ void pl_jump(void){
 			you.Velocity[X] += fxm(196608, you.floorNorm[X]); 
 			you.Velocity[Y] += fxm(196608, you.floorNorm[Y]);
 			you.Velocity[Z] += fxm(196608, you.floorNorm[Z]);
-		pcm_play(snd_bstep, PCM_SEMI, 7, 0);
+		pcm_play(snd_bstep, PCM_SEMI, 7);
 }
 
 void pl_jet(void){
@@ -53,7 +53,7 @@ void pl_jet(void){
 			} else {
 			you.Velocity[Y] += fxm(6553, frmul); 
 			}
-		pcm_play(snd_bwee, PCM_PROTECTED, 7, 0);
+		pcm_play(snd_bwee, PCM_PROTECTED, 7);
 }
 
 
@@ -92,7 +92,7 @@ void	pl_step_snd(void){
 	
 	if(runSnd == 1)
 	{
-		pcm_play(snd_lstep, PCM_SEMI, 6, 0);
+		pcm_play(snd_lstep, PCM_SEMI, 6);
 	}
 	
 	oldHoofSetBools[0] = hoofSetBools[0];
@@ -284,7 +284,7 @@ void	player_phys_affect(void)
 
 	//Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
-	pcm_play(snd_wind, PCM_FWD_LOOP, windVol, 0); 
+	pcm_play(snd_wind, PCM_FWD_LOOP, windVol); 
 	
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		

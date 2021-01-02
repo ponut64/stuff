@@ -73,7 +73,7 @@ void	music_vblIn(Uint8 vol){
 ///Really, it's missing by a sub-ms time. But you can still hear it.
 	if(m_trig == true){
 	if(fetch_timer == 0){
-		pcm_play(bufNums[buf_pos], PCM_SEMI, vol, 0);
+		pcm_play(bufNums[buf_pos], PCM_SEMI, vol);
 	}
 		fetch_timer++;
 	if(fetch_timer >= musicTimer){

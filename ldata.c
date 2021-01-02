@@ -59,6 +59,10 @@ void	process_tga_as_ldata(void)
 	//	jo_printf(0, 0, "(%i)", totalPix);
 	
 	objNEW = 0;
+	for(int k = 0; k < 8; k++)
+	{
+		link_starts[k] = -1; //Re-set link starts to no links conidition
+	} 
 	
 		for(int i = 0; i < ySize; i++)
 		{

@@ -28,7 +28,8 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].srot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].srot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].srot[Z] = (zrot * 182);
-	dWorldObjects[objNEW].link = -1;
+	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
+	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
 	dWorldObjects[objNEW].more_data = 0;
 	objNEW++;
 		}
@@ -51,6 +52,8 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	dWorldObjects[objNEW].srot[Y] = 0;
 	dWorldObjects[objNEW].srot[Z] = 0;
 	dWorldObjects[objNEW].more_data = 0;
+	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
+	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
 	objNEW++;
 		}
 }
@@ -58,16 +61,16 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 void	declarations(void)
 {
 	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
-	for(int k = 0; k < 8; k++)
+/* 	for(int k = 0; k < 8; k++)
 	{
 		link_starts[k] = -1; //Re-set link starts to no links conidition
-	}
+	} */
 
-	for(int i = 0; i < objNEW; i++)
+/* 	for(int i = 0; i < objNEW; i++)
 	{
 		dWorldObjects[i].link = link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 		link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12] = i; //Set the current link of this type to this entry
-	}
+	} */
 }
 
 //I'm not sure if this whole system is ideal.
@@ -138,7 +141,7 @@ void	object_control_loop(int ppos[XY])
 						// Temporary, but will change levels.
 						//////////////////////////////////////////
 						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						pcm_play(snd_win, PCM_PROTECTED, 7, 0);
+						pcm_play(snd_win, PCM_PROTECTED, 7);
 						map_chg = false;
 						p64MapRequest(dWorldObjects[i].type.entity_ID);
 						///////////////////////////////////////////
@@ -439,7 +442,7 @@ void	add_to_track_timer(int index) //Careful with index -- This function does no
 			{
 				activeTrack = trackedLDATA;
 				trackTimers[object_track] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
-				pcm_play(snd_button, PCM_PROTECTED, 7, 0);
+				pcm_play(snd_button, PCM_PROTECTED, 7);
 				break;
 			}
 		}//PAST TRACK DATA
@@ -651,7 +654,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
 			dWorldObjects[activeObjects[index]].type.light_bright = 0; //Remove brightness
 			you.points++;
-			pcm_play(snd_click, PCM_SEMI, 7, 0);
+			pcm_play(snd_click, PCM_SEMI, 7);
 				}
 		}
 			}//Root entity check end
@@ -835,7 +838,7 @@ void	gate_track_manager(void)
 				activeTrack = -1;	//Release active track
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
 				complete_ldat++;
-				pcm_play(snd_cronch, PCM_PROTECTED, 7, 0); //Sound
+				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
 				slPrint("                           ", slLocate(0, 6));
 				slPrint("                           ", slLocate(0, 7));
 			}
@@ -851,7 +854,7 @@ void	gate_track_manager(void)
 						trackTimers[track_select] = 0;
 						activeTrack = -1; //Release active track
 						//Sound stuff
-						pcm_play(snd_alarm, PCM_PROTECTED, 7, 0);
+						pcm_play(snd_alarm, PCM_PROTECTED, 7);
 						//Clear screen in this zone
 				slPrint("                           ", slLocate(0, 6));
 				slPrint("                           ", slLocate(0, 7));
@@ -863,12 +866,11 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
 		{
-				if(complete_ldat != num_track_dat && num_track_dat != 0)
+				if(you.points <= 0x15)
 				{
 					//If you haven't crossed all the tracks, disable the level changer.
 					dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
-				} else if(complete_ldat == num_track_dat && you.points >= 10)
-				{
+				} else {
 					//If you have enough points and crossed all the tracks, enable the level changer.
 					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
 				}
@@ -881,7 +883,7 @@ void	gate_track_manager(void)
 	//Completed all tracks
 	if(complete_ldat == num_track_dat && link_starts[LDATA>>12] > -1)
 	{
-		pcm_play(snd_win, PCM_PROTECTED, 7, 0);
+		pcm_play(snd_win, PCM_PROTECTED, 7);
 		complete_ldat = 0;
 		//map_chg = false;
 		//p64MapRequest(1);
