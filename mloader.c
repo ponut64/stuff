@@ -1,4 +1,5 @@
 #include "mloader.h"
+#include "physobjet.h"
 
 entity_t entities[MAX_MODELS];
 unsigned int gouraudCounter;
@@ -91,12 +92,12 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
     return workAddress;
 }
 
-void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType)
+void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType)
 {
 
 	modelData_t model_header;
 	void * workAddress = startAddress;
-	
+	model->type = modelType;
 	GfsHn gfs_mdat;
 	Sint32 sector_count;
 	Sint32 file_size;
@@ -147,6 +148,52 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
 		readByte += tSize;
 	}
+	
+	////////////////
+	// If the model type is 'B' (for BUILDING), create combined textures.
+	// Also read the item data at the end of the payload.
+	////////////////
+	if(model->type == 'B')
+	{
+		for(int j = 0; j < model->numTexture+1; j++)
+		{
+			make_combined_textures(model->base_texture + j);
+		}
+		
+		unsigned char * total_items = &readByte[0];
+		//unsigned char * unique_items = &readByte[1];
+		short * item_data = (short *)&readByte[2];	
+		
+		/////////////////////////////////////////////
+		// Item Data Payload
+		// It is appended at the end of the binary, past the textures.
+		// It is copied out of this region for permanent use in the BuildingPayload struct.
+		// It's order is:
+		// 0 byte: total items
+		// 1 byte: unique items
+		// every 8 bytes after
+		// item number, x, y, z, position (relative to entity) as 16-bit int
+		/////////////////////////////////////////////
+		for(int q = 0; q < *total_items; q++)
+		{
+			BuildingPayload[total_building_payload].object_type = *item_data++;
+			BuildingPayload[total_building_payload].pos[X] = *item_data++;
+			BuildingPayload[total_building_payload].pos[Y] = *item_data++;
+			BuildingPayload[total_building_payload].pos[Z] = *item_data++;
+			//Some way to find what entity # we're working with right now
+			BuildingPayload[total_building_payload].root_entity = (unsigned short)(model - entities);
+			total_building_payload++;
+		// jo_printf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
+		// jo_printf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);
+		// jo_printf(1, 15+q, "x(%i)", BuildingPayload[q].pos[X]);
+		// jo_printf(13, 15+q, "y(%i)", BuildingPayload[q].pos[Y]);
+		// jo_printf(26, 15+q, "z(%i)", BuildingPayload[q].pos[Z]);
+		}
+		
+		// jo_printf(1, 11, "uitem(%i)", *total_items);
+		// jo_printf(1, 13, "amnti(%i)", *unique_items);
+	}
+
 	
 	//////////////////////////////////////////////////////////////////////
 	// Set radius

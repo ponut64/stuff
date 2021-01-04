@@ -59,7 +59,7 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
 void * loadAnimations(void * startAddress, entity_t * model, modelData_t * modelData);
 
 /** This function loads a 3d polygonal model. Returns the last address in RAM (to allow loading multiple meshes)**/
-void *	gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType);
+void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType);
 
 
 #endif 

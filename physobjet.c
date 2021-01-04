@@ -866,14 +866,14 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
 		{
-				if(you.points <= 0x15)
-				{
+				//if(you.points <= 0x15)
+				//{
 					//If you haven't crossed all the tracks, disable the level changer.
-					dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
-				} else {
+				//	dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
+				//} else {
 					//If you have enough points and crossed all the tracks, enable the level changer.
-					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
-				}
+				//	dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
+				//}
 		}
 
 

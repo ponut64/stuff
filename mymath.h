@@ -8,8 +8,10 @@ FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(VECTOR ptA, VECTOR ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);
 
+FIXED		approximate_distance(FIXED * p0, FIXED * p1);
+
 int		unfix_length(FIXED Max[XYZ], FIXED Min[XYZ]);
-void	segment_to_vector(FIXED start[XYZ], FIXED end[XYZ], FIXED out[XYZ]);
+void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);
 
 void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ]);
 void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ]);

@@ -108,17 +108,14 @@ void	add_texture_to_vram(int width, int height)
 void	make_combined_textures(int texture_number)
 {
 	
-	///////////////////////////////////////////
-	// The goal here is to make 3 new textures that are combined versions of the original texture.
-	// This is specifically for polygon subdivision.
-	// These are added after the original texture sets complete payload, so we don't re-use the data from the original.
-	// To mask the change from the divided and subdivided polygons, we want larger, combined variants of the original.
-	// The first texture combination is X * (Y*2). This is the easiest, because you can just copy the texture over once.	// The second texture is (X*2) * Y.
-	// This is complex, because you first must allocate a space twice the original's size,
-	// then write each line from the first texture twice.
-	// The final texture is (X*2) * (Y*2).
-	// This texture can just be (X*2) * Y, duplicated once, using the same source address as (X*2) * Y.
-	///////////////////////////////////////////
+	/////////////////////////////////////////////////
+	/*
+	Creates combined textures of the same size as the original.
+	Texture 1: Skips every even row (appears tiled in Y)
+	Texture 2: Skips every even column (appears tiled in X)
+	Texture 3: Skips every even row and column (appears tiled in XY)
+	*/
+	/////////////////////////////////////////////////
 
 	unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texture_number].SRCA<<3)));
 	unsigned char * readByte = source_texture_data;
@@ -133,50 +130,54 @@ void	make_combined_textures(int texture_number)
 	//Set up the texture structs.
 	//First texture --> X , Y*2
 	unsigned char * first_texture_start = curVRAMptr;
-	pcoTexDefs[numTex].SIZE = (((base_x)>>3)<<8) | base_y<<1;
+	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)first_texture_start); 
 	numTex++;
 	//Second texture -> X*2, Y
-	unsigned char * second_texture_start = curVRAMptr + (total_bytes_of_original_texture<<1);
-	pcoTexDefs[numTex].SIZE = (((base_x*2)>>3)<<8) | base_y;
+	unsigned char * second_texture_start = curVRAMptr + (total_bytes_of_original_texture);
+	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)second_texture_start); 
 	numTex++;
-	//Third texture -> X*2, Y*2 -- starts at same place as second texture
-	unsigned char * third_texture_start = second_texture_start;
-	pcoTexDefs[numTex].SIZE = (((base_x*2)>>3)<<8) | base_y<<1;
+	//Third texture -> X*2, Y*2 
+	unsigned char * third_texture_start = curVRAMptr + (total_bytes_of_original_texture<<1);
+	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)third_texture_start); 
 	numTex++;
-	//Texture 1: Copy the data from the original, twice over.
-	for(int j = 0; j < total_bytes_of_original_texture; j++)
+	//Texture 1: Copy the base texture, but skip every even row.
+	int readPoint = 0;
+	for(int j = 0; j < (base_y<<1); j++)
 	{
-		*first_texture_start++ = readByte[j];
+		if( j & 1 )
+		{
+		for(int w = 0; w < base_x; w++)
+		{
+		*first_texture_start++ = readByte[readPoint++];
+		}
+		}
 	}
-	for(int j = 0; j < total_bytes_of_original_texture; j++)
-	{
-		*first_texture_start++ = readByte[j];
-	}
-	//Texture 2: Copy the data from the original, but copy each line twice.
+	readPoint = 0;
+	//Texture 2: Copy the base texture, but skip every even column.
 	for(int j = 0; j < base_y; j++)
 	{
-		for(int w = 0; w < base_x; w++)
+		for(int w = 0; w < (base_x<<1); w++)
 		{
-			*second_texture_start++ = readByte[(j * base_x) + w];
-		}
-		for(int w = 0; w < base_x; w++)
-		{
-			*second_texture_start++ = readByte[(j * base_x) + w];
+		if(w & 1) *second_texture_start++ = readByte[readPoint++];
 		}
 	}
-	//Texture 3: Copy the data from texture 2. Do some pointer juggling.
-		second_texture_start = third_texture_start;
-		third_texture_start += (total_bytes_of_original_texture<<1);
-	for(int j = 0; j < (total_bytes_of_original_texture<<1); j++)
+	readPoint = 0;
+	//Texture 3: Copy the base texture, but skip every even column and row.
+	for(int j = 0; j < (base_y<<1); j++)
 	{
-		*third_texture_start++ = second_texture_start[j];
+		if( j & 1 )
+		{
+		for(int w = 0; w < (base_x<<1); w++)
+		{
+		if(w & 1) *third_texture_start++ = readByte[readPoint++];
+		}
+		}
 	}
-	//Total combined texture data is the original texture size, copied six times over.
-	//Twice for the first duplicate, four times for the second.
-	curVRAMptr += (total_bytes_of_original_texture * 6);
+	//Total combined texture data is the original texture size, copied three times over.
+	curVRAMptr += (total_bytes_of_original_texture * 3);
 }
 
 /*

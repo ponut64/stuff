@@ -13,10 +13,12 @@
 #define INV_CELL_SIZE (2621) // 25 / 1
 #define CELL_SIZE_INT (25)
 //////////////////////////////////
+#define	HIMEM	(100679680)
 //////////////////////////////////
 #define UNCACHE (0x20000000)
 #define VDP2_RAMBASE (0x25E00000)
-#define LWRAM	(2097152)
+#define LWRAM (0x200000)
+#define LWRAM_END (LWRAM + 0x100000)
 //////////////////////////////////
 // Polygon draw direction flipping flags
 //////////////////////////////////

@@ -3,8 +3,6 @@
 #ifndef __TGA_H__
 # define __TGA_H__
 
-#define LWRAM	(2097152)
-#define	HIMEM	(100679680)
 #include "jo/jo.h"
 
 extern unsigned int * cRAM_24bm;

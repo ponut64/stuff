@@ -87,12 +87,37 @@ int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
 //////////////////////////////////
-void	segment_to_vector(FIXED start[XYZ], FIXED end[XYZ], FIXED out[XYZ])
+void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
 {
 	out[X] = (start[X] - end[X]);
 	out[Y] = (start[Y] - end[Y]);
 	out[Z] = (start[Z] - end[Z]);
 }
+
+//////////////////////////////////
+// Manhattan
+//
+// Cube root scalar.
+// 1.25992104989ish / 3 = 0.2467ish * 65536 = 16168
+//
+//////////////////////////////////
+FIXED		approximate_distance(FIXED * p0, FIXED * p1)
+{
+	// POINT difference;
+	// segment_to_vector(p0, p1, difference);
+	// int max = JO_MAX(JO_ABS(difference[X]), JO_MAX(JO_ABS(difference[Y]), JO_ABS(difference[Z])));
+	// if(max == JO_ABS(difference[X]))
+	// {
+		// return JO_ABS(p0[X] - p1[X]) + fxm(JO_ABS(p0[Y] - p1[Y]), 16168) + fxm(JO_ABS(p0[Z] - p1[Z]), 16168);
+	// } else if(max == JO_ABS(difference[Y]))
+	// {
+		// return JO_ABS(p0[Y] - p1[Y]) + fxm(JO_ABS(p0[X] - p1[X]), 16168) + fxm(JO_ABS(p0[Z] - p1[Z]), 16168);
+	// } else {
+		// return JO_ABS(p0[Z] - p1[Z]) + fxm(JO_ABS(p0[Y] - p1[Y]), 16168) + fxm(JO_ABS(p0[X] - p1[X]), 16168);
+	// }
+	return (JO_ABS(p0[X] - p1[X]) + JO_ABS(p0[Y] - p1[Y]) + JO_ABS(p0[Z] - p1[Z]));
+}
+
 
 //////////////////////////////////
 // "fast inverse square root", but fixed-point

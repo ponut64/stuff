@@ -62,7 +62,8 @@ typedef struct {
 
 extern _object_arguments bound_box_starter;
 
-extern _boundBox * RBBs; //In LWRAM // 
+extern _boundBox BoundBoxHost[MAX_PHYS_PROXY];
+extern _boundBox * RBBs;
 extern _boundBox pl_RBB;
 
 //------------------------------------------------------------------------------------

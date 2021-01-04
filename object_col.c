@@ -527,30 +527,19 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 	// Quick check: If we are subdividing a polygon that is already tiny, cease further subdivision.
 	// Mostly useful on trapezoidal shapes or triangles where subdivision clusters on the short edge.
 	//////////////////////////////////////////////////////////////////
-	manhattan_01 = (JO_ABS(ptv[0][X] - ptv[1][X])
-				+ JO_ABS(ptv[0][Y] - ptv[1][Y])
-				+ JO_ABS(ptv[0][Z] - ptv[1][Z]));
-				
-	manhattan_32 = (JO_ABS(ptv[3][X] - ptv[2][X])
-				+ JO_ABS(ptv[3][Y] - ptv[2][Y])
-				+ JO_ABS(ptv[3][Z] - ptv[2][Z]));
-				
-	manhattan_12 = (JO_ABS(ptv[1][X] - ptv[2][X])
-				+ JO_ABS(ptv[1][Y] - ptv[2][Y])
-				+ JO_ABS(ptv[1][Z] - ptv[2][Z]));
-
-	manhattan_03 = (JO_ABS(ptv[0][X] - ptv[3][X])
-				+ JO_ABS(ptv[0][Y] - ptv[3][Y])
-				+ JO_ABS(ptv[0][Z] - ptv[3][Z]));
+		manhattan_01 = approximate_distance(ptv[0], ptv[1]);
+		manhattan_32 = approximate_distance(ptv[3], ptv[2]);
+		manhattan_12 = approximate_distance(ptv[2], ptv[1]);
+		manhattan_03 = approximate_distance(ptv[0], ptv[3]);
 	
 	perimeter = manhattan_01 + manhattan_32 + manhattan_12 + manhattan_03;
 		
-	if(perimeter < (100<<16))
+ 	if(perimeter < (100<<16))
 	{
 		//Return to master texture, then stop.
 		used_textures[poly_a] = 0;
 		return;
-	}
+	} 
 	
 	manhattan_alpha = JO_MAX(manhattan_01, manhattan_32)>>5;
 	manhattan_beta = JO_MAX(manhattan_12, manhattan_03)>>5;
@@ -1072,21 +1061,13 @@ for(int i = 0; i < total_planes; i++)
 	// If the difference within each pair (0->1 compared to 3->2 or 0->3 compared to 1->2) is large,
 	// we want to judge the number of subdivisions based on that difference, instead of the length of the longest edge.
 	//////////////////////////////////////////////////////////////
-		manhattan_01 = (JO_ABS(pl_pts[0][X] - pl_pts[1][X])
-					+ JO_ABS(pl_pts[0][Y] - pl_pts[1][Y])
-					+ JO_ABS(pl_pts[0][Z] - pl_pts[1][Z]));
+		manhattan_01 = approximate_distance(pl_pts[0], pl_pts[1]);
 					
-		manhattan_32 = (JO_ABS(pl_pts[3][X] - pl_pts[2][X])
-					+ JO_ABS(pl_pts[3][Y] - pl_pts[2][Y])
-					+ JO_ABS(pl_pts[3][Z] - pl_pts[2][Z]));
+		manhattan_32 = approximate_distance(pl_pts[3], pl_pts[2]);
 					
-		manhattan_12 = (JO_ABS(pl_pts[1][X] - pl_pts[2][X])
-					+ JO_ABS(pl_pts[1][Y] - pl_pts[2][Y])
-					+ JO_ABS(pl_pts[1][Z] - pl_pts[2][Z]));
+		manhattan_12 = approximate_distance(pl_pts[2], pl_pts[1]);
 
-		manhattan_03 = (JO_ABS(pl_pts[0][X] - pl_pts[3][X])
-					+ JO_ABS(pl_pts[0][Y] - pl_pts[3][Y])
-					+ JO_ABS(pl_pts[0][Z] - pl_pts[3][Z]));
+		manhattan_03 = approximate_distance(pl_pts[0], pl_pts[3]);
 
 			manhattan_alpha = JO_MAX(manhattan_01, manhattan_32)>>5;
 			manhattan_beta = JO_MAX(manhattan_12, manhattan_03)>>5;
@@ -1115,6 +1096,7 @@ for(int i = 0; i < total_planes; i++)
 	///////////////////////////////////////////
 	number_of_subdivisions = (manhattan_alpha + manhattan_beta)>>18;
 	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
+	//used_textures[0] = 3;
 	///////////////////////////////////////////
 	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
 	///////////////////////////////////////////
@@ -1124,8 +1106,9 @@ for(int i = 0; i < total_planes; i++)
 	///////////////////////////////////////////
 	// Convert the manhattan longitude distance to integer
 	///////////////////////////////////////////
-	number_of_subdivisions = (manhattan_alpha)>>17;
+	number_of_subdivisions = (manhattan_alpha)>>16;
 	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
+	//used_textures[0] = 2;
 	///////////////////////////////////////////
 	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
 	///////////////////////////////////////////
@@ -1135,12 +1118,13 @@ for(int i = 0; i < total_planes; i++)
 	///////////////////////////////////////////
 	// Convert the manhattan latitude distance to integer
 	///////////////////////////////////////////
-	number_of_subdivisions = (manhattan_beta)>>17;
+	number_of_subdivisions = (manhattan_beta)>>16;
 	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
 	///////////////////////////////////////////
 	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
 	///////////////////////////////////////////
 	subdivide_plane(sub_vert_cnt, 0, '-', number_of_subdivisions);
+	//used_textures[0] = 1;
 	}
 	///////////////////////////////////////////
 	//
@@ -1174,7 +1158,7 @@ for(int i = 0; i < total_planes; i++)
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
 	
-	vertex_t * ptv[4] = {0, 0, 0, 0};
+	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
 		
@@ -1197,14 +1181,43 @@ for(int i = 0; i < total_planes; i++)
 				specific_texture = mesh->attbl[testing_planes[i]].texno;
 			}
 		///////////////////////////////////////////
-		// Z-Sorting Stuff
-		// There are sorting issues when polygons are transformed near the edges of the screen.
-		// It is this way due to the projection of a non-orthographic screen onto an orthographic surface...
-		// Wonder if I could Z-sort based on distance from player instead?
+		// Z-Sorting Stuff	
+		// Uses weighted max
 		///////////////////////////////////////////
-		 zDepthTgt = JO_MAX(
+		 zDepthTgt = (JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
+		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen
+		///////////////////////////////////////////
+		unsigned short flip = 0;
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
+			// 0 - 1		^
+			//-------- Edge | Y-
+			// 3 - 2		|
+			//				
+            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
+            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
+            flip ^= 1<<5; //sprite flip value [v flip]
+			//Outgoing Arrangement:
+			// 3 - 2		^
+			//-------- Edge | Y-
+			// 0 - 1		|
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
+			//	0 | 1
+			//	3 | 2
+			//	 Edge  ---> X+
+            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
+            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
+            flip ^= 1<<4; //sprite flip value [h flip]
+			//Outgoing Arrangement:
+			// 1 | 0
+			// 2 | 3
+			//	Edge	---> X+
+		}
 		///////////////////////////////////////////
 		// Lighting Math
 		// Using some approximation of an inverse squared law
@@ -1241,7 +1254,7 @@ for(int i = 0; i < total_planes; i++)
 		ptv[1]->pnt,
 		ptv[2]->pnt,
 		ptv[3]->pnt,
-		2, (5264 | (mesh->attbl[testing_planes[i]].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+		2 | flip, (5264 | (mesh->attbl[testing_planes[i]].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
 		pcoTexDefs[specific_texture].SRCA, colorBank<<6, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}
     transVerts[0] += sub_vert_cnt;

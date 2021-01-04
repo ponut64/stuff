@@ -7,7 +7,8 @@ This file is compiled separately.
 
 #include "bounder.h"
 
-_boundBox * RBBs; //In LWRAM // 
+_boundBox BoundBoxHost[MAX_PHYS_PROXY];
+_boundBox * RBBs; 
 _boundBox pl_RBB;
 _object_arguments bound_box_starter;
 Uint8 curBoxes = 0;
@@ -276,6 +277,9 @@ void	flush_boxes(int start)
 }
 
 void	initPhys(void){
+		//The bound box / matrix parameter struct has to be uncached, since it is shared between master & slave.
+		// But don't be stupid like I was for a long time. See, I used to put it in LWRAM. LWRAM is SLOW!!!!
+		RBBs = (_boundBox *)((unsigned int)(&BoundBoxHost[0]) | UNCACHE);
 	for(Uint8 x = 0; x<MAX_PHYS_PROXY; x++){
 		RBBs[x].status[0] = 'N';
 		RBBs[x].status[1] = 'N';
