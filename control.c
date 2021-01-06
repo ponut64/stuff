@@ -46,9 +46,9 @@ void reset_player(void)
     you.moment[X]=0;
     you.moment[Y]=0;
     you.moment[Z]=0;
-    you.Velocity[X]=0;
-    you.Velocity[Y]=0;
-    you.Velocity[Z]=0;
+    you.velocity[X]=0;
+    you.velocity[Y]=0;
+    you.velocity[Z]=0;
     you.Force[X]=0;
     you.Force[Y]=0;
     you.Force[Z]=0;

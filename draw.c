@@ -167,9 +167,9 @@ void	player_draw(void)
 				if(you.hitSurface == true){
 				airTimer = 0;
 					if(you.setSlide != true && airTimer == 0){
-						if(you.Velocity[X] == 0 && you.Velocity[Y] == 0 && you.Velocity[Z] == 0){
+						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0){
 							ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
-						} else if( (you.Velocity[X] != 0 || you.Velocity[Z] != 0) && you.dirInp){
+						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp){
 						if(you.IPaccel < 0){
 							ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
 							}
@@ -182,7 +182,7 @@ void	player_draw(void)
 						if(you.sanics >= 3<<16){
 							ssh2DrawAnimation(&dbound, &pl_model, you.pos, true);
 							}
-						} else if((you.Velocity[X] != 0 || you.Velocity[Z] != 0) && !you.dirInp){
+						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp){
 						ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
 						} else {
 						ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
@@ -204,7 +204,7 @@ void	player_draw(void)
 					
 				} else {//IF SURFACE ENDIF
 						airTimer++;
-						if(airTimer < 8 && airTimer != 0 && you.Velocity[Y] != 0){
+						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0){
 							ssh2DrawAnimation(&jump, &pl_model, you.pos, false);
 						} else if(is_key_pressed(DIGI_RIGHT)){
 						ssh2DrawAnimation(&airRight, &pl_model, you.pos, false);
@@ -408,12 +408,12 @@ void	master_draw(void)
 	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
 	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
 	//
-	hmap_matrix_pos[X] = (you.pos[X] + you.Velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
-	hmap_matrix_pos[Z] = (you.pos[Z] + you.Velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
+	hmap_matrix_pos[X] = (you.pos[X] + you.velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
+	hmap_matrix_pos[Z] = (you.pos[Z] + you.velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
 	
-	hmap_actual_pos[X] = hmap_matrix_pos[X] - (you.pos[X] + you.Velocity[X]);
+	hmap_actual_pos[X] = hmap_matrix_pos[X] - (you.pos[X] + you.velocity[X]);
 	hmap_actual_pos[Y] = 0;
-	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.Velocity[Z]);
+	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.velocity[Z]);
 	
 	run_dsp();
 	

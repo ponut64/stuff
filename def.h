@@ -72,7 +72,7 @@ typedef struct {
 	int renderRot[XYZ];
 	ANGLE viewRot[XYZ];
 	int rotState[XYZ];
-	FIXED Velocity[XYZ];
+	FIXED velocity[XYZ];
 	FIXED gravAccel;
 	FIXED Accel[XYZ];
 	FIXED Force[XYZ];

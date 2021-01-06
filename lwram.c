@@ -12,6 +12,10 @@ void	init_division_table(void)
 
 void	init_lwram(void)
 {
+	////////////////////////////////////
+	//Initialize all of LWRAM
+	//This should not be needed, but whatever, you know?
+	////////////////////////////////////
 	short * init_sample = (short*)LWRAM;
 	for(int i = 0; i < (512 * 1024); i++)
 	{
