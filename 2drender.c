@@ -4,25 +4,33 @@
 
 #include "render.h"
 
-_sprite sprWorkList[64];
-
 void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int time)
 {
-	sprWorkList[*sprite_list_size].time = time;
-	sprWorkList[*sprite_list_size].pos[X] = position[X];
-	sprWorkList[*sprite_list_size].pos[Y] = position[Y];
-	sprWorkList[*sprite_list_size].pos[Z] = position[Z];
-	sprWorkList[*sprite_list_size].span = span;
-	sprWorkList[*sprite_list_size].texno = texno;
-	sprWorkList[*sprite_list_size].mesh = mesh;
-	sprWorkList[*sprite_list_size].type = type;
-	*sprite_list_size += 1;
+	int used_sprite = 64;
+	//Find an unused sprite list entry
+	for(int i = 0; i < MAX_SPRITES; i++)
+	{
+		if(sprWorkList[i].type == 'N')
+		{
+			used_sprite = i;
+			break;
+		}
+	}
+	if(used_sprite == 64) return;
+	
+	sprWorkList[used_sprite].time = time;
+	sprWorkList[used_sprite].pos[X] = position[X];
+	sprWorkList[used_sprite].pos[Y] = position[Y];
+	sprWorkList[used_sprite].pos[Z] = position[Z];
+	sprWorkList[used_sprite].span = span;
+	sprWorkList[used_sprite].texno = texno;
+	sprWorkList[used_sprite].mesh = mesh;
+	sprWorkList[used_sprite].type = type;
+
 }
 
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 {
-    MATRIX newMtx;
-
 	FIXED m0x[4];
 	FIXED m1y[4];
 	FIXED m2z[4];

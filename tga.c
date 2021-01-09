@@ -114,6 +114,7 @@ void	make_combined_textures(int texture_number)
 	Texture 1: Skips every even row (appears tiled in Y)
 	Texture 2: Skips every even column (appears tiled in X)
 	Texture 3: Skips every even row and column (appears tiled in XY)
+	Texture 4: Low LOD texture. Texture data reduced to 8x8.
 	*/
 	/////////////////////////////////////////////////
 
@@ -134,50 +135,134 @@ void	make_combined_textures(int texture_number)
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)first_texture_start); 
 	numTex++;
 	//Second texture -> X*2, Y
-	unsigned char * second_texture_start = curVRAMptr + (total_bytes_of_original_texture);
+	unsigned char * second_texture_start = first_texture_start + (total_bytes_of_original_texture);
 	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)second_texture_start); 
 	numTex++;
 	//Third texture -> X*2, Y*2 
-	unsigned char * third_texture_start = curVRAMptr + (total_bytes_of_original_texture<<1);
+	unsigned char * third_texture_start = second_texture_start + (total_bytes_of_original_texture);
 	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)third_texture_start); 
 	numTex++;
+	//Fourth texture -> X = 8, Y = 8
+	unsigned char * fourth_texture_start = third_texture_start + (total_bytes_of_original_texture);
+	pcoTexDefs[numTex].SIZE = (1<<8) | 8;
+	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)fourth_texture_start); 
+	numTex++;
 	//Texture 1: Copy the base texture, but skip every even row.
 	int readPoint = 0;
-	for(int j = 0; j < (base_y<<1); j++)
+	int write_point = 0;
+	//CORE CONCEPT: Get a copy of the texture, written in (base_x) and (base_y>>1) size.
+	//This copy is a downscale.
+	//Then copy that to this texture, two times.
+	/*
+	GETTING DOWNSCALE
+	*/
+	for(int j = 0; j < (base_y>>1); j++)
 	{
-		if( j & 1 )
+		for(int w = 0; w < (base_x); w++)
 		{
-		for(int w = 0; w < base_x; w++)
-		{
-		*first_texture_start++ = readByte[readPoint++];
+		readPoint = (j * base_x * 2) + (w);
+		dirty_buf[write_point] = readByte[readPoint];
+		write_point++;
 		}
+	}
+	/*
+	WRITING DOWNSCALE 2 TIMES
+	COMPLICATION: Pretty simple actually, just write the downscaled texture twice.
+	*/
+	for(int j = 0; j < 2; j++)
+	{
+		for(int w = 0; w < (base_y>>1); w++)
+		{
+			for(int v = 0; v < (base_x); v++)
+			{
+				*first_texture_start++ = dirty_buf[(w * (base_x)) + v];
+			}
 		}
 	}
 	readPoint = 0;
+	write_point = 0;
 	//Texture 2: Copy the base texture, but skip every even column.
-	for(int j = 0; j < base_y; j++)
+	//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y) size.
+	//This copy is a downscale.
+	//Then copy that to this texture, two times.
+	/*
+	GETTING DOWNSCALE
+	*/
+	for(int j = 0; j < (base_y); j++)
 	{
-		for(int w = 0; w < (base_x<<1); w++)
+		for(int w = 0; w < (base_x>>1); w++)
 		{
-		if(w & 1) *second_texture_start++ = readByte[readPoint++];
+		readPoint = (j * base_x) + (w * 2);
+		dirty_buf[write_point] = readByte[readPoint];
+		write_point++;
+		}
+	}
+	/*
+	WRITING DOWNSCALE 2 TIMES
+	COMPLICATION: Must write each line of the downscaled texture twice!
+	*/
+	for(int w = 0; w < (base_y); w++)
+	{
+		for(int v = 0; v < (base_x>>1); v++)
+		{
+			*second_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
+		}
+		for(int v = 0; v < (base_x>>1); v++)
+		{
+			*second_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
 		}
 	}
 	readPoint = 0;
+	write_point = 0;
 	//Texture 3: Copy the base texture, but skip every even column and row.
-	for(int j = 0; j < (base_y<<1); j++)
+	//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y>>1) size.
+	//This copy is a downscale.
+	//Then copy that to this texture, four times.
+	/*
+	GETTING DOWNSCALE
+	*/
+	for(int j = 0; j < (base_y>>1); j++)
 	{
-		if( j & 1 )
+		for(int w = 0; w < (base_x>>1); w++)
 		{
-		for(int w = 0; w < (base_x<<1); w++)
-		{
-		if(w & 1) *third_texture_start++ = readByte[readPoint++];
-		}
+		readPoint = (j * base_x * 2) + (w * 2);
+		dirty_buf[write_point] = readByte[readPoint];
+		write_point++;
 		}
 	}
-	//Total combined texture data is the original texture size, copied three times over.
-	curVRAMptr += (total_bytes_of_original_texture * 3);
+	/*
+	WRITING DOWNSCALE 4 TIMES
+	COMPLICATION: We have to write each scanline of the downscaled texture twice.
+	COMPLICATION: We have to then write those, twice over!
+	*/
+	for(int j = 0; j < 2; j++)
+	{
+		for(int w = 0; w < (base_y>>1); w++)
+		{
+			for(int v = 0; v < (base_x>>1); v++)
+			{
+				*third_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
+			}
+			for(int v = 0; v < (base_x>>1); v++)
+			{
+				*third_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
+			}
+		}
+	}
+	//Texture 4: Divide the texture's width and height by 8, and sample a pixel every d/8 texels.
+	int x_skip = base_x / 8;
+	int y_skip = base_y / 8;
+	for(int j = 0; j < 8; j++)
+	{
+		for(int w = 0; w < 8; w++)
+		{
+		*fourth_texture_start++ = readByte[(j * y_skip * base_y) + (w * x_skip)];	
+		}
+	}
+	//Total combined texture data is the original texture size, copied three times over, plus 64 (8x8).
+	curVRAMptr = (fourth_texture_start + 64);
 }
 
 /*

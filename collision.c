@@ -605,9 +605,9 @@ void	player_collision_test_loop(void)
 		if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
 			} else if(skipdat == (BUILD | OBJPOP))
 			{
-				if(RBBs[i].status[1] == 'C' && entities[dWorldObjects[activeObjects[i]].type.entity_ID].file_done == true)
+				if(RBBs[i].status[1] == 'C')
 				{
-				per_poly_collide(entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol[0], RBBs[i].pos, &pl_RBB);
+				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &pl_RBB);
 				}
 			}
 	}

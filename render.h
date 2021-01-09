@@ -26,6 +26,8 @@
 
 #define	MAX_DYNAMIC_LIGHTS (4)
 
+#define MAX_SPRITES (64)
+
 //////////////////////////////////
 // Engine's working struct for drawing raw sprites
 //////////////////////////////////
@@ -71,8 +73,7 @@ extern FIXED nearP;
 extern FIXED farP;
 extern vertex_t ssh2VertArea[500];
 extern vertex_t msh2VertArea[650];
-extern _sprite	sprWorkList[64];
-extern int * sprite_list_size;
+extern _sprite	sprWorkList[MAX_SPRITES];
 extern int * ssh2SentPolys;
 extern int * msh2SentPolys;
 extern int * transVerts;

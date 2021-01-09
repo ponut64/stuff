@@ -286,20 +286,18 @@ void	obj_draw_queue(void)
 
 	for(int s = 0; s < 64; s++)
 	{
-		if(sprWorkList[s].type == 'B')
+		if(sprWorkList[s].time >= 0)
 		{
-			if(sprWorkList[s].time >= 0)
-			{
 			sprWorkList[s].time -= delta_time;
-			ssh2BillboardScaledSprite(&sprWorkList[s]);
-			} else {
-			//If the time of the sprite is expired, reduce the list size by 1 and mark the sprite as unused.
-			sprWorkList[s].type = 'N';
-			*sprite_list_size -= 1;
+			if(sprWorkList[s].type == 'B')
+			{
+				ssh2BillboardScaledSprite(&sprWorkList[s]);
 			}
+		} else {
+			//Mark expired sprites as unused.
+			sprWorkList[s].type = 'N'; 
 		}
 	}
-	//*spriteListSize = 0;
 }
 
 void	shadow_draw(void)

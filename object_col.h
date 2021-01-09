@@ -7,7 +7,7 @@
 #include "collision.h"
 #include "mymath.h"
 
-void	per_poly_collide(PDATA * mesh, POINT mesh_position, _boundBox * mover);
+void	per_poly_collide(entity_t * ent, POINT mesh_position, _boundBox * mover);
 void	plane_rendering_with_subdivision(entity_t * entity, POINT mesh_position);
 
 #endif

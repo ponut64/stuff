@@ -146,11 +146,14 @@ bool		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 }
 
 
-void	per_poly_collide(PDATA * mesh, POINT mesh_position, _boundBox * mover)
+void	per_poly_collide(entity_t * ent, POINT mesh_position, _boundBox * mover)
 {
-
+		//If the entity is not loaded, cease the test.
+		if(ent->file_done != true) return;
+		//If the player has already hit a *different* object, cease the test.
 		if(you.hitObject == true) return;
 
+PDATA * mesh = ent->pol[0];
 static short testing_planes[128];
 static unsigned char backfaced[128];
 short total_planes = 0;
@@ -158,6 +161,14 @@ POINT discard_vector = {0, 0, 0};
 bool hitY = false;
 bool hitXZ = false;
 bool shadowStruck = false;
+
+	discard_vector[X] = (mesh_position[X] - mover->pos[X]);
+	discard_vector[Y] = (mesh_position[Y] - mover->pos[Y]);
+	discard_vector[Z] = (mesh_position[Z] - mover->pos[Z]);
+	//If the player is farther away from the object than twice its radius, cease the test.
+	if(discard_vector[X] > (ent->radius[X]<<1) &&
+	discard_vector[Y] > (ent->radius[Y]<<1) &&
+	discard_vector[Z] > (ent->radius[Z]<<1)) return;
 
 prntidx = 0;
 
@@ -531,8 +542,13 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 		manhattan_32 = approximate_distance(ptv[3], ptv[2]);
 		manhattan_12 = approximate_distance(ptv[2], ptv[1]);
 		manhattan_03 = approximate_distance(ptv[0], ptv[3]);
-	
+
 	perimeter = manhattan_01 + manhattan_32 + manhattan_12 + manhattan_03;
+	//////////////////////////////////////////////////////////////////
+	// Triangle exception handling. Make the perimeter of a triangle very small, so its more likely to stop subdivision.
+	// We especially don't want a lot of triangles, since they cause huge overdraw!
+	//////////////////////////////////////////////////////////////////
+	if(!(manhattan_01 & manhattan_32 & manhattan_03 & manhattan_12)) perimeter >>= 1;
 		
  	if(perimeter < (100<<16))
 	{
@@ -1086,9 +1102,13 @@ for(int i = 0; i < total_planes; i++)
 	{
 		max_subdivisions = 1;
 	} else {
+		//In this case the polygon is far away, use a minimalist 8x8 texture.
+		used_textures[0] = 4;
 		max_subdivisions = 0;
 	}
 	
+		if(max_subdivisions > 0)
+		{
 	if((manhattan_alpha > 98304 && manhattan_beta > 98304))
 	{
 	///////////////////////////////////////////
@@ -1126,6 +1146,8 @@ for(int i = 0; i < total_planes; i++)
 	subdivide_plane(sub_vert_cnt, 0, '-', number_of_subdivisions);
 	//used_textures[0] = 1;
 	}
+	//Subdivisions > 0, end stub
+		}
 	///////////////////////////////////////////
 	//
 	// Screenspace Transform of Vertices
@@ -1175,7 +1197,7 @@ for(int i = 0; i < total_planes; i++)
 		///////////////////////////////////////////
 			if(used_textures[j] != 0)
 			{
-				specific_texture = ((mesh->attbl[testing_planes[i]].texno - entity->base_texture) * 3)
+				specific_texture = ((mesh->attbl[testing_planes[i]].texno - entity->base_texture) * 4)
 					 + (entity->numTexture + entity->base_texture) + used_textures[j];
 			} else {
 				specific_texture = mesh->attbl[testing_planes[i]].texno;
