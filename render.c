@@ -11,15 +11,15 @@ vertex_t ssh2VertArea[500];
 vertex_t msh2VertArea[650];
 animationControl AnimArea[16];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
-
 point_light light_host[MAX_DYNAMIC_LIGHTS];
 point_light * active_lights;
 
-int dummy[4];
+int dummy[5];
 int * ssh2SentPolys;
 int * msh2SentPolys;
 int * transVerts;
 int * transPolys;
+int * sprite_list_size;
 int anims;
 
 	FIXED	nearP	= 15<<16; // Z DISPLAY LEVEL [Actually a bit more complicated than that, but it works]
@@ -33,6 +33,7 @@ void	init_render_area(void){
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
 	transPolys = (int *)(((unsigned int)&dummy[3])|UNCACHE);
+	sprite_list_size = (int *)(((unsigned int)&dummy[4])|UNCACHE);
 	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
 }
 

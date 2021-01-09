@@ -391,4 +391,3 @@ bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ]
 	return isPointonSegment(output, p0, p1);
 }
 
-

@@ -74,20 +74,35 @@ void	pl_step_snd(void){
 	char runSnd = 0;
 	const int HoofLowValue = 311296;
 	//int printPos = 0;
+	int hf_vert[4] = {8, 30, 61, 116};
+	POINT hf_pos;
 
 		if(you.hitSurface == true){
-	hoofSetBools[0] = (pl_model.pol[0]->pntbl[8][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[1] = (pl_model.pol[0]->pntbl[38][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[2] = (pl_model.pol[0]->pntbl[57][Y] > HoofLowValue) ? true : false;
-	hoofSetBools[3] = (pl_model.pol[0]->pntbl[114][Y] > HoofLowValue) ? true : false;
+			for(int h = 0; h < 4; h++)
+			{
+				if(pl_model.pol[0]->pntbl[hf_vert[h]][Y] > HoofLowValue)
+				{
+					hoofSetBools[h] = true;
+				if(hoofSetBools[h] != oldHoofSetBools[h])
+				{
+					runSnd = 1;
+					/*
+					Puff of smoke to display when player steps
+					*/
+					transform_mesh_point(pl_model.pol[0]->pntbl[hf_vert[h]], hf_pos, &pl_RBB);
+					hf_pos[X] = hf_pos[X] - you.pos[X];
+					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
+					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
+					add_to_sprite_list(hf_pos, 1 /*Span*/, 0 /*texno*/, 1 /*mesh bool*/, 'B', 1<<16);
+				}
+				} else {
+					hoofSetBools[h] = false;
+				}
+			}
 		}
 
 	hoofSetBools[4] = (you.hitSurface);
-		
-		runSnd = (hoofSetBools[0] != oldHoofSetBools[0]) ? 1 : runSnd;
-		runSnd = (hoofSetBools[1] != oldHoofSetBools[1]) ? 1 : runSnd;
-		runSnd = (hoofSetBools[2] != oldHoofSetBools[2]) ? 1 : runSnd;
-		runSnd = (hoofSetBools[3] != oldHoofSetBools[3]) ? 1 : runSnd;
+	
 		runSnd = (hoofSetBools[4] != oldHoofSetBools[4]) ? 1 : runSnd;
 	
 	if(runSnd == 1)

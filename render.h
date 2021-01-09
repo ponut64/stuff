@@ -5,6 +5,7 @@
 #include "mloader.h"
 #include "def.h"
 #include "mymath.h"
+#include "bounder.h"
 
 #define VRAM_TEXTURE_BASE (0x10000) //Matches jo engine specification
 #define VDP1_VRAM 0x25C00000
@@ -26,12 +27,24 @@
 #define	MAX_DYNAMIC_LIGHTS (4)
 
 //////////////////////////////////
+// Engine's working struct for drawing raw sprites
+//////////////////////////////////
+typedef struct{
+	int time;			// Time (in fixed-point seconds) to allow the sprite to persist.
+	POINT pos; 			//World-space position for billboard scaled sprites, screenspace top-left coordinate otherwise
+	short span; 		//Screenspace X/Y span, if a billboard.
+	short texno;		//Texture table number to use
+	unsigned char mesh;	//Boolean. 1 enables mesh effect drawing.
+	char type; 			//"B" for billboard, "S" for normal sprite.
+} _sprite; //22 bytes each
+
+//////////////////////////////////
 // Post-transformed vertice data struct
 //////////////////////////////////
 typedef struct{
     POINT  pnt;
 	char clipFlag;
-} vertex_t; //20 bytes each
+} vertex_t; //13 bytes each
 
 //////////////////////////////////
 // Point light data struct
@@ -58,6 +71,8 @@ extern FIXED nearP;
 extern FIXED farP;
 extern vertex_t ssh2VertArea[500];
 extern vertex_t msh2VertArea[650];
+extern _sprite	sprWorkList[64];
+extern int * sprite_list_size;
 extern int * ssh2SentPolys;
 extern int * msh2SentPolys;
 extern int * transVerts;
@@ -68,6 +83,10 @@ extern point_light * active_lights;
 
 extern FIXED MsScreenDist;
 extern FIXED MsZlimit;
+
+void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
+void	ssh2BillboardScaledSprite(_sprite * spr);
+void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int time);
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);
 void	SetFixDiv(FIXED dividend, FIXED divisor); //Defined as "dividend / divisor", for fixed points, using division unit
