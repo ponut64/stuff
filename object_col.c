@@ -542,13 +542,17 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 		manhattan_32 = approximate_distance(ptv[3], ptv[2]);
 		manhattan_12 = approximate_distance(ptv[2], ptv[1]);
 		manhattan_03 = approximate_distance(ptv[0], ptv[3]);
-
-	perimeter = manhattan_01 + manhattan_32 + manhattan_12 + manhattan_03;
+		
 	//////////////////////////////////////////////////////////////////
-	// Triangle exception handling. Make the perimeter of a triangle very small, so its more likely to stop subdivision.
+	// Triangle exception handling.
 	// We especially don't want a lot of triangles, since they cause huge overdraw!
 	//////////////////////////////////////////////////////////////////
-	if(!(manhattan_01 & manhattan_32 & manhattan_03 & manhattan_12)) perimeter >>= 1;
+	if((manhattan_01 == 0 || manhattan_32 == 0 || manhattan_12 == 0 || manhattan_03 == 0) && !num_divisions){
+		used_textures[poly_a] = 4;
+		return;
+	}
+
+	perimeter = manhattan_01 + manhattan_32 + manhattan_12 + manhattan_03;
 		
  	if(perimeter < (100<<16))
 	{
@@ -1263,6 +1267,7 @@ for(int i = 0; i < total_planes; i++)
 						
 				luma += inverted_proxima * (int)active_lights[l].bright;
 			}
+			if(luma > 0) break;
 		}
 		luma = (luma < 0) ? 0 : luma; 
 		luma += fxdot(mesh->pltbl[testing_planes[i]].norm, active_lights[0].ambient_light); 

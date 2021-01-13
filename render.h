@@ -18,13 +18,14 @@
 #define SCR_SCALE_Y (16)
 //VDP1 perf limit depends on how many pixels it's drawing.
 //Screen clip flags
-#define SCRN_CLIP_X (1)
-#define SCRN_CLIP_NX (1<<1)
-#define SCRN_CLIP_Y (1<<2)
-#define SCRN_CLIP_NY (1<<3)
-#define CLIP_Z (1<<4)
+#define SCRN_CLIP_X		(1)
+#define SCRN_CLIP_NX	(1<<1)
+#define SCRN_CLIP_Y		(1<<2)
+#define SCRN_CLIP_NY	(1<<3)
+#define CLIP_Z 			(1<<4)
+#define LOW_Z 			(1<<5)
 
-#define	MAX_DYNAMIC_LIGHTS (4)
+#define	MAX_DYNAMIC_LIGHTS (1)
 
 #define MAX_SPRITES (64)
 
@@ -72,7 +73,7 @@ extern int * DVDNTL;
 extern FIXED nearP;
 extern FIXED farP;
 extern vertex_t ssh2VertArea[500];
-extern vertex_t msh2VertArea[650];
+extern vertex_t msh2VertArea[300];
 extern _sprite	sprWorkList[MAX_SPRITES];
 extern int * ssh2SentPolys;
 extern int * msh2SentPolys;

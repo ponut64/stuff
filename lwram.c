@@ -21,23 +21,25 @@ void	init_lwram(void)
 	{
 		init_sample[i] = 0;
 	}
-//Overwritten loading buffer
+// Overwritten loading buffer
 	dirty_buf = (void*)(LWRAM_END)-65536; 
-//Actual Main Map
+// Actual Main Map
 	main_map =  (void*)(dirty_buf-65536);
-//Ready Loaded Map
+// Ready Loaded Map
 	buf_map = (void*)(main_map-65536);
-//Textue Definitions
-	//In LWRAM because why use HWRAM for it? It is frequently cached data, anyhow. // 2048 bytes
-	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 1024)));//|UNCACHE); 
-//Object Table
-	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS)));//^UNCACHE);//|UNCACHE); //In LWRAM // 12KBish
-//Building (Source Data) Object Table
+// Textue Definitions
+	//In LWRAM because why use HWRAM for it? It is frequently cached data, anyhow. // 4096 bytes
+	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 2048)));
+// Object Table
+	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
+// Building (Source Data) Object Table
 	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
-//Map Normal Table
-	normTbl = (void*)((unsigned int)(LWRAM + (128 * 1024)));//^UNCACHE);//|UNCACHE); //In LWRAM // 192KB
+// Map Normal Table
+	normTbl = (void*)((unsigned int)(LWRAM + (128 * 1024))); //In LWRAM // 192KB
 // 65536/x table // 128KB // 256KB into RAM
-	division_table = (void*)((unsigned int)(normTbl + (128 * 1024)));
+	division_table = (void*)((unsigned int)(normTbl + (192 * 1024)));
+// Map Texture Table
+	mapTex = (void*)((unsigned int)(division_table + (64 * 1024))); //In LWRAM // 64KB
 
 	init_division_table();
 

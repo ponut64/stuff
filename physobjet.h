@@ -8,6 +8,9 @@
 #include "collision.h"
 #include "ldata.h"
 
+#define CELL_CULLING_DIST_MED (10)
+#define CELL_CULLING_DIST_LONG (12)
+
 #define OBJPOP	(0x8000) //Is populated?
 #define UNPOP	(0x7FFF) //Unpop
 #define OTYPE	(0x7000) //Entity type bits (may also define a specific entity type)

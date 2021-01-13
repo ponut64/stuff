@@ -9,9 +9,10 @@
 //////////////////////////////////
 // Uniform grid cell information / shorthands
 //////////////////////////////////
-#define CELL_SIZE (25<<16)
-#define INV_CELL_SIZE (2621) // 25 / 1
-#define CELL_SIZE_INT (25)
+#define CELL_SIZE (2621440) // 40 << 16
+#define INV_CELL_SIZE (1638) // 40 / 1
+#define CELL_SIZE_INT (40)
+#define MAP_V_SCALE (17) //Map data is shifted left by this amount
 //////////////////////////////////
 #define	HIMEM	(100679680)
 //////////////////////////////////
@@ -33,8 +34,8 @@
 //	The line width of the polygon map area, in vertices (pix) and polygons (ply).
 //	The total size is the square of these values.
 //////////////////////////////////
-#define LCL_MAP_PIX (25)
-#define LCL_MAP_PLY (24)
+#define LCL_MAP_PIX (17)
+#define LCL_MAP_PLY (16)
 //////////////////////////////////
 //	Numerical Normal ID Shorthands
 //////////////////////////////////

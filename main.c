@@ -176,12 +176,15 @@ void	load_test(void)
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
 	//Next up: TGA file system handler?
+	int map_tex_start = numTex;
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR1.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR2.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
+	map_tex_amt = (numTex);
+	make_4way_combined_textures(map_tex_start, map_tex_amt);
 	//End tex 35
 // gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
 // gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');

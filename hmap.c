@@ -8,12 +8,14 @@ Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
 char * normTbl;
+unsigned char * mapTex;
 unsigned short * minimap;
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
 int main_map_y_pix = LCL_MAP_PIX;
 int main_map_strata[4] = {40, 70, 100, 170};
+int map_tex_amt = 35;
 _heightmap maps[4];
 bool map_update_complete;
 bool * sysbool;
@@ -84,94 +86,11 @@ void	read_pgm_header(_heightmap * map)
 					//Not included: GFS load sys, but that's ez
 }
 
-void	process_map_for_normals(void)
-{
-	int e = 0;
-	int y0 = 0;
-	int y1 = 0;
-	int y2 = 0;
-	int y3 = 0;
-	
-	VECTOR rminusb = {-(25<<16), 0, (25<<16)};
-	VECTOR sminusb = {(25<<16), 0, (25<<16)};
-	VECTOR cross = {0, 0, 0};
-	
-	int norm_index = 0;
-	unsigned char * readByte = &main_map[0];
-	
-	main_map_total_poly = 0;
-	
-	//Please don't ask me why this works...
-	//I was up late one day and.. oh man..
-	for(int k = 0; k < (main_map_y_pix-1); k++){
-		for(int v = 0; v < (main_map_x_pix-1); v++){
-			e	= (k * (main_map_x_pix)) + v - 1;
-			y0	= readByte[e];
-			y1	= readByte[e + 1];
-			y2	= readByte[e + 1 + (main_map_x_pix)];
-			y3	= readByte[e + (main_map_x_pix)];
-
-	main_map_total_poly++;
-			
-	rminusb[1] = (y2<<16) - (y0<<16);
-
-	sminusb[1] = (y3<<16) - (y1<<16);
-	
-	cross_fixed(rminusb, sminusb, cross);
-
-	cross[X] = cross[X]>>8; //Shift to supresss overflows
-	cross[Y] = cross[Y]>>8;
-	cross[Z] = cross[Z]>>8;
-
-	double_normalize(cross, cross);
-	
-	normTbl[norm_index] = (cross[X] > 0) ? -JO_ABS(cross[X]>>9) : JO_ABS(cross[X]>>9); //X value write
-	normTbl[norm_index+1] = (cross[Y] > 0) ? -JO_ABS(cross[Y]>>9) : JO_ABS(cross[Y]>>9); //Y value write
-	normTbl[norm_index+2] = (cross[Z] > 0) ? -JO_ABS(cross[Z]>>9) : JO_ABS(cross[Z]>>9); //Z value write
-	norm_index+=3;
-			
-		}
-		
-	}
-	
-	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
-	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
-	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
-	
-	//jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
-	
-}
-
-//Only works at start of program
-void 	init_heightmap(void)
-{
-/*Vertice Order Hint
-0 - 1
-3 - 2
-*/
-	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	minimap = (void*)jo_malloc(2550 * sizeof(short));
-}
-
-void	chg_map(_heightmap * tmap){
-		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false && tmap->active != true && tmap->file_done == true; i++){
-			main_map[i] = buf_map[i];
-			if(i == tmap->totalPix-1){
-				main_map_x_pix = tmap->Xval;
-				main_map_y_pix = tmap->Yval;
-				main_map_total_pix = tmap->totalPix;
-				init_minimap();
-				map_chg = true;
-				process_map_for_normals();
-			}
-		}
-}
-
 //Texture Table Assignment based on heights from main map strata table.
-__jo_force_inline int	texture_table_by_height(int index){
+__jo_force_inline int	texture_table_by_height(int * ys)
+{
 	int avgY = 0;
-	avgY = -(polymap->pntbl[polymap->pltbl[index].Vertices[0]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[1]][Y] +
-	polymap->pntbl[polymap->pltbl[index].Vertices[2]][Y] + polymap->pntbl[polymap->pltbl[index].Vertices[3]][Y])>>18;
+	avgY = ((ys[0] + ys[1] + ys[2] + ys[3])>>2);
 	if(avgY < main_map_strata[0]){ 
 		return 0;
 	} else if(avgY >= main_map_strata[0] && avgY < main_map_strata[1]){ 
@@ -186,11 +105,11 @@ __jo_force_inline int	texture_table_by_height(int index){
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-__jo_force_inline int		texture_angle_resolver(int index, FIXED * norm, int * flip){
+__jo_force_inline int		texture_angle_resolver(int * ys, FIXED * norm, int * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
-	int baseTex = texture_table_by_height(index);
+	int baseTex = texture_table_by_height(ys);
 	int texno = 0;
 	*flip = 0;
 	
@@ -223,6 +142,94 @@ __jo_force_inline int		texture_angle_resolver(int index, FIXED * norm, int * fli
 		}
 	}
 	return baseTex+texno;
+}
+
+
+void	process_map_for_normals(void)
+{
+	int e = 0;
+	int ys[4];
+	VECTOR rminusb = {-(CELL_SIZE), 0, (CELL_SIZE)};
+	VECTOR sminusb = {(CELL_SIZE), 0, (CELL_SIZE)};
+	VECTOR cross = {0, 0, 0};
+	
+	int norm_index = 0;
+	unsigned char * readByte = &main_map[0];
+	
+	main_map_total_poly = 0;
+	
+	//Please don't ask me why this works...
+	//I was up late one day and.. oh man..
+	for(int k = 0; k < (main_map_y_pix-1); k++){
+		for(int v = 0; v < (main_map_x_pix-1); v++){
+			e	= (k * (main_map_x_pix)) + v - 1;
+			ys[0]	= readByte[e];
+			ys[1]	= readByte[e + 1];
+			ys[2]	= readByte[e + 1 + (main_map_x_pix)];
+			ys[3]	= readByte[e + (main_map_x_pix)];
+
+
+			
+	rminusb[1] = (ys[2]<<16) - (ys[0]<<16);
+
+	sminusb[1] = (ys[3]<<16) - (ys[1]<<16);
+	
+	cross_fixed(rminusb, sminusb, cross);
+
+	cross[X] = cross[X]>>8; //Shift to supresss overflows
+	cross[Y] = cross[Y]>>8;
+	cross[Z] = cross[Z]>>8;
+
+	double_normalize(cross, cross);
+	
+	normTbl[norm_index] = (cross[X] > 0) ? -JO_ABS(cross[X]>>9) : JO_ABS(cross[X]>>9); //X value write
+	normTbl[norm_index+1] = (cross[Y] > 0) ? -JO_ABS(cross[Y]>>9) : JO_ABS(cross[Y]>>9); //Y value write
+	normTbl[norm_index+2] = (cross[Z] > 0) ? -JO_ABS(cross[Z]>>9) : JO_ABS(cross[Z]>>9); //Z value write
+	norm_index+=3;
+
+	/////////////////////
+	// Pre-computation of textures on map change (needed the normal first)
+	/////////////////////
+	int flip;
+	int texno = texture_angle_resolver(&ys[0], &cross[0], &flip);
+	mapTex[main_map_total_poly] = (texno & 63) | (flip<<2); //Writes flip bits in bit 7 and 6.
+
+	main_map_total_poly++;
+		}
+		
+	}
+
+	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
+	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
+	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
+	
+	//jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
+	
+}
+
+//Only works at start of program
+void 	init_heightmap(void)
+{
+/*Vertice Order Hint
+0 - 1
+3 - 2
+*/
+	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
+	minimap = (void*)jo_malloc(2550 * sizeof(short));
+}
+
+void	chg_map(_heightmap * tmap){
+		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false && tmap->active != true && tmap->file_done == true; i++){
+			main_map[i] = buf_map[i];
+			if(i == tmap->totalPix-1){
+				main_map_x_pix = tmap->Xval;
+				main_map_y_pix = tmap->Yval;
+				main_map_total_pix = tmap->totalPix;
+				init_minimap();
+				map_chg = true;
+				process_map_for_normals();
+			}
+		}
 }
 
 	//Helper function for a routine which uses per-polygon light processing.
@@ -258,6 +265,160 @@ __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynu
 	return luma;
 }
 
+////////////////////////////
+// Helper data for dynamic polygon subdivision
+////////////////////////////
+POINT untransformed_verts[LCL_MAP_PIX * LCL_MAP_PIX];
+int new_vertices[5][3];
+vertex_t * new_polygons[4][4];
+vertex_t scrnsub[5];
+
+////////////////////////////
+// Takes a polygon from the map & its associated data from the precompiled tables and subdivides it four-ways.
+// Then issues the commands. The polygon had already been checked for culling, so we can check for less of that.
+////////////////////////////
+void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int * depth,  FIXED * tempNorm)
+{
+	//Shorthand Point Data
+	FIXED * pnts[4];
+	int luma = 0;
+	int used_flip = *flip;
+	short colorBank = 0;
+	for(int u = 0; u < 4; u++)
+	{
+		pnts[u] = &untransformed_verts[polymap->pltbl[*dst_poly].Vertices[u]][0];
+	}
+	/*
+	0A			1A | 0B			1B
+							
+			0				1
+							
+	3A			2A | 3B			2B		
+	
+	0D			1D | 0C			1C
+	
+			3				2
+
+	3D			2D | 3C			2C
+	*/
+	//Initial State
+	new_polygons[0][0] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[0]];
+	
+	new_polygons[1][1] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[1]];
+	
+	new_polygons[2][2] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[2]];
+	
+	new_polygons[3][3] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[3]];
+	// Center
+	// 
+	new_vertices[0][X] = (pnts[0][X] + pnts[1][X] + 
+						pnts[2][X] + pnts[3][X])>>2;
+	new_vertices[0][Y] = (pnts[0][Y] + pnts[1][Y] + 
+						pnts[2][Y] + pnts[3][Y])>>2;
+	new_vertices[0][Z] = (pnts[0][Z] + pnts[1][Z] + 
+						pnts[2][Z] + pnts[3][Z])>>2;
+	//
+	new_polygons[0][2] = &scrnsub[0];
+	new_polygons[1][3] = &scrnsub[0];
+	new_polygons[2][0] = &scrnsub[0];
+	new_polygons[3][1] = &scrnsub[0];
+	// 0 -> 1
+	new_vertices[1][X] = (pnts[0][X] + pnts[1][X])>>1;
+	new_vertices[1][Y] = (pnts[0][Y] + pnts[1][Y])>>1;
+	new_vertices[1][Z] = (pnts[0][Z] + pnts[1][Z])>>1;
+	new_polygons[0][1] = &scrnsub[1];
+	new_polygons[1][0] = &scrnsub[1];
+	// 1 -> 2
+	new_vertices[2][X] = (pnts[2][X] + pnts[1][X])>>1;
+	new_vertices[2][Y] = (pnts[2][Y] + pnts[1][Y])>>1;
+	new_vertices[2][Z] = (pnts[2][Z] + pnts[1][Z])>>1;
+	new_polygons[1][2] = &scrnsub[2];
+	new_polygons[2][1] = &scrnsub[2];
+	// 3 -> 2
+	new_vertices[3][X] = (pnts[2][X] + pnts[3][X])>>1;
+	new_vertices[3][Y] = (pnts[2][Y] + pnts[3][Y])>>1;
+	new_vertices[3][Z] = (pnts[2][Z] + pnts[3][Z])>>1;
+	new_polygons[2][3] = &scrnsub[3];
+	new_polygons[3][2] = &scrnsub[3];
+	// 3 -> 0
+	new_vertices[4][X] = (pnts[0][X] + pnts[3][X])>>1;
+	new_vertices[4][Y] = (pnts[0][Y] + pnts[3][Y])>>1;
+	new_vertices[4][Z] = (pnts[0][Z] + pnts[3][Z])>>1;
+	new_polygons[0][3] = &scrnsub[4];
+	new_polygons[3][0] = &scrnsub[4];
+	
+	for(int w = 0; w < 5; w++)
+	{
+		int inverseZ = fxdiv(MsScreenDist, new_vertices[w][Z]);
+        //Transform to screen-space
+        scrnsub[w].pnt[X] = fxm(new_vertices[w][X], inverseZ)>>SCR_SCALE_X;
+        scrnsub[w].pnt[Y] = fxm(new_vertices[w][Y], inverseZ)>>SCR_SCALE_Y;
+        //Screen Clip Flags for on-off screen decimation
+		scrnsub[w].clipFlag = ((scrnsub[w].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : scrnsub[w].clipFlag; 
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : scrnsub[w].clipFlag;
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : scrnsub[w].clipFlag;
+	}
+	transVerts[0] += 5;
+	vertex_t * ptv[5];
+	for(int q = 0; q < 4; q++)
+	{
+		ptv[0] = new_polygons[q][0];
+		ptv[1] = new_polygons[q][1];
+		ptv[2] = new_polygons[q][2];
+		ptv[3] = new_polygons[q][3];
+		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
+		
+		if(offScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		used_flip = *flip;
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//used_flip logic to keep vertice 0 on-screen
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+ 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical used_flip // Expresses clip0 > 0 && clip3 <= 0
+			//Incoming Arrangement:
+			// 0 - 1		^
+			//-------- Edge | Y-
+			// 3 - 2		|
+			//				
+            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
+            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
+            used_flip ^= 1<<5; //sprite used_flip value [v used_flip]
+			//Outgoing Arrangement:
+			// 3 - 2		^
+			//-------- Edge | Y-
+			// 0 - 1		|
+		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H used_flip // Expresses clip0 > 0 && clip1 <= 0
+			//Incoming Arrangement:
+			//	0 | 1
+			//	3 | 2
+			//	 Edge  ---> X+
+            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
+            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
+            used_flip ^= 1<<4; //sprite used_flip value [h used_flip]
+			//Outgoing Arrangement:
+			// 1 | 0
+			// 2 | 3
+			//	Edge	---> X+
+		}
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Lighting <--Needs Work for Subdivided Polygons-->
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		luma = per_polygon_light(polymap, hmap_actual_pos, *dst_poly);
+		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
+		//Use transformed normal as shade determinant
+		colorBank = (luma >= 98294) ? 0 : 1;
+		colorBank = (luma < 49152) ? 2 : colorBank;
+		colorBank = (luma < 32768) ? 3 : colorBank; 
+		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+                     2 | (used_flip), ( 5264 ), //Reads used_flip value
+                     pcoTexDefs[*texno].SRCA, colorBank<<6, pcoTexDefs[*texno].SIZE, 0, *depth);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	}
+	transPolys[0] += 4;
+}
 
 void	update_hmap(MATRIX msMatrix)
 { //Master SH2 drawing function (needs to be sorted after by slave)
@@ -331,9 +492,9 @@ void	update_hmap(MATRIX msMatrix)
 		{
 			dspReturnTgt = dsp_output_addr[dst_pix];
 			if(dspReturnTgt >= 0){
-			polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<16);
+			polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<(MAP_V_SCALE));
 				} else { //Fill Set Value if outside of map area
-			polymap->pntbl[dst_pix][Y] = -(127<<16);
+			polymap->pntbl[dst_pix][Y] = -(127<<(MAP_V_SCALE));
 				}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -342,20 +503,20 @@ void	update_hmap(MATRIX msMatrix)
         /**calculate z**/
         msh2VertArea[dst_pix].pnt[Z] = trans_pt_by_component(polymap->pntbl[dst_pix], m2z);
 		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > nearP) ? msh2VertArea[dst_pix].pnt[Z] : nearP;
- 
+		untransformed_verts[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
          /**Starts the division**/
         SetFixDiv(MsScreenDist, msh2VertArea[dst_pix].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
-        msh2VertArea[dst_pix].pnt[Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
-        msh2VertArea[dst_pix].pnt[X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
+        untransformed_verts[dst_pix][Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
+        untransformed_verts[dst_pix][X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
 		
         /** Retrieves the result of the division **/
 		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        msh2VertArea[dst_pix].pnt[X] = fxm(msh2VertArea[dst_pix].pnt[X], inverseZ)>>SCR_SCALE_X;
-        msh2VertArea[dst_pix].pnt[Y] = fxm(msh2VertArea[dst_pix].pnt[Y], inverseZ)>>SCR_SCALE_Y;
+        msh2VertArea[dst_pix].pnt[X] = fxm(untransformed_verts[dst_pix][X], inverseZ)>>SCR_SCALE_X;
+        msh2VertArea[dst_pix].pnt[Y] = fxm(untransformed_verts[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
 		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
@@ -397,6 +558,9 @@ void	update_hmap(MATRIX msMatrix)
 			int texno = 0; //Ditto
 			
 			y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
+			
+			int subbed_polys = 0;
+			
 		for(int k = 0; k < LCL_MAP_PLY; k++){
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Row Selection
@@ -407,13 +571,27 @@ void	update_hmap(MATRIX msMatrix)
 				
 				dst_poly = v+(k*LCL_MAP_PLY);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Backface & Screenspace Culling Section
+//HMAP Normal/Texture Finder
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+				x_pix_sample = (v + rowOffset + (you.dispPos[X]));
+				
+				src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
+
+				tempNorm[X] = normTbl[src_norm]<<9;
+				tempNorm[Y] = normTbl[src_norm+1]<<9;
+				tempNorm[Z] = normTbl[src_norm+2]<<9;
+
+		texno = mapTex[x_pix_sample - y_pix_sample] & 63;//texture_angle_resolver(dst_poly, tempNorm, &flip);
+		flip = (mapTex[x_pix_sample - y_pix_sample]>>2) & 48;
+		
 		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[0]];
 		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[1]];
 		ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[2]];
 		ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[3]];
-		
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Backface & Screenspace Culling Section
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 		//Components of screen-space cross-product used for backface culling.
 		//Vertice order hint:
 		// 0 - 1
@@ -430,18 +608,20 @@ void	update_hmap(MATRIX msMatrix)
 		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
 		if((cross0 >= cross1) || offScrn || zDepthTgt <= nearP || zDepthTgt >= farP || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//HMAP Normal/Texture Finder
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				x_pix_sample = (v + rowOffset + (you.dispPos[X]));
-				
-				src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
 
-				tempNorm[X] = normTbl[src_norm]<<9;
-				tempNorm[Y] = normTbl[src_norm+1]<<9;
-				tempNorm[Z] = normTbl[src_norm+2]<<9;
-
-		texno = texture_angle_resolver(dst_poly, tempNorm, &flip);
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//If any of the Z's are less than 100, render the polygon subdivided four ways.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+		if(ptv[0]->pnt[Z] < (100<<16) || ptv[1]->pnt[Z] < (100<<16)
+		|| ptv[2]->pnt[Z] < (100<<16) || ptv[3]->pnt[Z] < (100<<16))
+		{	
+		subbed_polys++;
+		render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
+		continue;
+		}
+		//Since this texture was not subdivided, use its cooresponding combined texture.
+		//That is found by adding the base map texture amount to the texture number.
+		texno += map_tex_amt; 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Flip logic to keep vertice 0 on-screen
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -484,8 +664,7 @@ void	update_hmap(MATRIX msMatrix)
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
-					ptv[2]->pnt, ptv[3]->pnt,
+        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
                      2 | (flip), ( 5264 ), //Reads flip value
                      pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -493,7 +672,6 @@ void	update_hmap(MATRIX msMatrix)
 		} // Row Selector Loop End Stub
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
-
 	*sysbool = true;
 }
 

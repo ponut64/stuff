@@ -126,14 +126,17 @@ void	master_draw_stats(void)
 	jo_printf(27, 2, "Pts :%x:", you.points);
 	//jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
 	//slPrintFX(you.sanics, slLocate(26, 3));
-	//jo_printf(8, 25, "TRPLY:                ");
-	//jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
-	//jo_printf(8, 26, "SNTPL:                ");
-	//jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
-	//jo_printf(8, 27, "VERTS:                ");
-	//jo_printf(8, 27, "VERTS:%i", transVerts[0]);
-	//jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
-	//jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
+//		if(delta_time>>6 > 35)
+//		{
+	jo_printf(8, 25, "TRPLY:                ");
+	jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
+	jo_printf(8, 26, "SNTPL:                ");
+	jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	jo_printf(8, 27, "VERTS:                ");
+	jo_printf(8, 27, "VERTS:%i", transVerts[0]);
+//		}
+	jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
+	jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
 }
 
 void	player_draw(void)

@@ -8,7 +8,7 @@
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
 vertex_t ssh2VertArea[500];
-vertex_t msh2VertArea[650];
+vertex_t msh2VertArea[300];
 animationControl AnimArea[16];
 _sprite sprWorkList[MAX_SPRITES];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c

@@ -105,6 +105,59 @@ void	add_texture_to_vram(int width, int height)
 	numTex++;
 }
 
+void	make_4way_combined_textures(int start_texture_number, int end_texture_number)
+{
+	for(int t = start_texture_number; t < end_texture_number; t++)
+	{
+		unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[t].SRCA<<3)));
+		unsigned char * readByte = source_texture_data;
+		int base_x = (pcoTexDefs[t].SIZE & 0x3F00)>>5;
+		int base_y = (pcoTexDefs[t].SIZE & 0xFF);
+		int total_bytes_of_original_texture = base_x * base_y;
+		int readPoint = 0;
+		int write_point = 0;
+		unsigned char * texture_start = curVRAMptr;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[t].SIZE;
+		pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); 
+		numTex++;
+		//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y>>1) size.
+		//This copy is a downscale.
+		//Then copy that to this texture, four times.
+		/*
+		GETTING DOWNSCALE
+		*/
+		for(int j = 0; j < (base_y>>1); j++)
+		{
+			for(int w = 0; w < (base_x>>1); w++)
+			{
+			readPoint = (j * base_x * 2) + (w * 2);
+			dirty_buf[write_point] = readByte[readPoint];
+			write_point++;
+			}
+		}
+		/*
+		WRITING DOWNSCALE 4 TIMES
+		COMPLICATION: We have to write each scanline of the downscaled texture twice.
+		COMPLICATION: We have to then write those, twice over!
+		*/
+		for(int j = 0; j < 2; j++)
+		{
+			for(int w = 0; w < (base_y>>1); w++)
+			{
+				for(int v = 0; v < (base_x>>1); v++)
+				{
+					*texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
+				}
+				for(int v = 0; v < (base_x>>1); v++)
+				{
+					*texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
+				}
+			}
+		}
+		curVRAMptr += total_bytes_of_original_texture;
+	}
+}
+
 void	make_combined_textures(int texture_number)
 {
 	
@@ -379,4 +432,3 @@ bool WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height)
 	
 	return read_tex_table_in_memory(file_start, tex_height);
 }
-

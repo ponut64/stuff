@@ -61,16 +61,6 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 void	declarations(void)
 {
 	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
-/* 	for(int k = 0; k < 8; k++)
-	{
-		link_starts[k] = -1; //Re-set link starts to no links conidition
-	} */
-
-/* 	for(int i = 0; i < objNEW; i++)
-	{
-		dWorldObjects[i].link = link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
-		link_starts[(dWorldObjects[i].type.ext_dat & 0x7000)>>12] = i; //Set the current link of this type to this entry
-	} */
 }
 
 //I'm not sure if this whole system is ideal.
@@ -119,7 +109,7 @@ void	object_control_loop(int ppos[XY])
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
-				if(difX > -14 && difX < 14 && difY > -14 && difY < 14 &&
+				if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED &&
 				(dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
 				{
 					// We've found a level change trigger close to the player.
@@ -128,7 +118,7 @@ void	object_control_loop(int ppos[XY])
 										(you.pos[X] + dWorldObjects[i].pos[X]),
 										you.pos[Y] + (dWorldObjects[i].pos[Y] - (main_map[
 (-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1))
-																			]<<16)),
+																			]<<(MAP_V_SCALE))),
 										(you.pos[Z] + dWorldObjects[i].pos[Z])
 										};	
 					if(JO_ABS(pos_difs[X]) < (dWorldObjects[i].type.radius[X]<<16)
@@ -148,10 +138,9 @@ void	object_control_loop(int ppos[XY])
 						// More temporary stuff.
 						///////////////////////////////////////////
 						you.points = 0;
-						//declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
 					}
 				}
-		} else if(difX > -14 && difX < 14 && difY > -14 && difY < 14 && objUP < MAX_PHYS_PROXY)
+		} else if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && objUP < MAX_PHYS_PROXY)
 			{
 				////////////////////////////////////////////////////
 				// If no radius was defined for the object, use the radius from the entity.
@@ -179,7 +168,7 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<16);
+						]<<(MAP_V_SCALE));
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
@@ -220,7 +209,7 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<16);
+						]<<(MAP_V_SCALE));
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;
@@ -270,7 +259,7 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 			// Object in render-range end stub
 			////////////////////////////////////////////////////
-		} else if(difX > -18 && difX < 18 && difY > -18 && difY < 18 && objUP < MAX_PHYS_PROXY)
+		} else if(difX > -CELL_CULLING_DIST_LONG && difX < CELL_CULLING_DIST_LONG && difY > -CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && objUP < MAX_PHYS_PROXY)
 			{
 				////////////////////////////////////////////////////
 				// If no radius was defined for the object, use the radius from the entity.
@@ -297,7 +286,7 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<16);
+						]<<(MAP_V_SCALE));
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						make2AxisBox(&bound_box_starter);
@@ -329,7 +318,7 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<16);
+						]<<(MAP_V_SCALE));
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;
@@ -376,8 +365,8 @@ void	object_control_loop(int ppos[XY])
 		
 	flush_boxes(objUP);
 		
-	//jo_printf(18, 6, "objUP:(%i)", objUP);
-	//jo_printf(18, 7, "objNW:(%i)", objNEW);
+	//jo_printf(CELL_CULLING_DIST_LONG, 6, "objUP:(%i)", objUP);
+	//jo_printf(CELL_CULLING_DIST_LONG, 7, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -406,15 +395,38 @@ void	light_control_loop(void)
 	
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
-		if(RBBs[i].status[2] == 'L' && lights_created < MAX_DYNAMIC_LIGHTS)
+		if(RBBs[i].status[2] == 'L')
 			{
-				active_lights[lights_created].pop = 1;
-				active_lights[lights_created].ambient_light = active_lights[0].ambient_light;
-				active_lights[lights_created].bright = dWorldObjects[activeObjects[i]].type.light_bright;
-				active_lights[lights_created].pos[X] = -RBBs[i].pos[X];
-				active_lights[lights_created].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
-				active_lights[lights_created].pos[Z] = -RBBs[i].pos[Z];
-				lights_created++;
+				if(lights_created < MAX_DYNAMIC_LIGHTS)
+				{
+					active_lights[lights_created].pop = 1;
+					active_lights[lights_created].ambient_light = active_lights[0].ambient_light;
+					active_lights[lights_created].bright = dWorldObjects[activeObjects[i]].type.light_bright;
+					active_lights[lights_created].pos[X] = -RBBs[i].pos[X];
+					active_lights[lights_created].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
+					active_lights[lights_created].pos[Z] = -RBBs[i].pos[Z];
+					lights_created++;
+				} else {
+					///////////////////////////
+					// If the light list is full, but there are lights closer to you than the ones in the list,
+					// replace one in the list with the nearer light.
+					///////////////////////////
+					for(int j = 0; j < MAX_DYNAMIC_LIGHTS; j++)
+					{
+						POINT newpos = {-active_lights[j].pos[X], -active_lights[j].pos[Y], -active_lights[j].pos[Z]};
+						POINT ngpos = {-you.pos[X], -you.pos[Y], -you.pos[Z]};
+						int dist0 = approximate_distance(newpos, ngpos);
+						int dist1 = approximate_distance(RBBs[i].pos, ngpos);
+						if(dist1 < dist0)
+						{
+							active_lights[j].ambient_light = active_lights[0].ambient_light;
+							active_lights[j].bright = dWorldObjects[activeObjects[i]].type.light_bright;
+							active_lights[j].pos[X] = -RBBs[i].pos[X];
+							active_lights[j].pos[Y] = -(RBBs[i].pos[Y] + dWorldObjects[activeObjects[i]].type.light_y_offset);
+							active_lights[j].pos[Z] = -RBBs[i].pos[Z];
+						}
+					}
+				}
 				//slPrintFX(0, slLocate(2, 6+i));
 				// slPrintFX(active_lights[i].pos[X], slLocate(2, 7));
 				// slPrintFX(active_lights[i].pos[Y], slLocate(2, 8));
@@ -493,7 +505,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//	0 - 1 // B - D
 	//	3 - 2 // A - C
 	fenceA[X] = -dWorldObjects[posts[0]].pos[X];
-	fenceA[Y] = -((dWorldObjects[posts[0]].pos[Y]) - (main_map[ (-dWorldObjects[posts[0]].pix[X] + (main_map_x_pix * dWorldObjects[posts[0]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
+	fenceA[Y] = -((dWorldObjects[posts[0]].pos[Y]) - (main_map[ (-dWorldObjects[posts[0]].pix[X] + (main_map_x_pix * dWorldObjects[posts[0]].pix[Y]) + (main_map_total_pix>>1)) ]<<(MAP_V_SCALE)));
 	fenceA[Z] = -dWorldObjects[posts[0]].pos[Z];
 	
 	fenceB[X] = fenceA[X];
@@ -501,7 +513,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	fenceB[Z] = fenceA[Z];
 	
 	fenceC[X] = -dWorldObjects[posts[1]].pos[X];
-	fenceC[Y] = -((dWorldObjects[posts[1]].pos[Y]) - (main_map[ (-dWorldObjects[posts[1]].pix[X] + (main_map_x_pix * dWorldObjects[posts[1]].pix[Y]) + (main_map_total_pix>>1)) ]<<16));
+	fenceC[Y] = -((dWorldObjects[posts[1]].pos[Y]) - (main_map[ (-dWorldObjects[posts[1]].pix[X] + (main_map_x_pix * dWorldObjects[posts[1]].pix[Y]) + (main_map_total_pix>>1)) ]<<(MAP_V_SCALE)));
 	fenceC[Z] = -dWorldObjects[posts[1]].pos[Z];
 	
 	fenceD[X] = fenceC[X];
@@ -569,7 +581,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 
 	// slPrintFX(tDist, slLocate(0, 12));
 	// slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
-	// jo_printf(12, 14, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
+	// jo_printf(12, CELL_CULLING_DIST_MED, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
 
 //Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
 	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) 
@@ -647,7 +659,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 		{
 		
 		realDist = slSquartFX( fxm(relPos[X], relPos[X]) + fxm(relPos[Y], relPos[Y]) + fxm(relPos[Z], relPos[Z]) ); //a^2 + b^2 = c^2
-		dWorldObjects[activeObjects[index]].srot[Y] += 182; //Spin
+		dWorldObjects[activeObjects[index]].srot[Y] += 18; //Spin
 		
 			if(realDist < (dWorldObjects[activeObjects[index]].type.radius[Y]<<16) ) //Explicit radius collision test
 				{
@@ -866,17 +878,15 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
 		{
-				//if(you.points <= 0x15)
-				//{
+				if(you.points <= 0x15)
+				{
 					//If you haven't crossed all the tracks, disable the level changer.
-				//	dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
-				//} else {
+					dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
+				} else {
 					//If you have enough points and crossed all the tracks, enable the level changer.
-				//	dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
-				//}
+					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
+				}
 		}
-
-
 		trackedLDATA = dWorldObjects[trackedLDATA].link;
 	}//while LDATA end
 	

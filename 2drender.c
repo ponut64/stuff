@@ -53,7 +53,7 @@ void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 	opt[X] = trans_pt_by_component(mpt, m0x);
 	opt[Y] = trans_pt_by_component(mpt, m1y);
 	opt[Z] = trans_pt_by_component(mpt, m2z);
-	
+	transVerts[0]++;
 }
 
 

@@ -4,6 +4,8 @@
 
 #include "hmap.h"
 
+#define FIXED_ONE_THIRD (21845)
+
 void	generate_cell_from_position(POINT pos, _pquad * cell){
 	
 	static int cellPos[XY] = {0, 0};
@@ -74,10 +76,10 @@ if(pos[Z] >= 0){
 //------------------------------------------------------------------------------------------------		
 	//Note: The order of application to vertices is intentionally reversed. [Vert 3 uses Vert 0's offset]
 	//Remember: We will NEVER sample a negative pixel. Hitherto, our sampling numbers are unsigned.
-	cell->verts[3][Y] = (vert0pix < main_map_total_pix && (JO_ABS(cellX0off)-1 < (main_map_x_pix>>1))) ? -main_map[vert0pix]<<16 : -(127<<16);
-	cell->verts[2][Y] = (vert1pix < main_map_total_pix && (JO_ABS(cellX1off)-1 < (main_map_x_pix>>1))) ? -main_map[vert1pix]<<16 : -(127<<16);	
-	cell->verts[1][Y] = (vert2pix < main_map_total_pix && (JO_ABS(cellX2off)-1 < (main_map_x_pix>>1))) ? -main_map[vert2pix]<<16 : -(127<<16);	
-	cell->verts[0][Y] = (vert3pix < main_map_total_pix && (JO_ABS(cellX3off)-1 < (main_map_x_pix>>1))) ? -main_map[vert3pix]<<16 : -(127<<16);	
+	cell->verts[3][Y] = (vert0pix < main_map_total_pix && (JO_ABS(cellX0off)-1 < (main_map_x_pix>>1))) ? -main_map[vert0pix]<<(MAP_V_SCALE) : -(127<<(MAP_V_SCALE));
+	cell->verts[2][Y] = (vert1pix < main_map_total_pix && (JO_ABS(cellX1off)-1 < (main_map_x_pix>>1))) ? -main_map[vert1pix]<<(MAP_V_SCALE) : -(127<<(MAP_V_SCALE));	
+	cell->verts[1][Y] = (vert2pix < main_map_total_pix && (JO_ABS(cellX2off)-1 < (main_map_x_pix>>1))) ? -main_map[vert2pix]<<(MAP_V_SCALE) : -(127<<(MAP_V_SCALE));	
+	cell->verts[0][Y] = (vert3pix < main_map_total_pix && (JO_ABS(cellX3off)-1 < (main_map_x_pix>>1))) ? -main_map[vert3pix]<<(MAP_V_SCALE) : -(127<<(MAP_V_SCALE));	
 }
 
 void	divide_cell_return_cfnorms(_pquad quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2)
@@ -113,15 +115,15 @@ tri1p3[X] = (quad.verts[2][X]);
 tri1p3[Y] = (quad.verts[2][Y]);
 tri1p3[Z] = (quad.verts[2][Z]);
 
-tri1CF[X] = fxm(21845,tri1p1[X] + tri1p2[X] + tri1p3[X]);
-tri1CF[Y] = fxm(21845,tri1p1[Y] + tri1p2[Y] + tri1p3[Y]);
-tri1CF[Z] = fxm(21845,tri1p1[Z] + tri1p2[Z] + tri1p3[Z]);
+tri1CF[X] = fxm(FIXED_ONE_THIRD,tri1p1[X] + tri1p2[X] + tri1p3[X]);
+tri1CF[Y] = fxm(FIXED_ONE_THIRD,tri1p1[Y] + tri1p2[Y] + tri1p3[Y]);
+tri1CF[Z] = fxm(FIXED_ONE_THIRD,tri1p1[Z] + tri1p2[Z] + tri1p3[Z]);
 
-tri1V1[X] = -(25<<16);
+tri1V1[X] = -(CELL_SIZE);
 tri1V1[Y] = (tri1p3[Y]) - (tri1p1[Y]);
-tri1V1[Z] = 25<<16;
+tri1V1[Z] = CELL_SIZE;
 
-tri1V2[X] = -(25<<16);
+tri1V2[X] = -(CELL_SIZE);
 tri1V2[Y] = (tri1p2[Y]) - (tri1p1[Y]);
 tri1V2[Z] = 0;
 
@@ -165,17 +167,17 @@ tri2p3[X] = (quad.verts[2][X]);
 tri2p3[Y] = (quad.verts[2][Y]);
 tri2p3[Z] = (quad.verts[2][Z]);
 
-tri2CF[X] = fxm(21845,tri2p1[X] + tri2p2[X] + tri2p3[X]);
-tri2CF[Y] = fxm(21845,tri2p1[Y] + tri2p2[Y] + tri2p3[Y]);
-tri2CF[Z] = fxm(21845,tri2p1[Z] + tri2p2[Z] + tri2p3[Z]);
+tri2CF[X] = fxm(FIXED_ONE_THIRD,tri2p1[X] + tri2p2[X] + tri2p3[X]);
+tri2CF[Y] = fxm(FIXED_ONE_THIRD,tri2p1[Y] + tri2p2[Y] + tri2p3[Y]);
+tri2CF[Z] = fxm(FIXED_ONE_THIRD,tri2p1[Z] + tri2p2[Z] + tri2p3[Z]);
 
-tri2V1[X] = -(25<<16);
+tri2V1[X] = -(CELL_SIZE);
 tri2V1[Y] = (tri2p3[Y]) - (tri2p1[Y]);
-tri2V1[Z] = 25<<16;
+tri2V1[Z] = CELL_SIZE;
 
 tri2V2[X] = 0;
 tri2V2[Y] = (tri2p2[Y]) - (tri2p1[Y]);
-tri2V2[Z] = 25<<16;
+tri2V2[Z] = CELL_SIZE;
 
 
 //Cross 1 - 2. IT IS OPPOSITE IN THE OTHER TRIANGLE.

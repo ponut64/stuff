@@ -27,7 +27,7 @@ void pl_jump(void){
 			you.velocity[Y] = 0;
 		}
 		you.hitSurface = false;
-		you.pos[Y] += (6553);
+		you.pos[Y] += (GRAVITY);
 			you.velocity[X] += fxm(196608, you.floorNorm[X]); 
 			you.velocity[Y] += fxm(196608, you.floorNorm[Y]);
 			you.velocity[Z] += fxm(196608, you.floorNorm[Z]);
@@ -48,10 +48,10 @@ void pl_jet(void){
 			if(you.dirInp == true)
 			{
 			you.velocity[X] += fxm(fxm(512, -you.ControlUV[X]), frmul); 
-			you.velocity[Y] += fxm(6553, frmul); 
+			you.velocity[Y] += fxm(GRAVITY, frmul); 
 			you.velocity[Z] += fxm(fxm(512, -you.ControlUV[Z]), frmul); 
 			} else {
-			you.velocity[Y] += fxm(6553, frmul); 
+			you.velocity[Y] += fxm(GRAVITY, frmul); 
 			}
 		pcm_play(snd_bwee, PCM_PROTECTED, 7);
 }
@@ -230,29 +230,6 @@ void	player_phys_affect(void)
 		you.velocity[Z] += fxm(fxm(-you.IPaccel, you.ControlUV[Z]), 3000);
 		}
 
-		if(you.setJump == true){
-			pl_jump();
-			you.setJump = false;
-		}
-		
-		static int powerTimer = 0;
-		
-		if(you.setJet == true && you.power > 0)
-		{
-			pl_jet();
-		} else if(you.power < 64){
-			powerTimer += delta_time;
-			if(powerTimer > (255))
-			{
-				you.power += 1;
-				powerTimer = 0;
-			}
-		}
-		
-		jo_printf(1, 4, "Fuel: (%i)", you.power);
-		
-		if( you.okayStepSnd ) pl_step_snd();
-
 	//Surface / gravity decisions
 	static VECTOR gravAcc;
 	if(you.hitSurface == true){
@@ -279,6 +256,31 @@ void	player_phys_affect(void)
 	} else {
 		you.velocity[Y] -= fxm((GRAVITY), frmul);
 	}
+	
+	/////////////////////////////
+	// Jump & Jet Decisions
+	/////////////////////////////
+		if(you.setJump == true){
+			pl_jump();
+			you.setJump = false;
+		}
+		
+		static int powerTimer = 0;
+		
+		if( you.okayStepSnd ) pl_step_snd();
+	
+		if(you.setJet == true && you.power > 0)
+		{
+			pl_jet();
+		} else if(you.power < 64){
+			powerTimer += delta_time;
+			if(powerTimer > (255))
+			{
+				you.power += 1;
+				powerTimer = 0;
+			}
+		}
+		jo_printf(1, 4, "Fuel: (%i)", you.power);
 
 	//Wall Collision Decisions
 	if(you.hitWall == true){

@@ -28,6 +28,8 @@ typedef struct {
 	Uint16 totalPix;
 } _heightmap;
 
+//# of textures in the map table, before combined textures are made
+extern int map_tex_amt; 
 extern int main_map_total_pix; //Total pixels of map
 extern int main_map_x_pix; //X pixels of map
 extern int main_map_y_pix; //Z pixels of map
@@ -40,6 +42,7 @@ extern Uint8 * main_map;
 extern Uint8 * buf_map;
 extern char * normTbl;
 extern unsigned short * minimap;
+extern unsigned char * mapTex;
 
 //Used in msfs.c
 void	read_pgm_header(_heightmap * map);

@@ -1,7 +1,7 @@
 	INPUT = 12584960	; Constant to be changed by SH2 before program load.
 	SRCTBL = 12584960	; Constant to be changed by SH2 before program load.
 	NOTI = 12584960	; End stat DMA address
-	LINE_PIX = 27 ;Pixels in a line of the local map
+	LINE_PIX = 17 ;Pixels in a line of the local map
 	LINE_DIST = LINE_PIX >> 1 ;
 	;------------------------------------------------------------------------ P64 PROGRAM DMA HEADER
 	MVI INPUT,PL															; SH2 sets "PREAD" and "WRITE" constants before program load.
