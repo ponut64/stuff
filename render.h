@@ -14,8 +14,13 @@
 #define INTERNAL_MAX_VERTS 2800 //Slave only 2800
 #define MAX_SSH2_SENT_POLYS (700) //SpriteBuf size limitation // thanks VBT for fixing sglarea.o for me
 #define MAX_MSH2_SENT_POLYS (600) //SpriteBuf size limitation 
+//
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
+// Base PMOD: Bit 12 is HSS
+#define VDP1_BASE_PMODE (0x1490)
+// CMDCTRL = Select Distorted Sprite
+#define VDP1_BASE_CMDCTRL (2)
 //VDP1 perf limit depends on how many pixels it's drawing.
 //Screen clip flags
 #define SCRN_CLIP_X		(1)
@@ -31,8 +36,8 @@
 
 //////////////////////////////////
 // Engine's working struct for drawing raw sprites
-//////////////////////////////////
-typedef struct{
+///////////// /////////////////////
+typedef struct {
 	int time;			// Time (in fixed-point seconds) to allow the sprite to persist.
 	POINT pos; 			//World-space position for billboard scaled sprites, screenspace top-left coordinate otherwise
 	short span; 		//Screenspace X/Y span, if a billboard.
@@ -44,19 +49,19 @@ typedef struct{
 //////////////////////////////////
 // Post-transformed vertice data struct
 //////////////////////////////////
-typedef struct{
+typedef struct {
     POINT  pnt;
-	char clipFlag;
+	short clipFlag;
 } vertex_t; //13 bytes each
 
 //////////////////////////////////
 // Point light data struct
 //////////////////////////////////
-typedef struct{
+typedef struct {
 	FIXED * ambient_light;
 	int	pos[3];
 	unsigned short bright;
-	unsigned char pop;
+	unsigned short pop;
 } point_light;
 
 //////////////////////////////////
@@ -98,9 +103,9 @@ void	init_render_area(void);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
 void	update_gamespeed(void);
-void	ssh2DrawModel(entity_t * ent, POINT wldPos);
+void	ssh2DrawModel(entity_t * ent);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
-void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos, bool transplant);
+void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transplant);
 void	sort_master_polys(void);
 #endif
 

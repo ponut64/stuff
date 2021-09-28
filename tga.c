@@ -105,6 +105,51 @@ void	add_texture_to_vram(int width, int height)
 	numTex++;
 }
 
+int		new_dithered_texture(int texno_a, int texno_b)
+{
+	//Core concept: Create a new texture, same size as the both textures which also need to be the same size,
+	// with every odd pixel from texture A, and every even pixel from texture B.
+	
+		unsigned char * a_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texno_a].SRCA<<3)));
+		unsigned char * b_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texno_b].SRCA<<3)));
+		
+		if(pcoTexDefs[texno_a].SIZE != pcoTexDefs[texno_b].SIZE) return 0; //Unequal texture sizes, exit.
+		//Past this point, we will be writing a new texture. So set it up.
+		
+		int base_x = (pcoTexDefs[texno_a].SIZE & 0x3F00)>>5;
+		int base_y = (pcoTexDefs[texno_a].SIZE & 0xFF);
+		int total_bytes_of_original_texture = base_x * base_y;
+	
+		unsigned char * texture_start = curVRAMptr;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[texno_a].SIZE;
+		pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); 
+		numTex++;
+	
+		//This is the 50/50 dithering algorithm.
+		//Because all textures will have an even number of pixels per line,
+		//we need to switch which pixel receives data from which source texture each line.
+		//In doing so, we avoid having bars, and disperse the pixels across the texture such that no X or Y lines form.
+			int c = 0;
+		for(int py = 0; py < base_y; py++)
+		{
+			int oddrule = (py & 1) ? 1 : 0;
+			for(int px = 0; px < base_x; px++)
+			{
+				if(oddrule == 1)
+				{
+					texture_start[c] = (c & 1) ? a_data[c] : b_data[c];
+				} else {
+					texture_start[c] = (c & 1) ? b_data[c] : a_data[c];
+				}
+				c++;
+			}
+		}
+	
+		//End
+		curVRAMptr += total_bytes_of_original_texture;
+		return numTex-1;
+}
+
 void	make_4way_combined_textures(int start_texture_number, int end_texture_number)
 {
 	for(int t = start_texture_number; t < end_texture_number; t++)

@@ -10,10 +10,18 @@
 //Structs
 
 typedef struct {
-	//Six axis normal vector star.
+////////////////////////////////////////////
+// Pre-matrix section
+// The following four arrays complete the 3D matrix representing the object's orientation and position.
+////////////////////////////////////////////
+	//Positive orientation angles
 	FIXED UVX[XYZ];
 	FIXED UVY[XYZ];
 	FIXED UVZ[XYZ];
+	//The boxes center [XYZ]
+	FIXED pos[XYZ];
+////////////////////////////////////////////
+	//Negative orientation angles
 	FIXED UVNX[XYZ];
 	FIXED UVNY[XYZ];
 	FIXED UVNZ[XYZ];
@@ -34,8 +42,6 @@ typedef struct {
 	FIXED veloNX[XYZ];
 	FIXED veloNY[XYZ];
 	FIXED veloNZ[XYZ];
-	//The boxes center [XYZ]
-	FIXED pos[XYZ];
 	//The box' radius
 	FIXED brad[XYZ];
 	//The box' rotation (expressed as ANGLE type data)

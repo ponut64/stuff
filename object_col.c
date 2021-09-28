@@ -146,7 +146,7 @@ bool		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 }
 
 
-void	per_poly_collide(entity_t * ent, POINT mesh_position, _boundBox * mover)
+void	per_poly_collide(entity_t * ent, _boundBox * mover)
 {
 		//If the entity is not loaded, cease the test.
 		if(ent->file_done != true) return;
@@ -161,6 +161,8 @@ POINT discard_vector = {0, 0, 0};
 bool hitY = false;
 bool hitXZ = false;
 bool shadowStruck = false;
+
+FIXED * mesh_position = &ent->prematrix[9];
 
 	discard_vector[X] = (mesh_position[X] - mover->pos[X]);
 	discard_vector[Y] = (mesh_position[Y] - mover->pos[Y]);
@@ -876,25 +878,24 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 	
 }
 
-void	plane_rendering_with_subdivision(entity_t * entity, POINT mesh_position)
+void	plane_rendering_with_subdivision(entity_t * ent)
 {
 	///////////////////////////////////////////
 	// If the file is not yet loaded, do not try and render it.
 	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
 	///////////////////////////////////////////
-		if(entity->file_done != true) return;
-		if(entity->type != 'B') return;
-		PDATA * mesh = entity->pol[0];
+		if(ent->file_done != true) return;
+		if(ent->type != 'B') return;
+		PDATA * mesh = ent->pol[0];
 		
 		sub_poly_cnt = 0;
 		sub_vert_cnt = 0;
-		short	testing_planes[128];
-		short	total_planes = 0;
-unsigned short	colorBank = 0;
+		unsigned short	colorBank = 0;
 		int		inverseZ = 0;
 		int 	luma = 0;
 		int 	zDepthTgt = 0;
-		POINT	discard_vector = {0, 0, 0};
+		
+		FIXED * mesh_position = &ent->prematrix[9];
 
 		POINT	pl_pts[4];
 
@@ -928,55 +929,16 @@ prntidx = 0;
 
 	Load up a plane.
 	Transform its vertices by the matrix, but don't explicitly screenspace transform it.
-	These vertices will be "screen-centered", so now we can subvidide the plane.
+	These vertices will be "screen-centered", so now we can subdivide the plane.
 	Check the span of the plane to see if it is large.
 	If it large in one of two particular ways, subdivide it by its longitude or its latitude (make two from one).
 	If it is large in both ways, subdivide it both ways (make four from one).
 	At this point, subdivision will occur recursively up to a limit arbitrated from the plane's Z,
 	will cease subdivision on polygons with a high Z, and continue subdivision on polygons with a low Z.
 	
-	All but the lowest subdivison of a polygon will recieve a combined texture.
+	All but the lowest subdivision of a polygon will receive a combined texture.
 	The texture is either a X*2, Y*2, or an X*2 & Y*2 combination -- the same as the subdivision pattern of the polygon.
 	**/
-	
-	//////////////////////////////////////////////////////////////
-	// Normal-based discard of planes
-	// If the plane's normal is facing away from where the player is,
-	// it will not be put into the pile of planes to collision test.
-	// PDATA vector space is inverted, so we negate them
-	// **DO NOT rotate the mesh or else this will not work**
-	// Note: I tried to do screenspace backface culling, or something more representative of the screen..
-	// but none of them worked well enough.
-	//////////////////////////////////////////////////////////////
-	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
-	{
-			if(mesh->attbl[dst_poly].flag != 0)
-			{
-				testing_planes[total_planes] = dst_poly;
-				total_planes++;
-				continue;
-			}
-				discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X])
-									- you.pos[X] - mesh_position[X];
-				discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y])
-									- you.pos[Y] - mesh_position[Y];
-				discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z])
-									- you.pos[Z] - mesh_position[Z];
-				int normal_discard = fxdot(discard_vector, mesh->pltbl[dst_poly].norm);
-	// slPrint("Discard vector:", slLocate(1, 9));
-	// slPrintFX(discard_vector[X], slLocate(2, 10));
-	// slPrintFX(discard_vector[Y], slLocate(2, 11));
-	// slPrintFX(discard_vector[Z], slLocate(2, 12));
-	// slPrint("Dot product:", slLocate(1, 13));
-	// slPrintFX(normal_discard, slLocate(2, 14));
-				if(normal_discard >= -(5<<16) && total_planes < 128)
-				{
-					testing_planes[total_planes] = dst_poly;
-					total_planes++;
-				}
-	}
-	
-	//jo_printf(1, 15, "Total planes: (%i)", total_planes);
 
 	int min_z = 32767<<16;
 	int max_z = -(32767<<16);
@@ -1015,7 +977,7 @@ prntidx = 0;
 		}
 	}
 
-for(int i = 0; i < total_planes; i++)
+for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 {
 		sub_vert_cnt = 0;
 		sub_poly_cnt = 0;
@@ -1024,9 +986,9 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	// Load the points
 	//////////////////////////////////////////////////////////////
-		pl_pts[u][X] = (mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][X]);
-		pl_pts[u][Y] = (mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][Y]);
-		pl_pts[u][Z] = (mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][Z]);
+		pl_pts[u][X] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][X]);
+		pl_pts[u][Y] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Y]);
+		pl_pts[u][Z] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Z]);
 	//////////////////////////////////////////////////////////////
 	// Matrix transformation of the plane's points
 	// Note: Does not yet transform to screenspace, clip by screen or portal, or push out to near plane.
@@ -1057,6 +1019,18 @@ for(int i = 0; i < total_planes; i++)
 		 & ssh2VertArea[1].clipFlag
 		 & ssh2VertArea[2].clipFlag
 		 & ssh2VertArea[3].clipFlag) continue;
+		 
+	//////////////////////////////////////////////////////////////
+	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
+	//////////////////////////////////////////////////////////////
+	if(!mesh->attbl[i].flag)
+	{
+		 int cross0 = (ssh2VertArea[1].pnt[X] - ssh2VertArea[3].pnt[X])
+							* (ssh2VertArea[0].pnt[Y] - ssh2VertArea[2].pnt[Y]);
+		 int cross1 = (ssh2VertArea[1].pnt[Y] - ssh2VertArea[3].pnt[Y])
+							* (ssh2VertArea[0].pnt[X] - ssh2VertArea[2].pnt[X]);
+		if(cross0 >= cross1) continue;
+	}
 	//////////////////////////////////////////////////////////////
 	// We have at least four vertices, and at least one polygon (the plane's data itself).
 	//////////////////////////////////////////////////////////////
@@ -1201,23 +1175,29 @@ for(int i = 0; i < total_planes; i++)
 		///////////////////////////////////////////
 			if(used_textures[j] != 0)
 			{
-				specific_texture = ((mesh->attbl[testing_planes[i]].texno - entity->base_texture) * 4)
-					 + (entity->numTexture + entity->base_texture) + used_textures[j];
+				specific_texture = ((mesh->attbl[i].texno - ent->base_texture)<<2)
+					 + (ent->numTexture + ent->base_texture) + used_textures[j];
 			} else {
-				specific_texture = mesh->attbl[testing_planes[i]].texno;
+				specific_texture = mesh->attbl[i].texno;
 			}
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
 		// Uses weighted max
 		///////////////////////////////////////////
+		//	if(JO_ABS(mesh->pltbl[i].norm[Y]) < 16384)
+		//	{
+		// zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		//	} else {
 		 zDepthTgt = (JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
+		//	}
 		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////
 		unsigned short flip = 0;
+		unsigned short pclp = 0; 
  		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
 			//Incoming Arrangement:
 			// 0 - 1		^
@@ -1243,6 +1223,9 @@ for(int i = 0; i < total_planes; i++)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
 		}
 		///////////////////////////////////////////
 		// Lighting Math
@@ -1255,33 +1238,41 @@ for(int i = 0; i < total_planes; i++)
 			if(active_lights[l].pop == 1)
 			{
 				relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
-														+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>16;
+														+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>12;
 				relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
-														+ subdivided_points[subdivided_polygons[j][2]][Y])>>1))>>16;
+														+ subdivided_points[subdivided_polygons[j][2]][Y])>>1))>>12;
 				relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
-														+ subdivided_points[subdivided_polygons[j][2]][Z])>>1))>>16;
-				inverted_proxima = (relative_light_pos[X] * relative_light_pos[X]) +
+														+ subdivided_points[subdivided_polygons[j][2]][Z])>>1))>>12;
+				inverted_proxima = ((relative_light_pos[X] * relative_light_pos[X]) +
 									(relative_light_pos[Y] * relative_light_pos[Y]) +
-									(relative_light_pos[Z] * relative_light_pos[Z]);
+									(relative_light_pos[Z] * relative_light_pos[Z]))>>8;
 				inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
+				
+				// relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
+														// + subdivided_points[subdivided_polygons[j][2]][X])>>1));
+				// relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
+														// + subdivided_points[subdivided_polygons[j][2]][Y])>>1));
+				// relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
+														// + subdivided_points[subdivided_polygons[j][2]][Z])>>1));
+				// inverted_proxima = fxdot(relative_light_pos, relative_light_pos)>>16;
+				
+				// inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
 						
 				luma += inverted_proxima * (int)active_lights[l].bright;
 			}
 			if(luma > 0) break;
 		}
 		luma = (luma < 0) ? 0 : luma; 
-		luma += fxdot(mesh->pltbl[testing_planes[i]].norm, active_lights[0].ambient_light); 
+		luma += fxdot(mesh->pltbl[i].norm, active_lights[0].ambient_light); 
 		//Use transformed normal as shade determinant
 		colorBank = (luma >= 98294) ? 0 : 1;
 		colorBank = (luma < 49152) ? 2 : colorBank;
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 			
-      ssh2SetCommand(ptv[0]->pnt,
-		ptv[1]->pnt,
-		ptv[2]->pnt,
-		ptv[3]->pnt,
-		2 | flip, (5264 | (mesh->attbl[testing_planes[i]].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+      ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
+					ptv[2]->pnt, ptv[3]->pnt,
+		VDP1_BASE_CMDCTRL | flip, (VDP1_BASE_PMODE | (mesh->attbl[i].atrb & 33024)) | pclp, //Reads flip value, mesh enable, and msb bit
 		pcoTexDefs[specific_texture].SRCA, colorBank<<6, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}
     transVerts[0] += sub_vert_cnt;

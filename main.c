@@ -105,6 +105,8 @@ volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
  animationControl slideIdle;
  animationControl slideRln;
  animationControl slideLln;
+ 
+ animationControl flap;
 //////////////////////////////////////////////////////////////////////////////
 // Player data struct
 //////////////////////////////////////////////////////////////////////////////
@@ -178,18 +180,25 @@ void	load_test(void)
 	//Next up: TGA file system handler?
 	int map_tex_start = numTex;
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
+	map_texture_table_numbers[0] = numTex;
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
+	map_texture_table_numbers[1] = numTex;
 	WRAP_NewTable((Sint8*)"DIR1.TGA", (void*)dirty_buf, 0);
+	map_texture_table_numbers[2] = numTex;
 	WRAP_NewTable((Sint8*)"DIR2.TGA", (void*)dirty_buf, 0);
+	map_texture_table_numbers[3] = numTex;
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
+	map_texture_table_numbers[4] = numTex;
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
 	map_tex_amt = (numTex);
 	make_4way_combined_textures(map_tex_start, map_tex_amt);
-	//End tex 35
+	map_last_combined_texno = numTex;
+	make_dithered_textures_for_map();
 // gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
 // gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');
 
 active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    SORT_CEN, 'P');
+active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    SORT_CEN, 'F');
 active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    SORT_CEN, 'N');
 active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PINE.GVP",		active_HWRAM_ptr, &entities[2], SORT_CEN, 'N');
 active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LOG.GVP",			active_HWRAM_ptr, &entities[3], SORT_CEN, 'N');
@@ -283,7 +292,6 @@ void	my_vlank(void){
 	operate_digital_pad1();
 	//Sound Driver Stuff
 	m68k_com->start = 1;
-	m68k_com->dT_ms = delta_time>>6;
 	music_vblIn(7);
 	//
 }
@@ -331,7 +339,7 @@ void	jo_main(void)
 	anim_defs();
 	init_heightmap();
 	//Sound Driver
-	load_drv(); 
+	load_drv(ADX_MASTER_1536); 
 	//
 	load_dsp_prog();
 	//

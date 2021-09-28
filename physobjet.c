@@ -94,7 +94,7 @@ void	object_control_loop(int ppos[XY])
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++){
 		
-		//jo_printf(0, 0, "(CTRL)"); //Debug ONLY
+		//jo_printf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
 		
 		difX = fxm(((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]), INV_CELL_SIZE)>>16; 
 		difY = fxm(((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]), INV_CELL_SIZE)>>16; 
@@ -878,14 +878,14 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
 		{
-				if(you.points <= 0x15)
-				{
+				//if(you.points <= 0x15)
+				//{
 					//If you haven't crossed all the tracks, disable the level changer.
-					dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
-				} else {
+				//	dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
+				//} else {
 					//If you have enough points and crossed all the tracks, enable the level changer.
 					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
-				}
+			//	}
 		}
 		trackedLDATA = dWorldObjects[trackedLDATA].link;
 	}//while LDATA end

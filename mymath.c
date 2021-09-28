@@ -16,7 +16,7 @@
 
 __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 {
-	register FIXED rtval;
+	register volatile FIXED rtval;
 	asm(
 	"dmuls.l %[d1],%[d2];"
 	"sts MACH,r1;"		// Store system register [sts] , high of 64-bit register MAC to r1
@@ -32,7 +32,7 @@ __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 
 __jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //Fixed-point dot product
 {
-	register FIXED rtval;
+	register volatile FIXED rtval;
 	asm(
 		"clrmac;"
 		"mac.l @%[ptr1]+,@%[ptr2]+;"
@@ -53,11 +53,11 @@ __jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //Fixed-point dot product
 __jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
 	
-const int * DVSR = ( int*)0xFFFFFF00;
-const int * DVDNTH = ( int*)0xFFFFFF10;
-const int * DVDNTL = ( int*)0xFFFFFF14;
+	const int * DVSR = ( int*)0xFFFFFF00;
+	const int * DVDNTH = ( int*)0xFFFFFF10;
+	const int * DVDNTL = ( int*)0xFFFFFF14;
 
-register FIXED quotient;
+	register volatile FIXED quotient;
 	asm(
 	"mov.l %[dvs], @%[dvsr];"
 	"mov %[dvd], r1;" //Move the dividend to a general-purpose register, to prevent weird misreading of data.

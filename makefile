@@ -1,10 +1,11 @@
 JO_COMPILE_USING_SGL = 1
 JO_COMPILE_WITH_BACKUP_MODULE = 1
 JO_PSEUDO_SATURN_KAI_SUPPORT = 1
+#JO_480i = 1
 JO_NTSC = 1
 JO_DEBUG = 1
 JO_GLOBAL_MEMORY_SIZE_FOR_MALLOC = 65536
-#JO_480p = 1
+
 
 SRCS=main.c render.c 2drender.c input.c draw.c ldata.c tga.c pcmsys.c mymath.c \
 msfs.c bounder.c collision.c player_phy.c hmap.c minimap.c hmap_col.c \

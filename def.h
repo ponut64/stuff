@@ -131,7 +131,7 @@ extern volatile Uint32 * scuireg;
 
 typedef struct
 {
-	Bool uniform;
+	char reset_enable;
 	Uint8 arate[64];
     Uint16 currentFrm;
     Uint8 currentKeyFrm;
@@ -164,6 +164,7 @@ extern animationControl slideIdle;
 extern animationControl slideRln;
 extern animationControl slideLln;
 
+extern animationControl flap;
 
 #endif
 

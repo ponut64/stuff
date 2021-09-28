@@ -16,6 +16,7 @@ extern short GLOBAL_img_line_count;
 extern short GLOBAL_img_line_width;
 extern int numTex;
 
+int		new_dithered_texture(int texno_a, int texno_b);
 void	make_4way_combined_textures(int start_texture_number, int end_texture_number);
 void	make_combined_textures(int texture_number);
 void	add_texture_to_vram(int width, int height);

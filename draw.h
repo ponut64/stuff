@@ -33,6 +33,8 @@ extern FIXED hmap_actual_pos[XYZ];
 extern entity_t pl_model;
 //Player's Shadow
 extern entity_t shadow;
+//Player Wings
+extern entity_t wings;
 //Texture Tables
 extern entity_t txtbl_e[5];
 //Root perspective matrix, including translation and rotation of third-person camera (or first person, if not?)

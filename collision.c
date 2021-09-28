@@ -607,7 +607,7 @@ void	player_collision_test_loop(void)
 			{
 				if(RBBs[i].status[1] == 'C')
 				{
-				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &pl_RBB);
+				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB);
 				}
 			}
 	}

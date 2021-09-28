@@ -30,10 +30,17 @@ typedef struct {
 
 //# of textures in the map table, before combined textures are made
 extern int map_tex_amt; 
+//The last texture # of the map's combined textures
+extern int map_last_combined_texno;
+//The last texture # of the map's dithered non-combined textures
+extern int map_last_dithered_texture;
+//The last texture # of the map's dithered combined textures
+extern int map_last_dithered_combined_texture;
 extern int main_map_total_pix; //Total pixels of map
 extern int main_map_x_pix; //X pixels of map
 extern int main_map_y_pix; //Z pixels of map
-extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 // Eventually, to be loaded from file. But can be manually defined too, I guess.
+extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 
+extern int map_texture_table_numbers[5]; //The first texture # of each ground texture table.
 extern bool map_update_complete;
 extern bool * sysbool;
 extern bool map_chg;
@@ -42,12 +49,14 @@ extern Uint8 * main_map;
 extern Uint8 * buf_map;
 extern char * normTbl;
 extern unsigned short * minimap;
-extern unsigned char * mapTex;
+//Notice: Map Tex contains a 10-bit texture number, and two extra bits of flip data.
+extern unsigned short * mapTex;
 
 //Used in msfs.c
 void	read_pgm_header(_heightmap * map);
 void	process_map_for_normals(void);
 //
+void	make_dithered_textures_for_map(void);
 void	init_heightmap(void);
 void	update_hmap(MATRIX msMatrix);
 void	chg_map(_heightmap * tmap);

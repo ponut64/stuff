@@ -22,10 +22,25 @@ int * transVerts;
 int * transPolys;
 int anims;
 
-	FIXED	nearP	= 15<<16; // Z DISPLAY LEVEL [Actually a bit more complicated than that, but it works]
-	FIXED	farP	= 1000<<16; // RENDER DIST
-const unsigned short comm_p_mode = 5264; //Should add color mode table? Color mode is applied here.
-const unsigned short ctrl = 2;
+	FIXED	nearP	= 15<<16; // The minimum Z allowed
+	FIXED	farP	= 1000<<16; // The highest Z allowed
+	
+/*
+
+	Don't forget:
+	UV coordinates are possible on Saturn with indexed color draw commands.
+	The method by which this is possible is to put your texture in color RAM, and use goraud shading as texture coordinates.
+	The draw command consequently should be untextured, as VDP1 is managing the texel via goraud shading.
+	The color of the polygon should be .. hmm..
+	Since goraud is additive, you should be able to locate the texel in color RAM by making the start address of the texel the color.
+	I plan on experimenting with a 16x16 texture in color RAM so as to use this method.
+	
+	It seems like this is only possible with a texture width of 32.
+	The goraud coordinates use red and blue, the first ten bits.
+	Red and blue each are five bits, ergo, 32.
+	If you increment blue (or coordinate Y) by 1, you still increment the integer coordinate by 32.
+	So yes, a 16x16 is not possible. It would have to be 32x8 at the smallest.
+*/
 
 void	init_render_area(void)
 {
@@ -54,7 +69,7 @@ void	frame_render_prep(void)
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 {
-	 FIXED transPt;
+	volatile FIXED transPt;
 	asm(
 		"clrmac;"
 		"mov %[ptptr], r0;" //Moves pt ptr to discrete s to prevent the C-level variable from being modified.
@@ -175,7 +190,7 @@ void	sort_master_polys(void)
 }
 
 //If rendering a matrix-centered object (like a gun model or a third-person player model), set "negate coordinates" to Y.
-int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char model_purpose)
+int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char model_purpose)
 {
 	
 	//model_purpose  .. where 'P' means "PLAYER".
@@ -192,6 +207,8 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 	int active_dot = 0;
 	VECTOR lightDist = {0, 0, 0};
 	point_light * light_used = &active_lights[0];
+	//Grab position data from prematrix
+	FIXED * wldPos = &prematrix[9];
 	
 	nearest_dot = JO_ABS(wldPos[X] - light_used->pos[X]) +
 					JO_ABS(wldPos[Y] - light_used->pos[Y]) +
@@ -314,7 +331,7 @@ int		process_light(POINT wldPos, VECTOR lightAngle, FIXED * ambient_light, FIXED
 }
 
 
-void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rendering
+void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 {
 	if(ent->file_done != true){return;}
 	//Recommended, for performance, that large entities be placed in HWRAM.
@@ -344,10 +361,14 @@ void ssh2DrawModel(entity_t * ent, POINT wldPos) //Primary variable sorting rend
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
-	VECTOR lightAngle = {0, 0, 0};
-	VECTOR ambient_light = {0, 0, 0};
+	VECTOR lightAngle = {0, -65535, 0};
+	VECTOR ambient_light = {0, -65535, 0};
 	
-	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->type);
+	int bright = 0;
+	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
+	{
+	bright = process_light(lightAngle, ambient_light, ent->prematrix, ent->type);
+	}
 
 	FIXED luma;
 	short colorBank;
@@ -416,8 +437,13 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
-/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		///////////////////////////////////////////
+		/*unsigned short flip = 0;
+		unsigned short pclp = 0; 
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -429,7 +455,8 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
 			//	0 | 1
 			//	3 | 2
 			//	 Edge  ---> X+
@@ -440,7 +467,10 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} */
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
+		}*/
 		//Preclipping is always enabled
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
@@ -455,7 +485,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		ptv[1]->pnt,
 		ptv[2]->pnt,
 		ptv[3]->pnt,
-                     ctrl | (flip), (comm_p_mode | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
 } else if((model->attbl[0].sort & 3) == SORT_MIN) //Sort Minimum
@@ -484,8 +514,13 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
-/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		///////////////////////////////////////////
+		/*unsigned short flip = 0;
+		unsigned short pclp = 0; 
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -497,7 +532,8 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
 			//	0 | 1
 			//	3 | 2
 			//	 Edge  ---> X+
@@ -508,7 +544,10 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} */
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
+		}*/
 		//Preclipping is always enabled
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
@@ -523,7 +562,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		ptv[1]->pnt,
 		ptv[2]->pnt,
 		ptv[3]->pnt,
-                     ctrl | (flip), (comm_p_mode | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
 	}
 } else {//Sort Min endif
@@ -549,8 +588,13 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
-/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		///////////////////////////////////////////
+		/*unsigned short flip = 0;
+		unsigned short pclp = 0; 
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -562,7 +606,8 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
 			//	0 | 1
 			//	3 | 2
 			//	 Edge  ---> X+
@@ -573,7 +618,10 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} */
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
+		}*/
 		//Preclipping is always enabled
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
@@ -588,7 +636,7 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		ptv[1]->pnt,
 		ptv[2]->pnt,
 		ptv[3]->pnt,
-                     ctrl | (flip), (comm_p_mode | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		}			
@@ -691,8 +739,13 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
  
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
-		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
-/* 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		///////////////////////////////////////////
+		/*unsigned short flip = 0;
+		unsigned short pclp = 0; 
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -704,7 +757,8 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
 			//	0 | 1
 			//	3 | 2
 			//	 Edge  ---> X+
@@ -715,7 +769,10 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} */
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
+		}*/
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
@@ -732,14 +789,14 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 									ptv[2]->pnt,
 						ptv[3]->pnt,
-                     ctrl | (flip), (comm_p_mode | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 
 }
 
-void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos, bool transplant) //Draws animated model via SSH2
+void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transplant) //Draws animated model via SSH2
 {
 	if(ent->file_done != true){return;}
 	//WARNING:
@@ -770,10 +827,14 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
-	VECTOR lightAngle = {0, 0, 0};
-	VECTOR ambient_light = {0, 0, 0};
+	VECTOR lightAngle = {0, -65535, 0};
+	VECTOR ambient_light = {0, -65535, 0};
 	
-	int bright = process_light(wldPos, lightAngle, ambient_light, ent->prematrix, ent->type);
+	int bright = 0;
+	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
+	{
+	bright = process_light(lightAngle, ambient_light, ent->prematrix, ent->type);
+	}
 	
 	FIXED luma;
 	short colorBank;
@@ -788,7 +849,6 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos
 	//7. Interpolate once
 	//8. Return all control data as if set from the animCtrl pose
 	bool animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? true : false;
-	
 //
 	unsigned char localArate;
 	unsigned char nextKeyFrm;
@@ -797,11 +857,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, POINT wldPos
 	compVert * nextKeyFrame;
     /**Sets the animation data**/
 ///Variable interpolation set
-if(AnimArea[anims].uniform == false){
 localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
-} else {
-	localArate = 2;
-}
 
 
 	AnimArea[anims].currentFrm += (localArate * framerate)>>1;
@@ -839,7 +895,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 
 
 //Animation Data
-    Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
+    volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
 	int inverseZ = 0;
@@ -879,7 +935,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
     transVerts[0] += model->nbPoint;
 
     dst = (Sint32 *)&model->pltbl[0];
-    Uint8 *src2 = ent->animation[AnimArea[anims].currentKeyFrm]->cNorm; //A new 1-byte src
+    volatile Uint8 *src2 = ent->animation[AnimArea[anims].currentKeyFrm]->cNorm; //A new 1-byte src
 	VECTOR tNorm = {0, 0, 0};
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
@@ -910,8 +966,13 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-/* 		//Goal: Flip the polygon so that vertice 0 is in the render area // This is too costly on the CPU and has been removed.
-		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
+		///////////////////////////////////////////
+		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		///////////////////////////////////////////
+		/*unsigned short flip = 0;
+		unsigned short pclp = 0; 
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
+			//Incoming Arrangement:
 			// 0 - 1		^
 			//-------- Edge | Y-
 			// 3 - 2		|
@@ -923,7 +984,8 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
+		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
+			//Incoming Arrangement:
 			//	0 | 1
 			//	3 | 2
 			//	 Edge  ---> X+
@@ -934,7 +996,10 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} */
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
+		}*/
 		//Preclipping is always enabled
 		//New normals in from animation normal table // These are not written back to memory
         tNorm[X]=ANORMS[*src2][X];
@@ -954,15 +1019,15 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		ptv[1]->pnt,
 		ptv[2]->pnt,
 		ptv[3]->pnt,
-                     ctrl | (flip), (comm_p_mode | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 		
-		
- if(animation_change == true) // Check to see if the animation matches.
+ // Check to see if the animation matches, or if reset is enabled.
+ // In these cases, re-load information from the AnimCtrl.
+ if(animation_change == true || animCtrl->reset_enable == 'Y') 
  {
-	AnimArea[anims].uniform = animCtrl->uniform;
 	
 	if(transplant != true)
 	{
@@ -976,6 +1041,8 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
+	AnimArea[anims].reset_enable = 'N';
+	animCtrl->reset_enable = 'N';
  }
 		
 		anims++; //Increment animation work area pointer

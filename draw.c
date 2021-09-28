@@ -9,6 +9,8 @@ FIXED sun_light[3] = {0, -20000, 0};
 entity_t pl_model;
 //Player's Shadow
 entity_t shadow;
+//Player Wings
+entity_t wings;
 //Heightmap Matrix
 MATRIX hmap_mtx;
 //Root matrix after perspective transform
@@ -16,6 +18,9 @@ MATRIX perspective_root;
 // ???
 MATRIX unit;
 //Billboard sprite work list (world-space positions)
+//
+// Mental note: Try Rotation-16 framebuffer and alternate screen coordinate from 0,0 and 1,1 every vblank
+// Should make mesh transparencies work better
 
 FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
 FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
@@ -172,36 +177,36 @@ void	player_draw(void)
 				airTimer = 0;
 					if(you.setSlide != true && airTimer == 0){
 						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0){
-							ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
+							ssh2DrawAnimation(&idle, &pl_model,  false);
 						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp){
 						if(you.IPaccel < 0){
-							ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
+							ssh2DrawAnimation(&stop, &pl_model,  false);
 							}
 						if(you.sanics < 2<<16 && you.IPaccel > 0){
-							ssh2DrawAnimation(&walk, &pl_model, you.pos, true);
+							ssh2DrawAnimation(&walk, &pl_model,  true);
 							}
 						if(you.sanics < 3<<16 && you.sanics > 2<<16){
-							ssh2DrawAnimation(&run, &pl_model, you.pos, true);
+							ssh2DrawAnimation(&run, &pl_model,  true);
 							}
 						if(you.sanics >= 3<<16){
-							ssh2DrawAnimation(&dbound, &pl_model, you.pos, true);
+							ssh2DrawAnimation(&dbound, &pl_model,  true);
 							}
 						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp){
-						ssh2DrawAnimation(&stop, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&stop, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&idle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&idle, &pl_model,  false);
 						}	
 					} else {//IF NOT SLIDE ENDIF
 						if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&slideRln, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&slideRln, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&slideLln, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&slideLln, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_UP)){
-						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&slideIdle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						}
 						}//IF SLIDE ENDIF
 						
@@ -209,18 +214,30 @@ void	player_draw(void)
 				} else {//IF SURFACE ENDIF
 						airTimer++;
 						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0){
-							ssh2DrawAnimation(&jump, &pl_model, you.pos, false);
+							ssh2DrawAnimation(&jump, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&airRight, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&airRight, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&airLeft, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&airLeft, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&airIdle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&airIdle, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&airIdle, &pl_model, you.pos, false);
+						ssh2DrawAnimation(&airIdle, &pl_model,  false);
 						}
 				}//IF AIR ENDIF
 			} //IF MODEL LOADED ENDIF
+			
+			//This plays a wing flap animation when you start 'jetting'.
+			//Due to the configuration of the animation, the wings stop after one flap.
+			//This code manually resets the flap animation when you're done jetting, so they will flap again.
+			if(you.setJet)
+			{
+				ssh2DrawAnimation(&flap, &wings,  false);
+			} else {
+				flap.currentFrm = flap.startFrm * 8;
+				flap.currentKeyFrm = flap.startFrm;
+				flap.reset_enable = 'Y';
+			}
 	}
 
 	slPopMatrix();
@@ -255,33 +272,24 @@ void	obj_draw_queue(void)
 		mat[Z][Z] = RBBs[i].UVZ[Z];
 		mat[3][2] = RBBs[i].pos[Z]; //Position
 	
-					if( objType != ITEM && objType != LDATA && objType != BUILD ){ //Check if entity is NOT ITEM or LDATA
-
-		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
-
 		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
-		
-		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
-		
-					} else if( objType == ITEM ){ //if entity IS ITEM
-		
-			if( !(dWorldObjects[activeObjects[i]].type.ext_dat & 8) ) //Check if root entity still exists
+	
+			if( objType != ITEM && objType != LDATA && objType != BUILD )
+			{ //Check if entity is NOT ITEM or LDATA
+		slMultiMatrix(mat); 
+		ssh2DrawModel(&entities[objDRAW[i]]);
+			} else if( objType == ITEM )
+			{ //if entity IS ITEM
+				if( !(dWorldObjects[activeObjects[i]].type.ext_dat & 8) ) //Check if root entity still exists
+				{
+					slMultiMatrix(mat);
+					ssh2DrawModel(&entities[objDRAW[i]]);
+				}
+			} else if( objType == BUILD)
 			{
 		slMultiMatrix(mat);
-		
-		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
-		
-		ssh2DrawModel(&entities[objDRAW[i]], RBBs[i].pos);
+		plane_rendering_with_subdivision(&entities[objDRAW[i]]);
 			}
-		
-					} else if( objType == BUILD)
-					{
-		slMultiMatrix(mat);
-		
-		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
-		
-		plane_rendering_with_subdivision(&entities[objDRAW[i]], RBBs[i].pos);
-					}
 	slPopMatrix();
 	
 	}
@@ -338,9 +346,9 @@ void	shadow_draw(void)
 		mat[Z][Z] = pl_RBB.UVZ[Z];
 		mat[3][2] = -you.shadowPos[Z]; //Position
 
-		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
+		slMultiMatrix(mat);
 
-	ssh2DrawModel(&shadow, you.shadowPos);
+	ssh2DrawModel(&shadow);
 	
 	slPopMatrix();
 		}

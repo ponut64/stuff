@@ -155,10 +155,10 @@ void	player_phys_affect(void)
 	//as it relates to the axis that Y view rotation controls (X and Z).
 	short angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
 	
-	//This is simply the difference betweent he movement vector's Y and the viewing vector's Y.
+	//This is simply the difference between the movement vector's Y and the viewing vector's Y.
 	//prop y and prop x are shifted down to scale it as desired. Magic shift, in other words.
 	int proportion_x = (you.DirUV[Y] - uview[Y])>>7;
-	//This angle will amount to a propotion of angle we're not yet facing towards the ground.
+	//This angle will amount to a proportion of angle we're not yet facing towards the ground.
 	int propotion_facing_ground = (-32768 - uview[Y])>>7;
 	//Will pivot camera towards direction of motion
 	if((JO_ABS(you.velocity[X]) > 1024 || JO_ABS(you.velocity[Z]) > 1024) &&  JO_ABS(angDif_y) > 1024 &&
@@ -504,7 +504,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			//"0xFFFF" is the elasticity factor. Here, it's just 1.
 			FIXED deflectionFactor = -fxdot(you.velocity, you.floorNorm);
-
+			/** This is ESSENTIAL for the momentum gameplay to work properly **/
 			you.velocity[X] += fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
 			you.velocity[Y] += fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
 			you.velocity[Z] += fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 

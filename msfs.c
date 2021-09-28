@@ -4,7 +4,7 @@
 snd_ring		music_buf[MUS_BUFCNT];
 int				musicPitch = S1536KHZ;
 int				musicTimer = 64;
-Sint8*			music = (Sint8*)"FROZEN.MUS";
+Sint8*			music = (Sint8*)"ROCKMEN.MUS";
 
 static	int	mrd_pos = 0;
 int			buf_pos;
@@ -560,12 +560,14 @@ music_buf[4].rd_pcmbuf = (void*)PCMBUF3;
 music_buf[4].play_pcmbuf = MAP_TO_SCSP(PCMBUF5);
 
 //Initialize PCM Streams
-	bufNums[0] = 127;
+	bufNums[0] = numberPCMs;
+	numberPCMs++;
 	if(m68k_com->pcmCtrl[bufNums[0]].playsize == 0)
 	{
 for(int i = 0; i < MUS_BUFCNT; i++)
 {
-	bufNums[i] = 127-i;
+	bufNums[i] = numberPCMs;
+	numberPCMs++;
 	m68k_com->pcmCtrl[bufNums[i]].hiAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf >> 16);
 	m68k_com->pcmCtrl[bufNums[i]].loAddrBits = (unsigned short)( (unsigned int)music_buf[i].play_pcmbuf & 0xFFFF);
 	m68k_com->pcmCtrl[bufNums[i]].pitchword = S1536KHZ;

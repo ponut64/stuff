@@ -8,14 +8,16 @@ Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
 char * normTbl;
-unsigned char * mapTex;
+unsigned short * mapTex;
 unsigned short * minimap;
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
 int main_map_y_pix = LCL_MAP_PIX;
 int main_map_strata[4] = {40, 70, 100, 170};
+int map_texture_table_numbers[5];
 int map_tex_amt = 35;
+int map_last_combined_texno = 0;
 _heightmap maps[4];
 bool map_update_complete;
 bool * sysbool;
@@ -92,24 +94,24 @@ __jo_force_inline int	texture_table_by_height(int * ys)
 	int avgY = 0;
 	avgY = ((ys[0] + ys[1] + ys[2] + ys[3])>>2);
 	if(avgY < main_map_strata[0]){ 
-		return 0;
+		return map_texture_table_numbers[0];
 	} else if(avgY >= main_map_strata[0] && avgY < main_map_strata[1]){ 
-		return 7;
+		return map_texture_table_numbers[1];
 	} else if(avgY >= main_map_strata[1] && avgY < main_map_strata[2]){ 
-		return 14;
+		return map_texture_table_numbers[2];
 	} else if(avgY >= main_map_strata[2] && avgY < main_map_strata[3]){ 
-		return 21;
+		return map_texture_table_numbers[3];
 	} else if(avgY >= main_map_strata[3]){ 
-		return 28;
+		return map_texture_table_numbers[4];
 	} 
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-__jo_force_inline int		texture_angle_resolver(int * ys, FIXED * norm, int * flip){
+__jo_force_inline int		texture_angle_resolver(int baseTex, FIXED * norm, int * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
-	int baseTex = texture_table_by_height(ys);
+	int btdata = baseTex & 1023; 
 	int texno = 0;
 	*flip = 0;
 	
@@ -141,9 +143,98 @@ __jo_force_inline int		texture_angle_resolver(int * ys, FIXED * norm, int * flip
 					}
 		}
 	}
-	return baseTex+texno;
+	return (btdata+texno) | (baseTex & (1<<15));
 }
 
+	short starting_small_crossing_texno;
+	short starting_combined_crossing_texno;
+	const short amt_of_angular_tex_per_table = 45;
+	short angular_small_dither_texno[5][9];
+	short angular_combined_dither_texno[5][9];
+	short crossing_small_dither_texno[4][7];
+	short crossing_combined_dither_texno[4][7];
+
+void	make_dithered_textures_for_map(void)
+{
+	
+	/*
+		Dithers from table A to table B are done with the crossing dither table.
+		In this case, a texture is dithered with its equivalent in the nearest table.
+		In the angular dither table, we intend to dither:
+
+			0	1	2	3	4	5	6
+		0	X	+	+	+	+	+	+
+		1	+	X	-	-	+	-	-
+		2	+	-	X	-	-	+	-
+		3	+	-	-	X	-	-	+
+		4	+	+	-	-	X	-	-
+		5	+	-	+	-	-	X	-
+		6	+	-	-	+	-	-	X
+		
+		01, 02, 03, 04, 05, 06, 14, 25, 36
+		9 results
+	*/
+
+	for(int rt = 0; rt < 5; rt++)
+	{
+		/*
+		Angular Dithers Organization
+		0 - > 0/1
+		1 - > 0/2
+		2 - > 0/3
+		3 - > 0/4
+		4 - > 0/5
+		5 - > 0/6
+		6 - > 1/4
+		7 - > 2/5
+		8 - > 3/6
+		*/
+		angular_small_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1);
+		angular_small_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2);
+		angular_small_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3);
+		angular_small_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4);
+		angular_small_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5);
+		angular_small_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6);
+		angular_small_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4);
+		angular_small_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5);
+		angular_small_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6);
+	}
+	
+
+	for(int rt = 0; rt < 5; rt++)
+	{
+		angular_combined_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+1);
+		angular_combined_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+2);
+		angular_combined_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+3);
+		angular_combined_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+4);
+		angular_combined_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+5);
+		angular_combined_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+6);
+		angular_combined_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4);
+		angular_combined_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5);
+		angular_combined_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6);
+	}
+	
+		starting_combined_crossing_texno = numTex;
+	//Loop to ensure the crossing small textures are in series with one another (no other textures between them).
+	for(int t = 0; t < 4; t++)
+	{
+		for(int p = 0; p < 7; p++)
+		{
+			crossing_small_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p);
+		}
+	}
+	
+		starting_small_crossing_texno = numTex;
+	//Loop to ensure the crossing large textures are in series with one another (no other textures between them).
+	for(int t = 0; t < 4; t++)
+	{
+		for(int p = 0; p < 7; p++)
+		{
+			crossing_combined_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt);
+		}
+	}
+	
+}
 
 void	process_map_for_normals(void)
 {
@@ -181,7 +272,12 @@ void	process_map_for_normals(void)
 	cross[Z] = cross[Z]>>8;
 
 	double_normalize(cross, cross);
-	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	// I should seriously consider using the ANORM.H table here.
+	// That requires looping forward to calculate the real normals and then backwards to resolve to an ANORM entry --
+	// BUT that is a quality optimization, because then I can use another table for pre-made dot products for real-time lighting.
+	// I should then reprocess all entities to use ANORM.H entries. That will make real-time lighting a lot cheaper.
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	normTbl[norm_index] = (cross[X] > 0) ? -JO_ABS(cross[X]>>9) : JO_ABS(cross[X]>>9); //X value write
 	normTbl[norm_index+1] = (cross[Y] > 0) ? -JO_ABS(cross[Y]>>9) : JO_ABS(cross[Y]>>9); //Y value write
 	normTbl[norm_index+2] = (cross[Z] > 0) ? -JO_ABS(cross[Z]>>9) : JO_ABS(cross[Z]>>9); //Z value write
@@ -190,14 +286,245 @@ void	process_map_for_normals(void)
 	/////////////////////
 	// Pre-computation of textures on map change (needed the normal first)
 	/////////////////////
-	int flip;
-	int texno = texture_angle_resolver(&ys[0], &cross[0], &flip);
-	mapTex[main_map_total_poly] = (texno & 63) | (flip<<2); //Writes flip bits in bit 7 and 6.
+	mapTex[main_map_total_poly] = texture_table_by_height(&ys[0]);
 
 	main_map_total_poly++;
 		}
 		
 	}
+	
+	////////////////////
+	// Now that we've found what texture table everything is going to use...
+	// Let's run some logic to assign a new texture to every texture that is bordering another texture
+	////////////////////
+	int counted_poly = 0;
+	norm_index = 0;
+	static int tex_near[4] = {0, 0, 0, 0};
+	//
+	//	A _bitflag_ will be added to textures with detected borders.
+	//
+	
+	/////////////////////////////
+	//	This loop finds when there is a gap in the texture tables.
+	//	Textures whom are adjacent to textures using a different texture table will receive a dither assignment.
+	/////////////////////////////
+	for(int k = 0; k < (main_map_y_pix-1); k++){
+		for(int v = 0; v < (main_map_x_pix-1); v++){
+
+  			int this_texture = mapTex[counted_poly];
+			tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
+			tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
+			tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
+			tex_near[3] = ((counted_poly - (main_map_x_pix-1)) > 0) ? mapTex[counted_poly-(main_map_x_pix-1)] : this_texture;
+
+				for(int h = 0; h < 4; h++)
+				{
+					if(this_texture != tex_near[h] && !(tex_near[h] & (1<<15)))
+					{
+						tex_near[h] &= 1023;
+						this_texture &= 1023;
+			 			if(this_texture < tex_near[h])
+						{
+							mapTex[counted_poly] |= (1<<15);
+							break;
+						}
+					}
+				}
+			counted_poly++;
+		}
+	}
+	counted_poly = 0;
+	
+	///////////////////////////////////////////////
+	// This loop assigns textures and texture orientation to slopes.
+	///////////////////////////////////////////////
+	for(int k = 0; k < (main_map_y_pix-1); k++){
+		for(int v = 0; v < (main_map_x_pix-1); v++){
+			  
+ 			cross[X] = normTbl[norm_index]<<9;
+			cross[Y] = normTbl[norm_index+1]<<9;
+			cross[Z] = normTbl[norm_index+2]<<9;
+			norm_index += 3;
+			
+			int flip;
+			int texno = texture_angle_resolver(mapTex[counted_poly], &cross[0], &flip);
+			mapTex[counted_poly] = (texno) | (flip<<8);
+			 
+			counted_poly++;
+		}
+	}
+	counted_poly = 0;
+	
+	////////////////////////////////////////////////
+	// This loop assigns dithering to textures which are adjacent to different textures within the same table.
+	////////////////////////////////////////////////
+	for(int k = 0; k < (main_map_y_pix-1); k++){
+		for(int v = 0; v < (main_map_x_pix-1); v++){
+			  
+  			int this_texture = mapTex[counted_poly];
+			int flip = this_texture & 0x3000;
+			tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
+			tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
+			tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
+			tex_near[3] = ((counted_poly - (main_map_x_pix-1)) > 0) ? mapTex[counted_poly-(main_map_x_pix-1)] : this_texture;
+
+				for(int h = 0; h < 4; h++)
+				{
+					if(this_texture != tex_near[h] && !(tex_near[h] & (1<<14)) && !(tex_near[h] & (1<<15)) && !(this_texture & (1<<15)))
+					{
+						tex_near[h] &= 1023;
+						//Re-fresh this_texture as we do some math in it in the loop
+						this_texture = mapTex[counted_poly] & 1023;
+						
+			 			if(this_texture >= map_texture_table_numbers[4] && tex_near[h] >= map_texture_table_numbers[4])
+						{
+							this_texture -= map_texture_table_numbers[4];
+							tex_near[h] -=  map_texture_table_numbers[4];
+							if(this_texture == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[4][0] + tex_near[h] - 1) | (1<<14);
+							} else if(tex_near[h] == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[4][0] + this_texture - 1) | (1<<14);
+							} else if( this_texture < 4 && tex_near[h] < 4)
+							{
+								continue;
+							} else if(this_texture >= 4 && tex_near[h] >= 4)
+							{
+								continue;
+							} else if(this_texture == 1 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[4][6]) | (1<<14);
+							} else if(this_texture == 2 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[4][7]) | (1<<14);
+							} else if(this_texture == 3 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[4][8]) | (1<<14);
+							}
+							break;
+						} else if(this_texture >= map_texture_table_numbers[3] && tex_near[h] >= map_texture_table_numbers[3])
+						{
+							this_texture -= map_texture_table_numbers[3];
+							tex_near[h] -=  map_texture_table_numbers[3];
+							if(this_texture == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[3][0] + tex_near[h] - 1) | (1<<14);
+							} else if(tex_near[h] == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[3][0] + this_texture - 1) | (1<<14);
+							} else if( this_texture < 4 && tex_near[h] < 4)
+							{
+								continue;
+							} else if(this_texture >= 4 && tex_near[h] >= 4)
+							{
+								continue;
+							} else if(this_texture == 1 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[3][6]) | (1<<14);
+							} else if(this_texture == 2 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[3][7]) | (1<<14);
+							} else if(this_texture == 3 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[3][8]) | (1<<14);
+							}
+							break;
+						} else if(this_texture >= map_texture_table_numbers[2] && tex_near[h] >= map_texture_table_numbers[2])
+						{
+							this_texture -= map_texture_table_numbers[2];
+							tex_near[h] -=  map_texture_table_numbers[2];
+							if(this_texture == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[2][0] + tex_near[h] - 1) | (1<<14);
+							} else if(tex_near[h] == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[2][0] + this_texture - 1) | (1<<14);
+							} else if( this_texture < 4 && tex_near[h] < 4)
+							{
+								continue;
+							} else if(this_texture >= 4 && tex_near[h] >= 4)
+							{
+								continue;
+							} else if(this_texture == 1 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[2][6]) | (1<<14);
+							} else if(this_texture == 2 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[2][7]) | (1<<14);
+							} else if(this_texture == 3 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[2][8]) | (1<<14);
+							}
+							break;
+						} else if(this_texture >= map_texture_table_numbers[1] && tex_near[h] >= map_texture_table_numbers[1])
+						{
+							this_texture -= map_texture_table_numbers[1];
+							tex_near[h] -=  map_texture_table_numbers[1];
+							if(this_texture == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[1][0] + tex_near[h] - 1) | (1<<14);
+							} else if(tex_near[h] == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[1][0] + this_texture - 1) | (1<<14);
+							} else if( this_texture < 4 && tex_near[h] < 4)
+							{
+								continue;
+							} else if(this_texture >= 4 && tex_near[h] >= 4)
+							{
+								continue;
+							} else if(this_texture == 1 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[1][6]) | (1<<14);
+							} else if(this_texture == 2 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[1][7]) | (1<<14);
+							} else if(this_texture == 3 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[1][8]) | (1<<14);
+							}
+							break;
+						} else if(this_texture >= map_texture_table_numbers[0] && tex_near[h] >= map_texture_table_numbers[0])
+						{
+							this_texture -= map_texture_table_numbers[0];
+							tex_near[h] -=  map_texture_table_numbers[0];
+							if(this_texture == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[0][0] + tex_near[h] - 1) | (1<<14);
+							} else if(tex_near[h] == 0)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[0][0] + this_texture - 1) | (1<<14);
+							} else if( this_texture < 4 && tex_near[h] < 4)
+							{
+								continue;
+							} else if(this_texture >= 4 && tex_near[h] >= 4)
+							{
+								continue;
+							} else if(this_texture == 1 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[0][6]) | (1<<14);
+							} else if(this_texture == 2 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[0][7]) | (1<<14);
+							} else if(this_texture == 3 && tex_near[h] >= 4)
+							{
+								mapTex[counted_poly] = (angular_small_dither_texno[0][8]) | (1<<14);
+							}
+							break;
+						}
+					}
+				}
+			mapTex[counted_poly] |= flip;
+			counted_poly++;
+		}
+	}
+
+	
+	// jo_printf(2, 6, "mp0(%i)", map_texture_table_numbers[0]);
+	// jo_printf(2, 7, "mp0(%i)", map_texture_table_numbers[1]);
+	// jo_printf(2, 8, "mp0(%i)", map_texture_table_numbers[2]);
+	// jo_printf(2, 9, "mp0(%i)", map_texture_table_numbers[3]);
+	// jo_printf(2, 10, "mp0(%i)", map_texture_table_numbers[4]);
 
 	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
 	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
@@ -268,10 +595,12 @@ __jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynu
 ////////////////////////////
 // Helper data for dynamic polygon subdivision
 ////////////////////////////
-POINT untransformed_verts[LCL_MAP_PIX * LCL_MAP_PIX];
+POINT verts_without_inverse_z[LCL_MAP_PIX * LCL_MAP_PIX];
 int new_vertices[5][3];
 vertex_t * new_polygons[4][4];
 vertex_t scrnsub[5];
+
+int		unmath_center[3];
 
 ////////////////////////////
 // Takes a polygon from the map & its associated data from the precompiled tables and subdivides it four-ways.
@@ -281,12 +610,14 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 {
 	//Shorthand Point Data
 	FIXED * pnts[4];
+	FIXED * umpt[4];
 	int luma = 0;
 	int used_flip = *flip;
 	short colorBank = 0;
 	for(int u = 0; u < 4; u++)
 	{
-		pnts[u] = &untransformed_verts[polymap->pltbl[*dst_poly].Vertices[u]][0];
+		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].Vertices[u]][0];
+		umpt[u] = &polymap->pntbl[polymap->pltbl[*dst_poly].Vertices[u]][0];
 	}
 	/*
 	0A			1A | 0B			1B
@@ -301,6 +632,16 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 
 	3D			2D | 3C			2C
 	*/
+	
+	//Center
+	// This is created to do lighting effects on each polygon in the proper vector space.
+	// The other points that are rendered are created from post-matrix transformed points.
+	// This one is made from points of the PDATA, without any transformation.
+	unmath_center[X] = (umpt[0][X] + umpt[1][X] + umpt[2][X] + umpt[3][X])>>2;
+	unmath_center[Y] = (umpt[0][Y] + umpt[1][Y] + umpt[2][Y] + umpt[3][Y])>>2;
+	unmath_center[Z] = (umpt[0][Z] + umpt[1][Z] + umpt[2][Z] + umpt[3][Z])>>2;
+	
+	
 	//Initial State
 	new_polygons[0][0] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[0]];
 	
@@ -401,9 +742,33 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 			//	Edge	---> X+
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Lighting <--Needs Work for Subdivided Polygons-->
+//Lighting 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		luma = per_polygon_light(polymap, hmap_actual_pos, *dst_poly);
+		luma = 0;
+		for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
+		{
+		point_light * lightSrc = &active_lights[i];
+				if(lightSrc->pop == 1)
+				{
+			//Get distance to the polygon approximate center (v0 + v2) - map_pos - light_pos (+ because the map is moved inverse) 
+			POINT light_proxima = {
+			(( ( (umpt[q][X] + unmath_center[X])>>1)
+			+ hmap_actual_pos[X]) + lightSrc->pos[X])>>16,
+			(( ( (umpt[q][Y] + unmath_center[Y])>>1)
+			+ hmap_actual_pos[Y]) + lightSrc->pos[Y])>>16,
+			(( ( (umpt[q][Z] + unmath_center[Z])>>1)
+			+ hmap_actual_pos[Z]) + lightSrc->pos[Z])>>16
+			};
+			// Get inverse distance (some extrapolation of 1/sqrt(d) 
+			int inverted_proxima = ((light_proxima[X] * light_proxima[X]) +
+									(light_proxima[Y] * light_proxima[Y]) +
+									(light_proxima[Z] * light_proxima[Z]));
+			inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima]>>1 : 0;
+	
+			luma += inverted_proxima * (int)lightSrc->bright;
+				}
+		}	
+		//luma = per_polygon_light(polymap, hmap_actual_pos, *dst_poly);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
@@ -413,7 +778,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-                     2 | (used_flip), ( 5264 ), //Reads used_flip value
+                     VDP1_BASE_CMDCTRL | (used_flip), ( VDP1_BASE_PMODE ), //Reads used_flip value
                      pcoTexDefs[*texno].SRCA, colorBank<<6, pcoTexDefs[*texno].SIZE, 0, *depth);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
@@ -503,20 +868,20 @@ void	update_hmap(MATRIX msMatrix)
         /**calculate z**/
         msh2VertArea[dst_pix].pnt[Z] = trans_pt_by_component(polymap->pntbl[dst_pix], m2z);
 		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > nearP) ? msh2VertArea[dst_pix].pnt[Z] : nearP;
-		untransformed_verts[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
+		verts_without_inverse_z[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
          /**Starts the division**/
         SetFixDiv(MsScreenDist, msh2VertArea[dst_pix].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
-        untransformed_verts[dst_pix][Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
-        untransformed_verts[dst_pix][X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
+        verts_without_inverse_z[dst_pix][Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
+        verts_without_inverse_z[dst_pix][X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
 		
         /** Retrieves the result of the division **/
 		inverseZ = *DVDNTL;
 
         /**Transform X and Y to screen space**/
-        msh2VertArea[dst_pix].pnt[X] = fxm(untransformed_verts[dst_pix][X], inverseZ)>>SCR_SCALE_X;
-        msh2VertArea[dst_pix].pnt[Y] = fxm(untransformed_verts[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
+        msh2VertArea[dst_pix].pnt[X] = fxm(verts_without_inverse_z[dst_pix][X], inverseZ)>>SCR_SCALE_X;
+        msh2VertArea[dst_pix].pnt[Y] = fxm(verts_without_inverse_z[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
 		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
@@ -532,7 +897,7 @@ void	update_hmap(MATRIX msMatrix)
 
 			//Loop explanation:
 			//When we retrieve the map from the CD, we calculate the normals of every "potential" polygon in the map and write them to NormTbl.
-			//The map is forced to be odd in both dimensionsm (X and Y) to force there to be an objective "center" pixel. This is neccessary so we can find our place in the map,
+			//The map is forced to be odd in both dimensions (X and Y) to force there to be an objective "center" pixel. This is necessary so we can find our place in the map,
 			//for the above loop.
 			//However, this complicates assigning our "compressed" normals to polygons.
 			//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
@@ -556,6 +921,7 @@ void	update_hmap(MATRIX msMatrix)
 			vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
 			int flip = 0; //Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
 			int texno = 0; //Ditto
+			int dither = 0;
 			
 			y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
 			
@@ -581,8 +947,10 @@ void	update_hmap(MATRIX msMatrix)
 				tempNorm[Y] = normTbl[src_norm+1]<<9;
 				tempNorm[Z] = normTbl[src_norm+2]<<9;
 
-		texno = mapTex[x_pix_sample - y_pix_sample] & 63;//texture_angle_resolver(dst_poly, tempNorm, &flip);
-		flip = (mapTex[x_pix_sample - y_pix_sample]>>2) & 48;
+		texno = mapTex[x_pix_sample - y_pix_sample] & 1023;//texture_angle_resolver(dst_poly, tempNorm, &flip);
+		flip = (mapTex[x_pix_sample - y_pix_sample]>>8) & 48;
+		dither = mapTex[x_pix_sample - y_pix_sample] & (1<<15);
+		dither = (dither == 0) ? mapTex[x_pix_sample - y_pix_sample] & (1<<14) : dither;
 		
 		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[0]];
 		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[1]];
@@ -615,16 +983,19 @@ void	update_hmap(MATRIX msMatrix)
 		if(ptv[0]->pnt[Z] < (100<<16) || ptv[1]->pnt[Z] < (100<<16)
 		|| ptv[2]->pnt[Z] < (100<<16) || ptv[3]->pnt[Z] < (100<<16))
 		{	
+		texno += (dither & 0x8000) ? starting_small_crossing_texno : 0;
 		subbed_polys++;
 		render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
 		continue;
 		}
-		//Since this texture was not subdivided, use its cooresponding combined texture.
+		//Since this texture was not subdivided, use its corresponding combined texture.
 		//That is found by adding the base map texture amount to the texture number.
-		texno += map_tex_amt; 
+		//This also manages whether or not to use a dithered texture. It's ugly to add *another* branch to the render loop...
+		texno += (dither & 0x8000) ? starting_combined_crossing_texno : (dither & 0x4000) ? amt_of_angular_tex_per_table : map_tex_amt;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Flip logic to keep vertice 0 on-screen
+//Flip logic to keep vertice 0 on-screen, or disable preclipping
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		unsigned short pclp = 0;
  		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			//Incoming Arrangement:
 			// 0 - 1		^
@@ -650,6 +1021,9 @@ void	update_hmap(MATRIX msMatrix)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
+		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		{
+			pclp = 2048; //Preclipping Disable
 		}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting
@@ -665,7 +1039,7 @@ void	update_hmap(MATRIX msMatrix)
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-                     2 | (flip), ( 5264 ), //Reads flip value
+                     VDP1_BASE_CMDCTRL | (flip), ( VDP1_BASE_PMODE ) | pclp, //Reads flip value
                      pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			}	// Row Filler Loop End Stub
@@ -680,7 +1054,6 @@ void	hmap_cluster(void)
 {
 	
 	chg_map(&maps[0]);
-	//update_hmap();
 	draw_minimap();
 	update_mmap_1pass();
 	
