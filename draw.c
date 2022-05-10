@@ -313,9 +313,9 @@ void	obj_draw_queue(void)
 
 void	shadow_draw(void)
 {
-	static char first_run;
+ 	//static char first_run;
 		if(shadow.file_done == true)
-		{
+		{/*
 			if(first_run != true){
 	//Special Shadow Param (for MESHOn and MSBOn)
 	for(unsigned int i = 0; i < shadow.pol[0]->nbPolygon; i++){
@@ -325,7 +325,7 @@ void	shadow_draw(void)
 	shadow.pol[0]->pltbl[i].norm[Z] = 0;
 	}
 			first_run = true;
-			}
+			} */
 			
 	slPushMatrix();
 

@@ -8,7 +8,6 @@
 #include "mymath.h"
 #include "physobjet.h"
 #include "hmap.h"
-#include "msfs.h"
 
 extern POINT alwaysLow;
 

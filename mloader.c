@@ -7,33 +7,58 @@ unsigned int gouraudCounter;
 /**
 Modified by ponut for madness
 **/
-void setTextures(entity_t * model, short baseTexture, char * numTexture)
+unsigned char setTextures(entity_t * model, short baseTexture)
 {
-	ATTR smpAttr;
+	gvAtr smpAttr;
 	short maxTex = 0;
 	
 	model->base_texture = baseTexture;
 	
-	for(unsigned int i = 0; i < model->pol[0]->nbPolygon; i++)
+	for(unsigned int i = 0; i < model->pol->nbPolygon; i++)
 	{
-		smpAttr = model->pol[0]->attbl[i];
+		smpAttr = model->pol->attbl[i];
 		maxTex = (maxTex < smpAttr.texno) ? smpAttr.texno : maxTex;
 	}
 	
-	for(unsigned int i = 0; i < model->pol[0]->nbPolygon; i++)
+	for(unsigned int i = 0; i < model->pol->nbPolygon; i++)
 	{
-		smpAttr = model->pol[0]->attbl[i];
+		smpAttr = model->pol->attbl[i];
 		
-		model->pol[0]->attbl[i].texno += baseTexture;
+		model->pol->attbl[i].texno += baseTexture;
 	}
 
-	*numTexture = maxTex;
+	return maxTex;
+}
+
+//Gets texture information from small headers, and sends texture data to VRAM.
+void * loadTextures(void * workAddress, entity_t * model)
+{
+	
+	//unsigned short * debug_addr = (unsigned short *)workAddress;
+	unsigned char * readByte = (unsigned char *)workAddress;
+	unsigned char tHeight = 0;
+	unsigned char tWidth = 0;
+	unsigned int tSize = 0;
+	// jo_printf(0, 14, "(%i)", model->numTexture);
+	// jo_printf(0, 15, "(%i)", debug_addr[0]);
+	for(int j = 0; j < model->numTexture+1; j++)
+	{
+		readByte+=2;	//Skip over a boundary short word, 0xF7F7
+		tHeight = readByte[0];
+		tWidth = readByte[1];
+		tSize = tHeight * tWidth;
+		readByte += 2; //Skip over the H x W bytes
+		GLOBAL_img_addr = readByte;
+		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
+		readByte += tSize;
+	}
+	return (void*)readByte;
 }
 
 void * loadAnimations(void * startAddress, entity_t * model, modelData_t * modelData)
 {
     void * workAddress = startAddress;
-    unsigned int a, i; //, ii;
+    unsigned int a; //, ii;
 
     for (a=0; a<modelData->nbFrames; a++) 
     {
@@ -43,11 +68,10 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
         unsigned int totPoints=0;
         unsigned int totNormals=0;
 
-        for (i=0; i<model->nbMeshes; i++)
-        {
-            totPoints += model->pol[i]->nbPoint;
-            totNormals += model->pol[i]->nbPolygon;
-        }
+
+            totPoints += model->pol->nbPoint;
+            totNormals += model->pol->nbPolygon;
+
         {
 
             model->animation[a]->cVert = (compVert*)(workAddress);
@@ -71,23 +95,19 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
 
 }
 
-void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
+void * loadPDATA(void * startAddress, entity_t * model)
 {
     void * workAddress = startAddress;
-    unsigned int i;
 
-    for (i=0; i<modelData->TOTAL_MESH; i++)
-    {
-        model->pol[i]=(PDATA*)workAddress;
-        workAddress=(void*)(workAddress + sizeof(PDATA));
-        model->pol[i]->pntbl = (POINT*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol[i]->nbPoint));
-        model->pol[i]->pltbl = (POLYGON*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(POLYGON) * model->pol[i]->nbPolygon));
-        model->pol[i]->attbl = (ATTR*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(ATTR) * model->pol[i]->nbPolygon));
-		//Model is of PDATA type, there are no per-vertice normals for gouraud shading
-    }
+        model->pol=(GVPLY*)workAddress;
+        workAddress=(void*)(workAddress + sizeof(GVPLY));
+        model->pol->pntbl = (POINT*)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol->nbPoint));
+        model->pol->pltbl = (POLYGON*)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(POLYGON) * model->pol->nbPolygon));
+        model->pol->attbl = (gvAtr*)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(gvAtr) * model->pol->nbPolygon));
+   
 
     return workAddress;
 }
@@ -95,7 +115,7 @@ void * loadPDATA(void * startAddress, entity_t * model, modelData_t * modelData)
 void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType)
 {
 
-	modelData_t model_header;
+	modelData_t * model_header;
 	void * workAddress = startAddress;
 	model->type = modelType;
 	GfsHn gfs_mdat;
@@ -114,41 +134,34 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	
 	GFS_Load(local_name, 0, (Uint32 *)workAddress, file_size);
 	
-	slDMACopy(workAddress, &model_header, sizeof(modelData_t));
+	GFS_Close(gfs_mdat);
+	
+	// slDMACopy(workAddress, &model_header, sizeof(modelData_t));
+	model_header = (modelData_t *)workAddress;
+
+	model->first_portal = (unsigned char)model_header->first_portal;
+
 	//ADDED
-    model->nbMeshes = model_header.TOTAL_MESH;
-	model->nbFrames = model_header.nbFrames;
+    model->nbMeshes = model_header->TOTAL_MESH;
+	model->nbFrames = model_header->nbFrames;
 	
 	Sint32 bytesOff = (sizeof(modelData_t)); 
 	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
 	
 	model->size = (unsigned int)workAddress;
-	workAddress = loadPDATA((workAddress), model, &model_header);
+	workAddress = loadPDATA((workAddress), model);
 	model->size = (unsigned int)workAddress - model->size;
 
+	model->numTexture = setTextures(model, numTex); //numTex is a tga.c directive
 
-	setTextures(model, numTex, &model->numTexture); //numTex is a tga.c directive
-    workAddress = loadAnimations(workAddress, model, &model_header);
-	
-	//unsigned short * debug_addr = (unsigned short *)workAddress;
-	unsigned char * readByte = (unsigned char *)workAddress;
-	unsigned char tHeight = 0;
-	unsigned char tWidth = 0;
-	unsigned int tSize = 0;
-	// jo_printf(0, 14, "(%i)", model->numTexture);
-	// jo_printf(0, 15, "(%i)", debug_addr[0]);
-	for(int j = 0; j < model->numTexture+1; j++)
-	{
-		readByte+=2;	//Skip over a boundary short word, 0xF7F7
-		tHeight = readByte[0];
-		tWidth = readByte[1];
-		tSize = tHeight * tWidth;
-		readByte += 2; //Skip over the H x W bytes
-		GLOBAL_img_addr = readByte;
-		add_texture_to_vram((unsigned short)tHeight, (unsigned short)tWidth);
-		readByte += tSize;
-	}
-	
+    workAddress = loadAnimations(workAddress, model, model_header);
+	// A temporary address is used to retrieve the following data.
+	// This is used because the following data is to be overwritten whenever new model data is loaded.
+	// To facilitate this, workAddress is pointed forward past all important data that must not be overwritten.
+	// Thus the temporary pointer is pointing to all data that can be thrown out once parsed.
+	void * temporaryAddress;
+	temporaryAddress = loadTextures(workAddress, model);
+	unsigned char * readByte = temporaryAddress;
 	////////////////
 	// If the model type is 'B' (for BUILDING), create combined textures.
 	// Also read the item data at the end of the payload.
@@ -192,29 +205,40 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		
 		// jo_printf(1, 11, "uitem(%i)", *total_items);
 		// jo_printf(1, 13, "amnti(%i)", *unique_items);
-	}
+	} 
 
 	
 	//////////////////////////////////////////////////////////////////////
 	// Set radius
 	//////////////////////////////////////////////////////////////////////
-	model->radius[X] = model_header.radius[X];
-	model->radius[Y] = model_header.radius[Y];
-	model->radius[Z] = model_header.radius[Z];
+	model->radius[X] = model_header->radius[X];
+	model->radius[Z] = model_header->radius[Z];
+	model->radius[Y] = model_header->radius[Y];
 	//NOTE: We do NOT add the size of textures to the work address pointer.
 	//The textures are at the end of the GVP payload and have no need to stay in work RAM. They are in VRAM.
 	
 	// jo_printf(0, 9, "(%i)H", tHeight);
 	// jo_printf(0, 10, "(%i)W", tWidth);
 	// jo_printf(0, 11, "(%i)T", tSize);
-	
+		if(sortType != 0)
+		{
+	for(unsigned int i = 0; i < model->pol->nbPolygon; i++)
+	{
 		//Decimate existing sort type bits
-	model->pol[0]->attbl[0].sort &= 252;
+	model->pol->attbl[0].render_data_flags &= 207;
 		//Inject new sort type bits
-	model->pol[0]->attbl[0].sort |= sortType;
+	model->pol->attbl[0].render_data_flags |= sortType;
 		//New render path only reads first attbl for sorting
+	}
+		}
 	
 	model->file_done = true;
+	
+	//Alignment
+	volatile unsigned int aligning_address = (volatile unsigned int)workAddress;
+	aligning_address += 4;
+	aligning_address &= 0xFFFFFFFC;
+	workAddress = (void*)aligning_address;
 	
 	return workAddress;
 }

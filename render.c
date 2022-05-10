@@ -15,6 +15,9 @@ paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
 point_light light_host[MAX_DYNAMIC_LIGHTS];
 point_light * active_lights;
 
+entity_t * drawn_entity_list[64];
+short drawn_entity_count;
+
 int dummy[4];
 int * ssh2SentPolys;
 int * msh2SentPolys;
@@ -65,6 +68,7 @@ void	frame_render_prep(void)
 		transVerts[0] = 0;
 		transPolys[0] = 0;
 		anims = 0;
+		drawn_entity_count = 0;
 }
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
@@ -207,12 +211,12 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, 
 	int active_dot = 0;
 	VECTOR lightDist = {0, 0, 0};
 	point_light * light_used = &active_lights[0];
-	//Grab position data from prematrix
 	FIXED * wldPos = &prematrix[9];
 	
 	nearest_dot = JO_ABS(wldPos[X] - light_used->pos[X]) +
 					JO_ABS(wldPos[Y] - light_used->pos[Y]) +
 					JO_ABS(wldPos[Z] - light_used->pos[Z]);
+
 	
 		for(unsigned int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
 		{
@@ -244,9 +248,11 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, 
 	/*
 	
 	The pre-matrix angle ( " master angle " ) must be passed into the system to rotate the ambient light angle.
-	The pre-matrix angle is what the object's rotation is BEFORE matrix mutliplciation. In other words, how the _object_ is rotated.
+	The pre-matrix angle is what the object's rotation is BEFORE matrix multiplication. In other words, how the _object_ is rotated.
 	
 	For some reason, this light angle has to be transformed incorrectly to be correct...
+	(technical: it uses the transposed matrix)
+	(e2: this is an "inverse transform", from world space back to the matrix' space, because it is going to be used in matrix space)
 	
 	*/
 	ambient_light[X] = fxm(-light_used->ambient_light[X], prematrix[0])
@@ -330,10 +336,11 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, 
 	return 0;
 }
 
-
 void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 {
 	if(ent->file_done != true){return;}
+	drawn_entity_list[drawn_entity_count] = ent;
+	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
     static MATRIX newMtx;
     slGetMatrix(newMtx);
@@ -357,12 +364,13 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	m2z[2] = newMtx[Z][Z];
 	m2z[3] = newMtx[3][Z];
 
-    PDATA * model = ent->pol[0];
+    GVPLY * model = ent->pol;
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
 	VECTOR lightAngle = {0, -65535, 0};
 	VECTOR ambient_light = {0, -65535, 0};
+	
 	
 	int bright = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
@@ -407,19 +415,19 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	int flip = 0;
+	unsigned short flags = 0;
+	int zDepthTgt = 0;
 
     /**POLYGON PROCESSING**/ 
-		//Duplicate loops for sorting types.
-		//WHY: Maximum performance
-if( (model->attbl[0].sort & 3) == SORT_MAX)
-{
     for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
 		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
 		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
 		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
-		flip = model->attbl[i].dir;
+		flags = model->attbl[i].render_data_flags;
+		flip = GET_FLIP_DATA(flags);
+		zDepthTgt = GET_SORT_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
 		//Vertice order hint:
 		// 0 - 1
@@ -429,13 +437,25 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses max.
-		 int zDepthTgt = JO_MAX(
-		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		if( zDepthTgt == GV_SORT_MAX)
+		{					
+			//Sorting target. Uses max.
+			zDepthTgt = JO_MAX(
+			JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		} else if( zDepthTgt == GV_SORT_MIN) 
+		{
+			//Sort Minimum
+			zDepthTgt = JO_MIN(
+			JO_MIN(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			JO_MIN(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		} else {
+		//Sorting target. Uses average of top-left and bottom-right. 
+			zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		}
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
@@ -481,165 +501,12 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
 		
-        ssh2SetCommand(ptv[0]->pnt,
-		ptv[1]->pnt,
-		ptv[2]->pnt,
-		ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+ 		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
+		
+        ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
-} else if((model->attbl[0].sort & 3) == SORT_MIN) //Sort Minimum
-{
-    for (unsigned int i = 0; i < model->nbPolygon; i++)
-    {
-		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
-		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
-		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
-		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
-		flip = model->attbl[i].dir;
-		//Components of screen-space cross-product used for backface culling.
-		//Vertice order hint:
-		// 0 - 1
-		// 3 - 2
-		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
-							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
-							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses min.
-		 int zDepthTgt = JO_MIN(
-		JO_MIN(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MIN(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
- 
-		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
-		///////////////////////////////////////////
-		/*unsigned short flip = 0;
-		unsigned short pclp = 0; 
- 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-		{
-			pclp = 2048; //Preclipping Disable
-		}*/
-		//Preclipping is always enabled
-		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
-		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
-		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
-
-        ssh2SetCommand(ptv[0]->pnt,
-		ptv[1]->pnt,
-		ptv[2]->pnt,
-		ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
-                     pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
-	}
-} else {//Sort Min endif
-    for (unsigned int i = 0; i < model->nbPolygon; i++) //Sort Center-ish
-    {
-		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
-		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
-		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
-		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
-		flip = model->attbl[i].dir;
-		//Components of screen-space cross-product used for backface culling.
-		//Vertice order hint:
-		// 0 - 1
-		// 3 - 2
-		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
-							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
-							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses average of top-left and bottom-right. Adding logic to change sorting per-polygon HAMMERS performance in unacceptable ways.
-		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
-		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
- 
-		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
-		onScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
-		///////////////////////////////////////////
-		/*unsigned short flip = 0;
-		unsigned short pclp = 0; 
- 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-		{
-			pclp = 2048; //Preclipping Disable
-		}*/
-		//Preclipping is always enabled
-		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
-		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
-		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
-
-        ssh2SetCommand(ptv[0]->pnt,
-		ptv[1]->pnt,
-		ptv[2]->pnt,
-		ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
-                     pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
-    }
-		}			
 		transPolys[0] += model->nbPolygon;
 
 }
@@ -647,6 +514,8 @@ if( (model->attbl[0].sort & 3) == SORT_MAX)
 void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
 {
 	if(ent->file_done != true){return;}
+	drawn_entity_list[drawn_entity_count] = ent;
+	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
 	/**WARNING: DO NOT USE SGL MATRIX SYSTEM FOR MASTER DRAWING**/
 	/*
@@ -676,7 +545,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 	m2z[2] = msMatrix[Z][Z];
 	m2z[3] = msMatrix[3][Z];
 	
-    PDATA * model = ent->pol[0];
+    GVPLY * model = ent->pol;
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
@@ -713,6 +582,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	int flip = 0;
+	unsigned short flags = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -721,7 +591,8 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		ptv[1] = &msh2VertArea[model->pltbl[i].Vertices[1]];
 		ptv[2] = &msh2VertArea[model->pltbl[i].Vertices[2]];
 		ptv[3] = &msh2VertArea[model->pltbl[i].Vertices[3]];
-		flip = model->attbl[i].dir;
+		flags = model->attbl[i].render_data_flags;
+		flip = GET_FLIP_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
 		//Vertice order hint:
 		// 0 - 1
@@ -737,7 +608,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
 		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
@@ -786,10 +657,11 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		// colorBank = (luma > 32768) ? 3 : colorBank; 
 		// colorBank = (colorBank < 4) ? colorBank+1 : 0;
 
+ 		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
+
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
-									ptv[2]->pnt,
-						ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+						ptv[2]->pnt, ptv[3]->pnt,
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
@@ -799,6 +671,8 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transplant) //Draws animated model via SSH2
 {
 	if(ent->file_done != true){return;}
+	drawn_entity_list[drawn_entity_count] = ent;
+	drawn_entity_count++;
 	//WARNING:
 	//Once an entity is drawn animated, *all* instances of that entity must be drawn animated, or else they will not reset the pntbl appropriately.
     static MATRIX newMtx;
@@ -823,7 +697,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transpl
 	m2z[2] = newMtx[Z][Z];
 	m2z[3] = newMtx[3][Z];
 
-    PDATA * model = ent->pol[0];
+    GVPLY * model = ent->pol;
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
@@ -940,6 +814,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	int flip = 0;
+	unsigned short flags = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -948,7 +823,8 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
 		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
 		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
-		flip = model->attbl[i].dir;
+		flags = model->attbl[i].render_data_flags;
+		flip = GET_FLIP_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
 		//Vertice order hint:
 		// 0 - 1
@@ -963,7 +839,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  
-		if((cross0 >= cross1 && model->attbl[i].flag == 0) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////
@@ -1014,12 +890,12 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		colorBank = (luma < 49152) ? 2 : colorBank;
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+		
+ 		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
-        ssh2SetCommand(ptv[0]->pnt,
-		ptv[1]->pnt,
-		ptv[2]->pnt,
-		ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | (model->attbl[i].atrb & 33024)), //Reads flip value, mesh enable, and msb bit
+        ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
+						ptv[2]->pnt, ptv[3]->pnt,
+                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
                      pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;

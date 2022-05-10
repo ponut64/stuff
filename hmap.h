@@ -3,6 +3,7 @@
 
 #include <jo/jo.h>
 #include "def.h"
+#include "pcmstm.h"
 #include "draw.h"
 #include "vdp2.h"
 #include "minimap.h"
@@ -52,14 +53,17 @@ extern unsigned short * minimap;
 //Notice: Map Tex contains a 10-bit texture number, and two extra bits of flip data.
 extern unsigned short * mapTex;
 
-//Used in msfs.c
+void	init_heightmap(void);
+void	chg_map(_heightmap * tmap);
+
+void	p64MapRequest(short levelNo);
+
 void	read_pgm_header(_heightmap * map);
 void	process_map_for_normals(void);
-//
+
 void	make_dithered_textures_for_map(void);
-void	init_heightmap(void);
+
 void	update_hmap(MATRIX msMatrix);
-void	chg_map(_heightmap * tmap);
 void	hmap_cluster(void);
 //from hmap_col.c
 void	generate_cell_from_position(POINT pos, _pquad * cell);

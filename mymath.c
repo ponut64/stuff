@@ -29,8 +29,8 @@ __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 	return rtval;
 }
 
-
-__jo_force_inline FIXED	fxdot(VECTOR ptA, VECTOR ptB) //Fixed-point dot product
+//Note: this function loves to crash the system, dunno why
+__jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
 {
 	register volatile FIXED rtval;
 	asm(
@@ -81,7 +81,7 @@ __jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point divis
 //////////////////////////////////
 int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 {
-	return slSquart(JO_SQUARE( (Max[X]>>16) - (Min[X]>>16) ) + JO_SQUARE( (Max[Y]>>16) - (Min[Y]>>16) ) + JO_SQUARE( (Max[Z]>>16) - (Min[Z]>>16) ));
+	return slSquart(JO_SQUARE( (Max[X] - Min[X])>>16 ) + JO_SQUARE( (Max[Y] - Min[Y])>>16 ) + JO_SQUARE( (Max[Z] - Min[Z])>>16 ));
 }
 
 //////////////////////////////////
@@ -178,8 +178,17 @@ FIXED		double_fxisqrt(FIXED input){
 	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
 }
 
+void	cpy3(FIXED * src, FIXED * dst)
+{
+	*dst++ = *src++;
+	*dst++ = *src++;
+	*dst++ = *src++;
+	// dst[X] = src[X];
+	// dst[Y] = src[Y];
+	// dst[Z] = src[Z];
+}
 
-void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
+void	normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
@@ -189,7 +198,7 @@ void	normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
-void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
+void	double_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
@@ -198,6 +207,38 @@ void	double_normalize(FIXED vector_in[XYZ], FIXED vector_out[XYZ])
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
+
+void	accurate_normalize(FIXED * vector_in, FIXED * vector_out)
+{
+	//Shift inputs rsamp by 8, to prevent overflow.
+	static FIXED vmag = 0;
+	vmag = slSquartFX(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
+	vmag = fxdiv(1<<16, vmag);
+	vector_out[X] = fxm(vmag, vector_in[X]);
+	vector_out[Y] = fxm(vmag, vector_in[Y]);
+	vector_out[Z] = fxm(vmag, vector_in[Z]);
+}
+
+int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out)
+{
+	//Shift inputs rsamp by 8, to prevent overflow.
+	static FIXED vmag = 0;
+	vmag = slSquartFX(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
+	int scale = vmag;
+	vmag = fxdiv(1<<16, vmag);
+	vector_out[X] = fxm(vmag, vector_in[X]);
+	vector_out[Y] = fxm(vmag, vector_in[Y]);
+	vector_out[Z] = fxm(vmag, vector_in[Z]);
+	return scale;
+}
+
+void	cross_fixed(FIXED * vector1, FIXED * vector2, FIXED * output)
+{
+	output[X] = fxm(vector1[Y], vector2[Z]) - fxm(vector1[Z], vector2[Y]);
+	output[Y] = fxm(vector1[Z], vector2[X]) - fxm(vector1[X], vector2[Z]);
+	output[Z] = fxm(vector1[X], vector2[Y]) - fxm(vector1[Y], vector2[X]);
+}
+
 
 //////////////////////////////////
 // Checks if "point" is between "start" and "end".
@@ -224,48 +265,42 @@ bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 	}
 }
 
-//////////////////////////////////
-// Given a segment represented by two points "p1" and "p2,
-// project a third point "tgt" onto the the same segment.
-// Method is: Unit vector "p1->p2", dot product that unit with tgt, multiply dot result with unit.
-//////////////////////////////////
-void	project_to_segment(POINT tgt, POINT p1, POINT p2, POINT outPt, VECTOR outV)
-{
-	
-	VECTOR vectorized_pt;
-	//Following makes a vector from the left/right centers.
-	outV[X] = (p1[X] - p2[X]);
-	outV[Y] = (p1[Y] - p2[Y]);
-	outV[Z] = (p1[Z] - p2[Z]);
-	
-	if(JO_ABS(outV[X]) >= (SQUARE_MAX) || JO_ABS(outV[Y]) >= (SQUARE_MAX) || JO_ABS(outV[Z]) >= (SQUARE_MAX))
-	{
-	//Normalization that covers values >SQUARE_MAX
-	int vmag = slSquart( ((outV[X]>>16) * (outV[X]>>16)) + ((outV[Y]>>16) * (outV[Y]>>16)) + ((outV[Z]>>16) * (outV[Z]>>16)) )<<16;
-	vmag = slDivFX(vmag, 65536);
-	//
-	vectorized_pt[X] = fxm(outV[X], vmag);
-	vectorized_pt[Y] = fxm(outV[Y], vmag);
-	vectorized_pt[Z] = fxm(outV[Z], vmag);
-	} else {
-	normalize(outV, vectorized_pt);
-	}
-	//
-	//Generatr a scalar for the source vector
-	int scaler = slInnerProduct(vectorized_pt, tgt);
-	//Scale the vector to project onto ; using scalar as a represenation of how far along the vector it is
-	outPt[X] = fxm(scaler, vectorized_pt[X]);
-	outPt[Y] = fxm(scaler, vectorized_pt[Y]);
-	outPt[Z] = fxm(scaler, vectorized_pt[Z]);
-	
-	
-}
+	//output[X] = fxm(vector1[Y], vector2[Z]) - fxm(vector1[Z], vector2[Y]);
+	//output[Y] = fxm(vector1[Z], vector2[X]) - fxm(vector1[X], vector2[Z]);
+	//output[Z] = fxm(vector1[X], vector2[Y]) - fxm(vector1[Y], vector2[X]);
 
-void	cross_fixed(FIXED vector1[XYZ], FIXED vector2[XYZ], FIXED output[XYZ])
+//////////////////////////////////
+//
+//	Provides the intersection or nearest-coincident point of two lines.
+//	These two lines have parameters of a point (pt_a / pt_b) and a vector (v_a / v_b).
+//	Inputs vA and vB are *not* unit vectors. At least one of them can be, but both **CANNOT** be unit vectors.
+//	The parameter "intersection" is the output.
+//	Another good hint is, this function returns the scale from point A to the intersection point.
+//	If you made vA out of a segment and ptA is one of the points on the segment you used,
+//	if the scale is less than one, the intersection point is on the segment.
+//
+//////////////////////////////////
+int	line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB, FIXED * intersection)
 {
-	output[X] = fxm(vector1[Y], vector2[Z]) - fxm(vector1[Z], vector2[Y]);
-	output[Y] = fxm(vector1[Z], vector2[X]) - fxm(vector1[X], vector2[Z]);
-	output[Z] = fxm(vector1[X], vector2[Y]) - fxm(vector1[Y], vector2[X]);
+	/*
+	scale_to_point = dot(cross(dc,db),cross(da,db)) / dot(cross(da,db),cross(da,db));
+	da = vector for line A
+	db = vector for line B
+	dc = difference of A and B (new vector)
+	We subtract, because I don't know that's just what put it in the right spot, fuck you, do not pass go, do not collect 200 rubles
+	*/
+	
+	VECTOR vC = {ptA[X] - ptB[X], ptA[Y] - ptB[Y], ptA[Z] - ptB[Z]};
+	VECTOR crossCB;
+	VECTOR crossAB;
+	cross_fixed(vC, vB, crossCB);
+	cross_fixed(vA, vB, crossAB);
+	int sclA = fxdiv(slInnerProduct(crossCB, crossAB), slInnerProduct(crossAB, crossAB));
+	
+	intersection[X] = ptA[X] - fxm(sclA, vA[X]);
+	intersection[Y] = ptA[Y] - fxm(sclA, vA[Y]);
+	intersection[Z] = ptA[Z] - fxm(sclA, vA[Z]);
+	return sclA;
 }
 
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
@@ -344,6 +379,13 @@ int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shift
 	return fxdot(pFNn, normal);
 }
 
+// Input 'ptreal' - a real-space / world-space point, tested against a plane
+// Input 'normal' - Treated as both a point on the plane, and a vector normal to the plane
+// Input 'offset' - The location of the plane (center, one point, that point)
+// output - a dot product, where values approaching zero indicate closer and closer contact with the plane.
+// Zero is perfect contact. You can do experiments to find out if you want less than or greater than zero to be "passed through".
+// Typically, storing the value of this test for the previous frame is done, and if the values for the last frame and this frame differ,
+// the plane is considered to have been passed (collided).
 FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 {
 	realNormal[X] = normal[X] + (offset[X]);

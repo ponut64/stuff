@@ -21,8 +21,36 @@ int map_last_combined_texno = 0;
 _heightmap maps[4];
 bool map_update_complete;
 bool * sysbool;
-bool map_chg = false;
+bool map_chg = true;
 
+
+//Only works at start of program
+void 	init_heightmap(void)
+{
+/*Vertice Order Hint
+0 - 1
+3 - 2
+*/
+	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
+	minimap = (void*)jo_malloc(2550 * sizeof(short));
+}
+
+void	chg_map(_heightmap * tmap){
+		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false; i++){
+			main_map[i] = buf_map[i];
+			if(i == tmap->totalPix-1){
+				main_map_x_pix = tmap->Xval;
+				main_map_y_pix = tmap->Yval;
+				main_map_total_pix = tmap->totalPix;
+				init_minimap();
+				map_chg = true;
+				process_map_for_normals();
+			}
+		}
+}
+
+// I like that I didn't put a comment here explaining the contents of a PGM header.
+// It is plain-text, but come on!
 void	read_pgm_header(_heightmap * map)
 {
 				Uint8 newlines = 0;
@@ -87,6 +115,90 @@ void	read_pgm_header(_heightmap * map)
 					map->totalPix = leftFactor * rightFactor;
 					//Not included: GFS load sys, but that's ez
 }
+
+Sint8 pgm_name[11];
+Sint8 ldat_name[11];
+
+void	map_parser(void * data)
+{
+	maps[0].dstAddress = data;
+	read_pgm_header(&maps[0]);
+	
+	if(JO_IS_ODD(maps[0].Xval) && JO_IS_ODD(maps[0].Yval)){
+		for(int i = 0; i < maps[0].totalPix; i++)
+		{
+			buf_map[i] = *((Uint8*)maps[0].dstAddress + i);
+		}
+	// jo_printf(8, 20, "(%i)", maps[0].totalPix);
+	// jo_printf(15, 20, "(%i)", maps[0].Xval);
+	// jo_printf(20, 20, "(%i)", maps[0].Yval);
+		} else {
+	jo_printf(8, 25, "MAP REJECTED - IS EVEN");
+		}
+	map_chg = false;
+}
+
+void	p64MapRequest(short levelNo)
+{
+	char the_number[3] = {'0', '0', '0'};
+	int num_char = sprintf(the_number, "%i", levelNo);
+	if(num_char == 1)
+	{
+		the_number[1] = the_number[0];
+		the_number[0] = '0';
+	}
+///Fill out the request.
+	pgm_name[0] = 'L';
+	pgm_name[1] = 'E';
+	pgm_name[2] = 'V';
+	pgm_name[3] = 'E';
+	pgm_name[4] = 'L';
+	pgm_name[5] = the_number[0];
+	pgm_name[6] = the_number[1];
+	pgm_name[7] = '.';
+	pgm_name[8] = 'P';
+	pgm_name[9] = 'G';
+	pgm_name[10] = 'M';
+	
+	maps[0].Xval = 0;
+	maps[0].Yval = 0;
+	maps[0].totalPix = 0;
+
+					
+ 	ldat_name[0] = 'L';
+	ldat_name[1] = 'E';
+	ldat_name[2] = 'V';
+	ldat_name[3] = 'E';
+	ldat_name[4] = 'L';
+	ldat_name[5] = the_number[0];
+	ldat_name[6] = the_number[1];
+	ldat_name[7] = '.';
+	ldat_name[8] = 'T';
+	ldat_name[9] = 'G';
+	ldat_name[10] = 'A';
+	
+	new_file_request(ldat_name, dirty_buf, process_tga_as_ldata);
+	new_file_request(pgm_name, dirty_buf, map_parser);
+
+}
+
+/* 		//	if(activePGM->file_done != true){
+				read_pgm_header(activePGM);
+				//
+					if(JO_IS_ODD(activePGM->Xval) && JO_IS_ODD(activePGM->Yval)){
+						for(int i = 0; i < activePGM->totalPix; i++)
+						{
+							buf_map[i] = *((Uint8*)activePGM->dstAddress + i);
+						}
+				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
+				// jo_printf(15, 20, "(%i)", activePGM->Xval);
+				// jo_printf(20, 20, "(%i)", activePGM->Yval);
+					} else {
+				jo_printf(8, 25, "MAP REJECTED - IS EVEN");
+					}
+			NactivePGM--;
+		//	} */
+
 
 //Texture Table Assignment based on heights from main map strata table.
 __jo_force_inline int	texture_table_by_height(int * ys)
@@ -534,36 +646,11 @@ void	process_map_for_normals(void)
 	
 }
 
-//Only works at start of program
-void 	init_heightmap(void)
-{
-/*Vertice Order Hint
-0 - 1
-3 - 2
-*/
-	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	minimap = (void*)jo_malloc(2550 * sizeof(short));
-}
-
-void	chg_map(_heightmap * tmap){
-		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false && tmap->active != true && tmap->file_done == true; i++){
-			main_map[i] = buf_map[i];
-			if(i == tmap->totalPix-1){
-				main_map_x_pix = tmap->Xval;
-				main_map_y_pix = tmap->Yval;
-				main_map_total_pix = tmap->totalPix;
-				init_minimap();
-				map_chg = true;
-				process_map_for_normals();
-			}
-		}
-}
-
 	//Helper function for a routine which uses per-polygon light processing.
 	//This is different than the normal light processing in that it will get light data from any number of lights,
 	//based only on the distance from the polygon to the light.
 	/** SHOULD BE INLINED **/
-__jo_force_inline int		per_polygon_light(PDATA * model, POINT wldPos, int polynumber)
+__jo_force_inline int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 {
 	int luma = 0;
 	for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
@@ -768,7 +855,6 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 			luma += inverted_proxima * (int)lightSrc->bright;
 				}
 		}	
-		//luma = per_polygon_light(polymap, hmap_actual_pos, *dst_poly);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant

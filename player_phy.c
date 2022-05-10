@@ -80,7 +80,7 @@ void	pl_step_snd(void){
 		if(you.hitSurface == true){
 			for(int h = 0; h < 4; h++)
 			{
-				if(pl_model.pol[0]->pntbl[hf_vert[h]][Y] > HoofLowValue)
+				if(pl_model.pol->pntbl[hf_vert[h]][Y] > HoofLowValue)
 				{
 					hoofSetBools[h] = true;
 				if(hoofSetBools[h] != oldHoofSetBools[h])
@@ -89,7 +89,7 @@ void	pl_step_snd(void){
 					/*
 					Puff of smoke to display when player steps
 					*/
-					transform_mesh_point(pl_model.pol[0]->pntbl[hf_vert[h]], hf_pos, &pl_RBB);
+					transform_mesh_point(pl_model.pol->pntbl[hf_vert[h]], hf_pos, &pl_RBB);
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];

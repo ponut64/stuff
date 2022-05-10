@@ -25,8 +25,8 @@
 //
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
 extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
-extern ATTR attribute_0[LCL_MAP_PLY * LCL_MAP_PLY];
-extern PDATA polymap[];
+extern gvAtr attribute_0[1];
+extern GVPLY polymap[];
 extern FIXED hmap_matrix_pos[XYZ];
 extern FIXED hmap_actual_pos[XYZ];
 //Player Model

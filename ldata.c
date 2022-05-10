@@ -4,10 +4,10 @@
 
 bool ldata_ready = false;
 
-void	process_tga_as_ldata(void)
+void	process_tga_as_ldata(void * source_data)
 {
 	
-	unsigned char * readByte = (unsigned char *)dirty_buf;
+	unsigned char * readByte = (unsigned char *)source_data;
 	
 	unsigned char id_field_size = readByte[0];
 	unsigned char col_map_type = readByte[1]; 

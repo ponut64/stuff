@@ -561,10 +561,10 @@
 		NORMAL(0, -1, 0), VERTICES(270, 271, 288, 287),
 	};
 
-	ATTR attribute_0[];
+	gvAtr attribute_0[1];
 
 
-	PDATA polymap[] = {
+	GVPLY polymap[] = {
 	{
 		point_0, sizeof(point_0)/sizeof(POINT),
 		polygon_0, sizeof(polygon_0)/sizeof(POLYGON),

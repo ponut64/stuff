@@ -60,7 +60,7 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 
 void	declarations(void)
 {
-	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
+//	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
 }
 
 //I'm not sure if this whole system is ideal.
@@ -133,7 +133,7 @@ void	object_control_loop(int ppos[XY])
 						dWorldObjects[i].type.ext_dat |= OBJPOP;
 						pcm_play(snd_win, PCM_PROTECTED, 7);
 						map_chg = false;
-						p64MapRequest(dWorldObjects[i].type.entity_ID);
+						//p64MapRequest(dWorldObjects[i].type.entity_ID);
 						///////////////////////////////////////////
 						// More temporary stuff.
 						///////////////////////////////////////////
@@ -365,8 +365,8 @@ void	object_control_loop(int ppos[XY])
 		
 	flush_boxes(objUP);
 		
-	//jo_printf(CELL_CULLING_DIST_LONG, 6, "objUP:(%i)", objUP);
-	//jo_printf(CELL_CULLING_DIST_LONG, 7, "objNW:(%i)", objNEW);
+	//jo_printf(12, 5, "objUP:(%i)", objUP);
+	//jo_printf(12, 6, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -382,6 +382,11 @@ void	light_control_loop(void)
 	//Then, check if any active object, up to the light source limit, should emit a light. If it does, add it to the light list,
 	//given the light_y_offset of the light's source alongside the object's location.
 	unsigned char lights_created = 0;
+	
+	
+	//There is something whacky going on here and I don't like it.
+	// I have had a problem with this code for a long, long time.
+	// I don't know what's going on...
 	
 	///////////////////////////
 	// Test light
@@ -427,12 +432,21 @@ void	light_control_loop(void)
 						}
 					}
 				}
-				//slPrintFX(0, slLocate(2, 6+i));
-				// slPrintFX(active_lights[i].pos[X], slLocate(2, 7));
-				// slPrintFX(active_lights[i].pos[Y], slLocate(2, 8));
-				// slPrintFX(active_lights[i].pos[Z], slLocate(2, 9));
+				//slPrintFX(0, slLocate(2, 6+));
+				//slPrintFX(active_lights[i].pos[X], slLocate(2, 7 + (i * 3)));
+				//slPrintFX(active_lights[i].pos[Y], slLocate(2, 8 + (i * 3)));
+				//slPrintFX(active_lights[i].pos[Z], slLocate(2, 9 + (i * 3)));
 			}
 	}
+	
+		// slPrintFX(active_lights[0].pos[X], slLocate(2, 7));
+		// slPrintFX(active_lights[0].pos[Y], slLocate(2, 8));
+		// slPrintFX(active_lights[0].pos[Z], slLocate(2, 9));
+		
+		// slPrintFX(active_lights[1].pos[X], slLocate(2, 7+3));
+		// slPrintFX(active_lights[1].pos[Y], slLocate(2, 8+3));
+		// slPrintFX(active_lights[1].pos[Z], slLocate(2, 9+3));
+
 	
 	// jo_printf(2, 10, "(%i) lights", lights_created);
 	// jo_printf(2, 12, "(%i) obj", objUP);
@@ -491,7 +505,6 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	VECTOR faceNormal = {0, 0, 0};
 	VECTOR edgePrj0 = {0, 0, 0};
 	POINT centerFace = {0, 0, 0};
-	VECTOR outV0;
 	short posts[2];
 	FIXED radius1;
 	FIXED radius2;
@@ -543,9 +556,17 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 		//More specifically, this projects to the vector of that edge,
 		//but since the projection is using a relative point rather than an absolute point,
 		//it's already a projection in relation to the center of the face.
-	project_to_segment(tgtRelPos, fenceA, fenceC, edgePrj0, outV0);
+	POINT vfAfC = {fenceA[X] - fenceC[X], fenceA[Y] - fenceC[Y], fenceA[Z] - fenceC[Z]};
+	VECTOR unitRelPos;
+	VECTOR unitvfAfC;
+	normalize(tgtRelPos, unitRelPos);
+	normalize(vfAfC, unitvfAfC);
+
+	line_intersection_function(tgt->pos, unitRelPos, fenceA, unitvfAfC, edgePrj0);
+	
+	
 		//The first condition is if our projection is beyond the X or Z radius of the face, we want to stop now.
-	if(JO_ABS(edgePrj0[X]) > JO_ABS(outV0[X]>>1) || JO_ABS(edgePrj0[Z]) > JO_ABS(outV0[Z]>>1) )
+	if(JO_ABS(edgePrj0[X]) > JO_ABS(vfAfC[X]>>1) || JO_ABS(edgePrj0[Z]) > JO_ABS(vfAfC[Z]>>1) )
 	{
 		//Data cleanup to prevent errant positive detection when culling logic is passed,
 		dWorldObjects[obj_id1].dist = 0; //when previously it may noy have been.

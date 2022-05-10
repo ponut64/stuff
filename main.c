@@ -25,7 +25,6 @@ I am sorry for the pain you had to go through.
 #include "control.h"
 #include "mloader.h"
 #include "hmap.h"
-#include "msfs.h"
 #include "vdp2.h"
 #include "physobjet.h"
 #include "render.h"
@@ -33,6 +32,7 @@ I am sorry for the pain you had to go through.
 #include "ldata.h"
 #include "input.h"
 #include "object_col.h"
+#include "pcmstm.h"
 //
 #include "lwram.c"
 //
@@ -47,6 +47,7 @@ I am sorry for the pain you had to go through.
 // And then there's just some... "raff" being used, here or there.
 // Let's say then your game code can use about 400KB of HWRAM.
 unsigned char hwram_model_data[256 * 1024];
+void * active_HWRAM_ptr;
 //
 
 //
@@ -157,6 +158,7 @@ void	update_gamespeed(void)
 		//
 		frmul = framerate<<16;
 		
+		jo_printf(16, 4, "(%i) fmrt", frmrt);
 		
 		if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
 		{
@@ -167,6 +169,7 @@ void	update_gamespeed(void)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
+	active_HWRAM_ptr = (void *)(&hwram_model_data[0]);
 	//
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
@@ -194,83 +197,20 @@ void	load_test(void)
 	make_4way_combined_textures(map_tex_start, map_tex_amt);
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
-// gvModelRequest((Sint8*)"DPONY.GVP", &pl_model, true, SORT_CEN, 'P');
-// gvModelRequest((Sint8*)"SHADOW.GVP", &shadow, true, SORT_CEN, 'N');
 
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    SORT_CEN, 'P');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    SORT_CEN, 'F');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PINE.GVP",		active_HWRAM_ptr, &entities[2], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LOG.GVP",			active_HWRAM_ptr, &entities[3], SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, 'P');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, 'F');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LAMP.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PAVI.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, 'B');
 
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BENCH.GVP",		active_HWRAM_ptr, &entities[4], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TABLE.GVP",		active_HWRAM_ptr, &entities[5], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"COUCH.GVP",		active_HWRAM_ptr, &entities[6], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"CRATE.GVP",		active_HWRAM_ptr, &entities[7], SORT_CEN, 'N');
-
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FIRE.GVP",		active_HWRAM_ptr, &entities[8], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FURNACE.GVP",		active_HWRAM_ptr, &entities[9], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LAMP.GVP",		active_HWRAM_ptr, &entities[10], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LANTERN.GVP",		active_HWRAM_ptr, &entities[11], SORT_CEN, 'N');
-
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"CANE.GVP",		active_HWRAM_ptr, &entities[12], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SNOWMAN.GVP",		active_HWRAM_ptr, &entities[13], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WREATH.GVP",		active_HWRAM_ptr, &entities[14], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GIFT.GVP",		active_HWRAM_ptr, &entities[15], SORT_CEN, 'N');
-
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"CART.GVP",		active_HWRAM_ptr, &entities[16], SORT_CEN, 'N');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PILE.GVP",		active_HWRAM_ptr, &entities[17], SORT_CEN, 'N');
-
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HOUSE.GVP",		active_HWRAM_ptr, &entities[18], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"IGLOO.GVP",		active_HWRAM_ptr, &entities[19], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"AIRPLAT.GVP",		active_HWRAM_ptr, &entities[20], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRAILER.GVP",		active_HWRAM_ptr, &entities[21], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"CAMP.GVP",		active_HWRAM_ptr, &entities[22], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"ISLE.GVP",		active_HWRAM_ptr, &entities[23], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TOWER.GVP",		active_HWRAM_ptr, &entities[24], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GATE0.GVP",		active_HWRAM_ptr, &entities[25], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GATE1.GVP",		active_HWRAM_ptr, &entities[26], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GATE2.GVP",		active_HWRAM_ptr, &entities[27], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GATE3.GVP",		active_HWRAM_ptr, &entities[28], SORT_CEN, 'B');
-active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GATE4.GVP",		active_HWRAM_ptr, &entities[29], SORT_CEN, 'B');
+	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
+	stm.times_to_loop = 255;
 
 
-// gvModelRequest((Sint8*)"PINE.GVP",		&entities[2], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"LOG.GVP",		&entities[3], true, SORT_CEN, 'N');
-
-// gvModelRequest((Sint8*)"BENCH.GVP",		&entities[4], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"TABLE.GVP",		&entities[5], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"COUCH.GVP",		&entities[6], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"CRATE.GVP",		&entities[7], true, SORT_CEN, 'N');
-
-// gvModelRequest((Sint8*)"FIRE.GVP",		&entities[8], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"FURNACE.GVP",	&entities[9], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"LAMP.GVP",		&entities[10], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"LANTERN.GVP",	&entities[11], true, SORT_CEN, 'N');
-
-// gvModelRequest((Sint8*)"CANE.GVP",		&entities[12], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"SNOWMAN.GVP",	&entities[13], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"WREATH.GVP",	&entities[14], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"GIFT.GVP",		&entities[15], true, SORT_CEN, 'N');
-
-// gvModelRequest((Sint8*)"CART.GVP",		&entities[16], true, SORT_CEN, 'N');
-// gvModelRequest((Sint8*)"PILE.GVP",		&entities[17], true, SORT_CEN, 'N');
-
-// gvModelRequest((Sint8*)"HOUSE.GVP",		&entities[18], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"IGLOO.GVP",		&entities[19], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"AIRPLAT.GVP",	&entities[20], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"TRAILER.GVP",	&entities[21], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"CAMP.GVP",		&entities[22], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"ISLE.GVP",		&entities[23], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"TOWER.GVP",		&entities[24], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"GATE0.GVP",		&entities[25], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"GATE1.GVP",		&entities[26], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"GATE2.GVP",		&entities[27], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"GATE3.GVP",		&entities[28], true, SORT_CEN, 'B');
-// gvModelRequest((Sint8*)"GATE4.GVP",		&entities[29], true, SORT_CEN, 'B');
-
-p64MapRequest(0);
-
+	p64MapRequest(0);
+	//
+	
 }
 
 void	game_frame(void)
@@ -281,25 +221,14 @@ void	game_frame(void)
 	frame_render_prep();
 	
 	master_draw(); 
-
-	file_request_loop();
-	
-	slSynch();
 }
 
 void	my_vlank(void){
 	vblank_requirements();
 	operate_digital_pad1();
 	//Sound Driver Stuff
-	m68k_com->start = 1;
-	music_vblIn(7);
+	sdrv_stm_vblank_rq();
 	//
-}
-
-void	load_in_frame(void){
-	do{
-	master_file_system(game_frame);
-	} while (true);
 }
 
 void	attributions(void)
@@ -311,7 +240,6 @@ void	attributions(void)
 	slPrint("fafling - actually read VDP2 manual", slLocate(3, 13));
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
 	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
-	slPrint("music from The Horde [TfB]", slLocate(3, 19));
 
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
 	slPrint("Give it a second", slLocate(3, 24));
@@ -339,14 +267,14 @@ void	jo_main(void)
 	anim_defs();
 	init_heightmap();
 	//Sound Driver
-	load_drv(ADX_MASTER_1536); 
+	load_drv(ADX_MASTER_2304); 
 	//
 	load_dsp_prog();
 	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
-
 	//
+	
 	fill_obj_list();
 	
 	//load_test();
@@ -354,6 +282,8 @@ void	jo_main(void)
 	
 	set_camera();
 	reset_player();
-	load_in_frame();
+
+	pcm_stream_init(30720, PCM_TYPE_8BIT);
+	pcm_stream_host(game_frame);
 }
 

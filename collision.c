@@ -59,23 +59,26 @@ Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 }
 
 //Separates the angles of a normal according to an input reference vector.
+//	Input "plUN" is the normal of the plane being tested.
+//	Input "unitA" is the orientation compared to the plane being tested. Typically, you want (0, -1, 0).
+//	Output "degreeOut" is separated angles that represent the rotation required to pivot to the orientation.
 void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
 {	
-	static FIXED crossXZ[XYZ];
-	static FIXED crossYZ[XYZ];
-	static FIXED crossYX[XYZ];
-	static FIXED mcXZ;
-	static FIXED mcYZ;
-	static FIXED mcYX;
-	static FIXED dotXZ;
-	static FIXED dotYZ;
-	static FIXED dotYX;
-	static FIXED smuXZ[XYZ]; 
-	static FIXED smuYZ[XYZ]; 
-	static FIXED smuYX[XYZ]; 
-	static FIXED spnXZ[XYZ]; 
-	static FIXED spnYZ[XYZ]; 
-	static FIXED spnYX[XYZ];
+	FIXED crossXZ[XYZ];
+	FIXED crossYZ[XYZ];
+	FIXED crossYX[XYZ];
+	FIXED mcXZ;
+	FIXED mcYZ;
+	FIXED mcYX;
+	FIXED dotXZ;
+	FIXED dotYZ;
+	FIXED dotYX;
+	FIXED smuXZ[XYZ]; 
+	FIXED smuYZ[XYZ]; 
+	FIXED smuYX[XYZ]; 
+	FIXED spnXZ[XYZ]; 
+	FIXED spnYZ[XYZ]; 
+	FIXED spnYX[XYZ];
 	smuXZ[X] = unitA[X]; smuXZ[Y] = 0; smuXZ[Z] = unitA[Z];
 
 	smuYZ[X] = 0; smuYZ[Y] = unitA[Y]; smuYZ[Z] = unitA[Z];
@@ -91,9 +94,24 @@ void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
 	cross_fixed(smuXZ, spnXZ, crossXZ);
 	cross_fixed(smuYZ, spnYZ, crossYZ);
 	cross_fixed(smuYX, spnYX, crossYX);
-	mcXZ = slSquartFX(fxm(crossXZ[X], crossXZ[X]) + fxm(crossXZ[Y], crossXZ[Y]) + fxm(crossXZ[Z], crossXZ[Z]));
-	mcYZ = slSquartFX(fxm(crossYZ[X], crossYZ[X]) + fxm(crossYZ[Y], crossYZ[Y]) + fxm(crossYZ[Z], crossYZ[Z]));
-	mcYX = slSquartFX(fxm(crossYX[X], crossYX[X]) + fxm(crossYX[Y], crossYX[Y]) + fxm(crossYX[Z], crossYX[Z]));
+	/////////////////////////////////////////
+	// Efficient (original) version
+	// These appear to be functionally interchangeable, but I will make a note:
+	// the vector cross-products (XZ, YZ, and YX) won't be normalized, because cross-products of normals are less than normals.
+	/////////////////////////////////////////
+	mcXZ = slSquartFX(fxdot(crossXZ, crossXZ));
+	mcYZ = slSquartFX(fxdot(crossYZ, crossYZ));
+	mcYX = slSquartFX(fxdot(crossYX, crossYX));
+	/////////////////////////////////////////
+	// Mathematically correct (new) version
+	/////////////////////////////////////////
+	// int tDot = fxdot(crossXZ, crossXZ);
+	// mcXZ = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
+	// tDot = fxdot(crossYZ, crossYZ);
+	// mcYZ = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
+	// tDot = fxdot(crossYX, crossYX);
+	// mcYX = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
+	//////////////////////////////////////////
 	dotXZ = fxm(unitA[X],plUN[X]) + fxm(unitA[Z],plUN[Z]);
 	dotYZ = fxm(unitA[Y],plUN[Y]) + fxm(unitA[Z],plUN[Z]);
 	dotYX = fxm(unitA[Y],plUN[Y]) + fxm(unitA[X],plUN[X]);
@@ -595,19 +613,19 @@ void	player_collision_test_loop(void)
 		//jo_printf(0, 0, "(PHYS)"); //Debug ONLY
 		skipdat = dWorldObjects[activeObjects[i]].type.ext_dat & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
-		if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
+				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
 			} else if(skipdat == (ITEM | OBJPOP)) {
-		run_item_collision(i, &pl_RBB);
+				run_item_collision(i, &pl_RBB);
 			} else if(skipdat == (GATE_R | OBJPOP)) {
-		test_gate_ring(i, &pl_RBB);
+				test_gate_ring(i, &pl_RBB);
 			} else if(skipdat == (GATE_P | OBJPOP)) {
-		test_gate_posts(activeObjects[i], &pl_RBB);
-		if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
+				test_gate_posts(activeObjects[i], &pl_RBB);
+				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
 			} else if(skipdat == (BUILD | OBJPOP))
 			{
 				if(RBBs[i].status[1] == 'C')
 				{
-				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB);
+					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
 				}
 			}
 	}

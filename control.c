@@ -8,7 +8,6 @@ This file is compiled separately.
 #include "bounder.h"
 #include "control.h"
 #include "mymath.h"
-#include "msfs.h"
 
 Sint32 testNum[XYZ];
 int spdfactr;

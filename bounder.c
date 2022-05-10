@@ -63,7 +63,7 @@ void	makeBoundBox(_object_arguments * source_data)
 	source_data->modified_box->brad[Z] = source_data->z_radius;
 
 	 FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
-	 FIXED cosX = slCos(source_data->modified_box->boxRot[Y]);
+	 FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
 	 FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
 	 FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
 	 FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);

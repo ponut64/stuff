@@ -30,9 +30,28 @@
 #define CLIP_Z 			(1<<4)
 #define LOW_Z 			(1<<5)
 
-#define	MAX_DYNAMIC_LIGHTS (1)
+#define	MAX_DYNAMIC_LIGHTS (2)
 
 #define MAX_SPRITES (64)
+
+/*
+Render data flags:
+	
+	|	0		|	1		|	2		|	3		|	4	-	5 	|	6	-	7 |		
+	  Dual-plane	Mesh		Physical	MSB On		Tex. flip	  Sorting rule
+*/
+	#define GV_FLAG_SINGLE	(0x1) // Zero, dual-plane. One, single-plane.
+	#define GV_FLAG_MESH	(0x2) // Zero, no mesh. One, mesh.
+	#define GV_FLAG_PHYS	(0x4) // Zero, physical plane (in supported objects). Zero, no collision with plane.
+	#define GV_FLAG_DARK	(0x8) // Zero, normal light. One, MSB is enabled, making the polygon dark.
+	#define GV_SORT_MAX		(0x40)
+	#define GV_SORT_CEN		(0x80)
+	#define GV_SORT_MIN		(0xC0)
+	#define GV_FLIP_V		(0x20)
+	#define GV_FLIP_H		(0x10)
+	#define GV_FLIP_HV		(0x30)
+	#define GET_SORT_DATA(n)	(n & 0xC0)
+	#define GET_FLIP_DATA(n)	(n & 0x30)
 
 //////////////////////////////////
 // Engine's working struct for drawing raw sprites
@@ -71,6 +90,10 @@ typedef struct{
 	unsigned short SIZE; //VDP1 Size Word
 	unsigned short SRCA; //VDP1 Source Address Word (MAP_TO_VRAM)
 } paletteCode;
+
+extern entity_t * drawn_entity_list[64];
+extern short drawn_entity_count;
+extern MATRIX global_view_matrix;
 
 extern int * DVSR;
 extern int * DVDNTH;

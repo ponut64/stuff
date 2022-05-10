@@ -53,7 +53,48 @@ static const int logtbl[] = {
 	unsigned int * scsp_load =  (unsigned int*)(0x408 + DRV_SYS_END + 0x20); //Local loading address for sound data, is DRV_SYS_END ahead of the SNDPRG, and ahead of the communication data
 	unsigned short * master_volume = (unsigned short *)(SNDRAM + 0x100400);
 	short numberPCMs = 0;
+	
+void	pcm_play(short pcmNumber, char ctrlType, char volume)
+{
+	m68k_com->pcmCtrl[pcmNumber].sh2_permit = 1;
+	m68k_com->pcmCtrl[pcmNumber].volume = volume;
+	m68k_com->pcmCtrl[pcmNumber].loopType = ctrlType;
+}
 
+void	pcm_parameter_change(short pcmNumber, char volume, char pan)
+{
+	m68k_com->pcmCtrl[pcmNumber].volume = volume;
+	m68k_com->pcmCtrl[pcmNumber].pan = pan;
+}
+
+void	pcm_cease(short pcmNumber)
+{
+
+	if(m68k_com->pcmCtrl[pcmNumber].loopType <= 0) //If it is a volatile or protected sound, the expected control method is to mute the sound and let it end itself.
+	{												//Protected sounds have a permission state of "until they end".
+	m68k_com->pcmCtrl[pcmNumber].volume = 0;
+	} else {
+	m68k_com->pcmCtrl[pcmNumber].sh2_permit = 0; //If it is a looping sound, the control method is to command it to stop.
+	}
+}
+	
+/**stolen from xl2**/
+#define     OPEN_MAX    (Sint32)5
+#define     DIR_MAX     (Sint32)1024
+#define     RD_UNIT     (10)
+#define     SECT_SIZE   (2048)
+GfsDirTbl gfsDirTbl;
+GfsDirName gfsDirName[DIR_MAX];
+Uint32 gfsLibWork[GFS_WORK_SIZE(OPEN_MAX)/sizeof(Uint32)];
+Sint32 gfsDirN;
+void    cd_init(void)
+{
+    GFS_DIRTBL_TYPE(&gfsDirTbl) = GFS_DIR_NAME;
+    GFS_DIRTBL_DIRNAME(&gfsDirTbl) = gfsDirName;
+    GFS_DIRTBL_NDIR(&gfsDirTbl) = DIR_MAX;
+    gfsDirN = GFS_Init(OPEN_MAX, gfsLibWork, &gfsDirTbl);
+}
+	
 void smpc_wait_till_ready (void)
 {
    // Wait until SF register is cleared
@@ -75,7 +116,7 @@ void smpc_issue_command(unsigned char cmd)
 
 void	load_driver_binary(Sint8 * filename, void * buffer, int master_adx_frequency)
 {
-
+	cd_init();
 	GfsHn s_gfs;
 	Sint32 file_size;
 	
@@ -195,7 +236,7 @@ short			load_16bit_pcm(Sint8 * filename, int sampleRate)
 	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = calculate_bytes_per_blank(sampleRate, false, PCM_SYS_REGION); //Iniitalize as max volume
 	m68k_com->pcmCtrl[numberPCMs].bitDepth = PCM_TYPE_16BIT; //Select 16-bit
 	m68k_com->pcmCtrl[numberPCMs].loopType = 0; //Initialize as non-looping
-	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Iniitalize as max volume
+	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Initialize as max volume
 
 
 	numberPCMs++; //Increment pcm #
@@ -241,7 +282,7 @@ short			load_8bit_pcm(Sint8 * filename, int sampleRate)
 
 	numberPCMs++; //Increment pcm #
 	scsp_load = (unsigned int *)((unsigned int )scsp_load + file_size);
-	return (numberPCMs-1); //Return the PCM # this sound recieved
+	return (numberPCMs-1); //Return the PCM # this sound received
 }
 
 // Recursive function to return gcd of a and b 
@@ -316,46 +357,74 @@ short		load_adx(Sint8 * filename)
 	return (numberPCMs-1); //Return the PCM # this sound recieved
 }
 
-short	add_raw_pcm_buffer(bool is8Bit, short sampleRate, int size)
+void		sdrv_vblank_rq(void)
 {
-	
-	if( (int)scsp_load > 0x7F800) return -1; //Illegal PCM data address, exit
-	
-	m68k_com->pcmCtrl[numberPCMs].hiAddrBits = (unsigned short)( (unsigned int)scsp_load >> 16);
-	m68k_com->pcmCtrl[numberPCMs].loAddrBits = (unsigned short)( (unsigned int)scsp_load & 0xFFFF);
-	
-	m68k_com->pcmCtrl[numberPCMs].pitchword = convert_bitrate_to_pitchword(sampleRate);
-	m68k_com->pcmCtrl[numberPCMs].playsize = (size);
-	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = calculate_bytes_per_blank(sampleRate, is8Bit, PCM_SYS_REGION); //Iniitalize as max volume
-	m68k_com->pcmCtrl[numberPCMs].bitDepth = (is8Bit) ? PCM_TYPE_8BIT : PCM_TYPE_16BIT;
-	m68k_com->pcmCtrl[numberPCMs].loopType = 0; //Initialize as non-looping
-	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Iniitalize as max volume
-	numberPCMs++;
-	scsp_load = (unsigned int *)((unsigned int )scsp_load + size);
-	return (numberPCMs-1); //Return the PCM # this sound recieved
+	//jo_printf(0, 0, "drv_stat(%i)", m68k_com->start);
+	m68k_com->start = 1;	
 }
 
-void	pcm_play(short pcmNumber, char ctrlType, char volume)
+////////////////////////////////////////////////////////////////////////////////
+// Redbook Support
+// These are mostly CDC commands.
+// credit to: ndiddy, ReyeMe, CyberWarriorX [iapetus]
+////////////////////////////////////////////////////////////////////////////////
+
+
+void CDDA_SetVolume(int vol)
 {
-	m68k_com->pcmCtrl[pcmNumber].sh2_permit = 1;
-	m68k_com->pcmCtrl[pcmNumber].volume = volume;
-	m68k_com->pcmCtrl[pcmNumber].loopType = ctrlType;
+	//Step 1: Remove the volume bits from the value (isolate the pan)
+	unsigned char newvol = m68k_com->cdda_left_channel_vol_pan & 0x1F;
+	//Step 2: Apply the volume to the correct bits
+	newvol |= ((vol & 0x7)<<5);
+	//Step 3: Apply value back to left channel
+	m68k_com->cdda_left_channel_vol_pan = newvol;
+	//Step 4: Repeat for right channel
+	newvol = m68k_com->cdda_right_channel_vol_pan & 0x1F;
+	//Step 5: Apply the volume to the correct bits
+	newvol |= ((vol & 0x7)<<5);
+	//Step 6: Apply value back to right channel
+	m68k_com->cdda_right_channel_vol_pan = newvol;
 }
 
-void	pcm_parameter_change(short pcmNumber, char volume, char pan)
+//	To see what this does and how to use it, refer to the SCSP manual.
+//	Warning: Use without reading the manual may break your CD audio.
+void CDDA_SetChannelVolPan(unsigned char left_channel, unsigned char right_channel)
 {
-	m68k_com->pcmCtrl[pcmNumber].volume = volume;
-	m68k_com->pcmCtrl[pcmNumber].pan = pan;
+	m68k_com->cdda_left_channel_vol_pan = left_channel;
+	m68k_com->cdda_right_channel_vol_pan = right_channel;
 }
 
-void	pcm_cease(short pcmNumber)
+void CDDA_Play(int fromTrack, int toTrack, bool loop)
 {
+    CdcPly ply;
+    CDC_PLY_STYPE(&ply) = CDC_PTYPE_TNO; // track number
+    CDC_PLY_STNO(&ply) = fromTrack;
+    CDC_PLY_SIDX(&ply) = 1;
+    CDC_PLY_ETYPE(&ply) = CDC_PTYPE_TNO;
+    CDC_PLY_ETNO(&ply) = toTrack;
+    CDC_PLY_EIDX(&ply) = 1;
 
-	if(m68k_com->pcmCtrl[pcmNumber].loopType <= 0) //If it is a volatile or protected sound, the expected control method is to mute the sound and let it end itself.
-	{												//Protected sounds have a permission state of "until they end".
-	m68k_com->pcmCtrl[pcmNumber].volume = 0;
-	} else {
-	m68k_com->pcmCtrl[pcmNumber].sh2_permit = 0; //If it is a looping sound, the control method is to command it to stop.
-	}
+    if (loop)
+    {
+        CDC_PLY_PMODE(&ply) = CDC_PM_DFL | 0xf; // 0xf = infinite repetitions
+    }
+    else
+    {
+        CDC_PLY_PMODE(&ply) = CDC_PM_DFL;
+    }
+
+    CDC_CdPlay(&ply);
+}
+
+void CDDA_PlaySingle(int track, bool loop)
+{
+    CDDA_Play(track, track, loop);
+}
+
+void CDDA_Stop(void)
+{
+    CdcPos poswk;
+    CDC_POS_PTYPE(&poswk) = CDC_PTYPE_DFL;
+    CDC_CdSeek(&poswk);
 }
 

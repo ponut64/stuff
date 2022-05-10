@@ -8,7 +8,7 @@
 
 extern bool ldata_ready;
 
-void	process_tga_as_ldata(void);
+void	process_tga_as_ldata(void * source_data);
 
 #endif
 
