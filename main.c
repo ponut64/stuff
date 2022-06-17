@@ -169,8 +169,13 @@ void	update_gamespeed(void)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
-	active_HWRAM_ptr = (void *)(&hwram_model_data[0]);
 	//
+	active_HWRAM_ptr = (void *)(&hwram_model_data[0]);
+	////////////////////////////////////////////////
+	// REMINDER: All file names must comply with the 8.3 standard.
+	// File extensions can be no longer than 3 letters.
+	// File names can be no longer than 8 letters.
+	////////////////////////////////////////////////
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
@@ -198,17 +203,34 @@ void	load_test(void)
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
 
+	//	What the hell was I thinking with the last parameter here?
+	// I need to change it.
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, 'P');
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, 'F');
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"LAMP.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PAVI.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, 'B');
+	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB02.GVP",		active_HWRAM_ptr, &entities[2], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB03.GVP",		active_HWRAM_ptr, &entities[3], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB04.GVP",		active_HWRAM_ptr, &entities[4], GV_SORT_CEN, 'N');
+	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME00.GVP",		active_HWRAM_ptr, &entities[5], GV_SORT_CEN, 'B');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME01.GVP",		active_HWRAM_ptr, &entities[6], GV_SORT_CEN, 'B');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME02.GVP",		active_HWRAM_ptr, &entities[7], GV_SORT_CEN, 'B'); 
+	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, 'N'); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, 'N'); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, 'N'); 
+	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, 'B');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD01.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, 'B');
 
 	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(0);
+	p64MapRequest(1);
 	//
 	
 }

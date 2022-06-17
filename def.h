@@ -90,7 +90,8 @@ typedef struct {
 	bool okayStepSnd;
 	int sanics;
 	
-	int power;
+	short power;
+	short maxPower;
 	bool setJet;
 	
 	int surfaceHeight;

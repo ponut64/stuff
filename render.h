@@ -21,6 +21,7 @@
 #define VDP1_BASE_PMODE (0x1490)
 // CMDCTRL = Select Distorted Sprite
 #define VDP1_BASE_CMDCTRL (2)
+#define VDP1_PRECLIPPING_DISABLE (2048)
 //VDP1 perf limit depends on how many pixels it's drawing.
 //Screen clip flags
 #define SCRN_CLIP_X		(1)
@@ -29,6 +30,7 @@
 #define SCRN_CLIP_NY	(1<<3)
 #define CLIP_Z 			(1<<4)
 #define LOW_Z 			(1<<5)
+
 
 #define	MAX_DYNAMIC_LIGHTS (2)
 

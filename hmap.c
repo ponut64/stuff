@@ -680,6 +680,22 @@ __jo_force_inline int		per_polygon_light(GVPLY * model, POINT wldPos, int polynu
 }
 
 ////////////////////////////
+// Light shade determinant function
+////////////////////////////
+__jo_force_inline void determine_colorbank(unsigned short * colorBank, int * luma)
+{
+	//The point of the shades:
+	// 0: Overbright / Noon, direct sunlight
+	// 1: Lit / Overcast / Indoor light
+	// 2: Shaded / Dim light / Twilight
+	// 3: Full moon / Dark room
+	*colorBank = (*luma >= 73726) ? 0 : 1;
+	*colorBank = (*luma < 49152) ? 2 : *colorBank;
+	*colorBank = (*luma < 16384) ? 3 : *colorBank; 
+	*colorBank = (*luma < 0) ? 515 : *colorBank; //Make really dark? use MSB shadow
+}
+
+////////////////////////////
 // Helper data for dynamic polygon subdivision
 ////////////////////////////
 POINT verts_without_inverse_z[LCL_MAP_PIX * LCL_MAP_PIX];
@@ -700,7 +716,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 	FIXED * umpt[4];
 	int luma = 0;
 	int used_flip = *flip;
-	short colorBank = 0;
+	unsigned short colorBank = 0;
 	for(int u = 0; u < 4; u++)
 	{
 		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].Vertices[u]][0];
@@ -802,6 +818,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //used_flip logic to keep vertice 0 on-screen
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	unsigned short pclp = 0;
  		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical used_flip // Expresses clip0 > 0 && clip3 <= 0
 			//Incoming Arrangement:
 			// 0 - 1		^
@@ -827,7 +844,25 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
+		} else if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = VDP1_PRECLIPPING_DISABLE;
 		}
+		///////////////////////////////
+		// Slightly Important Comment:
+		// You don't see a case to handle if there is no vertex off the screen edge here.
+		// That seems odd; we know at least one of the vertices we handle in the subdivided polygon here will be.
+		// But surely, some of these are wholly within the screen?
+		///////////////////////////////
+		/*
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = VDP1_PRECLIPPING_DISABLE;
+		}
+		*/
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -858,13 +893,10 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+		determine_colorbank(&colorBank, &luma);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (used_flip), ( VDP1_BASE_PMODE ), //Reads used_flip value
+                     VDP1_BASE_CMDCTRL | (used_flip), ( VDP1_BASE_PMODE ) | pclp, //Reads used_flip value
                      pcoTexDefs[*texno].SRCA, colorBank<<6, pcoTexDefs[*texno].SIZE, 0, *depth);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
@@ -906,7 +938,7 @@ void	update_hmap(MATRIX msMatrix)
 	m2z[3] = msMatrix[3][Z];
 	
 	FIXED luma = 0;
-	short colorBank;
+	unsigned short colorBank;
 	int inverseZ = 0;
 //
 //The only way to increase the render distance is with a non-uniform density.
@@ -1065,6 +1097,8 @@ void	update_hmap(MATRIX msMatrix)
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //If any of the Z's are less than 100, render the polygon subdivided four ways.
+// Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
+// I think that's the only way this makes sense.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
 		if(ptv[0]->pnt[Z] < (100<<16) || ptv[1]->pnt[Z] < (100<<16)
 		|| ptv[2]->pnt[Z] < (100<<16) || ptv[3]->pnt[Z] < (100<<16))
@@ -1080,8 +1114,14 @@ void	update_hmap(MATRIX msMatrix)
 		texno += (dither & 0x8000) ? starting_combined_crossing_texno : (dither & 0x4000) ? amt_of_angular_tex_per_table : map_tex_amt;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Flip logic to keep vertice 0 on-screen, or disable preclipping
+//
+// Secondary Note:
+// The addition of polygon subdivision for the map makes this feature extraneous.
+// All of the polygons which might be crossing the screen edge should be small, or subdivided.
+//
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		unsigned short pclp = 0;
+/*
  		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
 			//Incoming Arrangement:
 			// 0 - 1		^
@@ -1107,10 +1147,20 @@ void	update_hmap(MATRIX msMatrix)
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
+		} else if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
 		{
 			pclp = 2048; //Preclipping Disable
 		}
+		*/
+		
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = VDP1_PRECLIPPING_DISABLE;
+		}
+		
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1119,10 +1169,7 @@ void	update_hmap(MATRIX msMatrix)
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+		determine_colorbank(&colorBank, &luma);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
                      VDP1_BASE_CMDCTRL | (flip), ( VDP1_BASE_PMODE ) | pclp, //Reads flip value

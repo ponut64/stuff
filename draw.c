@@ -4,7 +4,7 @@
 #include "draw.h"
 #include "height.h"
 
-FIXED sun_light[3] = {0, -20000, 0};
+FIXED sun_light[3] = {5000, -20000, 0};
 //Player Model
 entity_t pl_model;
 //Player's Shadow

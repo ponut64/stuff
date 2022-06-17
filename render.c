@@ -336,6 +336,23 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, 
 	return 0;
 }
 
+////////////////////////////
+// Light shade determinant function
+////////////////////////////
+__jo_force_inline void determine_colorbank(unsigned short * colorBank, int * luma)
+{
+	//The point of the shades:
+	// 0: Overbright / Noon, direct sunlight
+	// 1: Lit / Overcast / Indoor light
+	// 2: Shaded / Dim light / Twilight
+	// 3: Full moon / Dark room
+	*colorBank = (*luma >= 73726) ? 0 : 1;
+	*colorBank = (*luma < 49152) ? 2 : *colorBank;
+	*colorBank = (*luma < 16384) ? 3 : *colorBank; 
+	*colorBank = (*luma < 0) ? 515 : *colorBank; //Make really dark? use MSB shadow
+}
+
+
 void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 {
 	if(ent->file_done != true){return;}
@@ -379,7 +396,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	}
 
 	FIXED luma;
-	short colorBank;
+	unsigned short colorBank;
 	int inverseZ = 0;
  
     for (unsigned int i = 0; i < model->nbPoint; i++)
@@ -489,17 +506,23 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 			//	Edge	---> X+
 		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
 		{
-			pclp = 2048; //Preclipping Disable
+			pclp = VDP1_PRECLIPPING_DISABLE; //Preclipping Disable
 		}*/
+		/*
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = 2048; //Preclipping Disable
+		}
+		*/
 		//Preclipping is always enabled
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+		determine_colorbank(&colorBank, &luma);
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		
@@ -550,7 +573,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
 	FIXED luma;
-	short colorBank;
+	unsigned short colorBank;
 	int inverseZ = 0;
 
     for (unsigned int i = 0; i < model->nbPoint; i++)
@@ -644,18 +667,20 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		{
 			pclp = 2048; //Preclipping Disable
 		}*/
+		/*
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = 2048; //Preclipping Disable
+		}
+		*/
 		//Preclipping is always enabled
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
 		//Use transformed normal as shade determinant
-		colorBank = (luma < -59000) ? 0 : 1;
-		colorBank = (luma > -50000) ? 2 : colorBank;
-		colorBank = (luma > -45000) ? 3 : colorBank;
-		colorBank = (luma > 0) ? 515 : colorBank; //Make really dark? use MSB shadow
-		// colorBank = (luma < -32768) ? 0 : 1;
-		// colorBank = (luma > 16384) ? 2 : colorBank;
-		// colorBank = (luma > 32768) ? 3 : colorBank; 
-		// colorBank = (colorBank < 4) ? colorBank+1 : 0;
+		determine_colorbank(&colorBank, &luma);
 
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
@@ -711,7 +736,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transpl
 	}
 	
 	FIXED luma;
-	short colorBank;
+	unsigned short colorBank;
 	
 	//Process for static pose change:
 	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
@@ -876,6 +901,15 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		{
 			pclp = 2048; //Preclipping Disable
 		}*/
+		/*
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
+		{
+			pclp = 2048; //Preclipping Disable
+		}
+		*/
 		//Preclipping is always enabled
 		//New normals in from animation normal table // These are not written back to memory
         tNorm[X]=ANORMS[*src2][X];
@@ -886,10 +920,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma += fxdot(tNorm, ambient_light); //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
+		determine_colorbank(&colorBank, &luma);
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 

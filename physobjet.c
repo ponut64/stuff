@@ -61,6 +61,26 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 void	declarations(void)
 {
 //	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
+declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0);
+declare_object_at_cell(-(874 / 40) + 1, -381,  (865 / 40), 12 /*build01*/, 0, 0, 0);
+														 
+declare_object_at_cell(-(366 / 40) + 1, -145, -(531 / 40), 10 /*platf00*/, 0, 0, 0);
+declare_object_at_cell((612 / 40) + 1, -150,  -(653 / 40), 10 /*platf00*/, 0, 0, 0);
+
+declare_object_at_cell((61 / 40) + 1, -275,  -(714/40), 8 /*ring00*/, 0, 0, 0);
+declare_object_at_cell((918 / 40) + 1, -341,  (224/40), 8 /*ring00*/, 90, 0, 0);
+declare_object_at_cell(-(836 / 40) + 1, -535, (632/40), 8 /*ring00*/, 0, 0, 0);
+
+declare_object_at_cell(-2 + 1, -115, -14, 0 /*bb00*/,0,0,0);
+ declare_object_at_cell(5 + 1, -150,  -5, 1 /*bb01*/,0,0,0);
+declare_object_at_cell(17 + 1, -380,  -2, 2 /*bb02*/,0,0,0);
+declare_object_at_cell(-9 + 1, -255,  -2, 3 /*bb03*/,0,0,0);
+ declare_object_at_cell(0 + 1, -352,  22, 4 /*bb04*/,0,0,0);
+
+declare_object_at_cell(-5 + 1, -210,  -8, 5 /*meme00*/,0,0,0);
+declare_object_at_cell(20 + 1, -205, -18, 6 /*meme01*/,0,0,0);
+declare_object_at_cell(22 + 1, -430,  22, 7 /*meme02*/,0,0,0);
+
 }
 
 //I'm not sure if this whole system is ideal.
@@ -165,10 +185,10 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.modified_box = &RBBs[objUP];
 						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));
+						]<<(MAP_V_SCALE));*/
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
@@ -206,10 +226,10 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.modified_box = &RBBs[objUP];
 						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));
+						]<<(MAP_V_SCALE));*/
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;
@@ -283,10 +303,10 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.modified_box = &RBBs[objUP];
 						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));
+						]<<(MAP_V_SCALE));*/
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						make2AxisBox(&bound_box_starter);
@@ -315,10 +335,10 @@ void	object_control_loop(int ppos[XY])
 						bound_box_starter.modified_box = &RBBs[objUP];
 						bound_box_starter.x_location = dWorldObjects[i].pos[X];
 						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y] - ((used_radius[Y])<<16)
+						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
 						- (main_map[
 						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));
+						]<<(MAP_V_SCALE));*/
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 						bound_box_starter.x_rotation = 0;

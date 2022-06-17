@@ -54,6 +54,7 @@ void reset_player(void)
 	you.IPaccel=0;
 	you.id = 0;
 	you.power = 0;
+	you.maxPower = 4;
 }
 
 // D-PAD -> Move cardinally relative to camera (up -> fwd, right -> mov right, etc)

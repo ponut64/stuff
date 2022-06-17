@@ -35,8 +35,7 @@ void pl_jump(void){
 }
 
 void pl_jet(void){
-	
-		if(you.hitSurface == true)
+		if(you.hitSurface == true && you.power == you.maxPower)
 		{
 			//I guess a micro-jump?
 			//It helps release you from the surface when jetting.
@@ -272,7 +271,7 @@ void	player_phys_affect(void)
 		if(you.setJet == true && you.power > 0)
 		{
 			pl_jet();
-		} else if(you.power < 64){
+		} else if(you.power < you.maxPower){
 			powerTimer += delta_time;
 			if(powerTimer > (255))
 			{

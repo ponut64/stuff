@@ -3,7 +3,7 @@
 #include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
-#define SUBDIVISION_SCALE (50)
+#define SUBDIVISION_SCALE (100)
 
 int prntidx = 0;
 
@@ -42,6 +42,8 @@ bool	project_segment_to_plane_and_test(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point
 
 	return isPointonSegment(output, p0, p1);
 }
+
+
 
 
 int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
@@ -503,197 +505,380 @@ for(int i = 0; i < total_planes; i++)
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
 
-
-void	subdivide_plane(short start_point, short overwritten_polygon, FIXED * norm)
+void	subdivide_plane(short start_point, short overwritten_polygon, char division_rule, char num_divisions)
 {
-
-	const int overflow_protection = 4;
 
 	short tgt_pnt = start_point;
 	
 	short poly_a = overwritten_polygon; //Polygon A is a polygon ID we will overwrite (replace the original polygon)
+	short poly_b = sub_poly_cnt;
+	short poly_c = sub_poly_cnt+1;
+	short poly_d = sub_poly_cnt+2;
+	
+	char new_rule = '|';
+	unsigned char new_texture = 0;
+	
+	int max_z = -(32767<<16);
+	int min_z = (32767<<16);
+	
+	int manhattan_01;
+	int manhattan_32;
+	
+	int manhattan_12;
+	int manhattan_03;
+	
+	int manhattan_alpha;
+	int manhattan_beta;
+	
+	int perimeter = 0;
 	
 	//"Load" the original points (code shortening operation)
-	FIXED upit[4][3];
-	FIXED * ptv[5];
+	FIXED * ptv[4];
 	for(int u = 0; u < 4; u++)
 	{
-		// ptv[u] = &subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
-		upit[u][X] = subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
-		upit[u][Y] = subdivided_points[subdivided_polygons[overwritten_polygon][u]][Y];
-		upit[u][Z] = subdivided_points[subdivided_polygons[overwritten_polygon][u]][Z];
-		ptv[u] = upit[u];
+		ptv[u] = &subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
 	}
 	
- 	VECTOR used_normal;
-	int dominant_axis;
-	//////////////////////////////////////////////////////////////
-	// Grab the absolute normal used for finding the dominant axis
-	//////////////////////////////////////////////////////////////
-	used_normal[X] = JO_ABS(norm[X]);
-	used_normal[Y] = JO_ABS(norm[Y]);
-	used_normal[Z] = JO_ABS(norm[Z]);
-	FIXED max_axis = JO_MAX(JO_MAX((used_normal[X]), (used_normal[Y])), (used_normal[Z]));
-	dominant_axis = ((used_normal[X]) == max_axis) ? N_Xp : dominant_axis;
-	dominant_axis = ((used_normal[Y]) == max_axis) ? N_Yp : dominant_axis;
-	dominant_axis = ((used_normal[Z]) == max_axis) ? N_Zp : dominant_axis;
-	//////////////////////////////////////////////////////////////
-	// Grab the normal used for point-to-plane projection
-	// This also retains the sign, which we use to check if the axis is + or -.
-	//////////////////////////////////////////////////////////////
-	used_normal[X] = (norm[X]);
-	used_normal[Y] = (norm[Y]);
-	used_normal[Z] = (norm[Z]);
+	//////////////////////////////////////////////////////////////////
+	// Quick check: If we are subdividing a polygon that is already tiny, cease further subdivision.
+	// Mostly useful on trapezoidal shapes or triangles where subdivision clusters on the short edge.
+	//////////////////////////////////////////////////////////////////
+		manhattan_01 = approximate_distance(ptv[0], ptv[1]);
+		manhattan_32 = approximate_distance(ptv[3], ptv[2]);
+		manhattan_12 = approximate_distance(ptv[2], ptv[1]);
+		manhattan_03 = approximate_distance(ptv[0], ptv[3]);
+		
+	//////////////////////////////////////////////////////////////////
+	// Triangle exception handling.
+	// We especially don't want a lot of triangles, since they cause huge overdraw!
+	//////////////////////////////////////////////////////////////////
+	if((manhattan_01 == 0 || manhattan_32 == 0 || manhattan_12 == 0 || manhattan_03 == 0) && !num_divisions){
+		used_textures[poly_a] = 4;
+		return;
+	}
 
-	if(dominant_axis == N_Xp && used_normal[X] < 0) dominant_axis = N_Xn;
-	if(dominant_axis == N_Yp && used_normal[Y] < 0) dominant_axis = N_Yn;
-	if(dominant_axis == N_Zp && used_normal[Z] < 0) dominant_axis = N_Zn;
-	//////////////////////////////////////////////////////////////
-	 
+	perimeter = manhattan_01 + manhattan_32 + manhattan_12 + manhattan_03;
+		
+ 	if(perimeter < (100<<16))
+	{
+		//Return to master texture, then stop.
+		used_textures[poly_a] = 0;
+		return;
+	} 
+	
+	manhattan_alpha = JO_MAX(manhattan_01, manhattan_32)>>5;
+	manhattan_beta = JO_MAX(manhattan_12, manhattan_03)>>5;
+	
+	if((manhattan_alpha > 98304 && manhattan_beta > 98304))
+	{
+		new_rule = '+';
+		new_texture = 3;
+	} else if(manhattan_alpha > 65536 && manhattan_alpha > manhattan_beta)
+	{
+		new_rule = '|';
+		new_texture = 2;
+	} else if(manhattan_beta > 65536 && manhattan_beta > manhattan_alpha)
+	{
+		new_rule = '-';
+		new_texture = 1;
+	}
+	
+	
+	if(division_rule == '+') 
+	{
+	//////////////////////////////////////////////////////////////////
+	// Subdivide by all rules / Subdivide polygon into four new quads
+	//Turn 4 points into 9 points
+	//Make the 4 new polygons
+	//////////////////////////////////////////////////////////////////
+	/*
+	0A			1A | 0B			1B
+							
+			A				B
+							
+	3A			2A | 3B			2B		
+	
+	0D			1D | 0C			1C
+	
+			D				C
+
+	3D			2D | 3C			2C
+	*/
 	// Initial Conditions
-	//////////////////////
-	//
-	//////////////////////
-	int grid_scale = -(25<<16);
-	POINT center;
-	center[X] = (ptv[0][X] + ptv[1][X] + ptv[2][X] + ptv[3][X])>>2;
-	center[Y] = (ptv[0][Y] + ptv[1][Y] + ptv[2][Y] + ptv[3][Y])>>2;
-	center[Z] = (ptv[0][Z] + ptv[1][Z] + ptv[2][Z] + ptv[3][Z])>>2;
-	FIXED cptv[4][3];
-	for(int i = 0; i < 4; i++)
-	{
-		for(int j = 0; j < 3; j++)
-		{
-		cptv[i][j] = ptv[i][j] - center[j];
-		}
-	}
-	//////////////////////
-	// Step 2: Produce unit vectors
-	//////////////////////////////////////////
+	subdivided_polygons[poly_a][0] = subdivided_polygons[overwritten_polygon][0];
+	subdivided_polygons[poly_b][1] = subdivided_polygons[overwritten_polygon][1];
+	subdivided_polygons[poly_c][2] = subdivided_polygons[overwritten_polygon][2];
+	subdivided_polygons[poly_d][3] = subdivided_polygons[overwritten_polygon][3];
+
+	// Center
+	// 
+	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[1][X] + 
+										ptv[2][X] + ptv[3][X])>>2;
+	subdivided_points[tgt_pnt][Y] = (ptv[0][Y] + ptv[1][Y] + 
+										ptv[2][Y] + ptv[3][Y])>>2;
+	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[1][Z] + 
+										ptv[2][Z] + ptv[3][Z])>>2;
+	
+
+	subdivided_polygons[poly_a][2] = tgt_pnt;
+	subdivided_polygons[poly_b][3] = tgt_pnt;
+	subdivided_polygons[poly_c][0] = tgt_pnt;
+	subdivided_polygons[poly_d][1] = tgt_pnt;
+
+	tgt_pnt++;
 	// 0 -> 1
-	static VECTOR tVector;
-	static VECTOR unit01;
-	tVector[X] = (ptv[0][X] - ptv[1][X])>>overflow_protection;
-	tVector[Y] = (ptv[0][Y] - ptv[1][Y])>>overflow_protection;
-	tVector[Z] = (ptv[0][Z] - ptv[1][Z])>>overflow_protection;
-	double_normalize(tVector, unit01);
-	//////////////////////////////////////////
-	// Local Y axis (cross-product of 0->1 and the polygon's normal)
-	static VECTOR gUnit;
-	static VECTOR gridAngle;
-	cross_fixed(tVector, norm, gridAngle);
-	double_normalize(gridAngle, gUnit);
-	//////////////////////////////////////////
-	// 0 -> 3
-	static VECTOR vector30;
-	vector30[X] = (ptv[3][X] - ptv[0][X]);//>>overflow_protection;
-	vector30[Y] = (ptv[3][Y] - ptv[0][Y]);//>>overflow_protection;
-	vector30[Z] = (ptv[3][Z] - ptv[0][Z]);//>>overflow_protection;
-	//////////////////////////////////////////
-	// 2 -> 1
-	static VECTOR vector21;
-	vector21[X] = (ptv[1][X] - ptv[2][X]);//>>overflow_protection;
-	vector21[Y] = (ptv[1][Y] - ptv[2][Y]);//>>overflow_protection;
-	vector21[Z] = (ptv[1][Z] - ptv[2][Z]);//>>overflow_protection;
-	//////////////////////////////////////////
-	// 2 -> 3
-	static VECTOR vector23;
-	vector23[X] = (ptv[2][X] - ptv[3][X]);//>>overflow_protection;
-	vector23[Y] = (ptv[2][Y] - ptv[3][Y]);//>>overflow_protection;
-	vector23[Z] = (ptv[2][Z] - ptv[3][Z]);//>>overflow_protection;
-
-	int scale_to_21 = 0;
-	int scale_to_23 = 0;
-	int scale_to_30 = 0;
-	/*
-	//Okay! So I have solved some things:
-	// 1. Can determine accurately if line intersection is inside an edge, or outside of it 
-	//	(may need to do overflow filtering or divide by zero filtering)
-	// 2. Should then be able to cleanly decide # of intersections
-	// if it's three, we should just stop the process and don't change the polygon (dunno how that'd happen, but...)
-	// 3. Should be able to step along, cleanly, until all intersections are outside of the polygon
-	//	Should also be able to find out which verts are above the intersection, and include them in the shape.
-	*/
-
-	POINT first_step;
-	int lineHits[3][3];
-		for(int i = 0; i < 3; i++)
+	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[1][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[0][Y] + ptv[1][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[1][Z])>>1;
+	
+	subdivided_polygons[poly_a][1] = tgt_pnt;
+	subdivided_polygons[poly_b][0] = tgt_pnt;
+	tgt_pnt++;
+	// 1 -> 2
+	subdivided_points[tgt_pnt][X] = (ptv[2][X] + ptv[1][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[2][Y] + ptv[1][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[1][Z])>>1;
+	
+	subdivided_polygons[poly_b][2] = tgt_pnt;
+	subdivided_polygons[poly_c][1] = tgt_pnt;
+	tgt_pnt++;
+	// 3 -> 2
+	subdivided_points[tgt_pnt][X] = (ptv[2][X] + ptv[3][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[2][Y] + ptv[3][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[3][Z])>>1;
+	
+	subdivided_polygons[poly_c][3] = tgt_pnt;
+	subdivided_polygons[poly_d][2] = tgt_pnt;
+	tgt_pnt++;
+	// 3 -> 0
+	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[3][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[0][Y] + ptv[3][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[3][Z])>>1;
+	
+	subdivided_polygons[poly_a][3] = tgt_pnt;
+	subdivided_polygons[poly_d][0] = tgt_pnt;
+	tgt_pnt++;
+	sub_vert_cnt = tgt_pnt;
+	sub_poly_cnt += 3; //Only add 3, as there was already 1 polygon. It was split into four.
+	
+		if(num_divisions > 0)
 		{
-	first_step[i] = fxm(gUnit[i], grid_scale) + ptv[0][i];
+		///////////////////////////////////////////
+		// If this is not the last subdivision, use a combined texture.
+		// The specific combined texture of "3" is the "+" arrangement.
+		///////////////////////////////////////////
+		used_textures[poly_a] = new_texture;
+		used_textures[poly_b] = new_texture;
+		used_textures[poly_c] = new_texture;
+		used_textures[poly_d] = new_texture;
+		///////////////////////////////////////////
+		//	Recursively subdivide the polygon.
+		//	Check the maximum Z of every new polygon.
+		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+		///////////////////////////////////////////
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_a, new_rule, num_divisions-1);
+			
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_b, new_rule, num_divisions-1);
+			
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_c][0]][Z], subdivided_points[subdivided_polygons[poly_c][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_c][2]][Z], subdivided_points[subdivided_polygons[poly_c][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_c][0]][Z], subdivided_points[subdivided_polygons[poly_c][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_c][2]][Z], subdivided_points[subdivided_polygons[poly_c][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_c, new_rule, num_divisions-1);
+			
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_d][0]][Z], subdivided_points[subdivided_polygons[poly_d][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_d][2]][Z], subdivided_points[subdivided_polygons[poly_d][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_d][0]][Z], subdivided_points[subdivided_polygons[poly_d][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_d][2]][Z], subdivided_points[subdivided_polygons[poly_d][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_d, new_rule, num_divisions-1);
+		} else {
+		used_textures[poly_a] = 0;
+		used_textures[poly_b] = 0;
+		used_textures[poly_c] = 0;
+		used_textures[poly_d] = 0;
+		}
+	
+	} else if(division_rule == '-') 
+	{
+	//////////////////////////////////////////////////////////////////
+	// Subdivide between the edges 0->1 and 3->2 (""Vertically"")
+	// (Splits the polygon such that new vertices are created between 0->3 and 1->2)
+	//Turn 4 points into 6 points
+	//Make the 2 new polygons
+	//////////////////////////////////////////////////////////////////
+	/*
+	0A							1A		
+					A
+	3A--------------------------2A		
+	0B--------------------------1B
+					B
+	3B							2B
+	*/
+	// Initial Conditions
+	subdivided_polygons[poly_a][0] = subdivided_polygons[overwritten_polygon][0];
+	subdivided_polygons[poly_a][1] = subdivided_polygons[overwritten_polygon][1];
+	subdivided_polygons[poly_b][2] = subdivided_polygons[overwritten_polygon][2];
+	subdivided_polygons[poly_b][3] = subdivided_polygons[overwritten_polygon][3];
+	
+	// 1 -> 2
+	subdivided_points[tgt_pnt][X] = (ptv[2][X] + ptv[1][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[2][Y] + ptv[1][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[1][Z])>>1;
+	
+	subdivided_polygons[poly_a][2] = tgt_pnt;
+	subdivided_polygons[poly_b][1] = tgt_pnt;
+	tgt_pnt++;
+	// 3 -> 0
+	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[3][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[0][Y] + ptv[3][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[3][Z])>>1;
+	
+	subdivided_polygons[poly_a][3] = tgt_pnt;
+	subdivided_polygons[poly_b][0] = tgt_pnt;
+	tgt_pnt++;
+		
+	sub_vert_cnt = tgt_pnt;
+	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
+		if(num_divisions > 0)
+		{
+		///////////////////////////////////////////
+		// If this is not the last subdivision, use a combined texture.
+		// The specific combined texture of "1" is the "-" arrangement.
+		///////////////////////////////////////////
+		used_textures[poly_a] = new_texture;
+		used_textures[poly_b] = new_texture;
+		///////////////////////////////////////////
+		//	Recursively subdivide the polygon.
+		//	Check the maximum Z of every new polygon.
+		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+		///////////////////////////////////////////
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_a, new_rule, num_divisions-1);
+			
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_b, new_rule, num_divisions-1);
+		} else {
+		used_textures[poly_a] = 0;
+		used_textures[poly_b] = 0;
 		}
 		
+	} else if(division_rule == '|')
+	{
+	//////////////////////////////////////////////////////////////////
+	// Subdivide between the edges 0->3 and 1->2 (""Horizontally"")
+	// (Splits the polygon such that new vertices are created between 0->1 and 3->2)
+	//Turn 4 points into 6 points
+	//Make the 2 new polygons
+	//////////////////////////////////////////////////////////////////
 	/*
-	IIRC, been awhile:
-	The idea is to step along the grid angle from point 0, and then draw a line in the same direction as the edge 0->1
-	and see where that line intersects with all other edges of the polygon.
-	If there are only two intersections, it should be then valid to use those two intersections to form a new polygon.
-	The projection along the grid angle direction is stored, and used again when we project the next line down.
-	There are important exception cases to consider when the new line intersections "overtake" a vertex of the polygon.
-	In this case, that new vertex will need to be incorporated into a new triangle, and that triangle thusly excluded from subdivision.
-	Rhombus shapes might cause that.
-	
-	To be accurate, most of the time the lines will only intersect 1->2 and 3->0.
-	If ever their intersection does not lie within these segments, we should check 2->3.
-	If it doesn't intersect with 2->3 either, stop!
-	The 2->3 intersection should be simply solved when 1->2 is missing, it is vert 2. When 3->0 is missing, it's vert 3.
-	In the weird case where a line intersects three edges, this polygon is odd and shouldn't be subdivided at all.
+	0A			 1A | 0B			1B
+					|		
+			A		|		B
+					|
+	3A			 2A | 3B			2B
 	*/
-	
-	//(if it's a triangle, don't do this part)
-	if(!(ptv[2][X] == ptv[3][X] && ptv[2][Y] == ptv[3][Y] && ptv[2][Z] == ptv[3][Z]))
-	{
-	scale_to_23 = JO_ABS(line_intersection_function(ptv[2], vector23, first_step, unit01, lineHits[1]));
-	}
-	
-	scale_to_21 = JO_ABS(line_intersection_function(ptv[1], vector21, first_step, unit01, lineHits[0]));
-	if((scale_to_21) < (1<<16) && scale_to_21 < (1000<<16))
-	{
-		cpy3(lineHits[0], subdivided_points[2]);
-	} else if((scale_to_23) < (1<<16) && scale_to_23 < (1000<<16))
-	{
-		cpy3(lineHits[1], subdivided_points[2]);
-	} else {
-		//Stop condition (after repeating the stepping of polygons down the shape). 
-	}
-	
-	scale_to_30 = JO_ABS(line_intersection_function(ptv[3], vector30, first_step, unit01, lineHits[2]));
-	if((scale_to_30) < (1<<16) && scale_to_30 < (1000<<16))
-	{
-		cpy3(lineHits[2], subdivided_points[3]);
-	} else if((scale_to_23) < (1<<16) && scale_to_23 < (1000<<16))
-	{
-		cpy3(lineHits[1], subdivided_points[3]);
-	} else {
-		//Stop condition.
-	}
+	// Initial Conditions
+	subdivided_polygons[poly_a][0] = subdivided_polygons[overwritten_polygon][0];
+	subdivided_polygons[poly_a][3] = subdivided_polygons[overwritten_polygon][3];
+	subdivided_polygons[poly_b][1] = subdivided_polygons[overwritten_polygon][1];
+	subdivided_polygons[poly_b][2] = subdivided_polygons[overwritten_polygon][2];
 		
-		
-	//	if(!(ptv[2][X] == ptv[3][X] && ptv[2][Y] == ptv[3][Y] && ptv[2][Z] == ptv[3][Z]))
-		//if(scale_to_30 < 255 && scale_to_21 < 255 && scale_to_23 < 255)
-		//{
+	// 0 -> 1
+	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[1][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[0][Y] + ptv[1][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[1][Z])>>1;
+	
+	subdivided_polygons[poly_a][1] = tgt_pnt;
+	subdivided_polygons[poly_b][0] = tgt_pnt;
+	tgt_pnt++;
+	// 3 -> 2
+	subdivided_points[tgt_pnt][X] = (ptv[2][X] + ptv[3][X])>>1;
+	subdivided_points[tgt_pnt][Y] = (ptv[2][Y] + ptv[3][Y])>>1;
+	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[3][Z])>>1;
+	
+	subdivided_polygons[poly_a][2] = tgt_pnt;
+	subdivided_polygons[poly_b][3] = tgt_pnt;
+	tgt_pnt++;
+	
+	sub_vert_cnt = tgt_pnt;
+	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
+	
+		if(num_divisions > 0)
+		{
+		///////////////////////////////////////////
+		// If this is not the last subdivision, use a combined texture.
+		// The specific combined texture of "2" is the "|" arrangement.
+		///////////////////////////////////////////
+		used_textures[poly_a] = new_texture;
+		used_textures[poly_b] = new_texture;
+		///////////////////////////////////////////
+		//	Recursively subdivide the polygon.
+		//	Check the maximum Z of every new polygon.
+		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+		///////////////////////////////////////////
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_a, new_rule, num_divisions-1);
 			
-		slPrint("scales:", slLocate(0, 6));
-		slPrintFX(scale_to_30, slLocate(2, 7));
-		slPrintFX(scale_to_23, slLocate(2, 8));
-		slPrintFX(scale_to_21, slLocate(2, 9));
-			
-		// slPrint("u01 / v12:", slLocate(0, 6));
-		// slPrintFX(unit01[X], slLocate(2, 7));
-		// slPrintFX(unit01[Y], slLocate(2, 8));
-		// slPrintFX(unit01[Z], slLocate(2, 9));
-
-		// slPrintFX(vector21[X], slLocate(18, 7));
-		// slPrintFX(vector21[Y], slLocate(18, 8));
-		// slPrintFX(vector21[Z], slLocate(18, 9));
-		// slPrint("v23 / v30:", slLocate(0, 10));
-		// slPrintFX(vector23[X], slLocate(2, 7+4));
-		// slPrintFX(vector23[Y], slLocate(2, 8+4));
-		// slPrintFX(vector23[Z], slLocate(2, 9+4));
-
-		// slPrintFX(vector30[X], slLocate(18, 7+4));
-		// slPrintFX(vector30[Y], slLocate(18, 8+4));
-		// slPrintFX(vector30[Z], slLocate(18, 9+4));
-	//	}
+			max_z = JO_MAX(
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			min_z = JO_MIN(
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
+	JO_MIN(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
+					);
+			if(max_z > 0 && min_z < (SUBDIVISION_SCALE * num_divisions)<<16) subdivide_plane(sub_vert_cnt, poly_b, new_rule, num_divisions-1);
+		} else {
+		used_textures[poly_a] = 0;
+		used_textures[poly_b] = 0;
+		}
+	}
+	
 }
 
 void	plane_rendering_with_subdivision(entity_t * ent)
@@ -764,6 +949,15 @@ prntidx = 0;
 	int min_z = 32767<<16;
 	int max_z = -(32767<<16);
 
+	int manhattan_01;
+	int manhattan_32;
+	
+	int manhattan_12;
+	int manhattan_03;
+	
+	int manhattan_alpha;
+	int manhattan_beta;
+
 	int number_of_subdivisions;
 	
 	int max_subdivisions;
@@ -808,9 +1002,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
         subdivided_points[u][Z] = trans_pt_by_component(pl_pts[u], m2z);
         subdivided_points[u][Y] = trans_pt_by_component(pl_pts[u], m1y);
         subdivided_points[u][X] = trans_pt_by_component(pl_pts[u], m0x);
-	//////////////////////////////////////////////////////////////
-	// Associate vertices with polygon 0
-	//////////////////////////////////////////////////////////////
+
 		subdivided_polygons[0][u] = u;
 	//////////////////////////////////////////////////////////////
 	// Early screenspace transform to throw out off-screen planes
@@ -818,29 +1010,22 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//Push to near-plane
 		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > 20<<16) ? subdivided_points[u][Z] : 20<<16;
 		//Get 1/z
-		SetFixDiv(MsScreenDist, ssh2VertArea[u].pnt[Z]);
-		
-		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[Z]) <= 20<<16) ? CLIP_Z : 0;
-		
-		inverseZ = *DVDNTL;
+		inverseZ = fxdiv(MsScreenDist, ssh2VertArea[u].pnt[Z]);
         //Transform to screen-space
         ssh2VertArea[u].pnt[X] = fxm(subdivided_points[u][X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[u].pnt[Y] = fxm(subdivided_points[u][Y], inverseZ)>>SCR_SCALE_Y;
         //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : ssh2VertArea[u].clipFlag; 
+		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
-		
-		subdivided_points[u][X] = pl_pts[u][X];
-		subdivided_points[u][Y] = pl_pts[u][Y];
-		subdivided_points[u][Z] = pl_pts[u][Z];
-		
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[u].clipFlag;
 	}
 		 if(ssh2VertArea[0].clipFlag
 		 & ssh2VertArea[1].clipFlag
 		 & ssh2VertArea[2].clipFlag
 		 & ssh2VertArea[3].clipFlag) continue;
+		 
 	flags = mesh->attbl[i].render_data_flags;
 	//flip = GET_FLIP_DATA(flags);
 	zDepthTgt = GET_SORT_DATA(flags);
@@ -856,7 +1041,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 							* (ssh2VertArea[0].pnt[X] - ssh2VertArea[2].pnt[X]);
 		if(cross0 >= cross1) continue;
 	}
-
 	//
 	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 	//////////////////////////////////////////////////////////////
@@ -864,67 +1048,118 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//////////////////////////////////////////////////////////////
 		sub_vert_cnt += 4;
 		sub_poly_cnt += 1;
-	/////////////////////////////////////////////
-	// Subdivisions
-	/////////////////////////////////////////////
-		subdivide_plane(sub_vert_cnt, 0, mesh->pltbl[i].norm);
-		used_textures[0] = 4;
-			if(i == 10)
-			{
+	///////////////////////////////////////////
+	//	Check the maximum Z of every new polygon.
+	// 	This is the first polygon. So, if its maximum Z is too low, just discard it.
+	///////////////////////////////////////////
+	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	if(max_z <= 0) continue;
+	///////////////////////////////////////////
+	// Find the minimum Z value of the plane. This is used to arbitrate how many times we are allowed to subdivide it.
+	///////////////////////////////////////////
+	min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	//////////////////////////////////////////////////////////////
+	// Check: Do we need to subdivide this polygon at all?
+	// This is full of magic numbers.
+	// Mostly, we use manhattan distance of each edge and treat them as having a "latitude" pair and a "longitude" pair.
+	// If the difference within each pair (0->1 compared to 3->2 or 0->3 compared to 1->2) is large,
+	// we want to judge the number of subdivisions based on that difference, instead of the length of the longest edge.
+	//////////////////////////////////////////////////////////////
+		manhattan_01 = approximate_distance(pl_pts[0], pl_pts[1]);
+					
+		manhattan_32 = approximate_distance(pl_pts[3], pl_pts[2]);
+					
+		manhattan_12 = approximate_distance(pl_pts[2], pl_pts[1]);
 
-			// slPrintFX(subdivided_points[4][X], slLocate(2, 7));
-			// slPrintFX(subdivided_points[4][Y], slLocate(2, 8));
-			// slPrintFX(subdivided_points[4][Z], slLocate(2, 9));
+		manhattan_03 = approximate_distance(pl_pts[0], pl_pts[3]);
+
+			manhattan_alpha = JO_MAX(manhattan_01, manhattan_32)>>5;
+			manhattan_beta = JO_MAX(manhattan_12, manhattan_03)>>5;
+
+	///////////////////////////////////////////
+	// Resolve the maximum # of subdivisions.
+	// This is an arbitrary scale, just based on how far away the polygon is (its Z).
+	///////////////////////////////////////////
+	if(min_z < (200<<16))
+	{
+		max_subdivisions = 3;
+	} else if(min_z < 400<<16)
+	{
+		max_subdivisions = 2;
+	} else if(min_z < 600<<16)
+	{
+		max_subdivisions = 1;
+	} else {
+		//In this case the polygon is far away, use a minimalist 8x8 texture.
+		used_textures[0] = 4;
+		max_subdivisions = 0;
+	}
 	
-			// slPrintFX(subdivided_points[5][X], slLocate(2, 7+3));
-			// slPrintFX(subdivided_points[5][Y], slLocate(2, 8+3));
-			// slPrintFX(subdivided_points[5][Z], slLocate(2, 9+3));
-			
-			// slPrintFX(subdivided_points[6][X], slLocate(18, 7));
-			// slPrintFX(subdivided_points[6][Y], slLocate(18, 8));
-			// slPrintFX(subdivided_points[6][Z], slLocate(18, 9));
-				
-			// slPrintFX(subdivided_points[5][X], slLocate(18, 7+3));
-			// slPrintFX(subdivided_points[5][Y], slLocate(18, 8+3));
-			// slPrintFX(subdivided_points[5][Z], slLocate(18, 9+3));
-				
-			// jo_printf(2, 15, "sbcnt(%i)", sub_vert_cnt);
-			}
-		
-		
+		if(max_subdivisions > 0)
+		{
+	if((manhattan_alpha > 98304 && manhattan_beta > 98304))
+	{
+	///////////////////////////////////////////
+	//Average the manhattans to an integer # of divisions
+	///////////////////////////////////////////
+	number_of_subdivisions = (manhattan_alpha + manhattan_beta)>>18;
+	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
+	//used_textures[0] = 3;
+	///////////////////////////////////////////
+	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, 0, '+', number_of_subdivisions);
+	} else if(manhattan_alpha > 65535 && manhattan_alpha > manhattan_beta)
+	{
+	///////////////////////////////////////////
+	// Convert the manhattan longitude distance to integer
+	///////////////////////////////////////////
+	number_of_subdivisions = (manhattan_alpha)>>16;
+	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
+	//used_textures[0] = 2;
+	///////////////////////////////////////////
+	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, 0, '|', number_of_subdivisions);
+	} else if(manhattan_beta > 65535 && manhattan_beta > manhattan_alpha)
+	{
+	///////////////////////////////////////////
+	// Convert the manhattan latitude distance to integer
+	///////////////////////////////////////////
+	number_of_subdivisions = (manhattan_beta)>>16;
+	number_of_subdivisions = (number_of_subdivisions >= max_subdivisions) ? max_subdivisions : number_of_subdivisions;
+	///////////////////////////////////////////
+	//Subdivide, recursively by the # of desired subdivisions (derived from the polygon's span)
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, 0, '-', number_of_subdivisions);
+	//used_textures[0] = 1;
+	}
+	//Subdivisions > 0, end stub
+		}
 	///////////////////////////////////////////
 	//
 	// Screenspace Transform of Vertices
 	// v = subdivided point index
+	// testing_planes[i] = plane data index
 	//
 	///////////////////////////////////////////
 	for(int v = 0; v < sub_vert_cnt; v++)
 	{
-        /**calculate z**/
-        ssh2VertArea[v].pnt[Z] = trans_pt_by_component(subdivided_points[v], m2z);
-		ssh2VertArea[v].pnt[Z] = (ssh2VertArea[v].pnt[Z] > nearP) ? ssh2VertArea[v].pnt[Z] : nearP;
-
-         /**Starts the division**/
-        SetFixDiv(MsScreenDist, ssh2VertArea[v].pnt[Z]);
-
-        /**Calculates X and Y while waiting for screenDist/z **/
-        ssh2VertArea[v].pnt[Y] = trans_pt_by_component(subdivided_points[v], m1y);
-        ssh2VertArea[v].pnt[X] = trans_pt_by_component(subdivided_points[v], m0x);
-		
-        /** Retrieves the result of the division **/
-		inverseZ = *DVDNTL;
-
-        /**Transform X and Y to screen space**/
-        ssh2VertArea[v].pnt[X] = fxm(ssh2VertArea[v].pnt[X], inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[v].pnt[Y] = fxm(ssh2VertArea[v].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
+		//Push to near-plane
+		ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > 20<<16) ? subdivided_points[v][Z] : 20<<16;
+		//Get 1/z
+		inverseZ = fxdiv(MsScreenDist, ssh2VertArea[v].pnt[Z]);
+        //Transform to screen-space
+        ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
+        ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
         //Screen Clip Flags for on-off screen decimation
-		//Simplified to increase CPU performance
 		ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
 		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
 		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
 		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= nearP) ? CLIP_Z : ssh2VertArea[v].clipFlag;
+		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[v].clipFlag;
 	}
 	///////////////////////////////////////////
 	//
@@ -934,7 +1169,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
-	
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	for(int j = 0; j < sub_poly_cnt; j++)
