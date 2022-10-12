@@ -95,7 +95,7 @@ _sobject Platf00 = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT,
+	.ext_dat = BUILD,
 	.light_bright = 0
 };
 

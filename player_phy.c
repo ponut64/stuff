@@ -444,7 +444,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.hitSurface = true;
 	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, lowPoint);
-	sort_angle_to_domain(nyTriNorm2, alwaysLow, you.renderRot);
+	standing_surface_alignment(nyTriNorm2, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
@@ -460,7 +460,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.hitSurface = true;
 	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, lowPoint);
-	sort_angle_to_domain(nyTriNorm1, alwaysLow, you.renderRot);
+	standing_surface_alignment(nyTriNorm1, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));

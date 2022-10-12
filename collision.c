@@ -60,9 +60,9 @@ Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 
 //Separates the angles of a normal according to an input reference vector.
 //	Input "plUN" is the normal of the plane being tested.
-//	Input "unitA" is the orientation compared to the plane being tested. Typically, you want (0, -1, 0).
 //	Output "degreeOut" is separated angles that represent the rotation required to pivot to the orientation.
-void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
+//	The desired orientation relative to the plane is fixed at (0, -1, 0).
+void	separateAngles(FIXED * plUN, int * degreeOut)
 {	
 	FIXED crossXZ[XYZ];
 	FIXED crossYZ[XYZ];
@@ -79,11 +79,11 @@ void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
 	FIXED spnXZ[XYZ]; 
 	FIXED spnYZ[XYZ]; 
 	FIXED spnYX[XYZ];
-	smuXZ[X] = unitA[X]; smuXZ[Y] = 0; smuXZ[Z] = unitA[Z];
+	smuXZ[X] = alwaysLow[X]; smuXZ[Y] = 0; smuXZ[Z] = alwaysLow[Z];
 
-	smuYZ[X] = 0; smuYZ[Y] = unitA[Y]; smuYZ[Z] = unitA[Z];
+	smuYZ[X] = 0; smuYZ[Y] = alwaysLow[Y]; smuYZ[Z] = alwaysLow[Z];
 
-	smuYX[X] = unitA[X]; smuYX[Y] = unitA[Y]; smuYX[Z] = 0;
+	smuYX[X] = alwaysLow[X]; smuYX[Y] = alwaysLow[Y]; smuYX[Z] = 0;
 
 	spnXZ[X] = plUN[X]; spnXZ[Y] = 0; spnXZ[Z] = plUN[Z];
 	
@@ -112,9 +112,9 @@ void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
 	// tDot = fxdot(crossYX, crossYX);
 	// mcYX = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
 	//////////////////////////////////////////
-	dotXZ = fxm(unitA[X],plUN[X]) + fxm(unitA[Z],plUN[Z]);
-	dotYZ = fxm(unitA[Y],plUN[Y]) + fxm(unitA[Z],plUN[Z]);
-	dotYX = fxm(unitA[Y],plUN[Y]) + fxm(unitA[X],plUN[X]);
+	dotXZ = fxm(alwaysLow[X],plUN[X]) + fxm(alwaysLow[Z],plUN[Z]);
+	dotYZ = fxm(alwaysLow[Y],plUN[Y]) + fxm(alwaysLow[Z],plUN[Z]);
+	dotYX = fxm(alwaysLow[Y],plUN[Y]) + fxm(alwaysLow[X],plUN[X]);
 	if(mcXZ != 0 || dotXZ != 0) degreeOut[X] = (slAtan(mcXZ, dotXZ));
 	if(mcYZ != 0 || dotYZ != 0) degreeOut[Y] = (slAtan(mcYZ, dotYZ));
 	if(mcYX != 0 || dotYX != 0) degreeOut[Z] = (slAtan(mcYX, dotYX));
@@ -130,10 +130,10 @@ void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ])
 //What is this doing?
 //It is re-processing the X and Z values of the output as if it were rotated X and Z _after_ it is rotated by output's Y.
 //This is very strange, when I think about it.
-void	sort_angle_to_domain(FIXED unitNormal[XYZ], FIXED unitOrient[XYZ], int output[XYZ])
+void	standing_surface_alignment(FIXED * unitNormal, int * output)
 {
 static int angleComponents[XYZ];
-separateAngles(unitOrient, unitNormal, angleComponents);
+separateAngles(unitNormal, angleComponents);
 Uint8 domain = solve_domain(unitNormal);
 //jo_printf(0, 20, "(%i)", domain);
 // deg * 182 = angle
@@ -215,7 +215,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVY[Y];
 		you.floorNorm[Z] = stator->UVY[Z];
 		
-	sort_angle_to_domain(stator->UVY, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVY, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -243,7 +243,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNY[Y];
 		you.floorNorm[Z] = stator->UVNY[Z];
 		
-	sort_angle_to_domain(stator->UVY, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVY, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -271,7 +271,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNZ[Y];
 		you.floorNorm[Z] = stator->UVNZ[Z];
 		
-	sort_angle_to_domain(stator->UVZ, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVZ, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -299,7 +299,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVZ[Y];
 		you.floorNorm[Z] = stator->UVZ[Z];
 		
-	sort_angle_to_domain(stator->UVZ, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVZ, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -327,7 +327,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNX[Y];
 		you.floorNorm[Z] = stator->UVNX[Z];
 		
-	sort_angle_to_domain(stator->UVX, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVX, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -355,7 +355,7 @@ Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVX[Y];
 		you.floorNorm[Z] = stator->UVX[Z];
 		
-	sort_angle_to_domain(stator->UVX, alwaysLow, you.rot);
+	standing_surface_alignment(stator->UVX, you.rot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));

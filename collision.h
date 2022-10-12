@@ -42,8 +42,7 @@ typedef struct {
 
 Bool 	sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
-void	sort_angle_to_domain(FIXED unitNormal[XYZ], FIXED unitOrient[XYZ], int output[XYZ]);
-void	separateAngles(FIXED unitA[XYZ], FIXED plUN[XYZ], int degreeOut[XYZ]);
+void	standing_surface_alignment(FIXED * unitNormal, int * output);
 bool	player_collide_boxes(_boundBox * stator, _boundBox * mover);
 void	player_collision_test_loop(void);
 

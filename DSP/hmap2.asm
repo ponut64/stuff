@@ -15,7 +15,7 @@
 	NOP				NOP					NOP				MOV ALL,WA0			;
 	NOP				NOP					CLR A			MOV ALL,MC3			; CT3 = ??. Place origin DMA WRITE address at RAM3 63 [end].
 	MVI NOTI,PL																;
-	ad2									mov alu,a		mov 58,ct3			;
+	ADD									mov alu,a		mov 58,ct3			;
 	sl									mov alu,a		mov 0,mc1			;
 										clr a			mov all,mc3			; Notification of end status address in RAM3 58
 	;------------------------------------------------------------------------ MATH DATA TRANSFER

@@ -5,6 +5,10 @@
 #include "tga.h"
 
 #define MAX_MODELS (40)
+#define MODEL_TYPE_NORMAL ('N')
+#define MODEL_TYPE_PLAYER ('P')
+#define MODEL_TYPE_BUILDING ('B')
+#define MODEL_TYPE_UNDEFINED ('F')
 
 typedef     Sint16	compVert[XYZ];
 typedef     Uint8   compNorm;

@@ -62,14 +62,23 @@ void	declarations(void)
 {
 //	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
 declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0);
-declare_object_at_cell(-(874 / 40) + 1, -381,  (865 / 40), 12 /*build01*/, 0, 0, 0);
+declare_object_at_cell(-(897 / 40) + 1, -375,  (856 / 40), 12 /*build01*/, 0, 0, 0);
 														 
 declare_object_at_cell(-(366 / 40) + 1, -145, -(531 / 40), 10 /*platf00*/, 0, 0, 0);
 declare_object_at_cell((612 / 40) + 1, -150,  -(653 / 40), 10 /*platf00*/, 0, 0, 0);
 
 declare_object_at_cell((61 / 40) + 1, -275,  -(714/40), 8 /*ring00*/, 0, 0, 0);
 declare_object_at_cell((918 / 40) + 1, -341,  (224/40), 8 /*ring00*/, 90, 0, 0);
-declare_object_at_cell(-(836 / 40) + 1, -535, (632/40), 8 /*ring00*/, 0, 0, 0);
+declare_object_at_cell(-(856 / 40) + 1, -502, (652/40), 8 /*ring00*/, 0, 0, 0);
+
+declare_object_at_cell( (42 / 40) + 1, -182,  (81/40), 9 /*post00*/, 0, 0, 0);
+declare_object_at_cell( (42 / 40) + 1, -182, (244/40), 9 /*post00*/, 0, 180, 0);
+declare_object_at_cell( (42 / 40) + 1, -178, (488/40), 9 /*post00*/, 0, 0, 0);
+declare_object_at_cell( (42 / 40) + 1, -178, (652/40), 9 /*post00*/, 0, 180, 0);
+declare_object_at_cell( (531 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, 90, 0);
+declare_object_at_cell( (694 / 40) + 1, -265,(407/40), 9 /*post00*/, 0, -90, 0);
+declare_object_at_cell(-(611 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, -90, 0);
+declare_object_at_cell(-(815 / 40) + 1, -297,(407/40), 9 /*post00*/, 0, 90, 0);
 
 declare_object_at_cell(-2 + 1, -115, -14, 0 /*bb00*/,0,0,0);
  declare_object_at_cell(5 + 1, -150,  -5, 1 /*bb01*/,0,0,0);

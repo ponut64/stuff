@@ -388,7 +388,7 @@ for(int i = 0; i < total_planes; i++)
 								you.floorNorm[Y] = used_normal[Y];
 								you.floorNorm[Z] = used_normal[Z];
 								
-								sort_angle_to_domain(used_normal, alwaysLow, you.rot);
+								standing_surface_alignment(used_normal, you.rot);
 								
 								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
@@ -1182,17 +1182,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
 			if(offScrn) continue;
 		///////////////////////////////////////////
-		// Use a combined texture, if the subdivision system stated one should be used.
-		// Otherwise, use the base texture.
-		///////////////////////////////////////////
-			if(used_textures[j] != 0)
-			{
-				specific_texture = ((mesh->attbl[i].texno - ent->base_texture)<<2)
-					 + (ent->numTexture + ent->base_texture) + used_textures[j];
-			} else {
-				specific_texture = mesh->attbl[i].texno;
-			}
-		///////////////////////////////////////////
 		// Z-Sorting Stuff	
 		// Uses weighted max
 		///////////////////////////////////////////
@@ -1205,6 +1194,17 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 		//	}
+		///////////////////////////////////////////
+		// Use a combined texture, if the subdivision system stated one should be used.
+		// Otherwise, use the base texture.
+		///////////////////////////////////////////
+			if(used_textures[j] != 0)
+			{
+				specific_texture = ((mesh->attbl[i].texno - ent->base_texture)<<2)
+					 + (ent->numTexture + ent->base_texture) + used_textures[j];
+			} else {
+				specific_texture = mesh->attbl[i].texno;
+			}
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////

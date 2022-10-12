@@ -142,7 +142,7 @@ void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdc
    //IMPORTANT: We have to use the "far" screen. This is the "128". Why? Someone got angry when I asked why...
    //CRITICAL!! You MUST change sl_def to include the SPRITE_T structure. It is the same as SPRITE except with a Uint32 pointer, NEXT.
    //You must also change SpriteBuf and SpriteBuf2 to be of SPRITE_T * type.
-    Uint32 ** Zentry = (Uint32**)(Zbuffer + (128 + ((user_sprite->DMMY>>8)))*4  ); //Get Z distance as entry into Z buffer
+    Uint32 ** Zentry = (Uint32**)(Zbuffer + (128 + ((user_sprite->DMMY>>3)))*4  ); //Get Z distance as entry into Z buffer
     user_sprite->NEXT=*Zentry; //Link current polygon to last entry at that Z distance in Zbuffer
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry
 }
@@ -187,7 +187,7 @@ void	sort_master_polys(void)
    //IMPORTANT: We have to use the "far" screen. This is the "128". Why? Someone got angry when I asked why...
    //CRITICAL!! You MUST change sl_def to include the SPRITE_T structure. It is the same as SPRITE except with a Uint32 pointer, NEXT.
    //You must also change SpriteBuf and SpriteBuf2 to be of SPRITE_T * type.
-    Uint32 ** Zentry = (Uint32**)(Zbuffer + (128 + ((user_sprite->DMMY>>8)))*4  ); //Get Z distance as entry into Z buffer
+    Uint32 ** Zentry = (Uint32**)(Zbuffer + (128 + ((user_sprite->DMMY>>3)))*4  ); //Get Z distance as entry into Z buffer
     user_sprite->NEXT=*Zentry; //Link current polygon to last entry at that Z distance in Zbuffer [*Zentry is a pointer to the last polygon]
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry [*Zentry becomes a pointer to this polygon]
 	}

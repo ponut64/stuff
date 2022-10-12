@@ -202,29 +202,27 @@ void	load_test(void)
 	make_4way_combined_textures(map_tex_start, map_tex_amt);
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
-
-	//	What the hell was I thinking with the last parameter here?
-	// I need to change it.
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, 'P');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, 'F');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, 'N');
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB02.GVP",		active_HWRAM_ptr, &entities[2], GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB03.GVP",		active_HWRAM_ptr, &entities[3], GV_SORT_CEN, 'N');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB04.GVP",		active_HWRAM_ptr, &entities[4], GV_SORT_CEN, 'N');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME00.GVP",		active_HWRAM_ptr, &entities[5], GV_SORT_CEN, 'B');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME01.GVP",		active_HWRAM_ptr, &entities[6], GV_SORT_CEN, 'B');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME02.GVP",		active_HWRAM_ptr, &entities[7], GV_SORT_CEN, 'B'); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB02.GVP",		active_HWRAM_ptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB03.GVP",		active_HWRAM_ptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB04.GVP",		active_HWRAM_ptr, &entities[4], GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, 'N'); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, 'N'); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, 'N'); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME00.GVP",		active_HWRAM_ptr, &entities[5], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME01.GVP",		active_HWRAM_ptr, &entities[6], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME02.GVP",		active_HWRAM_ptr, &entities[7], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, 'B');
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD01.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, 'B');
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
+	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD01.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 
 	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
 	stm.times_to_loop = 255;
@@ -250,6 +248,7 @@ void	my_vlank(void){
 	operate_digital_pad1();
 	//Sound Driver Stuff
 	sdrv_stm_vblank_rq();
+	sdrv_vblank_rq();
 	//
 }
 
@@ -305,6 +304,7 @@ void	jo_main(void)
 	set_camera();
 	reset_player();
 
+	run_dsp(); //Dry-run the DSP to get it to flag done
 	pcm_stream_init(30720, PCM_TYPE_8BIT);
 	pcm_stream_host(game_frame);
 }

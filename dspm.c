@@ -81,7 +81,7 @@ void	load_dsp_prog(void)
 	dsp_prog[10] = notiCommand;
 
 	
-	dsp_noti_addr[0] = 1; //Initialize as complete
+	//dsp_noti_addr[0] = 1; //Initialize as complete
 	
 	//Program size in long-word is at most 256 / 0xFF.
 	DSP_LoadProgram(0, dsp_prog, sizeof(dsp_prog)>>2);

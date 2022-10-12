@@ -148,7 +148,8 @@ void	player_draw(void)
 {
 	slPushMatrix();
 	{
-		
+		//I have to do it like this here **just because** I need to invert the player's position for this matrix.
+		//And yes, that's only for the matrix part. All other logic needs the position not-negated.
 		static MATRIX mat;
 
 		mat[X][X] = pl_RBB.UVX[X];
@@ -246,8 +247,7 @@ void	player_draw(void)
 
 void	obj_draw_queue(void)
 {
-		static MATRIX mat;
-		static MATRIX matSt;
+		static POINT * mat;
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -256,21 +256,9 @@ void	obj_draw_queue(void)
 		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
 		
 	slPushMatrix();
-		slGetMatrix(matSt);
-		mat[X][X] = RBBs[i].UVX[X];
-		mat[X][Y] = RBBs[i].UVX[Y];
-		mat[X][Z] = RBBs[i].UVX[Z];
-		mat[3][0] = RBBs[i].pos[X]; //POS
 		
-		mat[Y][X] = RBBs[i].UVY[X];
-		mat[Y][Y] = RBBs[i].UVY[Y];
-		mat[Y][Z] = RBBs[i].UVY[Z];
-		mat[3][1] = RBBs[i].pos[Y]; //POS
-		
-		mat[Z][X] = RBBs[i].UVZ[X];
-		mat[Z][Y] = RBBs[i].UVZ[Y];
-		mat[Z][Z] = RBBs[i].UVZ[Z];
-		mat[3][2] = RBBs[i].pos[Z]; //Position
+		//Use bound box parameters as matrix
+		mat = (POINT *)&RBBs[i];
 	
 		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
 	
@@ -315,17 +303,7 @@ void	shadow_draw(void)
 {
  	//static char first_run;
 		if(shadow.file_done == true)
-		{/*
-			if(first_run != true){
-	//Special Shadow Param (for MESHOn and MSBOn)
-	for(unsigned int i = 0; i < shadow.pol[0]->nbPolygon; i++){
-	shadow.pol[0]->attbl[i] = (ATTR)ATTRIBUTE(Dual_Plane, SORT_CEN, shadow.pol[0]->attbl[i].texno, 0, No_Gouraud,Window_In|MESHoff|HSSon|ECdis | SPenb |CL64Bnk |MSBon,sprNoflip,UseNearClip);
-	shadow.pol[0]->pltbl[i].norm[X] = 0;
-	shadow.pol[0]->pltbl[i].norm[Y] = 0;
-	shadow.pol[0]->pltbl[i].norm[Z] = 0;
-	}
-			first_run = true;
-			} */
+		{
 			
 	slPushMatrix();
 

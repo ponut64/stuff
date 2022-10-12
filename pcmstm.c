@@ -155,13 +155,13 @@ short	add_adx_front_buffer(short bit_rate)
 	m68k_com->pcmCtrl[numberPCMs].pitchword = convert_bitrate_to_pitchword(bit_rate);
 	m68k_com->pcmCtrl[numberPCMs].playsize = 18384; //TBD by stream system, so just set it at a high number.
 	short bpb = calculate_bytes_per_blank((int)bit_rate, false, PCM_SYS_REGION); //Iniitalize as max volume
-	if(bpb != 768 && bpb != 512 && bpb != 384 && bpb != 256)
+	if(bpb != 768 && bpb != 512 && bpb != 384 && bpb != 256 && bpb != 192 && bpb != 128)
 	{
 		jo_printf(0, 1, "!(ADX INVALID BYTE-RATE)!");
 		return -2;
 	}
 	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = bpb;
-	m68k_com->pcmCtrl[numberPCMs].decompression_size = lcm(bpb, bpb + 64)<<1;
+	m68k_com->pcmCtrl[numberPCMs].decompression_size = (bpb >= 256) ? lcm(bpb, bpb + 64)<<1 : 5376; // Dirty fix for ultra low bitrate
 	m68k_com->pcmCtrl[numberPCMs].bitDepth = PCM_TYPE_ADX; //Select ADX type
 	m68k_com->pcmCtrl[numberPCMs].loopType = ADX_STREAM; //Initialize as ADX stream.
 	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Iniitalize as max volume
@@ -368,8 +368,6 @@ void		sdrv_stm_vblank_rq(void)
 	{
 		operate_adx_stream();
 	}
-	//jo_printf(0, 0, "drv_stat(%i)", m68k_com->start);
-	m68k_com->start = 1;	
 }
 
 void		pcm_stream_host(void(*game_code)(void))
