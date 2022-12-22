@@ -77,15 +77,42 @@ void	process_tga_as_ldata(void * source_data)
 	declare_object_at_cell(k-(xSize>>1), -((readByte[imdat] & 0xE0) | ((readByte[imdat+1] & 1)<<8)), i-(ySize>>1), readByte[imdat] & 0x1F, 
 	(readByte[imdat+1] & 2) ? -(readByte[imdat+1] & 0xF0) : (readByte[imdat+1] & 0xF0),
 	(readByte[imdat+1] & 4) ? -(readByte[imdat+2] & 0xF)<<4 : (readByte[imdat+2] & 0xF)<<4,
-	(readByte[imdat+1] & 8) ? -(readByte[imdat+2] & 0xF0) : (readByte[imdat+2] & 0xF0));
+	(readByte[imdat+1] & 8) ? -(readByte[imdat+2] & 0xF0) : (readByte[imdat+2] & 0xF0), 0);
 		}
 			imdat += 3;
 			}
 		}
 
+}
+
+void	level_data_basic(void)
+{
+	
 	declarations();
 	ldata_ready = true;
 
+	
+		//////////////////////////////////
+		//
+		// Send player to map's start location
+		// Notice: Code chunk must run after objects are declared
+		// Notice: Only finds first start location, uses it, then flags it as used.
+		//////////////////////////////////
+	for(int i = 0; i < objNEW; i++)
+	{
+		//The following condition should indicate that we've found a declared player start and it hasn't been used yet.
+		if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == PSTART && (dWorldObjects[i].type.ext_dat & 0x8000) != 0x8000)
+		{
+			//They're negative because of COORDINATE SYSTEM MAYHEM.
+			you.startPos[X] = -dWorldObjects[i].pos[X];
+			you.startPos[Y] = -dWorldObjects[i].pos[Y];
+			you.startPos[Z] = -dWorldObjects[i].pos[Z];
+			reset_player();
+			dWorldObjects[i].type.ext_dat |= 0x8000;
+		}
+	}
+
+	
 }
 
 

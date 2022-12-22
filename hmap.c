@@ -129,12 +129,16 @@ void	map_parser(void * data)
 		{
 			buf_map[i] = *((Uint8*)maps[0].dstAddress + i);
 		}
+		
+		level_data_basic();
+		
 	// jo_printf(8, 20, "(%i)", maps[0].totalPix);
 	// jo_printf(15, 20, "(%i)", maps[0].Xval);
 	// jo_printf(20, 20, "(%i)", maps[0].Yval);
 		} else {
 	jo_printf(8, 25, "MAP REJECTED - IS EVEN");
 		}
+		
 	map_chg = false;
 }
 
@@ -165,19 +169,19 @@ void	p64MapRequest(short levelNo)
 	maps[0].totalPix = 0;
 
 					
- 	ldat_name[0] = 'L';
-	ldat_name[1] = 'E';
-	ldat_name[2] = 'V';
-	ldat_name[3] = 'E';
-	ldat_name[4] = 'L';
-	ldat_name[5] = the_number[0];
-	ldat_name[6] = the_number[1];
-	ldat_name[7] = '.';
-	ldat_name[8] = 'T';
-	ldat_name[9] = 'G';
-	ldat_name[10] = 'A';
+ 	// ldat_name[0] = 'L';
+	// ldat_name[1] = 'E';
+	// ldat_name[2] = 'V';
+	// ldat_name[3] = 'E';
+	// ldat_name[4] = 'L';
+	// ldat_name[5] = the_number[0];
+	// ldat_name[6] = the_number[1];
+	// ldat_name[7] = '.';
+	// ldat_name[8] = 'T';
+	// ldat_name[9] = 'G';
+	// ldat_name[10] = 'A';
 	
-	new_file_request(ldat_name, dirty_buf, process_tga_as_ldata);
+	//new_file_request(ldat_name, dirty_buf, process_tga_as_ldata);
 	new_file_request(pgm_name, dirty_buf, map_parser);
 
 }
@@ -642,7 +646,7 @@ void	process_map_for_normals(void)
 	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
 	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
 	
-	//jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
+	// jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
 	
 }
 

@@ -81,31 +81,23 @@ volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
  int snd_bwee;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
+//Why are these here?
 //////////////////////////////////////////////////////////////////////////////
- animationControl walk;
- animationControl run;
- animationControl dbound;
-
- animationControl runshoot;
- animationControl runmelee;
-
- animationControl melee;
- animationControl shoot;
-
- animationControl idle;
-
- animationControl jump;
- animationControl stop;
-
- animationControl airShoot;
- animationControl airMelee;
-
- animationControl airIdle;
- animationControl airRight;
- animationControl airLeft;
- animationControl slideIdle;
- animationControl slideRln;
- animationControl slideLln;
+animationControl idle;
+animationControl idleB;
+animationControl stop;
+animationControl fall;
+animationControl slideIdle;
+animationControl slideLln;
+animationControl slideRln;
+animationControl airIdle;
+animationControl airLeft;
+animationControl airRight;
+animationControl jump;
+animationControl hop;
+animationControl walk;
+animationControl run;
+animationControl dbound;
  
  animationControl flap;
 //////////////////////////////////////////////////////////////////////////////
@@ -203,7 +195,7 @@ void	load_test(void)
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"DPONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
@@ -222,13 +214,13 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
 	
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD01.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MAP3.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 
 	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(1);
+	p64MapRequest(0);
 	//
 	
 }
@@ -305,6 +297,8 @@ void	jo_main(void)
 	reset_player();
 
 	run_dsp(); //Dry-run the DSP to get it to flag done
+	add_adx_front_buffer(11520);
+	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);
 	pcm_stream_host(game_frame);
 }

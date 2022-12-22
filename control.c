@@ -30,9 +30,9 @@ void reset_player(void)
 	you.hitSurface = false;
 	you.hitWall = false;
 	you.okayStepSnd = true;
-    you.pos[X]=0;
-    you.pos[Y]=(255<<16);
-    you.pos[Z]=0;
+    you.pos[X]=you.startPos[X];
+    you.pos[Y]=you.startPos[Y];
+    you.pos[Z]=you.startPos[Z];
     you.prevPos[X]=0;
     you.prevPos[Y]=(255<<16);
     you.prevPos[Z]=0;

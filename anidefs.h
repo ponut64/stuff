@@ -8,158 +8,119 @@ void	anim_defs(void)
 	
 	//Player model animations
 	
-//Note: Of non-uniform animations, the end frame (35 in this case) is never part of the animation.
-	walk.reset_enable = 'N';
-	walk.arate[1] = 1;
-	walk.arate[2] = 2;
-	walk.arate[3] = 2;
-	walk.arate[4] = 1;
-	walk.arate[5] = 2;
-	walk.arate[6] = 2;
-	walk.startFrm = 1;
-	walk.currentFrm = walk.startFrm * ANIM_CONST;
-	walk.endFrm=7;
-	
-	run.reset_enable = 'N';
-	run.arate[7] = 2;
-	run.arate[8] = 3;
-	run.arate[9] = 4;
-	run.arate[10] = 4;
-	run.arate[11] = 2;
-	run.arate[12] = 3;
-	run.arate[13] = 4;
-	run.arate[14] = 4;
-	run.startFrm = 7;
-	run.currentFrm = run.startFrm  * ANIM_CONST;
-	run.endFrm=15;
-	
-	runshoot.reset_enable = 'N';
-	runshoot.arate[15] = 2;
-	runshoot.arate[16] = 3;
-	runshoot.arate[17] = 4;
-	runshoot.arate[18] = 4;
-	runshoot.arate[19] = 2;
-	runshoot.arate[20] = 3;
-	runshoot.arate[21] = 4;
-	runshoot.arate[22] = 4;
-	runshoot.startFrm = 15;
-	runshoot.currentFrm = runshoot.startFrm  * ANIM_CONST;
-	runshoot.endFrm=23;
-	
-	runmelee.reset_enable = 'N';
-	runmelee.arate[23] = 2;
-	runmelee.arate[24] = 3;
-	runmelee.arate[25] = 4;
-	runmelee.arate[26] = 4;
-	runmelee.arate[27] = 2;
-	runmelee.arate[28] = 3;
-	runmelee.arate[29] = 4;
-	runmelee.arate[30] = 4;
-	runmelee.startFrm = 23;
-	runmelee.currentFrm = runmelee.startFrm  * ANIM_CONST;
-	runmelee.endFrm=31;
-	
-	dbound.reset_enable = 'N';
-	dbound.arate[31] = 8;
-	dbound.arate[32] = 8;
-	dbound.arate[33] = 4;
-	dbound.arate[34] = 2;
-	dbound.arate[35] = 6;
-	dbound.arate[36] = 8;
-	dbound.arate[37] = 8;
-	dbound.arate[38] = 4;
-	dbound.arate[39] = 2;
-	dbound.arate[40] = 6;
-	dbound.startFrm = 31;
-	dbound.currentFrm = dbound.startFrm * ANIM_CONST;
-	dbound.endFrm=41;
-	
-	melee.reset_enable = 'N';
-	melee.arate[41] = 3;
-	melee.arate[42] = 1;
-	melee.arate[43] = 3;
-	melee.arate[44] = 1;
-	melee.arate[45] = 3;
-	melee.arate[46] = 1;
-	melee.startFrm = 41;
-	melee.currentFrm = melee.startFrm * ANIM_CONST;
-	melee.endFrm=47;
-	
-	shoot.reset_enable = 'N';
-	shoot.arate[47] = 2;
-	shoot.arate[48] = 1;
-	shoot.startFrm = 47;
-	shoot.currentFrm = shoot.startFrm * ANIM_CONST;
-	shoot.endFrm = 49;
-	
-	idle.reset_enable = 'N';							
-	//idle.arate[49] = 1;							
-	idle.arate[50] = 0;								
-	idle.startFrm = 50;
+	idle.reset_enable = 'N';													
+	idle.arate[0] = 0;								
+	idle.startFrm = 0;
 	idle.currentFrm = idle.startFrm * ANIM_CONST;
-	idle.endFrm = 50;
+	idle.endFrm = 0;
+	
+	idleB.reset_enable = 'N';													
+	idleB.arate[0] = 1;	
+	idleB.arate[1] = 1;	
+	idleB.arate[2] = 1;		
+	idleB.startFrm = 0;
+	idleB.currentFrm = idle.startFrm * ANIM_CONST;
+	idleB.endFrm = 3;
 	
 	stop.reset_enable = 'N';
-	stop.arate[51] = 0;
-	stop.startFrm = 51;
+	stop.arate[3] = 0;
+	stop.startFrm = 3;
 	stop.currentFrm = stop.startFrm * ANIM_CONST;
-	stop.endFrm = 51;
+	stop.endFrm = 3;
+	
+	fall.reset_enable = 'N';
+	fall.arate[8] = 0;
+	fall.startFrm = 8;
+	fall.currentFrm = fall.startFrm * ANIM_CONST;
+	fall.endFrm = 8;
 	
 	slideIdle.reset_enable = 'N';
-	slideIdle.arate[52] = 0;
-	slideIdle.startFrm = 52;
+	slideIdle.arate[5] = 0;
+	slideIdle.startFrm = 5;
 	slideIdle.currentFrm = slideIdle.startFrm * ANIM_CONST;
-	slideIdle.endFrm = 52;
+	slideIdle.endFrm = 5;
 	
 	slideLln.reset_enable = 'N';
-	slideLln.arate[53] = 0;
-	slideLln.startFrm = 53;
+	slideLln.arate[6] = 0;
+	slideLln.startFrm = 6;
 	slideLln.currentFrm = slideLln.startFrm * ANIM_CONST;
-	slideLln.endFrm = 53;
+	slideLln.endFrm = 6;
 		
 	slideRln.reset_enable = 'N';
-	slideRln.arate[54] = 0;
-	slideRln.startFrm = 54;
+	slideRln.arate[7] = 0;
+	slideRln.startFrm = 7;
 	slideRln.currentFrm = slideRln.startFrm * ANIM_CONST;
-	slideRln.endFrm = 54;
+	slideRln.endFrm = 7;
 	
 	airIdle.reset_enable = 'N';
-	airIdle.arate[55] = 0;
-	airIdle.startFrm = 55;
+	airIdle.arate[4] = 0;
+	airIdle.startFrm = 4;
 	airIdle.currentFrm = airIdle.startFrm  * ANIM_CONST;
-	airIdle.endFrm = 55;
+	airIdle.endFrm = 4;
 	
 	airLeft.reset_enable = 'N';
-	airLeft.arate[56] = 0;
-	airLeft.startFrm = 56;
+	airLeft.arate[9] = 0;
+	airLeft.startFrm = 9;
 	airLeft.currentFrm = airLeft.startFrm * ANIM_CONST;
-	airLeft.endFrm = 56;
-	
-	airMelee.reset_enable = 'N';
-	airMelee.arate[56] = 2;									
-	airMelee.arate[57] = 2;									
-	airMelee.arate[58] = 1;									
-	airMelee.startFrm = 56;									
-	airMelee.currentFrm = airMelee.startFrm * ANIM_CONST;	
-	airMelee.endFrm = 59;
+	airLeft.endFrm = 9;
 	
 	airRight.reset_enable = 'N';
-	airRight.arate[59] = 0;
-	airRight.startFrm = 59;
+	airRight.arate[10] = 0;
+	airRight.startFrm = 10;
 	airRight.currentFrm = airRight.startFrm * ANIM_CONST;
-	airRight.endFrm = 59;
-	
-	airShoot.reset_enable = 'N';
-	airShoot.arate[60] = 0;
-	airShoot.startFrm = 60;
-	airShoot.currentFrm = airShoot.startFrm * ANIM_CONST;
-	airShoot.endFrm = 60;
+	airRight.endFrm = 10;
 	
 	jump.reset_enable = 'N';
-	jump.arate[61] = 0;
-	jump.startFrm = 61;
+	jump.arate[11] = 0;
+	jump.startFrm = 11;
 	jump.currentFrm = jump.startFrm * ANIM_CONST;
-	jump.endFrm = 61;
+	jump.endFrm = 11;
+	
+	hop.reset_enable = 'N';
+	hop.arate[12] = 0;
+	hop.startFrm = 12;
+	hop.currentFrm = hop.startFrm * ANIM_CONST;
+	hop.endFrm = 12;
+	
+//Note: Of non-uniform animations, the end frame (19 in this case) is never part of the animation.
+	walk.reset_enable = 'N';
+	walk.arate[13] = 1;
+	walk.arate[14] = 2;
+	walk.arate[15] = 2;
+	walk.arate[16] = 1;
+	walk.arate[17] = 2;
+	walk.arate[18] = 2;
+	walk.startFrm = 13;
+	walk.currentFrm = walk.startFrm * ANIM_CONST;
+	walk.endFrm=19;
+	
+	run.reset_enable = 'N';
+	run.arate[19] = 2;
+	run.arate[20] = 3;
+	run.arate[21] = 4;
+	run.arate[22] = 4;
+	run.arate[23] = 2;
+	run.arate[24] = 3;
+	run.arate[25] = 4;
+	run.arate[26] = 4;
+	run.startFrm = 19;
+	run.currentFrm = run.startFrm  * ANIM_CONST;
+	run.endFrm=27;
+	
+	dbound.reset_enable = 'N';
+	dbound.arate[27] = 8;
+	dbound.arate[28] = 8;
+	dbound.arate[29] = 4;
+	dbound.arate[30] = 2;
+	dbound.arate[31] = 6;
+	dbound.arate[32] = 8;
+	dbound.arate[33] = 8;
+	dbound.arate[34] = 4;
+	dbound.arate[35] = 2;
+	dbound.arate[36] = 6;
+	dbound.startFrm = 27;
+	dbound.currentFrm = dbound.startFrm * ANIM_CONST;
+	dbound.endFrm=37;
 	
 	//Wing animation
 	

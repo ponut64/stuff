@@ -632,10 +632,10 @@ void	player_collision_test_loop(void)
 	
 	gate_track_manager();
 	
-	// slPrintHex(dWorldObjects[1].srot[Y], slLocate(0, 10));
-	// slPrintHex(dWorldObjects[2].srot[Y], slLocate(0, 11));
-	// slPrintHex(dWorldObjects[3].srot[Y], slLocate(0, 12));
-	// slPrintHex(dWorldObjects[4].srot[Y], slLocate(0, 13));
+	// slPrintHex(dWorldObjects[1].rot[Y], slLocate(0, 10));
+	// slPrintHex(dWorldObjects[2].rot[Y], slLocate(0, 11));
+	// slPrintHex(dWorldObjects[3].rot[Y], slLocate(0, 12));
+	// slPrintHex(dWorldObjects[4].rot[Y], slLocate(0, 13));
 	
 	// slPrintHex(dWorldObjects[5].type.ext_dat, slLocate(13, 12));
 	// slPrintHex(dWorldObjects[6].type.ext_dat, slLocate(13, 13));

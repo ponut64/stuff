@@ -63,8 +63,8 @@ void	load_dsp_prog(void)
 	///The used DSP write & read address by the SH2 will need to be translated the same way the DSP has done it: >>3, then <<1. Then <<2 again because we need to get back to the actual number.
 #pragma GCC push_options
 #pragma GCC diagnostic ignored "-Wbad-function-cast"
-	dsp_noti_addr = (int*)((((int)jo_malloc(64)+8)>>3)<<3);
-	dsp_input_addr = (int*)((((int)jo_malloc(64)+8)>>3)<<3);
+	dsp_noti_addr = (int*)((((int)jo_malloc(32)+16)>>3)<<3);
+	dsp_input_addr = (int*)((((int)jo_malloc(32)+16)>>3)<<3);
 	dsp_output_addr = (int*)((((int)jo_malloc((LCL_MAP_PIX * LCL_MAP_PIX)<<2)+8)>>3)<<3);
 #pragma GCC pop_options
 

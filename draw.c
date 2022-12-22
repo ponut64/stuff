@@ -123,9 +123,9 @@ void	set_camera(void)
 
 void	master_draw_stats(void)
 {
-	//slPrintFX(you.pos[X], slLocate(9, 1));
-	//slPrintFX(you.pos[Y], slLocate(19, 1));
-	//slPrintFX(you.pos[Z], slLocate(29, 1));
+	slPrintFX(you.pos[X], slLocate(9, 1));
+	slPrintFX(you.pos[Y], slLocate(19, 1));
+	slPrintFX(you.pos[Z], slLocate(29, 1));
 
 	//jo_printf(18, 0, "(File System Status)");
 	jo_printf(27, 2, "Pts :%x:", you.points);
@@ -215,7 +215,11 @@ void	player_draw(void)
 				} else {//IF SURFACE ENDIF
 						airTimer++;
 						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0){
+							if(!you.setJet){
 							ssh2DrawAnimation(&jump, &pl_model,  false);
+							} else {
+							ssh2DrawAnimation(&hop, &pl_model,  false);
+							}
 						} else if(is_key_pressed(DIGI_RIGHT)){
 						ssh2DrawAnimation(&airRight, &pl_model,  false);
 						} else if(is_key_pressed(DIGI_LEFT)){

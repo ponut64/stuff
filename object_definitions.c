@@ -141,6 +141,22 @@ _sobject WreathTrackData = {
 	.ext_dat = LDATA | TRACK_DATA | 0x0F
 };
 
+_sobject Player_Start_Location = {
+	.entity_ID = 0,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = LDATA | PSTART
+};
+
+_sobject PCM_Sound_Trigger = {
+	.entity_ID = 0,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = LDATA | SOUND_TRIG
+};
+
 _sobject Empty;
 
 _sobject * objList[64];
@@ -178,6 +194,8 @@ void	fill_obj_list(void)
 	objList[10] = &Platf00;
 	objList[11] = &Build00;
 	objList[12] = &Build01;
+	objList[13] = &Player_Start_Location;
+	objList[14] = &PCM_Sound_Trigger;
 
 	objList[63] = &Empty;
 }

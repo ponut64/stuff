@@ -63,6 +63,7 @@ extern int snd_bwee;
 //Structs
 typedef struct {
 	FIXED pos[XYZ];
+	int startPos[XYZ];
 	int cellPos[XY];
 	int dispPos[XY];
 	int prevCellPos[XY];
@@ -140,30 +141,21 @@ typedef struct
     Uint8 endFrm;
 } animationControl;
 
+extern animationControl idle;
+extern animationControl idleB;
+extern animationControl stop;
+extern animationControl fall;
+extern animationControl slideIdle;
+extern animationControl slideLln;
+extern animationControl slideRln;
+extern animationControl airIdle;
+extern animationControl airLeft;
+extern animationControl airRight;
+extern animationControl jump;
+extern animationControl hop;
 extern animationControl walk;
 extern animationControl run;
 extern animationControl dbound;
-
-extern animationControl runshoot;
-extern animationControl runmelee;
-
-extern animationControl melee;
-extern animationControl shoot;
-
-extern animationControl idle;
-
-extern animationControl jump;
-extern animationControl stop;
-
-extern animationControl airShoot;
-extern animationControl airMelee;
-
-extern animationControl airIdle;
-extern animationControl airRight;
-extern animationControl airLeft;
-extern animationControl slideIdle;
-extern animationControl slideRln;
-extern animationControl slideLln;
 
 extern animationControl flap;
 

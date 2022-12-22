@@ -5,9 +5,9 @@
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 _buildingObject * BuildingPayload;
 
-unsigned short objNEW = 0;
-unsigned short objDRAW[MAX_WOBJS];
-unsigned short activeObjects[MAX_WOBJS];
+unsigned short objNEW = 0; //objNEW is the total number of declared objects
+unsigned short objDRAW[MAX_WOBJS]; //objDRAW is a list of the delcared objects that will be drawn
+unsigned short activeObjects[MAX_WOBJS]; //activeObjects is a list of the declared objects that have some code running for them
 short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
 int trackTimers[16];
@@ -15,7 +15,7 @@ int activeTrack = -1;
 int objUP = 0;
 int total_building_payload = 0;
 
-void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot)
+void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data)
 {
 		if(objNEW < MAX_WOBJS)
 		{
@@ -25,12 +25,12 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].pix[X] = -(pixX);
 	dWorldObjects[objNEW].pix[Y] = -(pixY);
 	dWorldObjects[objNEW].type = *objList[type];
-	dWorldObjects[objNEW].srot[X] = (xrot * 182); // deg * 182 = angle
-	dWorldObjects[objNEW].srot[Y] = (yrot * 182);
-	dWorldObjects[objNEW].srot[Z] = (zrot * 182);
+	dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
+	dWorldObjects[objNEW].rot[Y] = (yrot * 182);
+	dWorldObjects[objNEW].rot[Z] = (zrot * 182);
 	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
-	dWorldObjects[objNEW].more_data = 0;
+	dWorldObjects[objNEW].more_data = more_data;
 	objNEW++;
 		}
 }
@@ -48,9 +48,9 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	dWorldObjects[objNEW].pix[X] = root_object->pix[X];
 	dWorldObjects[objNEW].pix[Y] = root_object->pix[Y];
 	dWorldObjects[objNEW].type = *objList[building_item->object_type];
-	dWorldObjects[objNEW].srot[X] = 0;
-	dWorldObjects[objNEW].srot[Y] = 0;
-	dWorldObjects[objNEW].srot[Z] = 0;
+	dWorldObjects[objNEW].rot[X] = 0;
+	dWorldObjects[objNEW].rot[Y] = 0;
+	dWorldObjects[objNEW].rot[Z] = 0;
 	dWorldObjects[objNEW].more_data = 0;
 	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
@@ -60,35 +60,50 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 
 void	declarations(void)
 {
-//	declare_object_at_cell(0, 0, 0, 62 /* Track Data */, 0, 0, 0);
-declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0);
-declare_object_at_cell(-(897 / 40) + 1, -375,  (856 / 40), 12 /*build01*/, 0, 0, 0);
+
+/* level00 ?*/
+declare_object_at_cell((300 / 40) + 1, -(343), -(1060 / 40), 12 /*build01*/, 0, 0, 0, 0);
+declare_object_at_cell(-(300 / 40) + 1, -300, (-1100 / 40), 13 /*start location*/, 0, 0, 0, 0);
+
+declare_object_at_cell( (420 / 40) + 1, -277,  -(1180/40), 9 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell( (180 / 40) + 1, -277,  -(940/40), 9 /*post00*/, 0, 0, 0, 1);
+
+//declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 14 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
+
+/* level01? */
+// declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(897 / 40) + 1, -375,  (856 / 40), 12 /*build01*/, 0, 0, 0, 0);
 														 
-declare_object_at_cell(-(366 / 40) + 1, -145, -(531 / 40), 10 /*platf00*/, 0, 0, 0);
-declare_object_at_cell((612 / 40) + 1, -150,  -(653 / 40), 10 /*platf00*/, 0, 0, 0);
+// declare_object_at_cell(-(366 / 40) + 1, -145, -(531 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((612 / 40) + 1, -150,  -(653 / 40), 10 /*platf00*/, 0, 0, 0, 0);
 
-declare_object_at_cell((61 / 40) + 1, -275,  -(714/40), 8 /*ring00*/, 0, 0, 0);
-declare_object_at_cell((918 / 40) + 1, -341,  (224/40), 8 /*ring00*/, 90, 0, 0);
-declare_object_at_cell(-(856 / 40) + 1, -502, (652/40), 8 /*ring00*/, 0, 0, 0);
+// declare_object_at_cell((61 / 40) + 1, -275,  -(714/40), 8 /*ring00*/, 0, 0, 0, 0);
+// declare_object_at_cell((918 / 40) + 1, -341,  (224/40), 8 /*ring00*/, 90, 0, 0, 0);
+// declare_object_at_cell(-(856 / 40) + 1, -502, (652/40), 8 /*ring00*/, 0, 0, 0, 0);
 
-declare_object_at_cell( (42 / 40) + 1, -182,  (81/40), 9 /*post00*/, 0, 0, 0);
-declare_object_at_cell( (42 / 40) + 1, -182, (244/40), 9 /*post00*/, 0, 180, 0);
-declare_object_at_cell( (42 / 40) + 1, -178, (488/40), 9 /*post00*/, 0, 0, 0);
-declare_object_at_cell( (42 / 40) + 1, -178, (652/40), 9 /*post00*/, 0, 180, 0);
-declare_object_at_cell( (531 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, 90, 0);
-declare_object_at_cell( (694 / 40) + 1, -265,(407/40), 9 /*post00*/, 0, -90, 0);
-declare_object_at_cell(-(611 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, -90, 0);
-declare_object_at_cell(-(815 / 40) + 1, -297,(407/40), 9 /*post00*/, 0, 90, 0);
+// declare_object_at_cell( (42 / 40) + 1, -182,  (81/40), 9 /*post00*/, 0, 0, 0, 0);
+// declare_object_at_cell( (42 / 40) + 1, -182, (244/40), 9 /*post00*/, 0, 180, 0, 0);
+// declare_object_at_cell( (42 / 40) + 1, -178, (488/40), 9 /*post00*/, 0, 0, 0, 0);
+// declare_object_at_cell( (42 / 40) + 1, -178, (652/40), 9 /*post00*/, 0, 180, 0, 0);
+// declare_object_at_cell( (531 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, 90, 0, 0);
+// declare_object_at_cell( (694 / 40) + 1, -265,(407/40), 9 /*post00*/, 0, -90, 0, 0);
+// declare_object_at_cell(-(611 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, -90, 0, 0);
+// declare_object_at_cell(-(815 / 40) + 1, -297,(407/40), 9 /*post00*/, 0, 90, 0, 0);
 
-declare_object_at_cell(-2 + 1, -115, -14, 0 /*bb00*/,0,0,0);
- declare_object_at_cell(5 + 1, -150,  -5, 1 /*bb01*/,0,0,0);
-declare_object_at_cell(17 + 1, -380,  -2, 2 /*bb02*/,0,0,0);
-declare_object_at_cell(-9 + 1, -255,  -2, 3 /*bb03*/,0,0,0);
- declare_object_at_cell(0 + 1, -352,  22, 4 /*bb04*/,0,0,0);
+// declare_object_at_cell(-2 + 1, -115, -14, 0 /*bb00*/,0,0,0, 0);
+ // declare_object_at_cell(5 + 1, -150,  -5, 1 /*bb01*/,0,0,0, 0);
+// declare_object_at_cell(17 + 1, -380,  -2, 2 /*bb02*/,0,0,0, 0);
+// declare_object_at_cell(-9 + 1, -255,  -2, 3 /*bb03*/,0,0,0, 0);
+ // declare_object_at_cell(0 + 1, -352,  22, 4 /*bb04*/,0,0,0, 0);
 
-declare_object_at_cell(-5 + 1, -210,  -8, 5 /*meme00*/,0,0,0);
-declare_object_at_cell(20 + 1, -205, -18, 6 /*meme01*/,0,0,0);
-declare_object_at_cell(22 + 1, -430,  22, 7 /*meme02*/,0,0,0);
+// declare_object_at_cell(-5 + 1, -210,  -8, 5 /*meme00*/,0,0,0, 0);
+// declare_object_at_cell(20 + 1, -205, -18, 6 /*meme01*/,0,0,0, 0);
+// declare_object_at_cell(22 + 1, -430,  22, 7 /*meme02*/,0,0,0, 0);
+
+// declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 13 /*start location*/, 0, 0, 0, 0);
+
+/* level2? */
+//declare_object_at_cell(-(1240 / 40) + 1, -350, (1520 / 40), 11 /*build00*/, 0, 0, 0, 0);
 
 }
 
@@ -116,6 +131,7 @@ void	object_control_loop(int ppos[XY])
 	}		//Just in case.
 	static int difX = 0;
 	static int difY = 0;
+	static int position_difference[XYZ] = {0,0,0};
 	objUP = 0;
 	
 	unsigned short * used_radius;
@@ -127,46 +143,67 @@ void	object_control_loop(int ppos[XY])
 		
 		difX = fxm(((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]), INV_CELL_SIZE)>>16; 
 		difY = fxm(((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]), INV_CELL_SIZE)>>16; 
-				////////////////////////////////////////////////////
-				//Flush specific data for gate posts. Don't remember why.
-				////////////////////////////////////////////////////
-		dWorldObjects[i].type.ext_dat &= ((dWorldObjects[i].type.ext_dat & OTYPE) == GATE_P) ? 0xFFFD : 0xFFFF;
-				////////////////////////////////////////////////////
+
 		
 		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
 		{ 		
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
-				if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED &&
-				(dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
+				if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
 				{
-					// We've found a level change trigger close to the player.
-					// If we are close enough to the level change trigger and it is enabled, change levels.
-					int pos_difs[3] = {
-										(you.pos[X] + dWorldObjects[i].pos[X]),
-										you.pos[Y] + (dWorldObjects[i].pos[Y] - (main_map[
-(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1))
-																			]<<(MAP_V_SCALE))),
-										(you.pos[Z] + dWorldObjects[i].pos[Z])
-										};	
-					if(JO_ABS(pos_difs[X]) < (dWorldObjects[i].type.radius[X]<<16)
-					&& JO_ABS(pos_difs[Y]) < (dWorldObjects[i].type.radius[Y]<<16)
-					&& JO_ABS(pos_difs[Z]) < (dWorldObjects[i].type.radius[Z]<<16)
-					//Enabling Booleans
-					&& !(dWorldObjects[i].type.ext_dat & OBJPOP) && (dWorldObjects[i].type.ext_dat & 0x80))
+					//Get the position difference. This is uniquely used for level data collision.
+					//For now, at least.
+					position_difference[X] = JO_ABS(you.pos[X] + dWorldObjects[i].pos[X]);
+					position_difference[Y] = JO_ABS(you.pos[Y] + dWorldObjects[i].pos[Y]);
+					position_difference[Z] = JO_ABS(you.pos[Z] + dWorldObjects[i].pos[Z]);
+					
+					// slPrintFX(position_difference[X], slLocate(2, 7));
+					// slPrintFX(position_difference[Y], slLocate(2, 8));
+					// slPrintFX(position_difference[Z], slLocate(2, 9));
+					
+					if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == SOUND_TRIG && !(dWorldObjects[i].type.ext_dat & OBJPOP))
+					{	
+						// "360" is a magic number to convert the rotation angle into the literal size.
+						// This is used for radius of collision with the trigger.
+						if(position_difference[X] < (dWorldObjects[i].rot[X] * 360)
+						&& position_difference[Y] < (dWorldObjects[i].rot[Y] * 360)
+						&& position_difference[Z] < (dWorldObjects[i].rot[Z] * 360))
+						{
+							if((dWorldObjects[i].type.ext_dat & SDTRIG_PCM) == SDTRIG_PCM)
+							{
+								pcm_play(dWorldObjects[i].more_data & 0xFF, PCM_PROTECTED, dWorldObjects[i].more_data>>8);
+								dWorldObjects[i].type.ext_dat |= OBJPOP;
+							} else {
+								start_adx_stream((Sint8*)"TESTSND.ADX", dWorldObjects[i].more_data>>8);
+								dWorldObjects[i].type.ext_dat |= OBJPOP;
+							}
+						}
+
+					}
+					if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
 					{
-						//////////////////////////////////////////
-						// Temporary, but will change levels.
-						//////////////////////////////////////////
-						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						pcm_play(snd_win, PCM_PROTECTED, 7);
-						map_chg = false;
-						//p64MapRequest(dWorldObjects[i].type.entity_ID);
-						///////////////////////////////////////////
-						// More temporary stuff.
-						///////////////////////////////////////////
-						you.points = 0;
+						// We've found a level change trigger close to the player.
+						// If we are close enough to the level change trigger and it is enabled, change levels.
+						
+						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
+						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
+						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16)
+						//Enabling Booleans
+						&& !(dWorldObjects[i].type.ext_dat & OBJPOP) && (dWorldObjects[i].type.ext_dat & 0x80))
+						{
+							//////////////////////////////////////////
+							// Temporary, but will change levels.
+							//////////////////////////////////////////
+							dWorldObjects[i].type.ext_dat |= OBJPOP;
+							pcm_play(snd_win, PCM_PROTECTED, 7);
+							map_chg = false;
+							//p64MapRequest(dWorldObjects[i].type.entity_ID);
+							///////////////////////////////////////////
+							// More temporary stuff.
+							///////////////////////////////////////////
+							you.points = 0;
+						}
 					}
 				}
 		} else if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && objUP < MAX_PHYS_PROXY)
@@ -200,9 +237,9 @@ void	object_control_loop(int ppos[XY])
 						]<<(MAP_V_SCALE));*/
 						//
 						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-						bound_box_starter.x_rotation = dWorldObjects[i].srot[X];
-						bound_box_starter.y_rotation = dWorldObjects[i].srot[Y];
-						bound_box_starter.z_rotation = dWorldObjects[i].srot[Z];
+						bound_box_starter.x_rotation = dWorldObjects[i].rot[X];
+						bound_box_starter.y_rotation = dWorldObjects[i].rot[Y];
+						bound_box_starter.z_rotation = dWorldObjects[i].rot[Z];
 
 						bound_box_starter.x_radius = used_radius[X]<<16;
 						bound_box_starter.y_radius = used_radius[Y]<<16;
@@ -394,8 +431,8 @@ void	object_control_loop(int ppos[XY])
 		
 	flush_boxes(objUP);
 		
-	//jo_printf(12, 5, "objUP:(%i)", objUP);
-	//jo_printf(12, 6, "objNW:(%i)", objNEW);
+	jo_printf(12, 5, "objUP:(%i)", objUP);
+	jo_printf(12, 6, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -482,16 +519,18 @@ void	light_control_loop(void)
 	
 }
 
-void	add_to_track_timer(int index) //Careful with index -- This function does not internally "DWO" - so only DWO outside, not inside here.
+//I hate this function.
+void	add_to_track_timer(int index) 
 {
 	
 	short trackedLDATA = link_starts[LDATA>>12];
 	short track_select = 0;
-	short object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; //Get the level data's track #
+	short object_track = 0;
 
 	while(trackedLDATA != -1){
-		if( (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DATA) == TRACK_DATA)
+		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
+			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; //Get the level data's track #
 			track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
 			if(track_select == object_track && (activeTrack == trackedLDATA || activeTrack == -1))
 			{
@@ -514,8 +553,9 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//////////////////
 	if(obj_id1 == obj_id2) return;
 	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
+	
 	dWorldObjects[obj_id1].type.ext_dat |= 2; 
-	dWorldObjects[obj_id2].type.ext_dat |= 2; //Set checked flag up
+	dWorldObjects[obj_id2].type.ext_dat |= 2; 
 	
 	//////////////////
 	// By default, use the entity radius.
@@ -709,7 +749,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 		{
 		
 		realDist = slSquartFX( fxm(relPos[X], relPos[X]) + fxm(relPos[Y], relPos[Y]) + fxm(relPos[Z], relPos[Z]) ); //a^2 + b^2 = c^2
-		dWorldObjects[activeObjects[index]].srot[Y] += 18; //Spin
+		dWorldObjects[activeObjects[index]].rot[Y] += 18; //Spin
 		
 			if(realDist < (dWorldObjects[activeObjects[index]].type.radius[Y]<<16) ) //Explicit radius collision test
 				{
@@ -778,22 +818,55 @@ void	test_gate_ring(int index, _boundBox * tgt)
 
 void	test_gate_posts(int index, _boundBox * tgt)
 {
-			if((dWorldObjects[index].type.ext_dat & 0x3) != 0) return; //Return if the gate is already flagged as passed, or checked.
-																	//Interesting: You can flag only one entity as being checked, and it still exits early.
-																	//Why: because flagOne and flagTwo are no longer equal; one is checked, the other isn't.
-																	//We prefer an exit earlier, though -- so we flag both as checked, so it exits here.
+
+			if((dWorldObjects[index].type.ext_dat & 0x1) != 0) return; //Return if the gate is already flagged as passed.
+															
 	short trackedEntry = link_starts[GATE_P>>12];
 	unsigned short flagOne = dWorldObjects[index].type.ext_dat & 0x7FFF;
 	unsigned short flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF;
 
 	//Goal: Check every entity in the GATE_P link list until the LINK is -1. When it is -1, stop. If it is equal to the current object's index, continue.
 		while(trackedEntry != -1){
-				if(flagOne == flagTwo && trackedEntry != index)
+			//Do nothing, and continue to next entry if the entries are identical.
+			if(trackedEntry != index)
+			{				
+				if(flagOne == flagTwo)
 				{
 					has_entity_passed_between(index, trackedEntry, tgt);
+					
 				}
-			trackedEntry = dWorldObjects[trackedEntry].link; //Retrieve the linked entry from the current tracked entry
-			flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF; //Start testing for the newly tracked entity
+				
+				/////////////////
+				// Rotation-orientation segment
+				// This code body will automatically rotate posts' to "face" each other.
+				// You can disable this code segment by flagging the object's "ext_dat" with 0x2 when declaring it.
+				// This will rotate meshes such that the Z+ direction of the mesh will face the other gate post.
+				/////////////////
+				if(!(dWorldObjects[index].more_data & 0x1) && ((flagOne & 0xFF0) == (flagTwo & 0xFF0)))
+				{
+					
+					//Orienting post 1
+					//First, get vector to post 2.
+					//Note that we only need the X/Z vector, or the XY of the map location.
+					int posDif[XYZ] = {((dWorldObjects[index].pix[X] - dWorldObjects[trackedEntry].pix[X]) * CELL_SIZE)>>8, 0,
+									((dWorldObjects[index].pix[Y] - dWorldObjects[trackedEntry].pix[Y]) * CELL_SIZE)>>8};
+					accurate_normalize(posDif, posDif);
+					dWorldObjects[index].rot[Y] = slAtan(posDif[Z], posDif[X]);
+					dWorldObjects[index].more_data |= 0x1;
+					
+					// jo_printf(0, 10, "o1id(%i)", index);
+					// jo_printf(10, 10, "o2id(%i)", trackedEntry);
+					// jo_printf(3, 12, "data0(%x)", posDif[X]);
+					// jo_printf(5, 13, "rot0(%i)", dWorldObjects[index].rot[Y]);
+					// jo_printf(3, 14, "data1(%x)", posDif[Z]);
+					// jo_printf(5, 15, "rot1(%i)", dWorldObjects[trackedEntry].rot[Y]);
+					
+				}
+			}
+			trackedEntry = dWorldObjects[trackedEntry].link; //Retrieve the declared entity ID of the next gate post from linked list
+			flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF; //Get the data of the next post (but ignore the POP?)
+			// Explanation: The POP of two pieces of a gate may not always match, but all of the other data should.
+			// This includes: Is it checked yet, is it passed yet, is it the same track, is it the same set of linked posts.
 		}
 }
 
@@ -824,8 +897,8 @@ void	gate_track_manager(void)
 	short track_select;
 	short object_track;
 	
-	int num_track_dat = 0;
-	static char complete_ldat = 0;
+	int num_track_dat =  0;
+	static char complete_tracks = 0;
 	
 	// jo_printf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
 	// jo_printf(0, 16, "act(%i)", activeTrack);
@@ -833,7 +906,7 @@ void	gate_track_manager(void)
 	
 	while(trackedLDATA != -1){
 				//jo_printf(0, 0, "(GTMN)"); //Debug ONLY
-		if( (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DATA) == TRACK_DATA)
+		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
 		track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; //Get the level data's track #
 		dWorldObjects[trackedLDATA].pix[X] = 0;
@@ -850,7 +923,6 @@ void	gate_track_manager(void)
 			while(trackedRING != -1){
 				//jo_printf(0, 0, "(RING)"); //Debug ONLY
 				object_track = (dWorldObjects[trackedRING].type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
-				
 					if(track_select == object_track)
 					{
 						if(dWorldObjects[trackedRING].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
@@ -872,7 +944,9 @@ void	gate_track_manager(void)
 			while(trackedPOST != -1){
 				//jo_printf(0, 0, "(POST)"); //Debug ONLY
 				object_track = (dWorldObjects[trackedPOST].type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
-
+				////////////////////////////////////////////////////
+				// Flush the "checked collision yet" marker for gate posts.
+				dWorldObjects[trackedPOST].type.ext_dat &= 0xFFFD;
 					if(track_select == object_track)
 					{
 						if(dWorldObjects[trackedPOST].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
@@ -899,7 +973,7 @@ void	gate_track_manager(void)
 				trackTimers[track_select] = 0;	//Re-set the track timer
 				activeTrack = -1;	//Release active track
 				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
-				complete_ldat++;
+				complete_tracks++;
 				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
 				slPrint("                           ", slLocate(0, 6));
 				slPrint("                           ", slLocate(0, 7));
@@ -926,7 +1000,7 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		/// Track data manager end stub
 		////////////////////////////////
-		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LEVEL_CHNG) == LEVEL_CHNG)
+		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
 		{
 				//if(you.points <= 0x15)
 				//{
@@ -940,11 +1014,11 @@ void	gate_track_manager(void)
 		trackedLDATA = dWorldObjects[trackedLDATA].link;
 	}//while LDATA end
 	
-	//Completed all tracks
-	if(complete_ldat == num_track_dat && link_starts[LDATA>>12] > -1)
+	//Completed all tracks, but only do anything if there are actually any tracks
+	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
 	{
 		pcm_play(snd_win, PCM_PROTECTED, 7);
-		complete_ldat = 0;
+		complete_tracks = 0;
 		//map_chg = false;
 		//p64MapRequest(1);
 	}

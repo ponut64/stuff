@@ -71,9 +71,9 @@ void	pl_step_snd(void){
 	static char hoofSetBools[5];
 	static char oldHoofSetBools[5];
 	char runSnd = 0;
-	const int HoofLowValue = 311296;
+	const int HoofLowValue = 300100;
 	//int printPos = 0;
-	int hf_vert[4] = {8, 30, 61, 116};
+	int hf_vert[4] = {6, 28, 57, 102};
 	POINT hf_pos;
 
 		if(you.hitSurface == true){
@@ -309,8 +309,12 @@ void	player_phys_affect(void)
 
 	//Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
+	if(you.sanics > (3<<16))
+	{
 	pcm_play(snd_wind, PCM_FWD_LOOP, windVol); 
-	
+	} else {
+	pcm_cease(snd_wind);
+	}
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
 	//Movement and rotation speed maximum and minimums
