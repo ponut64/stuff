@@ -1,10 +1,6 @@
 #ifndef __BOUNDER_H__
-# define __BOUNDER_H__
+#define __BOUNDER_H__
 
-#include <jo/jo.h>
-#include "mymath.h"
-#include "control.h"
-#include "def.h"
 
 #define MAX_PHYS_PROXY (32)
 //Structs

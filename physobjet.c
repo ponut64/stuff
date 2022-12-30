@@ -1,4 +1,18 @@
+#include "jo/jo.h"
+#include "def.h"
+#include "mloader.h"
+#include "pcmsys.h"
+#include "pcmstm.h"
+#include "mymath.h"
+#include "bounder.h"
+#include "collision.h"
+#include "ldata.h"
+#include "hmap.h"
+#include "render.h"
+
+
 #include "physobjet.h"
+#include "object_col.h"
 #include "object_definitions.c"
 
 
@@ -28,9 +42,23 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].rot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].rot[Z] = (zrot * 182);
+		if((dWorldObjects[objNEW].type.ext_dat & OTYPE) == BUILD)
+		{
+			//Specific for building-type objects, place its entity ID in the ext_dat.
+			dWorldObjects[objNEW].type.ext_dat |= ((dWorldObjects[objNEW].type.entity_ID)<<4);
+			if((xrot | yrot | zrot) != 0)
+			{
+			//For build-type objects, if any rotation is applied, we can't use the same polygon data anymore.
+			//This is because the collision system discards planes for collision early based on their normal.
+			//This will not work if the polygon is rotated without the normal also being rotated with it.
+			//So, to facilitate rotating a BUILD-type object, we must create new PDATA with the rotation built in to it.
+			//The following function jumps to such a thing.
+			generate_rotated_entity_for_object(&dWorldObjects[objNEW]);
+			}
+		}
 	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
-	dWorldObjects[objNEW].more_data = more_data;
+	dWorldObjects[objNEW].more_data |= more_data;
 	objNEW++;
 		}
 }
@@ -62,13 +90,13 @@ void	declarations(void)
 {
 
 /* level00 ?*/
-declare_object_at_cell((300 / 40) + 1, -(343), -(1060 / 40), 12 /*build01*/, 0, 0, 0, 0);
-declare_object_at_cell(-(300 / 40) + 1, -300, (-1100 / 40), 13 /*start location*/, 0, 0, 0, 0);
+// declare_object_at_cell((300 / 40) + 1, -(343), -(1060 / 40), 12 /*build01*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(300 / 40) + 1, -300, (-1100 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-declare_object_at_cell( (420 / 40) + 1, -277,  -(1180/40), 9 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell( (180 / 40) + 1, -277,  -(940/40), 9 /*post00*/, 0, 0, 0, 1);
+// declare_object_at_cell( (420 / 40) + 1, -277,  -(1180/40), 9 /*post00*/, 0, 0, 0, 0);
+// declare_object_at_cell( (180 / 40) + 1, -277,  -(940/40), 9 /*post00*/, 0, 0, 0, 0);
 
-//declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 14 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
+//declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
 /* level01? */
 // declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0, 0);
@@ -100,10 +128,31 @@ declare_object_at_cell( (180 / 40) + 1, -277,  -(940/40), 9 /*post00*/, 0, 0, 0,
 // declare_object_at_cell(20 + 1, -205, -18, 6 /*meme01*/,0,0,0, 0);
 // declare_object_at_cell(22 + 1, -430,  22, 7 /*meme02*/,0,0,0, 0);
 
-// declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 13 /*start location*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
 /* level2? */
 //declare_object_at_cell(-(1240 / 40) + 1, -350, (1520 / 40), 11 /*build00*/, 0, 0, 0, 0);
+
+/* level3 ? */
+
+declare_object_at_cell(-(20 / 40) + 1, -120, (940 / 40), 61 /*start location*/, 0, 0, 0, 0);
+
+declare_object_at_cell((1420 / 40) + 1, -63,  -(1260 / 40), 11 /*build00*/, 0, 0, 0, 0);
+
+declare_object_at_cell((1770 / 40) + 1, -78,  -(1300 / 40), 12 /*build01*/, 0, 0, 0, 0);
+
+declare_object_at_cell((360 / 40) + 1, -99,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
+declare_object_at_cell((660 / 40) + 1, -71,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
+
+declare_object_at_cell((2340 / 40) + 1, -44,  -(1180 / 40), 13 /*build02*/, 0, 0, 0, 0);
+
+declare_object_at_cell(-(20 / 40) + 1, -27,  (1300 / 40), 10 /*platf00?*/, 0, 0, 0, 0);
+
+declare_object_at_cell((1260 / 40) + 1, -128,  (1180 / 40), 12 /*build02*/, 0, 0, 0, 0);
+declare_object_at_cell((1620 / 40) + 1, -103,  (1020 / 40), 12 /*build02*/, 0, 0, 0, 0);
+
+declare_object_at_cell((660 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
+declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
 
 }
 

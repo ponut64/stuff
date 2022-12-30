@@ -1,11 +1,43 @@
 //object_col.c
 //contains per polygon collision work
+#include <jo/jo.h>
+#include "def.h"
+#include "mloader.h"
+#include "bounder.h"
+#include "mymath.h"
+#include "render.h"
+#include "player_phy.h"
+#include "collision.h"
+#include "physobjet.h"
+
 #include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
 #define SUBDIVISION_SCALE (100)
 
 int prntidx = 0;
+
+void generate_rotated_entity_for_object(_declaredObject * object)
+{
+	///////////////////////////////////////////////////////
+	/*
+	Steps:
+	A. Sanity check: Does this entity already exist with this rotation? If so, use that entity, and abort.
+	1: Identify which entity ID this is
+	2: Identify which entity ID we should use (...uh oh)
+	3: Create a new entity with the identical parameters to the type of the object
+	4: Identify a new, usable, safe place in HWAM to use
+	5: Copy the pntbl and pltbl of the mesh to this new place in HWRAM
+	6: Adjust the pointers of the new entity to point to this new data
+	7: Generate bound box (matrix) parameters from the rotation of the object
+	8: Matrix transform all points of the new entity by this matrix
+	9: Matrix transform all normals of the new entity by this matrix	
+	*/
+	///////////////////////////////////////////////////////
+	
+	//Sanity Checks
+	
+}
 
 //////////////////////////////////
 // Line-to-plane projection function
@@ -949,19 +981,19 @@ prntidx = 0;
 	int min_z = 32767<<16;
 	int max_z = -(32767<<16);
 
-	int manhattan_01;
-	int manhattan_32;
+	int manhattan_01 = 0;
+	int manhattan_32 = 0;
 	
-	int manhattan_12;
-	int manhattan_03;
+	int manhattan_12 = 0;
+	int manhattan_03 = 0;
 	
-	int manhattan_alpha;
-	int manhattan_beta;
+	int manhattan_alpha = 0;
+	int manhattan_beta = 0;
 
-	int number_of_subdivisions;
+	int number_of_subdivisions = 0;
 	
-	int max_subdivisions;
-	int specific_texture;
+	int max_subdivisions = 0;
+	int specific_texture = 0;
 	
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
@@ -1180,7 +1212,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		ptv[3] = &ssh2VertArea[subdivided_polygons[j][3]];
 		
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
-			if(offScrn) continue;
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
 		// Uses weighted max
@@ -1194,6 +1225,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 		//	}
+			if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
 		///////////////////////////////////////////
 		// Use a combined texture, if the subdivision system stated one should be used.
 		// Otherwise, use the base texture.

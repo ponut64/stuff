@@ -1,5 +1,13 @@
 //ldata.c
 //this file is compiled separately
+#include <jo/jo.h>
+#include "def.h"
+#include "bounder.h"
+#include "physobjet.h"
+#include "mloader.h"
+#include "player_phy.h"
+#include "tga.h"
+
 #include "ldata.h"
 
 bool ldata_ready = false;

@@ -1,3 +1,6 @@
+#include "jo/jo.h"
+#include "def.h"
+
 #include "mymath.h"
 
 /*

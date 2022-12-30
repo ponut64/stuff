@@ -1,28 +1,11 @@
 
 #ifndef __DRAW_H__
-# define __DRAW_H__
+#define __DRAW_H__
 
 #define VIEW_OFFSET_X (0 * 65536)
 #define VIEW_OFFSET_Y (8 * 65536)
 #define VIEW_OFFSET_Z (-22 * 65536)
 
-//Contains stuff linked to XL2
-#include "mloader.h"
-//
-#include "def.h"
-#include "bounder.h"
-#include "collision.h"
-#include "mymath.h"
-#include "physobjet.h"
-#include "player_phy.h"
-#include "hmap.h"
-#include "minimap.h"
-#include "control.h"
-#include "render.h"
-#include "object_col.h"
-//
-#include "dspm.h"
-//
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
 extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
 extern gvAtr attribute_0[1];

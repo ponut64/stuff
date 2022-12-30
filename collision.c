@@ -4,7 +4,13 @@ This file is compiled separately.
 ///collision.c
 
 #include <jo/jo.h>
-
+#include "def.h"
+#include "mymath.h"
+#include "bounder.h"
+#include "mloader.h"
+#include "physobjet.h"
+#include "object_col.h"
+#include "ldata.h"
 
 #include "collision.h"
 

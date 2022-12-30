@@ -19,7 +19,6 @@ I am sorry for the pain you had to go through.
 //
 #include "anidefs.h"
 
-#include "draw.h"
 #include "bounder.h"
 #include "collision.h"
 #include "control.h"
@@ -32,7 +31,10 @@ I am sorry for the pain you had to go through.
 #include "ldata.h"
 #include "input.h"
 #include "object_col.h"
+#include "pcmsys.h"
 #include "pcmstm.h"
+#include "draw.h"
+#include "player_phy.h"
 //
 #include "lwram.c"
 //
@@ -211,16 +213,18 @@ void	load_test(void)
 	
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BLOCK1.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MAP3.GVP",		active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RTUNNEL.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRACKOB2.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALKWAL.GVP",		active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HTUNNEL.GVP",		active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 
 	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(0);
+	p64MapRequest(03);
 	//
 	
 }

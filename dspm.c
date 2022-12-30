@@ -1,6 +1,9 @@
 //dspm.c
 //This file is compiled separately.
 
+#include <jo/jo.h>
+#include "def.h"
+#include "hmap.h"
 #include "dspm.h"
 #include "DSP/DSP.c"
 volatile int * dsp_input_addr = 0;

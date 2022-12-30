@@ -1,10 +1,7 @@
 #ifndef __MLOADER_H__
 # define __MLOADER_H__
 
-#include <jo/jo.h>
-#include "tga.h"
-
-#define MAX_MODELS (40)
+#define MAX_MODELS (64)
 #define MODEL_TYPE_NORMAL ('N')
 #define MODEL_TYPE_PLAYER ('P')
 #define MODEL_TYPE_BUILDING ('B')
@@ -34,7 +31,7 @@ typedef struct
     unsigned short	TOT_TEXT;  //total amount of textures
     unsigned int    PDATA_SIZE; //to quickly load from disk, total size of pdata in bytes
     unsigned int    TEXT_SIZE;  //to quickly load from disk, that's the size of the textures in bytes
-    unsigned short	nbFrames;
+    unsigned short	nbFrames; //Number of keyframes
 	unsigned short	radius[XYZ];
 	unsigned int	first_portal; //Polygon # of the first portal in the mesh
 } modelData_t;
@@ -73,8 +70,8 @@ typedef struct
 	char sortType;
 	char type;
     Uint16 nbMeshes;
-    Uint16 nbFrames;
-    anim_struct * animation[96];
+    Uint16 nbFrames; // Number of keyframes
+    anim_struct * animation[64];
 	GVPLY * pol;
 	FIXED * prematrix;
 } entity_t;

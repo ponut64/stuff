@@ -1,9 +1,6 @@
 #ifndef __MYMATH_H__
 # define __MYMATH_H__
 
-#include "jo/jo.h"
-#include "def.h"
-
 FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(FIXED * ptA, FIXED * ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);

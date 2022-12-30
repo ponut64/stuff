@@ -1,6 +1,12 @@
 //
+
+#include <jo/jo.h>
+#include "def.h"
+#include "bounder.h"
+#include "mloader.h"
+#include "render.h" 
+
 #include "tga.h"
-#include "render.h" //Weird mutual include exception, sorry!
 
 unsigned int * cRAM_24bm = (unsigned int *)0x05F00000;
 unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;

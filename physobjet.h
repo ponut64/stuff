@@ -1,12 +1,5 @@
 #ifndef __PHYSOBJET_H__
-# define __PHYSOBJET_H__
-
-#include "jo/jo.h"
-#include "def.h"
-#include "mymath.h"
-#include "bounder.h"
-#include "collision.h"
-#include "ldata.h"
+#define __PHYSOBJET_H__
 
 #define CELL_CULLING_DIST_MED (10)
 #define CELL_CULLING_DIST_LONG (12)
@@ -31,6 +24,16 @@
 
 #define MAX_WOBJS (512)
 #define MAX_BUILD_OBJECTS (256)
+
+/*
+///////////////////////////////////////////////////////////////
+	ext_dat bitflag orientation for BUILD:
+		15 <- pop
+		14-12 <- will be 0x6 (1 1 0) for BUILD
+		11 - 4 <- Permutation series definition. Has the entity ID of the mesh (in the entity list) which this object is a permutation of.
+		If there is no permutation, this otherwise has the entity ID of the building object. 
+		3 - 0 <- unused
+*/
 
 //ext_dat bitflag orientation for ITEM:
 // 15 <- pop

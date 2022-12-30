@@ -1,19 +1,6 @@
 #ifndef __HMAP_H__
 # define __HMAP_H__
 
-#include <jo/jo.h>
-#include "def.h"
-#include "pcmstm.h"
-#include "draw.h"
-#include "vdp2.h"
-#include "minimap.h"
-#include "bounder.h"
-#include "mymath.h"
-#include "physobjet.h"
-//
-#include "dspm.h"
-//
-
 typedef struct{
 	POINT verts[4];
 } _pquad;

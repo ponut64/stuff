@@ -1,5 +1,20 @@
 
+#include <jo/jo.h>
+#include "def.h"
+#include "pcmsys.h"
+#include "input.h"
+#include "control.h"
+#include "mloader.h"
+#include "bounder.h"
+#include "physobjet.h"
+#include "collision.h"
+#include "render.h"
+#include "draw.h"
+#include "mymath.h"
+#include "hmap.h"
+
 #include "player_phy.h"
+
 #define PLR_FWD_SPD (32768)
 #define PLR_RVS_SPD (32768)
 #define PLR_STRF_SPD (32768)
@@ -19,6 +34,44 @@ so jetting near the ground when skiing will be your control method.
 I mean, this *was* an essential part of what made tribes fun to play. Limited capacity to move like an angel...
 
 */
+
+void reset_player(void)
+{
+	you.mass = 250<<16;
+	
+	hmap_matrix_pos[X] = 0;
+	hmap_matrix_pos[Z] = 0;
+	you.hitMap = false;
+	you.hitSurface = false;
+	you.hitWall = false;
+	you.okayStepSnd = true;
+    you.pos[X]=you.startPos[X];
+    you.pos[Y]=you.startPos[Y];
+    you.pos[Z]=you.startPos[Z];
+    you.prevPos[X]=0;
+    you.prevPos[Y]=(255<<16);
+    you.prevPos[Z]=0;
+    you.rot[X]=0;
+    you.rot[Y]=0;
+    you.rot[Z]=0;
+    you.viewRot[X]=0;
+    you.viewRot[Y]=0;
+    you.viewRot[Z]=0;
+    you.moment[X]=0;
+    you.moment[Y]=0;
+    you.moment[Z]=0;
+    you.velocity[X]=0;
+    you.velocity[Y]=0;
+    you.velocity[Z]=0;
+    you.Force[X]=0;
+    you.Force[Y]=0;
+    you.Force[Z]=0;
+	you.IPaccel=0;
+	you.id = 0;
+	you.power = 0;
+	you.maxPower = 4;
+}
+
 
 void pl_jump(void){
 		if(you.velocity[Y] > 0){

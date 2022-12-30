@@ -1,11 +1,5 @@
 #ifndef __COLLISION_H__
-# define __COLLISION_H__
-
-#include "def.h"
-#include "draw.h"
-#include "bounder.h"
-#include "mymath.h"
-#include "physobjet.h"
+#define __COLLISION_H__
 
 #define HIT_TOLERANCE (6553)
 

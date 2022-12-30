@@ -1,6 +1,17 @@
 //hmap_col.c
 //This file is compiled separately.
-//Note: Function/data definitions included in hmap.h 
+//Note: Function/data definitions included in hmap.h
+
+#include <jo/jo.h>
+#include "def.h"
+#include "mymath.h"
+#include "bounder.h"
+#include "collision.h"
+#include "physobjet.h"
+//
+#include "dspm.h"
+//
+
 
 #include "hmap.h"
 

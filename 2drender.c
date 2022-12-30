@@ -2,6 +2,12 @@
 //	2drender.c
 //
 
+#include "jo/jo.h"
+#include "def.h"
+#include "mloader.h"
+#include "mymath.h"
+#include "bounder.h"
+
 #include "render.h"
 
 void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int time)
@@ -90,7 +96,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 	*/
         /**calculate z**/
         ssh2VertArea[0].pnt[Z] = trans_pt_by_component(spr->pos, m2z);
-		ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > nearP) ? ssh2VertArea[0].pnt[Z] : nearP;
+		ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
 
          /**Starts the division**/
         SetFixDiv(MsScreenDist, ssh2VertArea[0].pnt[Z]);
@@ -112,12 +118,12 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 		ssh2VertArea[0].clipFlag |= ((ssh2VertArea[0].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[0].clipFlag; 
 		ssh2VertArea[0].clipFlag |= ((ssh2VertArea[0].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[0].clipFlag;
 		ssh2VertArea[0].clipFlag |= ((ssh2VertArea[0].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[0].clipFlag;
-		//ssh2VertArea[0].clipFlag |= ((ssh2VertArea[0].pnt[Z]) <= nearP) ? CLIP_Z : ssh2VertArea[0].clipFlag;
+		//ssh2VertArea[0].clipFlag |= ((ssh2VertArea[0].pnt[Z]) < NEAR_PLANE_DISTANCE) ? CLIP_Z : ssh2VertArea[0].clipFlag;
 	
 		transVerts[0] += 1;
 		
-		//If the vertice is off-screen, return.
-		if(ssh2VertArea[0].clipFlag) return;
+		//If the vertice is off-screen or too far away, return.
+		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
 		int used_span = (spr->span * inverseZ)>>16;
 		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + used_span, ssh2VertArea[0].pnt[Y] + used_span};
 		FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - used_span, ssh2VertArea[0].pnt[Y] - used_span};

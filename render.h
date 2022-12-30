@@ -1,12 +1,6 @@
 #ifndef __RENDER_H__
 # define __RENDER_H__
 
-#include "jo/jo.h"
-#include "mloader.h"
-#include "def.h"
-#include "mymath.h"
-#include "bounder.h"
-
 #define VRAM_TEXTURE_BASE (0x10000) //Matches jo engine specification
 #define VDP1_VRAM 0x25C00000
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
@@ -31,6 +25,8 @@
 #define CLIP_Z 			(1<<4)
 #define LOW_Z 			(1<<5)
 
+#define NEAR_PLANE_DISTANCE (15<<16) //The minimum Z allowed
+#define FAR_PLANE_DISTANCE	(1000<<16) //The maximum Z allowed
 
 #define	MAX_DYNAMIC_LIGHTS (2)
 
@@ -100,8 +96,6 @@ extern MATRIX global_view_matrix;
 extern int * DVSR;
 extern int * DVDNTH;
 extern int * DVDNTL;
-extern FIXED nearP;
-extern FIXED farP;
 extern vertex_t ssh2VertArea[500];
 extern vertex_t msh2VertArea[300];
 extern _sprite	sprWorkList[MAX_SPRITES];

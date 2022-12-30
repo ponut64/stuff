@@ -1,8 +1,26 @@
 
 #include <jo/jo.h>
 
-#include "draw.h"
+
+#include "def.h"
+#include "mymath.h"
+#include "input.h"
+#include "control.h"
+#include "tga.h"
+#include "mloader.h"
+#include "bounder.h"
+#include "render.h"
+#include "physobjet.h"
+#include "hmap.h"
+#include "player_phy.h"
+#include "object_col.h"
+#include "collision.h"
+//
+#include "dspm.h"
+//
 #include "height.h"
+
+#include "draw.h"
 
 FIXED sun_light[3] = {5000, -20000, 0};
 //Player Model

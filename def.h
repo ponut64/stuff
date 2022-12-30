@@ -2,9 +2,7 @@
 #ifndef __DEF_H__
 # define __DEF_H__
 
-//def.h -- the catch-all "i dunno where else this goes" file
-#include "input.h"
-#include "pcmsys.h"
+//def.h -- the catch-all "i dunno where else this goes" files
 
 //////////////////////////////////
 // Uniform grid cell information / shorthands
@@ -122,6 +120,7 @@ extern _player you;
 //Variables
 extern bool usePolyLine;
 extern POINT zPt;
+extern POINT alwaysLow;
 //Lives in main.c
 extern short * division_table;
 //System

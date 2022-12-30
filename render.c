@@ -1,3 +1,9 @@
+#include "jo/jo.h"
+#include "def.h"
+#include "mloader.h"
+#include "mymath.h"
+#include "bounder.h"
+
 #include "render.h"
 #include "anorm.h"
 
@@ -25,8 +31,7 @@ int * transVerts;
 int * transPolys;
 int anims;
 
-	FIXED	nearP	= 15<<16; // The minimum Z allowed
-	FIXED	farP	= 1000<<16; // The highest Z allowed
+
 	
 /*
 
@@ -403,7 +408,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
     {
         /**calculate z**/
         ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > nearP) ? ssh2VertArea[i].pnt[Z] : nearP;
+		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
 
          /**Starts the division**/
         SetFixDiv(MsScreenDist, ssh2VertArea[i].pnt[Z]);
@@ -425,7 +430,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[i].clipFlag; 
 		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[i].clipFlag;
 		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[i].clipFlag;
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Z]) <= nearP) ? CLIP_Z : ssh2VertArea[i].clipFlag;
+		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Z]) <= NEAR_PLANE_DISTANCE) ? CLIP_Z : ssh2VertArea[i].clipFlag;
     }
 
     transVerts[0] += model->nbPoint;
@@ -472,7 +477,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		}
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
@@ -580,7 +585,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
     {
         /**calculate z**/
         msh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		msh2VertArea[i].pnt[Z] = (msh2VertArea[i].pnt[Z] > nearP) ? msh2VertArea[i].pnt[Z] : nearP;
+		msh2VertArea[i].pnt[Z] = (msh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
  
          /**Starts the division**/
         SetFixDiv(MsScreenDist, msh2VertArea[i].pnt[Z]);
@@ -631,7 +636,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
 		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
@@ -810,7 +815,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		#pragma GCC pop_options
         /**calculate z**/
         ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > nearP) ? ssh2VertArea[i].pnt[Z] : nearP;
+		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
  
          /**Starts the division**/
         SetFixDiv(MsScreenDist, ssh2VertArea[i].pnt[Z]);
@@ -864,7 +869,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt <= nearP || zDepthTgt >= farP ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		///////////////////////////////////////////

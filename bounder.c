@@ -4,6 +4,10 @@ This file is compiled separately.
 
 ///HIGH LEVEL ALERT///
 /**THIS FUNCTION HAS HIGH PROBABILITY OF CAUSING CRITICAL GLITCHES**/
+#include <jo/jo.h>
+#include "def.h"
+#include "mymath.h"
+
 
 #include "bounder.h"
 

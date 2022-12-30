@@ -2,6 +2,24 @@
 //This file is compiled separately.
 //hmap.c
 
+#include <jo/jo.h>
+#include "def.h"
+#include "pcmstm.h"
+#include "pcmsys.h"
+#include "bounder.h"
+#include "mloader.h"
+#include "physobjet.h"
+#include "render.h"
+#include "tga.h"
+#include "draw.h"
+#include "ldata.h"
+#include "vdp2.h"
+#include "minimap.h"
+#include "mymath.h"
+//
+#include "dspm.h"
+//
+
 #include "hmap.h"
 
 Uint8 * main_map = (Uint8*)LWRAM;
@@ -231,31 +249,42 @@ __jo_force_inline int		texture_angle_resolver(int baseTex, FIXED * norm, int * f
 	int texno = 0;
 	*flip = 0;
 	
+	//This code segment tries to orient textures consistently so that "bottom" on a texture is facing "down".
+	// Basically, since we are on a height-map, the normal of the polygon is used to determine the slope of the polygon.
+	// So we're trying to make an arrow from the top of the texture to the bottom of it follow the slope down.
 	if(absN[X] <= 4096 && absN[Z] <= 4096)
 	{
 		texno = 0;
 	} else {
+		//In this first branch, we are deciding whether to use the "facing east/west" or "facing north/south" texture.
 		if(absN[X] > absN[Z]){
+			// X is greater than Z, should be facing on X+/-, henceforth, use the X+ texture.
 					if(absN[X] < 24576)
 					{
+					// In this branch, we have a relatively low X value, so we should use a "gentle slope-ish" texture.
+					// We also determine if we should use a texture which splits the directions of X and Z.
+					// "facing northeast, northwest, southwest, southeast"
 			texno += (absN[Z] > 8192) ? 2 : 3;
-			*flip = (norm[X] > 0) ? FLIPH : 0;
-			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
+			*flip = (norm[X] > 0) ? 0 : FLIPH;
+			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? 0 : FLIPV; //Condition for "if ABS(norm[Z]) >= 8192 and norm[Z] < 8192", saves branch
 					} else {
+					//In this branch, we have a high X value, so we use a more wall-ish or rocky type texture. Up to the artist.
+					// We do the same logic as above and detect if it's also facing Z a lot too.
 			texno += (absN[Z] > 16384) ? 5 : 6;
-			*flip = (norm[X] > 0) ? FLIPH : 0;
-			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? FLIPV : 0;
+			*flip = (norm[X] > 0) ? 0 : FLIPH;
+			*flip += ( ((norm[Z] & -1) | 57344) > 0 ) ? 0 : FLIPV;
 					}
 		} else {
+			//This section is the same as the previous, except sign-adjusted for the Z axis.
 					if(absN[Z] < 24576)
 					{
 			texno += (absN[X] > 8192) ? 2 : 1;
-			*flip = (norm[Z] > 0) ? FLIPV : 0;
-			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
+			*flip = (norm[Z] > 0) ?  0 : FLIPV;
+			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? 0 : FLIPH;
 					} else {
 			texno += (absN[X] > 16384) ? 5 : 4;
-			*flip = (norm[Z] > 0) ? FLIPV : 0;
-			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? FLIPH : 0;
+			*flip = (norm[Z] > 0) ?  0 : FLIPV;
+			*flip += ( ((norm[X] & -1) | 57344) > 0 ) ? 0 : FLIPH;
 					}
 		}
 	}
@@ -424,7 +453,10 @@ void	process_map_for_normals(void)
 	//	This loop finds when there is a gap in the texture tables.
 	//	Textures whom are adjacent to textures using a different texture table will receive a dither assignment.
 	/////////////////////////////
-	for(int k = 0; k < (main_map_y_pix-1); k++){
+	/// There is a bug in this code segment causing an improperly sized texture to be used:
+	/// It will use the four-way combined texture both far and near, this is incorrect.
+	/// I am unsure of the cause.
+/* 	for(int k = 0; k < (main_map_y_pix-1); k++){
 		for(int v = 0; v < (main_map_x_pix-1); v++){
 
   			int this_texture = mapTex[counted_poly];
@@ -448,7 +480,7 @@ void	process_map_for_normals(void)
 				}
 			counted_poly++;
 		}
-	}
+	} */
 	counted_poly = 0;
 	
 	///////////////////////////////////////////////
@@ -989,7 +1021,7 @@ void	update_hmap(MATRIX msMatrix)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /**calculate z**/
         msh2VertArea[dst_pix].pnt[Z] = trans_pt_by_component(polymap->pntbl[dst_pix], m2z);
-		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > nearP) ? msh2VertArea[dst_pix].pnt[Z] : nearP;
+		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[dst_pix].pnt[Z] : NEAR_PLANE_DISTANCE;
 		verts_without_inverse_z[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
          /**Starts the division**/
         SetFixDiv(MsScreenDist, msh2VertArea[dst_pix].pnt[Z]);
@@ -1097,7 +1129,7 @@ void	update_hmap(MATRIX msMatrix)
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
 		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
-		if((cross0 >= cross1) || offScrn || zDepthTgt <= nearP || zDepthTgt >= farP || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //If any of the Z's are less than 100, render the polygon subdivided four ways.

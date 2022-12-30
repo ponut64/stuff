@@ -3,8 +3,6 @@
 #ifndef __TGA_H__
 # define __TGA_H__
 
-#include "jo/jo.h"
-
 extern unsigned int * cRAM_24bm;
 extern unsigned short * cRAM_16bm;
 

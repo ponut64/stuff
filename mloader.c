@@ -1,5 +1,11 @@
-#include "mloader.h"
+
+#include <jo/jo.h>
+#include "tga.h"
+
+#include "bounder.h"
 #include "physobjet.h"
+
+#include "mloader.h"
 
 entity_t entities[MAX_MODELS];
 unsigned int gouraudCounter;

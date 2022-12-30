@@ -5,11 +5,6 @@
 #ifndef __MINIMAP_H__
 # define __MINIMAP_H__
 
-#include <jo/jo.h>
-#include "def.h"
-#include "draw.h"
-#include "hmap.h"
-
 extern unsigned char oneLineCt;
 
 void	init_minimap(void);

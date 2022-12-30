@@ -3,6 +3,7 @@
 // Note: this file is compiled separately
 //
 #include <jo/jo.h>
+#include "pcmsys.h"
 #include "pcmstm.h"
 
 	_pcm_stm_param stm;

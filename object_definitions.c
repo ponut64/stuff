@@ -95,7 +95,7 @@ _sobject Platf00 = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD,
+	.ext_dat = OBJECT,
 	.light_bright = 0
 };
 
@@ -116,6 +116,25 @@ _sobject Build01 = {
 	.ext_dat = BUILD,
 	.light_bright = 0
 };
+
+_sobject Build02 = {
+	.entity_ID = 13,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build03 = {
+	.entity_ID = 14,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
 
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
@@ -194,8 +213,10 @@ void	fill_obj_list(void)
 	objList[10] = &Platf00;
 	objList[11] = &Build00;
 	objList[12] = &Build01;
-	objList[13] = &Player_Start_Location;
-	objList[14] = &PCM_Sound_Trigger;
+	objList[13] = &Build02;
+	objList[14] = &Build03;
+	objList[61] = &Player_Start_Location;
+	objList[62] = &PCM_Sound_Trigger;
 
 	objList[63] = &Empty;
 }

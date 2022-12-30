@@ -1,4 +1,9 @@
 
+#include <jo/jo.h>
+#include "def.h"
+#include "mymath.h"
+#include "hmap.h"
+
 #include "minimap.h"
 
 unsigned char oneLineCt = 51;
