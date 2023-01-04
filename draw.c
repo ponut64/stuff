@@ -6,10 +6,8 @@
 #include "mymath.h"
 #include "input.h"
 #include "control.h"
-#include "tga.h"
-#include "mloader.h"
-#include "bounder.h"
 #include "render.h"
+#include "tga.h"
 #include "physobjet.h"
 #include "hmap.h"
 #include "player_phy.h"
@@ -101,6 +99,8 @@ void	computeLight(void)
 		//Next, set the sun light.
 		active_lights[0].pop = 1;
 		active_lights[0].ambient_light = &sun_light[0];
+		active_lights[0].min_bright = 10000;
+		active_lights[0].bright = 0;
 		//////////////////////////////////////////////////////////////////////////////////////
 		// Math Cluster to brighten or darken the background color, depending on how high the sun light is.
 		//////////////////////////////////////////////////////////////////////////////////////
@@ -307,9 +307,9 @@ void	obj_draw_queue(void)
 
 	for(int s = 0; s < 64; s++)
 	{
-		if(sprWorkList[s].time >= 0)
+		if(sprWorkList[s].lifetime >= 0)
 		{
-			sprWorkList[s].time -= delta_time;
+			sprWorkList[s].lifetime -= delta_time;
 			if(sprWorkList[s].type == 'B')
 			{
 				ssh2BillboardScaledSprite(&sprWorkList[s]);

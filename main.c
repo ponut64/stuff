@@ -19,14 +19,12 @@ I am sorry for the pain you had to go through.
 //
 #include "anidefs.h"
 
-#include "bounder.h"
+#include "render.h"
 #include "collision.h"
 #include "control.h"
-#include "mloader.h"
 #include "hmap.h"
 #include "vdp2.h"
 #include "physobjet.h"
-#include "render.h"
 #include "tga.h"
 #include "ldata.h"
 #include "input.h"
@@ -48,7 +46,7 @@ I am sorry for the pain you had to go through.
 // My heightmap polygon model is using about 32KB.
 // And then there's just some... "raff" being used, here or there.
 // Let's say then your game code can use about 400KB of HWRAM.
-unsigned char hwram_model_data[256 * 1024];
+unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
 void * active_HWRAM_ptr;
 //
 
@@ -219,12 +217,13 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRACKOB2.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALKWAL.GVP",		active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HTUNNEL.GVP",		active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SLTUNNL.GVP",		active_HWRAM_ptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 
 	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(03);
+	p64MapRequest(02);
 	//
 	
 }
@@ -293,6 +292,7 @@ void	jo_main(void)
 	//
 	
 	fill_obj_list();
+	init_entity_list();
 	
 	//load_test();
 	attributions();

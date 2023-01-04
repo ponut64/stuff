@@ -2,8 +2,6 @@
 //contains per polygon collision work
 #include <jo/jo.h>
 #include "def.h"
-#include "mloader.h"
-#include "bounder.h"
 #include "mymath.h"
 #include "render.h"
 #include "player_phy.h"
@@ -17,14 +15,18 @@
 
 int prntidx = 0;
 
-void generate_rotated_entity_for_object(_declaredObject * object)
+// Purpose:
+// Generate a pre-rotated permutation of a mesh for use in building-type rendering / collision.
+// Efficient? No. Totally necessary? No. But easier to do this, than reconfigure those other code paths.
+void generate_rotated_entity_for_object(short declared_object_entry)
 {
 	///////////////////////////////////////////////////////
 	/*
 	Steps:
-	A. Sanity check: Does this entity already exist with this rotation? If so, use that entity, and abort.
 	1: Identify which entity ID this is
+	A. Sanity check: Does this entity already exist with this rotation? If so, use that entity, and abort.
 	2: Identify which entity ID we should use (...uh oh)
+	B. Sanity check: Are there any available entity IDs? If not, abort.
 	3: Create a new entity with the identical parameters to the type of the object
 	4: Identify a new, usable, safe place in HWAM to use
 	5: Copy the pntbl and pltbl of the mesh to this new place in HWRAM
@@ -35,8 +37,130 @@ void generate_rotated_entity_for_object(_declaredObject * object)
 	*/
 	///////////////////////////////////////////////////////
 	
+
 	//Sanity Checks
+	_declaredObject * object = &dWorldObjects[declared_object_entry];
+	short this_entity_ID = object->type.entity_ID;
+	short new_entity_ID = -1;
 	
+	//First, we should not check further if the declared object we are looking at has a number higher than the current one.
+	//The reason being that objects declared later than this declaration could not possibly have rotated meshes generated yet.
+	for(int i = 0; i < declared_object_entry; i++)
+	{
+		if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+		{
+			short other_entity_id = (dWorldObjects[i].type.ext_dat & 0x0FF0)>>4;
+			if(other_entity_id == this_entity_ID && dWorldObjects[i].rot[X] == object->rot[X]
+			&& dWorldObjects[i].rot[Y] == object->rot[Y] && dWorldObjects[i].rot[Z] == object->rot[Z])
+			{
+				//In this case, the two objects match rotation and thus should use the same entity ID.
+				//No additional work is needed.
+				object->type.entity_ID = dWorldObjects[i].type.entity_ID;
+				return;
+			}
+		}
+	}
+	
+	//In this sanity-check, we look and see if there are any available entity slots.
+	//An entity slot will be full if "file_done" is boolean "true" (has any data).
+	//In addition, this also picks the slot we should use.
+	for(int i = 0; i < MAX_MODELS; i++)
+	{
+		if(!entities[i].file_done)
+		{
+			new_entity_ID = i;
+			break;
+		}
+	}
+	//If there were no entity slots available, the new entity ID will not be set.
+	//It will remain -1. In this case, we will abort.
+	if(new_entity_ID == -1) return;
+	
+	/////////////////////////////////////////////////////
+	/*
+	
+	At this point in the code, we have confirmed two things:
+	1. This rotation of a building object is unique.
+	2. There is an available slot in the entity list.
+	
+	We have NOT confirmed:
+	1. If there is enough memory available for the model
+	2. Where we will put the model in memory
+	
+	We will check #2. However, we won't check #1, at least not in this version.
+	#2 will be the "active HWRAM pointer". This pointer is to the HWRAM model data heap.
+	
+	We now need to set the declared object's type to use the new entity ID number.
+	We will also need to copy all other parameters from the old entity_t to the new entity_t, then change the pointers in entity->pol.
+	
+	*/
+	/////////////////////////////////////////////////////
+	
+	//Set type, and copy entity parameters.
+	object->type.entity_ID = new_entity_ID;
+	entities[new_entity_ID] = entities[this_entity_ID];
+	
+	
+	//Set a new address for the model drawing header (GVPLY struct)
+	GVPLY * oldMesh = entities[this_entity_ID].pol;
+	GVPLY * newMesh = (GVPLY *)active_HWRAM_ptr;
+	// Don't forget to tell the new entity to use the new GVPLY
+	entities[new_entity_ID].pol = newMesh;
+	// Copying
+	newMesh->attbl = oldMesh->attbl;
+	newMesh->nbPoint = oldMesh->nbPoint;
+	newMesh->nbPolygon = oldMesh->nbPolygon;
+	//
+	active_HWRAM_ptr += sizeof(GVPLY);
+	//Set a new memory address for the pntbl & pltbl.
+	newMesh->pntbl = (POINT *)active_HWRAM_ptr;
+	active_HWRAM_ptr += sizeof(POINT) * oldMesh->nbPoint;
+	newMesh->pltbl = (POLYGON *)active_HWRAM_ptr;
+	active_HWRAM_ptr += sizeof(POLYGON) * oldMesh->nbPolygon;
+	//Get the number of points and polygons.
+	short numPt = oldMesh->nbPoint;
+	short numPly = oldMesh->nbPolygon;
+	
+	//Make rotation parameters.
+	
+	bound_box_starter.x_location = 0;
+	bound_box_starter.y_location = 0;
+	bound_box_starter.z_location = 0;
+	
+	bound_box_starter.x_rotation = object->rot[X];
+	bound_box_starter.y_rotation = object->rot[Y];
+	bound_box_starter.z_rotation = object->rot[Z];
+	
+	bound_box_starter.x_radius = 1<<16;
+	bound_box_starter.y_radius = 1<<16;
+	bound_box_starter.z_radius = 1<<16;
+	
+	_boundBox temp_box;
+	
+	bound_box_starter.modified_box = &temp_box;
+	//... Evil function. Evil!! But I love it, so we keep it.
+	make2AxisBox(&bound_box_starter);
+	
+	//Data copying with rotation
+	for(int i = 0; i < numPt; i++)
+	{
+		newMesh->pntbl[i][X] = fxdot(oldMesh->pntbl[i], temp_box.UVX);
+		newMesh->pntbl[i][Y] = fxdot(oldMesh->pntbl[i], temp_box.UVY);
+		newMesh->pntbl[i][Z] = fxdot(oldMesh->pntbl[i], temp_box.UVZ);
+	}
+	
+	for(int i = 0; i < numPly; i++)
+	{
+		newMesh->pltbl[i].Vertices[0] = oldMesh->pltbl[i].Vertices[0];
+		newMesh->pltbl[i].Vertices[1] = oldMesh->pltbl[i].Vertices[1];
+		newMesh->pltbl[i].Vertices[2] = oldMesh->pltbl[i].Vertices[2];
+		newMesh->pltbl[i].Vertices[3] = oldMesh->pltbl[i].Vertices[3];
+		
+		newMesh->pltbl[i].norm[X] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVX);
+		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
+		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
+	}
+	//Done!
 }
 
 //////////////////////////////////
@@ -1314,13 +1438,14 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//	if(luma > 0) break; // Early exit
 		}
 		luma = (luma < 0) ? 0 : luma; 
-		luma += fxdot(mesh->pltbl[i].norm, active_lights[0].ambient_light); 
-		//Use transformed normal as shade determinant
+		luma += fxdot(mesh->pltbl[i].norm, active_lights[0].ambient_light) + active_lights[0].min_bright; 
+		determine_colorbank(&colorBank, &luma);
+/* 		//Use transformed normal as shade determinant
 		colorBank = (luma >= 98294) ? 0 : 1;
 		colorBank = (luma < 49152) ? 2 : colorBank;
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
-			
+ */			
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 					ptv[2]->pnt, ptv[3]->pnt,
 		VDP1_BASE_CMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit

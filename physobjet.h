@@ -168,7 +168,7 @@ typedef struct {
 	_sobject type;
 	int		dist; 
 	short	more_data;
-	short	link;
+	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
 } _declaredObject;
 
 //extern _declaredObject dWorldObjects[257];

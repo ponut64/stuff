@@ -6,10 +6,8 @@
 #include "def.h"
 #include "pcmstm.h"
 #include "pcmsys.h"
-#include "bounder.h"
-#include "mloader.h"
-#include "physobjet.h"
 #include "render.h"
+#include "physobjet.h"
 #include "tga.h"
 #include "draw.h"
 #include "ldata.h"
@@ -716,22 +714,6 @@ __jo_force_inline int		per_polygon_light(GVPLY * model, POINT wldPos, int polynu
 }
 
 ////////////////////////////
-// Light shade determinant function
-////////////////////////////
-__jo_force_inline void determine_colorbank(unsigned short * colorBank, int * luma)
-{
-	//The point of the shades:
-	// 0: Overbright / Noon, direct sunlight
-	// 1: Lit / Overcast / Indoor light
-	// 2: Shaded / Dim light / Twilight
-	// 3: Full moon / Dark room
-	*colorBank = (*luma >= 73726) ? 0 : 1;
-	*colorBank = (*luma < 49152) ? 2 : *colorBank;
-	*colorBank = (*luma < 16384) ? 3 : *colorBank; 
-	*colorBank = (*luma < 0) ? 515 : *colorBank; //Make really dark? use MSB shadow
-}
-
-////////////////////////////
 // Helper data for dynamic polygon subdivision
 ////////////////////////////
 POINT verts_without_inverse_z[LCL_MAP_PIX * LCL_MAP_PIX];
@@ -927,7 +909,8 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 				}
 		}	
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
+		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
+		//In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1203,7 +1186,8 @@ void	update_hmap(MATRIX msMatrix)
 
 		luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(tempNorm, active_lights[0].ambient_light); //In normal "vision" however, bright light would do that..
+		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
+		//In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

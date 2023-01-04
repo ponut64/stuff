@@ -10,7 +10,7 @@
 
 #include "render.h"
 
-void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int time)
+void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int lifetime)
 {
 	int used_sprite = 64;
 	//Find an unused sprite list entry
@@ -24,7 +24,7 @@ void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char
 	}
 	if(used_sprite == 64) return;
 	
-	sprWorkList[used_sprite].time = time;
+	sprWorkList[used_sprite].lifetime = lifetime;
 	sprWorkList[used_sprite].pos[X] = position[X];
 	sprWorkList[used_sprite].pos[Y] = position[Y];
 	sprWorkList[used_sprite].pos[Z] = position[Z];

@@ -1,6 +1,8 @@
 #ifndef __COLLISION_H__
 #define __COLLISION_H__
 
+#include "bounder.h"
+
 #define HIT_TOLERANCE (6553)
 
 typedef struct {

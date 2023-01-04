@@ -199,7 +199,7 @@ void	sort_master_polys(void)
 }
 
 //If rendering a matrix-centered object (like a gun model or a third-person player model), set "negate coordinates" to Y.
-int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, char model_purpose)
+int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_floor, FIXED * prematrix, char model_purpose)
 {
 	
 	//model_purpose  .. where 'P' means "PLAYER".
@@ -272,7 +272,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, FIXED * prematrix, 
 					+ fxm(light_used->ambient_light[Y], prematrix[7])
 					+ fxm(-light_used->ambient_light[Z], prematrix[8]);
 	////////////////////////////////////////////////////
-	
+	*brightness_floor = (int)(light_used->min_bright);
 	////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/*
 	LIGHT PROCESSING
@@ -354,7 +354,7 @@ __jo_force_inline void determine_colorbank(unsigned short * colorBank, int * lum
 	*colorBank = (*luma >= 73726) ? 0 : 1;
 	*colorBank = (*luma < 49152) ? 2 : *colorBank;
 	*colorBank = (*luma < 16384) ? 3 : *colorBank; 
-	*colorBank = (*luma < 0) ? 515 : *colorBank; //Make really dark? use MSB shadow
+	*colorBank = (*luma < 8196) ? 515 : *colorBank; //Make really dark? use MSB shadow
 }
 
 
@@ -392,12 +392,14 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	
 	VECTOR lightAngle = {0, -65535, 0};
 	VECTOR ambient_light = {0, -65535, 0};
-	
+	int ambient_bright = 0;
 	
 	int bright = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, ent->prematrix, ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	} else {
+	ambient_bright = active_lights[0].min_bright;
 	}
 
 	FIXED luma;
@@ -524,8 +526,9 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		*/
 		//Preclipping is always enabled
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
-		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(model->pltbl[i].norm, ambient_light); //In normal "vision" however, bright light would do that..
+		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
+		luma += fxdot(model->pltbl[i].norm, ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 		
@@ -733,11 +736,14 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transpl
 	
 	VECTOR lightAngle = {0, -65535, 0};
 	VECTOR ambient_light = {0, -65535, 0};
+	int ambient_bright = 0;
 	
 	int bright = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, ent->prematrix, ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	} else {
+	ambient_bright = active_lights[0].min_bright;
 	}
 	
 	FIXED luma;
@@ -922,8 +928,9 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
         tNorm[Z]=ANORMS[*src2][Z];
 		//Transform the polygon's normal by light source vector
 		luma = fxm(-(fxdot(tNorm, lightAngle) + 32768), bright);
-		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(tNorm, ambient_light); //In normal "vision" however, bright light would do that..
+		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
+		luma += fxdot(tNorm, ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 		

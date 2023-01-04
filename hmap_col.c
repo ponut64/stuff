@@ -5,7 +5,6 @@
 #include <jo/jo.h>
 #include "def.h"
 #include "mymath.h"
-#include "bounder.h"
 #include "collision.h"
 #include "physobjet.h"
 //

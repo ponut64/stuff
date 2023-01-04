@@ -13,6 +13,7 @@
 #define MAP_V_SCALE (17) //Map data is shifted left by this amount
 //////////////////////////////////
 #define	HIMEM	(100679680)
+#define HWRAM_MODEL_DATA_HEAP_SIZE (256 * 1024)
 //////////////////////////////////
 #define UNCACHE (0x20000000)
 #define VDP2_RAMBASE (0x25E00000)
@@ -123,6 +124,7 @@ extern POINT zPt;
 extern POINT alwaysLow;
 //Lives in main.c
 extern short * division_table;
+extern void * active_HWRAM_ptr;
 //System
 extern unsigned char * dirty_buf;
 extern void * currentAddress;

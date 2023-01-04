@@ -1,6 +1,9 @@
 #ifndef __RENDER_H__
 # define __RENDER_H__
 
+#include "mloader.h"
+#include "bounder.h"
+
 #define VRAM_TEXTURE_BASE (0x10000) //Matches jo engine specification
 #define VDP1_VRAM 0x25C00000
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
@@ -55,7 +58,7 @@ Render data flags:
 // Engine's working struct for drawing raw sprites
 ///////////// /////////////////////
 typedef struct {
-	int time;			// Time (in fixed-point seconds) to allow the sprite to persist.
+	int lifetime;		// Time (in fixed-point seconds) to allow the sprite to persist.
 	POINT pos; 			//World-space position for billboard scaled sprites, screenspace top-left coordinate otherwise
 	short span; 		//Screenspace X/Y span, if a billboard.
 	short texno;		//Texture table number to use
@@ -69,7 +72,7 @@ typedef struct {
 typedef struct {
     POINT  pnt;
 	short clipFlag;
-} vertex_t; //13 bytes each
+} vertex_t; //14 bytes each
 
 //////////////////////////////////
 // Point light data struct
@@ -77,7 +80,8 @@ typedef struct {
 typedef struct {
 	FIXED * ambient_light;
 	int	pos[3];
-	unsigned short bright;
+	int min_bright; // Flat amount of brightness to add (or subtract). Make note that it is shifted left once in post.
+	short bright; //(signed) brightness. You can unbright with a light source if this is negative.
 	unsigned short pop;
 } point_light;
 
@@ -112,7 +116,7 @@ extern FIXED MsZlimit;
 
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
 void	ssh2BillboardScaledSprite(_sprite * spr);
-void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int time);
+void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, int lifetime);
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);
 void	SetFixDiv(FIXED dividend, FIXED divisor); //Defined as "dividend / divisor", for fixed points, using division unit
@@ -122,6 +126,7 @@ void	init_render_area(void);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
 void	update_gamespeed(void);
+void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	ssh2DrawModel(entity_t * ent);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
 void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transplant);

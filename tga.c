@@ -2,8 +2,6 @@
 
 #include <jo/jo.h>
 #include "def.h"
-#include "bounder.h"
-#include "mloader.h"
 #include "render.h" 
 
 #include "tga.h"

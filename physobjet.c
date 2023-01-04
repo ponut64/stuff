@@ -1,18 +1,15 @@
 #include "jo/jo.h"
 #include "def.h"
-#include "mloader.h"
 #include "pcmsys.h"
 #include "pcmstm.h"
 #include "mymath.h"
-#include "bounder.h"
+#include "render.h"
 #include "collision.h"
 #include "ldata.h"
 #include "hmap.h"
-#include "render.h"
-
+#include "object_col.h"
 
 #include "physobjet.h"
-#include "object_col.h"
 #include "object_definitions.c"
 
 
@@ -22,6 +19,7 @@ _buildingObject * BuildingPayload;
 unsigned short objNEW = 0; //objNEW is the total number of declared objects
 unsigned short objDRAW[MAX_WOBJS]; //objDRAW is a list of the delcared objects that will be drawn
 unsigned short activeObjects[MAX_WOBJS]; //activeObjects is a list of the declared objects that have some code running for them
+// Setting the link starts as -1 is what also sets that the last object in the list will link to -1.
 short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
 int trackTimers[16];
@@ -53,8 +51,20 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 			//This will not work if the polygon is rotated without the normal also being rotated with it.
 			//So, to facilitate rotating a BUILD-type object, we must create new PDATA with the rotation built in to it.
 			//The following function jumps to such a thing.
-			generate_rotated_entity_for_object(&dWorldObjects[objNEW]);
+			generate_rotated_entity_for_object(objNEW);
 			}
+		}
+		////////////////////////////////////////////////////
+		// If no radius was defined for the object, use the radius from the entity.
+		// Must check if the entity is loaded, or else out of bounds access may occur.
+		////////////////////////////////////////////////////
+		if((dWorldObjects[objNEW].type.ext_dat & OTYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
+			dWorldObjects[objNEW].type.radius[Y] == 0 && dWorldObjects[objNEW].type.radius[Z] == 0 &&
+			entities[dWorldObjects[objNEW].type.entity_ID].file_done)
+		{
+			dWorldObjects[objNEW].type.radius[X] = entities[dWorldObjects[objNEW].type.entity_ID].radius[X];
+			dWorldObjects[objNEW].type.radius[Y] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Y];
+			dWorldObjects[objNEW].type.radius[Z] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Z];
 		}
 	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
 	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
@@ -131,28 +141,35 @@ void	declarations(void)
 // declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
 /* level2? */
-//declare_object_at_cell(-(1240 / 40) + 1, -350, (1520 / 40), 11 /*build00*/, 0, 0, 0, 0);
+declare_object_at_cell((1640 / 40), -100, -(1840 / 40) + 1, 61 /*start location*/, 0, 0, 0, 0);
+
+declare_object_at_cell((1680 / 40), -189, -(1360 / 40) + 1, 15 /*build04*/, 0, 0, 0, 0);
+
 
 /* level3 ? */
 
-declare_object_at_cell(-(20 / 40) + 1, -120, (940 / 40), 61 /*start location*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(20 / 40) + 1, -120, (940 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-declare_object_at_cell((1420 / 40) + 1, -63,  -(1260 / 40), 11 /*build00*/, 0, 0, 0, 0);
+// declare_object_at_cell((1420 / 40) + 1, -63,  -(1260 / 40), 11 /*build00*/, 0, -20, 7, 0);
+// declare_object_at_cell((420 / 40) + 1, -352,  -(60 / 40), 11 /*build00*/, 0, 0, 0, 0);
 
-declare_object_at_cell((1770 / 40) + 1, -78,  -(1300 / 40), 12 /*build01*/, 0, 0, 0, 0);
 
-declare_object_at_cell((360 / 40) + 1, -99,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
-declare_object_at_cell((660 / 40) + 1, -71,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
 
-declare_object_at_cell((2340 / 40) + 1, -44,  -(1180 / 40), 13 /*build02*/, 0, 0, 0, 0);
+// declare_object_at_cell((1770 / 40) + 1, -78,  -(1300 / 40), 12 /*build01*/, 0, 0, 0, 0);
 
-declare_object_at_cell(-(20 / 40) + 1, -27,  (1300 / 40), 10 /*platf00?*/, 0, 0, 0, 0);
+// declare_object_at_cell((360 / 40) + 1, -99,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
+// declare_object_at_cell((660 / 40) + 1, -71,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
 
-declare_object_at_cell((1260 / 40) + 1, -128,  (1180 / 40), 12 /*build02*/, 0, 0, 0, 0);
-declare_object_at_cell((1620 / 40) + 1, -103,  (1020 / 40), 12 /*build02*/, 0, 0, 0, 0);
+// declare_object_at_cell((2340 / 40) + 1, -44,  -(1180 / 40), 13 /*build02*/, 0, 0, 0, 0);
 
-declare_object_at_cell((660 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
-declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(20 / 40) + 1, -60,  (1300 / 40), 10 /*block01*/, 0, 0, 0, 0);
+// declare_object_at_cell((420 / 40) + 1, -435,  -(60 / 40), 10 /*block01?*/, 0, 0, 0, 0);
+
+// declare_object_at_cell((1260 / 40) + 1, -128,  (1180 / 40), 12 /*build02*/, 0, 0, 0, 0);
+// declare_object_at_cell((1620 / 40) + 1, -103,  (1020 / 40), 12 /*build02*/, 0, 0, 0, 0);
+
+// declare_object_at_cell((660 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
 
 }
 
@@ -182,16 +199,14 @@ void	object_control_loop(int ppos[XY])
 	static int difY = 0;
 	static int position_difference[XYZ] = {0,0,0};
 	objUP = 0;
-	
-	unsigned short * used_radius;
 
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++){
 		
 		//jo_printf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
 		
-		difX = fxm(((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]), INV_CELL_SIZE)>>16; 
-		difY = fxm(((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]), INV_CELL_SIZE)>>16; 
+		difX = fxm(JO_ABS((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]) - (dWorldObjects[i].type.radius[X]<<16), INV_CELL_SIZE)>>16; 
+		difY = fxm(JO_ABS((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]) - (dWorldObjects[i].type.radius[Z]<<16), INV_CELL_SIZE)>>16; 
 
 		
 		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
@@ -199,7 +214,7 @@ void	object_control_loop(int ppos[XY])
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
-				if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
+				if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
 				{
 					//Get the position difference. This is uniquely used for level data collision.
 					//For now, at least.
@@ -255,224 +270,158 @@ void	object_control_loop(int ppos[XY])
 						}
 					}
 				}
-		} else if(difX > -CELL_CULLING_DIST_MED && difX < CELL_CULLING_DIST_MED && difY > -CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && objUP < MAX_PHYS_PROXY)
+		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && objUP < MAX_PHYS_PROXY)
 			{
-				////////////////////////////////////////////////////
-				// If no radius was defined for the object, use the radius from the entity.
-				// Must check if the entity is loaded, or else out of bounds access may occur.
-				////////////////////////////////////////////////////
-				if(dWorldObjects[i].type.radius[X] == 0 &&
-					dWorldObjects[i].type.radius[Y] == 0 &&
-					dWorldObjects[i].type.radius[Z] == 0
-					&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+
+				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
 				{
-				used_radius = entities[dWorldObjects[i].type.entity_ID].radius;
-				} else {
-				used_radius = dWorldObjects[i].type.radius;
-				}
-					if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
-					{
-						
-							////////////////////////////////////////////////////
-							//If a non-building object was in rendering range, specify it as being populated, 
-							//and give it matrix/bounding box parameters.
-							////////////////////////////////////////////////////
-						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = dWorldObjects[i].pos[X];
-						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-						- (main_map[
-						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));*/
-						//
-						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-						bound_box_starter.x_rotation = dWorldObjects[i].rot[X];
-						bound_box_starter.y_rotation = dWorldObjects[i].rot[Y];
-						bound_box_starter.z_rotation = dWorldObjects[i].rot[Z];
+					////////////////////////////////////////////////////
+					//If a non-building object was in rendering range, specify it as being populated, 
+					//and give it matrix/bounding box parameters.
+					////////////////////////////////////////////////////
+					bound_box_starter.modified_box = &RBBs[objUP];
+					bound_box_starter.x_location = dWorldObjects[i].pos[X];
+					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
+					- (main_map[
+					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+					]<<(MAP_V_SCALE));*/
+					//
+					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
+					bound_box_starter.x_rotation = dWorldObjects[i].rot[X];
+					bound_box_starter.y_rotation = dWorldObjects[i].rot[Y];
+					bound_box_starter.z_rotation = dWorldObjects[i].rot[Z];
 
-						bound_box_starter.x_radius = used_radius[X]<<16;
-						bound_box_starter.y_radius = used_radius[Y]<<16;
-						bound_box_starter.z_radius = used_radius[Z]<<16;
-								
-						make2AxisBox(&bound_box_starter);
+					bound_box_starter.x_radius = dWorldObjects[i].type.radius[X]<<16;
+					bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
+					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
+							
+					make2AxisBox(&bound_box_starter);
 
-							////////////////////////////////////////////////////
-							//Set the box status. This branch of the logic dictates the box is:
-							// 1. Render-able
-							// 2. Collidable
-							// 3. May or may not emit light
-							////////////////////////////////////////////////////
-							RBBs[objUP].status[0] = 'R';
-							RBBs[objUP].status[1] = 'C';
-							RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
-						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						//This array is meant as a list where iterative searches find the entity type drawn.
-						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-						activeObjects[objUP] = i;
-						//This tells you how many objects were updated.
-						objUP++; 
-						} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+						////////////////////////////////////////////////////
+						//Set the box status. This branch of the logic dictates the box is:
+						// 1. Render-able
+						// 2. Collidable
+						// 3. May or may not emit light
+						////////////////////////////////////////////////////
+						RBBs[objUP].status[0] = 'R';
+						RBBs[objUP].status[1] = 'C';
+						RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
+					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+					dWorldObjects[i].type.ext_dat |= OBJPOP;
+					//This array is meant as a list where iterative searches find the entity type drawn.
+					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+					activeObjects[objUP] = i;
+					//This tells you how many objects were updated.
+					objUP++; 
+					} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+				{
+						////////////////////////////////////////////////////
+						// Generate valid matrix parameters for the building.
+						////////////////////////////////////////////////////
+					bound_box_starter.modified_box = &RBBs[objUP];
+					bound_box_starter.x_location = dWorldObjects[i].pos[X];
+					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
+					- (main_map[
+					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+					]<<(MAP_V_SCALE));*/
+					//
+					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
+					bound_box_starter.x_rotation = 0;
+					bound_box_starter.y_rotation = 0;
+					bound_box_starter.z_rotation = 0;
+					
+					bound_box_starter.x_radius = dWorldObjects[i].type.radius[X]<<16;
+					bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
+					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
+							
+					make2AxisBox(&bound_box_starter);
+					
+					/////////////////////////////////////////////////////
+					// This object is a building. 
+					// If this building has not yet been checked for items registered to it,
+					// check the building payload list to see if there are any items assigned to its entity ID.
+					// If there are any, register them in the declared object list.
+					// After that, flag this building object's "more data" with something to say
+					// its items have already been registered.
+					/////////////////////////////////////////////////////
+					if(dWorldObjects[i].more_data == 0 &&
+						entities[dWorldObjects[i].type.entity_ID].file_done == true)
 					{
-							////////////////////////////////////////////////////
-							// Generate valid matrix parameters for the building.
-							////////////////////////////////////////////////////
-						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = dWorldObjects[i].pos[X];
-						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-						- (main_map[
-						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));*/
-						//
-						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-						bound_box_starter.x_rotation = 0;
-						bound_box_starter.y_rotation = 0;
-						bound_box_starter.z_rotation = 0;
-						
-						bound_box_starter.x_radius = used_radius[X]<<16;
-						bound_box_starter.y_radius = used_radius[Y]<<16;
-						bound_box_starter.z_radius = used_radius[Z]<<16;
-								
-						make2AxisBox(&bound_box_starter);
-						
-						/////////////////////////////////////////////////////
-						// This object is a building. 
-						// If this building has not yet been checked for items registered to it,
-						// check the building payload list to see if there are any items assigned to its entity ID.
-						// If there are any, register them in the declared object list.
-						// After that, flag this building object's "more data" with something to say
-						// its items have already been registered.
-						/////////////////////////////////////////////////////
-						if(dWorldObjects[i].more_data == 0 &&
-							entities[dWorldObjects[i].type.entity_ID].file_done == true)
+						for(int b = 0; b < total_building_payload; b++)
 						{
-							for(int b = 0; b < total_building_payload; b++)
-							{
-								declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
-							}
-							dWorldObjects[i].more_data = 1;
+							declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 						}
-							////////////////////////////////////////////////////
-							//Set the box status. 
-							//There isn't really a bound box for buildings.
-							//They only need to be rendered, and in a special way, too.
-							////////////////////////////////////////////////////
-							RBBs[objUP].status[0] = 'R';
-							RBBs[objUP].status[1] = 'C';
-							RBBs[objUP].status[2] = 'N';
-						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						//This array is meant as a list where iterative searches find the entity type drawn.
-						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-						activeObjects[objUP] = i;
-						//This tells you how many objects were updated.
-						objUP++; 
+						dWorldObjects[i].more_data = 1;
 					}
+						////////////////////////////////////////////////////
+						//Set the box status. 
+						//There isn't really a bound box for buildings.
+						//They only need to be rendered, and in a special way, too.
+						////////////////////////////////////////////////////
+						RBBs[objUP].status[0] = 'R';
+						RBBs[objUP].status[1] = 'C';
+						RBBs[objUP].status[2] = 'N';
+					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+					dWorldObjects[i].type.ext_dat |= OBJPOP;
+					//This array is meant as a list where iterative searches find the entity type drawn.
+					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+					activeObjects[objUP] = i;
+					//This tells you how many objects were updated.
+					objUP++; 
+				}
 			////////////////////////////////////////////////////
 			// Object in render-range end stub
 			////////////////////////////////////////////////////
-		} else if(difX > -CELL_CULLING_DIST_LONG && difX < CELL_CULLING_DIST_LONG && difY > -CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && objUP < MAX_PHYS_PROXY)
+		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && objUP < MAX_PHYS_PROXY)
 			{
-				////////////////////////////////////////////////////
-				// If no radius was defined for the object, use the radius from the entity.
-				// Must check if the entity is loaded, or else out of bounds access may occur.
-				////////////////////////////////////////////////////
-				if(dWorldObjects[i].type.radius[X] == 0 &&
-					dWorldObjects[i].type.radius[Y] == 0 &&
-					dWorldObjects[i].type.radius[Z] == 0
-					&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD && dWorldObjects[i].type.light_bright != 0)
 				{
-				used_radius = entities[dWorldObjects[i].type.entity_ID].radius;
-				} else {
-				used_radius = dWorldObjects[i].type.radius;
+				////////////////////////////////////////////////////
+				//If a non-building light-emitting object is in this larger range, add its light data to the light list.
+				//But do not flag it to render or be collision-tested.
+				////////////////////////////////////////////////////
+					bound_box_starter.modified_box = &RBBs[objUP];
+					bound_box_starter.x_location = dWorldObjects[i].pos[X];
+					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
+					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
+					- (main_map[
+					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
+					]<<(MAP_V_SCALE));*/
+					//
+					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
+					make2AxisBox(&bound_box_starter);
+						////////////////////////////////////////////////////
+						//Set the box status. This branch of the logic dictates the box is:
+						// 1. Not render-able
+						// 2. Not collide-able
+						// 3. May emit light
+						////////////////////////////////////////////////////
+						RBBs[objUP].status[0] = 'N';
+						RBBs[objUP].status[1] = 'N';
+						RBBs[objUP].status[2] = 'L';
+					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
+					dWorldObjects[i].type.ext_dat |= OBJPOP;
+					//This array is meant as a list where iterative searches find the entity type drawn.
+					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
+					activeObjects[objUP] = i;
+					//This tells you how many objects were updated.
+					objUP++; 
 				}
-					if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD && dWorldObjects[i].type.light_bright != 0)
-					{
-					////////////////////////////////////////////////////
-					//If a non-building light-emitting object is in this larger range, add its light data to the light list.
-					//But do not flag it to render or be collision-tested.
-					////////////////////////////////////////////////////
-						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = dWorldObjects[i].pos[X];
-						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-						- (main_map[
-						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));*/
-						//
-						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-						make2AxisBox(&bound_box_starter);
-							////////////////////////////////////////////////////
-							//Set the box status. This branch of the logic dictates the box is:
-							// 1. Not render-able
-							// 2. Not collide-able
-							// 3. May emit light
-							////////////////////////////////////////////////////
-							RBBs[objUP].status[0] = 'N';
-							RBBs[objUP].status[1] = 'N';
-							RBBs[objUP].status[2] = 'L';
-						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						//This array is meant as a list where iterative searches find the entity type drawn.
-						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-						activeObjects[objUP] = i;
-						//This tells you how many objects were updated.
-						objUP++; 
-					} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
-					{
-							////////////////////////////////////////////////////
-							// Generate valid matrix parameters for the building.
-							////////////////////////////////////////////////////
-						bound_box_starter.modified_box = &RBBs[objUP];
-						bound_box_starter.x_location = dWorldObjects[i].pos[X];
-						//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-						bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-						- (main_map[
-						(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-						]<<(MAP_V_SCALE));*/
-						//
-						bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-						bound_box_starter.x_rotation = 0;
-						bound_box_starter.y_rotation = 0;
-						bound_box_starter.z_rotation = 0;
-						
-						bound_box_starter.x_radius = used_radius[X]<<16;
-						bound_box_starter.y_radius = used_radius[Y]<<16;
-						bound_box_starter.z_radius = used_radius[Z]<<16;
-								
-						make2AxisBox(&bound_box_starter);
-
-							////////////////////////////////////////////////////
-							//Set the box status. 
-							//There isn't really a bound box for buildings.
-							//They only need to be rendered, and in a special way, too.
-							////////////////////////////////////////////////////
-							RBBs[objUP].status[0] = 'R';
-							RBBs[objUP].status[1] = 'C';
-							RBBs[objUP].status[2] = 'N';
-						//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-						dWorldObjects[i].type.ext_dat |= OBJPOP;
-						//This array is meant as a list where iterative searches find the entity type drawn.
-						objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
-						//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-						activeObjects[objUP] = i;
-						//This tells you how many objects were updated.
-						objUP++; 
-					}
 			////////////////////////////////////////////////////
 			// Object in light-range end stub
 			////////////////////////////////////////////////////
-					} else {
-						////////////////////////////////////////////////////
-						//If the declared object was not in range, specify it as being unpopulated.
-						////////////////////////////////////////////////////
-						activeObjects[objUP] = 256;
-						dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
-					}
+				} else {
+					////////////////////////////////////////////////////
+					//If the declared object was not in range, specify it as being unpopulated.
+					////////////////////////////////////////////////////
+					activeObjects[objUP] = 256;
+					dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
+				}
 			////////////////////////////////////////////////////
 			//Object control loop end stub
 			////////////////////////////////////////////////////
@@ -581,9 +530,9 @@ void	add_to_track_timer(int index)
 		{//WE FOUND SOME TRACK DATA
 			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; //Get the level data's track #
 			track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
-			if(track_select == object_track && (activeTrack == trackedLDATA || activeTrack == -1))
+			if(track_select == object_track && (activeTrack == track_select || activeTrack == -1))
 			{
-				activeTrack = trackedLDATA;
+				activeTrack = dWorldObjects[trackedLDATA].type.entity_ID & 0xF;
 				trackTimers[object_track] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
 				pcm_play(snd_button, PCM_PROTECTED, 7);
 				break;
@@ -919,15 +868,43 @@ void	test_gate_posts(int index, _boundBox * tgt)
 		}
 }
 
+//Idea:
+//Make function that handles going through the linked lists.
+_declaredObject * step_linked_object_list(_declaredObject * previous_entry)
+{
+	//In case the object is the last in the list, its link will be -1.
+	//So do not try to go deeper in the list.
+	//When we reach the last entry, return a safe, known memory address. In this case, the address of a new object.
+		if(previous_entry->link >= 0)
+		{
+	return (_declaredObject *)&dWorldObjects[previous_entry->link];
+		} else {
+	return (_declaredObject *)&dWorldObjects[objNEW];
+		}
+}
+
+_declaredObject * get_first_in_object_list(short object_type_specification)
+{
+	short first_object_id_num = link_starts[(object_type_specification & OTYPE)>>12];
+	if(first_object_id_num >= 0)
+	{
+	return (_declaredObject *)&dWorldObjects[first_object_id_num];
+	} else {
+	//There's no objects of this type, so just point to the next new object.
+	//It's safe, I guess? If there are open object slots....
+	return (_declaredObject *)&dWorldObjects[objNEW];
+	}
+}
+
 void	gate_track_manager(void)
 {
 	//Goal: Make a timer when you first pass through a gate ring or gate in a track
 	//The timer will reset, and reset all the gates in the track, when it exceeds the time setting by LDATA
 	//Also:
 	//If the player's speed goes lower than the setting of the track's LDATA, it will reset.
-	short trackedLDATA = link_starts[LDATA>>12];
-	short trackedPOST = link_starts[GATE_P>>12];
-	short trackedRING = link_starts[GATE_R>>12];
+	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
+	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
+	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
 	
 	static char track_reset[16] = 	{0, 0, 0, 0,
 									0, 0, 0, 0,
@@ -953,75 +930,88 @@ void	gate_track_manager(void)
 	// jo_printf(0, 16, "act(%i)", activeTrack);
 
 	
-	while(trackedLDATA != -1){
+	while(someLDATA != &dWorldObjects[objNEW]){
 				//jo_printf(0, 0, "(GTMN)"); //Debug ONLY
-		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
-		{//WE FOUND SOME TRACK DATA
-		track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; //Get the level data's track #
-		dWorldObjects[trackedLDATA].pix[X] = 0;
-		dWorldObjects[trackedLDATA].pix[Y] = 0;
-		trackedRING = link_starts[GATE_R>>12]; //Re-set this link pointer (so we can re-scan)
-		trackedPOST = link_starts[GATE_P>>12]; //Re-set this link pointer (so we can re-scan)
+		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA)
+		{
+		////////////////////////////////////////////////////////////////////////////////
+		//
+		// Level data, track data manager section
+		// It's messy.
+		//
+		////////////////////////////////////////////////////////////////////////////////
+		track_select = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
+		someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
+		someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
+		somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
+		someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
 		num_track_dat++;
 		//jo_printf(1, 12, "ldats(%i)", num_track_dat);
 		//jo_printf(1, 13, "track(%i)", track_select);
-				if(activeTrack == -1 || (activeTrack == trackedLDATA)) // if active track.. or track released
+				if(activeTrack == -1 || (activeTrack == track_select)) // if active track.. or track released
 					{
 					// jo_printf(0, 17, "ldt(%i)", trackedLDATA);
-					// jo_printf(0, 17, "ldt(%i)", dWorldObjects[trackedLDATA].more_data);
-			while(trackedRING != -1){
+					// jo_printf(0, 17, "ldt(%i)", someLDATA->more_data);
+			while(someRINGdata != &dWorldObjects[objNEW]){
 				//jo_printf(0, 0, "(RING)"); //Debug ONLY
-				object_track = (dWorldObjects[trackedRING].type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
+				object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(track_select == object_track)
 					{
-						if(dWorldObjects[trackedRING].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
+						//Special magic numbers checking, i guess?
+						if(someRINGdata->type.ext_dat & 0x1 && !(someLDATA->more_data & OBJPOP))
 						{
-							dWorldObjects[trackedLDATA].type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
-							dWorldObjects[trackedLDATA].pix[X]++;
+							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
+							//I forget why I set this?
+							someLDATA->pix[X]++;
 						}
-
-					dWorldObjects[trackedLDATA].pix[Y]++;
+					
+					//I still forget why I set this?
+					someLDATA->pix[Y]++;
 				//Reset if track reset enabled
 						if(track_reset[track_select] == true)
 						{
-						dWorldObjects[trackedRING].type.ext_dat &= 0xFFFE; 
+						//What even is track reset?
+						someRINGdata->type.ext_dat &= 0xFFFE; 
 						}
 					}
-			trackedRING = dWorldObjects[trackedRING].link;
+			someRINGdata = step_linked_object_list(someRINGdata);
 			}
 
-			while(trackedPOST != -1){
+			while(somePOSTdata != &dWorldObjects[objNEW]){
 				//jo_printf(0, 0, "(POST)"); //Debug ONLY
-				object_track = (dWorldObjects[trackedPOST].type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
+				object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 				////////////////////////////////////////////////////
 				// Flush the "checked collision yet" marker for gate posts.
-				dWorldObjects[trackedPOST].type.ext_dat &= 0xFFFD;
+				somePOSTdata->type.ext_dat &= 0xFFFD;
 					if(track_select == object_track)
 					{
-						if(dWorldObjects[trackedPOST].type.ext_dat & 0x1 && !(dWorldObjects[trackedLDATA].more_data & OBJPOP))
+						if(somePOSTdata->type.ext_dat & 0x1 && !(someLDATA->more_data & OBJPOP))
 						{
-							dWorldObjects[trackedLDATA].type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
-							dWorldObjects[trackedLDATA].pix[X]++;
+							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
+							// The "X" pix of track data level data is the number of passed gates in the track.
+							someLDATA->pix[X]++;
 						}
-					dWorldObjects[trackedLDATA].pix[Y]++;
+					//The "Y" pix of a track data level data is the total number of gates in the track.
+					//To complete the track, X must equal Y.
+					someLDATA->pix[Y]++;
 				//Reset if track reset enabled
 						if(track_reset[track_select] == true)
 						{
-						dWorldObjects[trackedPOST].type.ext_dat &= 0xFFFE; 
+						somePOSTdata->type.ext_dat &= 0xFFFE; 
 						}
 					}
-			trackedPOST = dWorldObjects[trackedPOST].link;
+			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
 			track_reset[track_select] = false;
 				//jo_printf(0, 0, "(LDAT)"); //Debug ONLY
 			//Track completion logic
-			if(dWorldObjects[trackedLDATA].pix[X] == dWorldObjects[trackedLDATA].pix[Y] && dWorldObjects[trackedLDATA].pix[X] != 0)
+			if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0)
 			{
-				dWorldObjects[trackedLDATA].type.ext_dat &= UNPOP;	//Set track as inactive
-				dWorldObjects[trackedLDATA].more_data |= OBJPOP;	//Set track as complete
+				someLDATA->type.ext_dat &= UNPOP;	//Set track as inactive
+				someLDATA->more_data |= OBJPOP;	//Set track as complete
 				trackTimers[track_select] = 0;	//Re-set the track timer
 				activeTrack = -1;	//Release active track
-				you.points += 10 * dWorldObjects[trackedLDATA].pix[X];
+				you.points += 10 * someLDATA->pix[X];
 				complete_tracks++;
 				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
 				slPrint("                           ", slLocate(0, 6));
@@ -1029,12 +1019,12 @@ void	gate_track_manager(void)
 			}
 
 			//Timer run & check
-			if((dWorldObjects[trackedLDATA].type.ext_dat & OBJPOP) != 0)
+			if((someLDATA->type.ext_dat & OBJPOP) != 0)
 			{
 				trackTimers[track_select] -= delta_time;
 					if(trackTimers[track_select] < 0) //If timer expired...
 					{
-						dWorldObjects[trackedLDATA].type.ext_dat &= UNPOP;
+						someLDATA->type.ext_dat &= UNPOP;
 						track_reset[track_select] = true; //Reset tracks; timer expired
 						trackTimers[track_select] = 0;
 						activeTrack = -1; //Release active track
@@ -1049,18 +1039,18 @@ void	gate_track_manager(void)
 		////////////////////////////////
 		/// Track data manager end stub
 		////////////////////////////////
-		} else if((dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
+		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
 		{
 				//if(you.points <= 0x15)
 				//{
 					//If you haven't crossed all the tracks, disable the level changer.
-				//	dWorldObjects[trackedLDATA].type.ext_dat &= 0xFF7F; 
+				//	someLDATA->type.ext_dat &= 0xFF7F; 
 				//} else {
 					//If you have enough points and crossed all the tracks, enable the level changer.
-					dWorldObjects[trackedLDATA].type.ext_dat |= 0x80;
+					someLDATA->type.ext_dat |= 0x80;
 			//	}
 		}
-		trackedLDATA = dWorldObjects[trackedLDATA].link;
+		someLDATA = step_linked_object_list(someLDATA);
 	}//while LDATA end
 	
 	//Completed all tracks, but only do anything if there are actually any tracks
@@ -1074,10 +1064,10 @@ void	gate_track_manager(void)
 	
 			if(activeTrack != -1){
 				slPrint("Find the other wreath!", slLocate(0, 6));
-				slPrintFX(trackTimers[dWorldObjects[activeTrack].type.entity_ID & 0xF], slLocate(0, 7));
+				slPrintFX(trackTimers[activeTrack], slLocate(0, 7));
 			}
 			
-	//slPrintHex(dWorldObjects[trackedLDATA].type.ext_dat, slLocate(13, 12));
+	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
 	//jo_printf(13, 12, "ac_trk(%i)", activeTrack);
 			
 	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));

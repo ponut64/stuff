@@ -8,7 +8,6 @@
 #include "mloader.h"
 
 entity_t entities[MAX_MODELS];
-unsigned int gouraudCounter;
 
 /**
 Modified by ponut for madness
@@ -247,5 +246,17 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	workAddress = (void*)aligning_address;
 	
 	return workAddress;
+}
+
+void	init_entity_list(void)
+{
+	int bytes_to_clear = sizeof(entity_t) * MAX_MODELS;
+	unsigned char * byte_pointer = (void*)&entities[0];
+	
+	for(int i = 0; i < bytes_to_clear; i++)
+	{
+		byte_pointer[i] = 0;
+	}
+	
 }
 

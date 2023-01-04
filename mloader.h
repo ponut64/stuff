@@ -78,7 +78,6 @@ typedef struct
 
 /**Store all your PDATA meshes here**/
 extern entity_t entities[MAX_MODELS];
-extern unsigned int gouraudCounter;
 
 void * loadPDATA(void * startAddress, entity_t * model);
 
@@ -91,6 +90,7 @@ void * loadTextures(void * workAddress, entity_t * model);
 /** This function loads a 3d polygonal model. Returns the last address in RAM (to allow loading multiple meshes)**/
 void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType);
 
+void	init_entity_list(void);
 
 #endif 
 
