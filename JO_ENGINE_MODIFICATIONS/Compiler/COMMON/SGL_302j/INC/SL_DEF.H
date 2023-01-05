@@ -28,8 +28,8 @@ typedef unsigned char	Uint8 ;		/* Unsigned 1-byte integer */
 typedef signed   char	Sint8 ;		/* Signed 1-byte integer */
 typedef unsigned short	Uint16 ;	/* Unsigned SmallInt */
 typedef signed   short	Sint16 ;	/* Signed SmallInt */
-typedef unsigned long	Uint32 ;	/* Unsigned 4-byte integer */
-typedef signed   long	Sint32 ;	/* Signed 4-byte integer */
+typedef unsigned int	Uint32 ;	/* Unsigned 4-byte integer */
+typedef signed   int	Sint32 ;	/* Signed 4-byte integer */
 typedef float		Float32 ;	/* 4 bytes Real */
 typedef double		Float64 ;	/* 8 bytes Real */
 
