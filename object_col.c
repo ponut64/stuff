@@ -163,44 +163,6 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	//Done!
 }
 
-//////////////////////////////////
-// Line-to-plane projection function
-// Line: p0->p1
-// point_on_plane : a point on the plane
-// unitNormal : the unit vector normal of the plane
-// output : the point at which the line intersects the plane
-// return value : whether or not the output point is between p0 and p1
-//////////////////////////////////
-bool	project_segment_to_plane_and_test(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ], FIXED unitNormal[XYZ], FIXED output[XYZ])
-{
-
-	FIXED line_scalar = 0;
-	FIXED vector_of_line[XYZ] = {0, 0, 0};
-	FIXED vector_to_plane[XYZ] = {0, 0, 0};
-	
-	vector_of_line[X] = p0[X] - p1[X];
-	vector_of_line[Y] = p0[Y] - p1[Y];
-	vector_of_line[Z] = p0[Z] - p1[Z];
-
-	vector_to_plane[X] = (point_on_plane[X] - p0[X]);
-	vector_to_plane[Y] = (point_on_plane[Y] - p0[Y]);
-	vector_to_plane[Z] = (point_on_plane[Z] - p0[Z]);
-	
-
-	line_scalar = fxdiv(fxdot(vector_to_plane, unitNormal), fxdot(vector_of_line, unitNormal));
-	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
-		return false;
-	}
-
-	output[X] = (p0[X] + fxm(vector_of_line[X], line_scalar));
-	output[Y] = (p0[Y] + fxm(vector_of_line[Y], line_scalar));
-	output[Z] = (p0[Z] + fxm(vector_of_line[Z], line_scalar));
-
-	return isPointonSegment(output, p0, p1);
-}
-
-
-
 
 int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 {
@@ -246,43 +208,43 @@ int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 	{
 		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		left = ((test_pt[Y] - plane_p0[Y])>>16) * ((plane_p1[Z] - plane_p0[Z])>>16);
-		right = ((test_pt[Z] - plane_p0[Z])>>16) * ((plane_p1[Y] - plane_p0[Y])>>16);
+		left = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
+		right = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
 		//slPrint("Discard X+", slLocate(2, 5));
 	} else if(discard == N_Zp)
 	{
 		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		left = ((test_pt[X] - plane_p0[X])>>16) * ((plane_p1[Y] - plane_p0[Y])>>16);
-		right = ((test_pt[Y] - plane_p0[Y])>>16) * ((plane_p1[X] - plane_p0[X])>>16);
+		left = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
+		right = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
 		//slPrint("Discard Z+", slLocate(2, 5));
 	} else if(discard == N_Yn)
 	{
 		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X]));
-		left = ((test_pt[X] - plane_p0[X])>>16) * ((plane_p1[Z] - plane_p0[Z])>>16);
-		right = ((test_pt[Z] - plane_p0[Z])>>16) * ((plane_p1[X] - plane_p0[X])>>16);
+		left = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
+		right = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
 		//slPrint("Discard Y+", slLocate(2, 5));
 	} else if(discard == N_Xn)
 	{
 		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		right = ((test_pt[Y] - plane_p0[Y])>>16) * ((plane_p1[Z] - plane_p0[Z])>>16);
-		left = ((test_pt[Z] - plane_p0[Z])>>16) * ((plane_p1[Y] - plane_p0[Y])>>16);
+		right = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
+		left = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
 		//slPrint("Discard X-", slLocate(2, 5));
 	} else if(discard == N_Zn)
 	{
 		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		right = ((test_pt[X] - plane_p0[X])>>16) * ((plane_p1[Y] - plane_p0[Y])>>16);
-		left = ((test_pt[Y] - plane_p0[Y])>>16) * ((plane_p1[X] - plane_p0[X])>>16);
+		right = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
+		left = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
 		//slPrint("Discard Z-", slLocate(2, 5));
 	} else if(discard == N_Yp)
 	{
 		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X])); 
-		right = ((test_pt[X] - plane_p0[X])>>16) * ((plane_p1[Z] - plane_p0[Z])>>16);
-		left = ((test_pt[Z] - plane_p0[Z])>>16) * ((plane_p1[X] - plane_p0[X])>>16);
+		right = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
+		left = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
 		//slPrint("Discard Y-", slLocate(2, 5));
 	}
 	// slPrint("Left:", slLocate(2, 7 + (prntidx * 2)));
@@ -384,7 +346,9 @@ prntidx = 0;
 				total_planes++;
 			}
 	}
-	
+	discard_vector[X] = 0;
+	discard_vector[Y] = 0;
+	discard_vector[Z] = 0;
 	//jo_printf(1, 15, "Total planes: (%i)", total_planes);
 	
 	//////////////////////////////////////////////////////////////
@@ -472,14 +436,14 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	if(!hitY)
 	{
-	lineChecks[Y] = project_segment_to_plane_and_test(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, lineEnds[Y]);
+	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, lineEnds[Y]);
 	} else {
 	lineChecks[Y] = false;
 	}
 	if(!hitXZ)
 	{
-	lineChecks[Z] = project_segment_to_plane_and_test(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, lineEnds[Z]);
-	lineChecks[X] = project_segment_to_plane_and_test(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, lineEnds[X]);	
+	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, lineEnds[Z]);
+	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, lineEnds[X]);	
 	} else {
 	lineChecks[Z] = false;
 	lineChecks[X] = false;
@@ -544,7 +508,7 @@ for(int i = 0; i < total_planes; i++)
 								you.floorNorm[Y] = used_normal[Y];
 								you.floorNorm[Z] = used_normal[Z];
 								
-								standing_surface_alignment(used_normal, you.rot);
+								standing_surface_alignment(used_normal, you.renderRot);
 								
 								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
@@ -1066,6 +1030,8 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	static FIXED m1y[4];
 	static FIXED m2z[4];
 	
+	//These can't have an orienation... eh, we'll do it anyway.
+	slMultiMatrix((POINT *)ent->prematrix);
     slGetMatrix(newMtx);
 	
 	m0x[0] = newMtx[X][X];
@@ -1166,7 +1132,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//Push to near-plane
 		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > 20<<16) ? subdivided_points[u][Z] : 20<<16;
 		//Get 1/z
-		inverseZ = fxdiv(MsScreenDist, ssh2VertArea[u].pnt[Z]);
+		inverseZ = fxdiv(scrn_dist, ssh2VertArea[u].pnt[Z]);
         //Transform to screen-space
         ssh2VertArea[u].pnt[X] = fxm(subdivided_points[u][X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[u].pnt[Y] = fxm(subdivided_points[u][Y], inverseZ)>>SCR_SCALE_Y;
@@ -1183,7 +1149,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 & ssh2VertArea[3].clipFlag) continue;
 		 
 	flags = mesh->attbl[i].render_data_flags;
-	//flip = GET_FLIP_DATA(flags);
 	zDepthTgt = GET_SORT_DATA(flags);
 		 
 	//////////////////////////////////////////////////////////////
@@ -1306,7 +1271,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//Push to near-plane
 		ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > 20<<16) ? subdivided_points[v][Z] : 20<<16;
 		//Get 1/z
-		inverseZ = fxdiv(MsScreenDist, ssh2VertArea[v].pnt[Z]);
+		inverseZ = fxdiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
         //Transform to screen-space
         ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
@@ -1364,37 +1329,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////
-//		flip = 0;
-//		pclp = 0; 
-//		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-//			//Incoming Arrangement:
-//			// 0 - 1		^
-//			//-------- Edge | Y-
-//			// 3 - 2		|
-//			//				
-//           ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-//           ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-//           flip ^= 1<<5; //sprite flip value [v flip]
-//			//Outgoing Arrangement:
-//			// 3 - 2		^
-//			//-------- Edge | Y-
-//			// 0 - 1		|
-//		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-//			//Incoming Arrangement:
-//			//	0 | 1
-//			//	3 | 2
-//			//	 Edge  ---> X+
-//           ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-//           ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-//           flip ^= 1<<4; //sprite flip value [h flip]
-//			//Outgoing Arrangement:
-//			// 1 | 0
-//			// 2 | 3
-//			//	Edge	---> X+
-//		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-//		{
-//			pclp = 2048; //Preclipping Disable
-//		} 
+		flip = GET_FLIP_DATA(flags);
+		preclipping(ptv, &flip, &pclp);
 		///////////////////////////////////////////
 		// Lighting Math
 		// Using some approximation of an inverse squared law

@@ -119,7 +119,6 @@ typedef struct {
 extern _player you;
 
 //Variables
-extern bool usePolyLine;
 extern POINT zPt;
 extern POINT alwaysLow;
 //Lives in main.c
@@ -131,34 +130,6 @@ extern void * currentAddress;
 extern int framerate;
 extern int frmul;
 extern volatile Uint32 * scuireg;
-
-typedef struct
-{
-	char reset_enable;
-	Uint8 arate[64];
-    Uint16 currentFrm;
-    Uint8 currentKeyFrm;
-    Uint8 startFrm;
-    Uint8 endFrm;
-} animationControl;
-
-extern animationControl idle;
-extern animationControl idleB;
-extern animationControl stop;
-extern animationControl fall;
-extern animationControl slideIdle;
-extern animationControl slideLln;
-extern animationControl slideRln;
-extern animationControl airIdle;
-extern animationControl airLeft;
-extern animationControl airRight;
-extern animationControl jump;
-extern animationControl hop;
-extern animationControl walk;
-extern animationControl run;
-extern animationControl dbound;
-
-extern animationControl flap;
 
 #endif
 

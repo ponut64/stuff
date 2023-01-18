@@ -29,7 +29,25 @@ void	master_draw_stats(void);
 void	object_draw(void);
 void	prep_map_mtx(void);
 void	master_draw(void);
-void	initCamera(void);
+
+
+extern animationControl idle;
+extern animationControl idleB;
+extern animationControl stop;
+extern animationControl fall;
+extern animationControl slideIdle;
+extern animationControl slideLln;
+extern animationControl slideRln;
+extern animationControl airIdle;
+extern animationControl airLeft;
+extern animationControl airRight;
+extern animationControl jump;
+extern animationControl hop;
+extern animationControl walk;
+extern animationControl run;
+extern animationControl dbound;
+
+extern animationControl flap;
 
 #endif
 

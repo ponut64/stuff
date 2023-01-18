@@ -1,4 +1,4 @@
-#include "jo/jo.h"
+#include <jo/jo.h>
 #include "def.h"
 #include "mloader.h"
 #include "mymath.h"
@@ -13,14 +13,15 @@
 
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
-vertex_t ssh2VertArea[500];
-vertex_t msh2VertArea[300];
-animationControl AnimArea[16];
+vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES];
+vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES];
+animationControl AnimArea[MAX_SIMULTANEOUS_ANIMATED_ENTITIES];
 _sprite sprWorkList[MAX_SPRITES];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
 point_light light_host[MAX_DYNAMIC_LIGHTS];
 point_light * active_lights;
 
+//Just a debug list, not a hard limit.
 entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
@@ -29,9 +30,28 @@ int * ssh2SentPolys;
 int * msh2SentPolys;
 int * transVerts;
 int * transPolys;
-int anims;
+int anims; //Current active animation count; increments animation control data work array.
+int scrn_dist; //Distance to projection screen surface
+
+// Software clipping settings.
+// Setting user clipping will also set these.
+short vert_clip_x = TV_HALF_WIDTH;
+short vert_clip_nx = -TV_HALF_WIDTH;
+short vert_clip_y = TV_HALF_HEIGHT;
+short vert_clip_ny = -TV_HALF_HEIGHT;
 
 
+int send_draw_stats; //Setting for sending draw stats to screen. 0 = no stats; 1 = send by sprites; 2 = send by NBG text
+	
+// Framebuffer Erase Region Settings
+unsigned short top_left_erase_pt = 0;
+#ifdef USE_HI_RES
+int hi_res_switch = 1;
+unsigned short btm_rite_erase_pt = ((TV_WIDTH / 16) << 9) | (TV_HALF_HEIGHT);
+#else
+int hi_res_switch = 0;
+unsigned short btm_rite_erase_pt = ((TV_WIDTH / 8) << 9) | (TV_HEIGHT);
+#endif
 	
 /*
 
@@ -50,7 +70,19 @@ int anims;
 	So yes, a 16x16 is not possible. It would have to be 32x8 at the smallest.
 */
 
-void	init_render_area(void)
+int get_screen_distance_from_fov(short desired_horizontal_fov)
+{
+	//Primitive: 90 - ((fov / 2) + 90)
+	int scrn_half_angle = 8192 - (desired_horizontal_fov >> 1) + 8192;
+
+	int scrn_scalar = slTan(scrn_half_angle);
+
+	int scrndist = fxm(scrn_scalar, (TV_HALF_WIDTH)<<16);
+
+	return scrndist;
+}
+
+void	init_render_area(short desired_horizontal_fov)
 {
 
 	for(int i = 0; i < MAX_SPRITES; i++)
@@ -59,6 +91,7 @@ void	init_render_area(void)
 		sprWorkList[i].type = 'N'; 
 	}
 
+	scrn_dist = get_screen_distance_from_fov(desired_horizontal_fov);
 	ssh2SentPolys = (int *)(((unsigned int)&dummy[0])|UNCACHE);
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
@@ -74,7 +107,27 @@ void	frame_render_prep(void)
 		transPolys[0] = 0;
 		anims = 0;
 		drawn_entity_count = 0;
+		vert_clip_x = TV_HALF_WIDTH;
+		vert_clip_nx = -TV_HALF_WIDTH;
+		vert_clip_y = TV_HALF_HEIGHT;
+		vert_clip_ny = -TV_HALF_HEIGHT;
+		
 }
+
+//Note: Set literal screen coordinates.
+///Use: Cordon off a region of the screen for drawing static items.
+///In this case, the static items do not need to be re-drawn every frame, and save VDP1 on performance.
+void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr)
+{
+		if(hi_res_switch){
+	top_left_erase_pt = ((xtl>>4) << 9) | (ytl>>1);
+	btm_rite_erase_pt = ((xbr>>4) << 9) | (ybr>>1);
+		} else {
+	top_left_erase_pt = ((xtl>>3) << 9) | (ytl);
+	btm_rite_erase_pt = ((xbr>>3) << 9) | (ybr);
+		}
+}
+
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 {
@@ -91,9 +144,9 @@ FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 		"xtrct r0,%[ox];"
 		"mov.l @r1,r0;"		//This last move and add is the matrix component position
 		"add r0,%[ox];"
-		: 	[ox] "=r" (transPt)											//OUT
-		:	[ptptr] "r" (ptx) ,	[nmptr] "r" (normal)					//IN
-		:	"r0" , "r1"													//CLOBBERS
+		: 	[ox] "=r" (transPt)							//OUT
+		:	[ptptr] "r" (ptx) ,	[nmptr] "r" (normal)	//IN
+		:	"r0" , "r1", "mach", "macl"					//CLOBBERS
 	);
 	return transPt;
 }							
@@ -152,7 +205,7 @@ void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdc
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry
 }
 
-__jo_force_inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
+inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
                                 Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty) {
 
@@ -182,6 +235,20 @@ __jo_force_inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED
 
 void	sort_master_polys(void)
 {
+	if(send_draw_stats == 1)
+	{
+		unsigned short txt_base = (hi_res_switch) ? 400 : 180;
+		spr_sprintf(8, txt_base, "Polygons in Scene:(%i)", transPolys[0]);
+		spr_sprintf(8, txt_base+15, "Sent Commands:(%i)", ssh2SentPolys[0] + msh2SentPolys[0]);
+		spr_sprintf(8, txt_base+30, "Transformed Verts:(%i)", transVerts[0]);
+	} else if(send_draw_stats == 2)
+	{
+		unsigned short txt_base = (hi_res_switch) ? 1 : 2;
+		nbg_sprintf(slLocate(txt_base, 24), "TRPLY:(%i)", transPolys[0]);
+		nbg_sprintf(slLocate(txt_base, 25), "SNTPL:(%i)", ssh2SentPolys[0] + msh2SentPolys[0]);
+		nbg_sprintf(slLocate(txt_base, 26), "VERTS:(%i)", transVerts[0]);
+	}
+	
 	SPRITE_T * user_sprite;
 	
 	for(int i = 0; i < msh2SentPolys[0]; i++)
@@ -344,27 +411,130 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 ////////////////////////////
 // Light shade determinant function
 ////////////////////////////
-__jo_force_inline void determine_colorbank(unsigned short * colorBank, int * luma)
+inline void determine_colorbank(unsigned short * colorBank, int * luma)
 {
 	//The point of the shades:
 	// 0: Overbright / Noon, direct sunlight
 	// 1: Lit / Overcast / Indoor light
 	// 2: Shaded / Dim light / Twilight
 	// 3: Full moon / Dark room
-	*colorBank = (*luma >= 73726) ? 0 : 1;
-	*colorBank = (*luma < 49152) ? 2 : *colorBank;
-	*colorBank = (*luma < 16384) ? 3 : *colorBank; 
-	*colorBank = (*luma < 8196) ? 515 : *colorBank; //Make really dark? use MSB shadow
+	// 4: Most lightless shade // Notice this shade cannot be used in hi-res mode (will just be shade #3)
+	*colorBank = (*luma >= 73726) ? 0x0 : 1;
+	*colorBank = (*luma < 49152) ? 0x2 : *colorBank;
+	*colorBank = (*luma < 16384) ? 0x3 : *colorBank; 
+	*colorBank = (*luma < 8196) ? 0x203 : *colorBank; //Make really dark? use MSB shadow
 }
 
 
+inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short * pclp)
+{
+	
+		///////////////////////////////////////////
+		// *flipping polygon such that vertex 0 is on-screen, or disable pre-clipping
+		// Costs some CPU time, beware. Improves VDP1 performance, especially important for hi-res mode.
+		///////////////////////////////////////////
+ 		if( (ptv[0]->clipFlag & 12) ){ //Vertical *flip
+			//Incoming Arrangement:
+			// 0 - 1		^
+			//-------- Edge | Y-
+			// 3 - 2		|
+			// ("12" is both Y- and Y+ exit. Why: Dual-plane polygons
+            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
+            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
+            *flip ^= 1<<5; //sprite *flip value [v *flip]
+			//Outgoing Arrangement:
+			// 3 - 2		^
+			//-------- Edge | Y-
+			// 0 - 1		|
+		} 
+		if( (ptv[0]->clipFlag & 3) ){//H *flip 
+			//Incoming Arrangement:
+			//	0 | 1
+			//	3 | 2
+			//	 Edge  ---> X+
+			// ("3" is both X+ and X- screen exit). Why: dual-plane polygons
+            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
+            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
+            *flip ^= 1<<4; //sprite *flip value [h *flip]
+			//Outgoing Arrangement:
+			// 1 | 0
+			// 2 | 3
+			//	Edge	---> X+
+			return;
+		} 
+		if( !((ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) & SCRN_CLIP_FLAGS))
+		{
+			*pclp = VDP1_PRECLIPPING_DISABLE; //Preclipping Disable
+			return;
+		}
+		/*
+		//Alternate Clip Handling
+		// If NO CLIP FLAGS are high, disable preclipping.
+		// This improves VDP1 performance, at the cost of some CPU time.
+		ptv[0]->clipFlag |= ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag;
+		if( !(ptv[0]->clipFlag & SCRN_CLIP_FLAGS) )
+		{
+			*pclp = 2048; //Preclipping Disable
+			return;
+		}
+		*/
+		//In case no pre-clipping is NOT disabled, write it as such.
+		*pclp = 0;
+}
+
+////////////////////////////
+// Vertex clipping function helper
+// This isn't much more complicated than it has to be.
+////////////////////////////
+inline	void	clipping(vertex_t * pnt, short useClip)
+{
+        //Screen Clip Flags for on-off screen decimation
+		//No longer simplified....
+		pnt->clipFlag = ((pnt->pnt[X]) > vert_clip_x) ? SCRN_CLIP_X : 0; 
+		pnt->clipFlag |= ((pnt->pnt[X]) < vert_clip_nx) ? SCRN_CLIP_NX : pnt->clipFlag; 
+		pnt->clipFlag |= ((pnt->pnt[Y]) > vert_clip_y) ? SCRN_CLIP_Y : pnt->clipFlag;
+		pnt->clipFlag |= ((pnt->pnt[Y]) < vert_clip_ny) ? SCRN_CLIP_NY : pnt->clipFlag;
+		pnt->clipFlag ^= (useClip == USER_CLIP_OUTSIDE) ? pnt->clipFlag : 0; //Clip out/in setting
+		pnt->clipFlag |= ((pnt->pnt[Z]) <= NEAR_PLANE_DISTANCE) ? CLIP_Z : pnt->clipFlag;
+}
+
+////////////////////////////
+// Setting User CLipping Coordinates
+// Note the depth setting. Due to painter's algorithm, you must set the Z of your clipping coordinate *behind* what you want to clip.
+// This is so the clipping coordinate will be processed before those polygons are, and thus effective.
+// When clipping coordinates are set like this, you should take care to set new clipping coordinates carefully;
+// Clipping coordinates shouldn't just be set to the very back; they should be set just behind everything you want to clip.
+/*
+However, the software does not manage the Z of the clipping region for vertices.
+That is dependent on a portal system being implemented which can set vertex clipping by sector.
+*/
+// For standard resolutions, setting the clipping correctly is important for CPU performance, as it cuts down on commands sent.
+// For hi-res mode, setting the clipping coordinates is mostly important for managing VDP1 performance.
+// In that case, you can have a high-resolution interface off the side of the screen, and the game raster to a smaller area of it.
+////////////////////////////
+void setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt)
+{
+	int tl[2] = {topLeft[X], topLeft[Y]};
+	int br[2] = {btmRight[X], btmRight[Y]};
+	//Note: User clipping coordinates do not have to be within the screen, but it's a good idea to make them be.
+	//They do however need to be inside system clipping.
+	msh2SetCommand(tl, tl, br, br, 8 /* User Clipping Command Set */, 0 /*All other but Z ignored*/, 0, 0, 0, 0, zDepthTgt);
+	vert_clip_nx = topLeft[X] - TV_HALF_WIDTH;
+	vert_clip_x = btmRight[X] - TV_HALF_WIDTH;
+	vert_clip_ny = topLeft[Y] - TV_HALF_HEIGHT;
+	vert_clip_y = btmRight[Y] - TV_HALF_HEIGHT;
+}
+
+/*Complex Setting, 0: clip in system, 1: clip in user, 2: clip out user*/
+//To use user-clipping, be sure to set the clipping area in advance.
 void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 {
-	if(ent->file_done != true){return;}
+	if(ent->file_done != 1){return;}
 	drawn_entity_list[drawn_entity_count] = ent;
 	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
     static MATRIX newMtx;
+	slMultiMatrix((POINT *)ent->prematrix);
     slGetMatrix(newMtx);
 
 	static FIXED m0x[4];
@@ -390,6 +560,17 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
+	unsigned short usrClp = SYS_CLIPPING; //The clipping setting added to command table
+	if(ent->useClip == USER_CLIP_INSIDE)
+	{
+		//Clip inside the user clipping setting
+		usrClp = 0x400;
+	} else if(ent->useClip == USER_CLIP_OUTSIDE)
+	{
+		//Clip outside the user clipping setting
+		usrClp = 0x600;
+	}
+	
 	VECTOR lightAngle = {0, -65535, 0};
 	VECTOR ambient_light = {0, -65535, 0};
 	int ambient_bright = 0;
@@ -413,7 +594,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
 
          /**Starts the division**/
-        SetFixDiv(MsScreenDist, ssh2VertArea[i].pnt[Z]);
+        SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
@@ -427,19 +608,16 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
         ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
-		//Simplified to increase CPU performance
-		ssh2VertArea[i].clipFlag = ((ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[i].clipFlag; 
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[i].clipFlag;
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[i].clipFlag;
-		ssh2VertArea[i].clipFlag |= ((ssh2VertArea[i].pnt[Z]) <= NEAR_PLANE_DISTANCE) ? CLIP_Z : ssh2VertArea[i].clipFlag;
+		//No longer simplified....
+		clipping(&ssh2VertArea[i], ent->useClip);
     }
 
     transVerts[0] += model->nbPoint;
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	int flip = 0;
+	unsigned short flip = 0;
 	unsigned short flags = 0;
+	unsigned short pclp = 0;
 	int zDepthTgt = 0;
 
     /**POLYGON PROCESSING**/ 
@@ -461,6 +639,8 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
+		//Sorting target.
+		//Uses logic to determine sorting target per polygon. This costs some CPU time.
 		if( zDepthTgt == GV_SORT_MAX)
 		{					
 			//Sorting target. Uses max.
@@ -481,50 +661,9 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
  
 		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
-		///////////////////////////////////////////
-		/*unsigned short flip = 0;
-		unsigned short pclp = 0; 
- 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-		{
-			pclp = VDP1_PRECLIPPING_DISABLE; //Preclipping Disable
-		}*/
-		/*
-		//Alternate Clip Handling
-		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = 2048; //Preclipping Disable
-		}
-		*/
-		//Preclipping is always enabled
+		//Pre-clipping Function
+		preclipping(ptv, &flip, &pclp);
+		//Lighting
 		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
 		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
@@ -535,16 +674,17 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		
         ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
-                     pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
 		transPolys[0] += model->nbPolygon;
 
 }
 
-void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master SH2 drawing function (needs to be sorted after by slave)
+//Master SH2 drawing function (needs to be sorted after by slave)
+void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 {
-	if(ent->file_done != true){return;}
+	if(ent->file_done != 1){return;}
 	drawn_entity_list[drawn_entity_count] = ent;
 	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
@@ -580,6 +720,17 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
+	unsigned short usrClp = SYS_CLIPPING; //The clipping setting added to command table
+	if(ent->useClip == USER_CLIP_INSIDE)
+	{
+		//Clip inside the user clipping setting
+		usrClp = 0x400;
+	} else if(ent->useClip == USER_CLIP_OUTSIDE)
+	{
+		//Clip outside the user clipping setting
+		usrClp = 0x600;
+	}
+	
 	FIXED luma;
 	unsigned short colorBank;
 	int inverseZ = 0;
@@ -591,7 +742,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 		msh2VertArea[i].pnt[Z] = (msh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
  
          /**Starts the division**/
-        SetFixDiv(MsScreenDist, msh2VertArea[i].pnt[Z]);
+        SetFixDiv(scrn_dist, msh2VertArea[i].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         msh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
@@ -604,16 +755,15 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
         msh2VertArea[i].pnt[X] = fxm(msh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
         msh2VertArea[i].pnt[Y] = fxm(msh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
  
-        //Screen Clip Flags for on-off screen decimation
-		msh2VertArea[i].clipFlag = (JO_ABS(msh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
-		msh2VertArea[i].clipFlag |= (JO_ABS(msh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
+		clipping(&msh2VertArea[i], ent->useClip);
     }
 
     transVerts[0] += model->nbPoint;
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	int flip = 0;
+	unsigned short flip = 0;
 	unsigned short flags = 0;
+	unsigned short pclp = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -633,7 +783,8 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses max.
+		//Sorting target. Uses average of top-left and bottom-right. 
+		//Adding logic to change sorting per-polygon can be done, but costs CPU time.
 		 int zDepthTgt = JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
@@ -641,50 +792,8 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
  
 		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
-		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
-		///////////////////////////////////////////
-		/*unsigned short flip = 0;
-		unsigned short pclp = 0; 
- 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-		{
-			pclp = 2048; //Preclipping Disable
-		}*/
-		/*
-		//Alternate Clip Handling
-		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = 2048; //Preclipping Disable
-		}
-		*/
-		//Preclipping is always enabled
+		//Pre-clipping Function
+		preclipping(ptv, &flip, &pclp);
 		//Transform the polygon's normal by light source vector
 		luma = fxdot(model->pltbl[i].norm, lightSrc);
 		//Use transformed normal as shade determinant
@@ -692,23 +801,23 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc) //Master S
 
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
-        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
-						ptv[2]->pnt, ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
-                     pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 
 }
 
-void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transplant) //Draws animated model via SSH2
+void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant) //Draws animated model via SSH2
 {
-	if(ent->file_done != true){return;}
+	if(ent->file_done != 1){return;}
 	drawn_entity_list[drawn_entity_count] = ent;
 	drawn_entity_count++;
 	//WARNING:
 	//Once an entity is drawn animated, *all* instances of that entity must be drawn animated, or else they will not reset the pntbl appropriately.
     static MATRIX newMtx;
+	slMultiMatrix((POINT *)ent->prematrix);
     slGetMatrix(newMtx);
 
 	static FIXED m0x[4];
@@ -734,6 +843,17 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transpl
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
 	
+	unsigned short usrClp = SYS_CLIPPING; //The clipping setting added to command table
+	if(ent->useClip == USER_CLIP_INSIDE)
+	{
+		//Clip inside the user clipping setting
+		usrClp = 0x400;
+	} else if(ent->useClip == USER_CLIP_OUTSIDE)
+	{
+		//Clip outside the user clipping setting
+		usrClp = 0x600;
+	}
+	
 	VECTOR lightAngle = {0, -65535, 0};
 	VECTOR ambient_light = {0, -65535, 0};
 	int ambient_bright = 0;
@@ -752,13 +872,13 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, bool transpl
 	//Process for static pose change:
 	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
 	//2. Set currentFrm to the AnimArea startFrm<<3
-	//3. Set uniforn to false
+	//3. Set uniforn to 0
 	//4. Set the local arate to 4
 	//5. Set currentKeyFrm to the AnimArea startFrm
 	//6. set the nextKeyFrame to the animCtrl startFrm
 	//7. Interpolate once
 	//8. Return all control data as if set from the animCtrl pose
-	bool animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? true : false;
+	Bool animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
 //
 	unsigned char localArate;
 	unsigned char nextKeyFrm;
@@ -789,7 +909,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	}
 
 	
- if(animation_change == true && transplant != true) 
+ if(animation_change == 1 && transplant != 1) 
  {
 	//For single-frame interpolation between poses
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].currentKeyFrm]->cVert;
@@ -824,7 +944,7 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
  
          /**Starts the division**/
-        SetFixDiv(MsScreenDist, ssh2VertArea[i].pnt[Z]);
+        SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
@@ -836,10 +956,10 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
         /**Transform X and Y to screen space**/
         ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
-        //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[i].clipFlag = (JO_ABS(ssh2VertArea[i].pnt[X]) > JO_TV_WIDTH_2) ? 1 : 0; //Simplified to increase CPU performance
-		ssh2VertArea[i].clipFlag |= (JO_ABS(ssh2VertArea[i].pnt[Y]) > JO_TV_HEIGHT_2) ? 1 : 0; 
+		
+		//For animated models, CPU time is at a premium.
+		//Simplifying the clipping system specifically for animations might be worth.
+		clipping(&ssh2VertArea[i], ent->useClip);
     }
 
     transVerts[0] += model->nbPoint;
@@ -849,8 +969,9 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 	VECTOR tNorm = {0, 0, 0};
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
-	int flip = 0;
+	unsigned short flip = 0;
 	unsigned short flags = 0;
+	unsigned short pclp = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -870,7 +991,8 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses average of top-left and bottom-right. Adding logic to change sorting per-polygon HAMMERS performance in unacceptable ways.
+		//Sorting target. Uses average of top-left and bottom-right. 
+		//Adding logic to change sorting per-polygon can be done, but costs CPU time.
 		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
@@ -878,50 +1000,8 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
-		///////////////////////////////////////////
-		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
-		///////////////////////////////////////////
-		/*unsigned short flip = 0;
-		unsigned short pclp = 0; 
- 		if( (ptv[0]->clipFlag & 12) ){ //Vertical flip
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag & 3) ){//H flip 
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( !ptv[0]->clipFlag && !ptv[1]->clipFlag && !ptv[2]->clipFlag && !ptv[3]->clipFlag)
-		{
-			pclp = 2048; //Preclipping Disable
-		}*/
-		/*
-		//Alternate Clip Handling
-		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = 2048; //Preclipping Disable
-		}
-		*/
-		//Preclipping is always enabled
+		//Pre-clipping Function
+		preclipping(ptv, &flip, &pclp);
 		//New normals in from animation normal table // These are not written back to memory
         tNorm[X]=ANORMS[*src2][X];
         tNorm[Y]=ANORMS[*src2][Y];
@@ -936,19 +1016,18 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
-        ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
-						ptv[2]->pnt, ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags), //Reads flip value, mesh enable, and msb bit
-                     pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+        ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 		
  // Check to see if the animation matches, or if reset is enabled.
  // In these cases, re-load information from the AnimCtrl.
- if(animation_change == true || animCtrl->reset_enable == 'Y') 
+ if(animation_change == 1 || animCtrl->reset_enable == 'Y') 
  {
 	
-	if(transplant != true)
+	if(transplant != 1)
 	{
 	AnimArea[anims].currentFrm = animCtrl->startFrm<<3;
 	} else {

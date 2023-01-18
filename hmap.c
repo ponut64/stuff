@@ -239,7 +239,7 @@ __jo_force_inline int	texture_table_by_height(int * ys)
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-__jo_force_inline int		texture_angle_resolver(int baseTex, FIXED * norm, int * flip){
+__jo_force_inline int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
@@ -492,7 +492,7 @@ void	process_map_for_normals(void)
 			cross[Z] = normTbl[norm_index+2]<<9;
 			norm_index += 3;
 			
-			int flip;
+			unsigned short flip;
 			int texno = texture_angle_resolver(mapTex[counted_poly], &cross[0], &flip);
 			mapTex[counted_poly] = (texno) | (flip<<8);
 			 
@@ -508,7 +508,7 @@ void	process_map_for_normals(void)
 		for(int v = 0; v < (main_map_x_pix-1); v++){
 			  
   			int this_texture = mapTex[counted_poly];
-			int flip = this_texture & 0x3000;
+			unsigned short flip = this_texture & 0x3000;
 			tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
 			tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
 			tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
@@ -727,14 +727,15 @@ int		unmath_center[3];
 // Takes a polygon from the map & its associated data from the precompiled tables and subdivides it four-ways.
 // Then issues the commands. The polygon had already been checked for culling, so we can check for less of that.
 ////////////////////////////
-void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int * depth,  FIXED * tempNorm)
+void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short * flip, int * depth,  FIXED * tempNorm)
 {
 	//Shorthand Point Data
 	FIXED * pnts[4];
 	FIXED * umpt[4];
 	int luma = 0;
-	int used_flip = *flip;
+	unsigned short used_flip = *flip;
 	unsigned short colorBank = 0;
+	unsigned short pclp = 0;
 	for(int u = 0; u < 4; u++)
 	{
 		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].Vertices[u]][0];
@@ -811,7 +812,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 	
 	for(int w = 0; w < 5; w++)
 	{
-		int inverseZ = fxdiv(MsScreenDist, new_vertices[w][Z]);
+		int inverseZ = fxdiv(scrn_dist, new_vertices[w][Z]);
         //Transform to screen-space
         scrnsub[w].pnt[X] = fxm(new_vertices[w][X], inverseZ)>>SCR_SCALE_X;
         scrnsub[w].pnt[Y] = fxm(new_vertices[w][Y], inverseZ)>>SCR_SCALE_Y;
@@ -833,54 +834,8 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, int * flip, int 
 		
 		if(offScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		used_flip = *flip;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//used_flip logic to keep vertice 0 on-screen
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	unsigned short pclp = 0;
- 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical used_flip // Expresses clip0 > 0 && clip3 <= 0
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            used_flip ^= 1<<5; //sprite used_flip value [v used_flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H used_flip // Expresses clip0 > 0 && clip1 <= 0
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            used_flip ^= 1<<4; //sprite used_flip value [h used_flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = VDP1_PRECLIPPING_DISABLE;
-		}
-		///////////////////////////////
-		// Slightly Important Comment:
-		// You don't see a case to handle if there is no vertex off the screen edge here.
-		// That seems odd; we know at least one of the vertices we handle in the subdivided polygon here will be.
-		// But surely, some of these are wholly within the screen?
-		///////////////////////////////
-		/*
-		//Alternate Clip Handling
-		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = VDP1_PRECLIPPING_DISABLE;
-		}
-		*/
+//Pre-clipping Function
+		preclipping(ptv, &used_flip, &pclp);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -958,6 +913,7 @@ void	update_hmap(MATRIX msMatrix)
 	
 	FIXED luma = 0;
 	unsigned short colorBank;
+	unsigned short pclp = 0;
 	int inverseZ = 0;
 //
 //The only way to increase the render distance is with a non-uniform density.
@@ -1007,7 +963,7 @@ void	update_hmap(MATRIX msMatrix)
 		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[dst_pix].pnt[Z] : NEAR_PLANE_DISTANCE;
 		verts_without_inverse_z[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
          /**Starts the division**/
-        SetFixDiv(MsScreenDist, msh2VertArea[dst_pix].pnt[Z]);
+        SetFixDiv(scrn_dist, msh2VertArea[dst_pix].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         verts_without_inverse_z[dst_pix][Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
@@ -1056,7 +1012,8 @@ void	update_hmap(MATRIX msMatrix)
 			VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
 			
 			vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
-			int flip = 0; //Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
+			//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
+			unsigned short flip = 0; 
 			int texno = 0; //Ditto
 			int dither = 0;
 			
@@ -1139,47 +1096,7 @@ void	update_hmap(MATRIX msMatrix)
 // All of the polygons which might be crossing the screen edge should be small, or subdivided.
 //
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		unsigned short pclp = 0;
-/*
- 		if( (ptv[0]->clipFlag - ptv[3]->clipFlag) > 0 ){ //Vertical flip // Expresses clip0 > 0 && clip3 <= 0
-			//Incoming Arrangement:
-			// 0 - 1		^
-			//-------- Edge | Y-
-			// 3 - 2		|
-			//				
-            ptv[4] = ptv[3]; ptv[3] = ptv[0]; ptv[0] = ptv[4];
-            ptv[4] = ptv[1]; ptv[1] = ptv[2]; ptv[2] = ptv[4];
-            flip ^= 1<<5; //sprite flip value [v flip]
-			//Outgoing Arrangement:
-			// 3 - 2		^
-			//-------- Edge | Y-
-			// 0 - 1		|
-		} else if( (ptv[0]->clipFlag - ptv[1]->clipFlag) > 0){//H flip // Expresses clip0 > 0 && clip1 <= 0
-			//Incoming Arrangement:
-			//	0 | 1
-			//	3 | 2
-			//	 Edge  ---> X+
-            ptv[4] = ptv[1];  ptv[1]=ptv[0];  ptv[0] = ptv[4];
-            ptv[4] = ptv[2];  ptv[2]=ptv[3];  ptv[3] = ptv[4];
-            flip ^= 1<<4; //sprite flip value [h flip]
-			//Outgoing Arrangement:
-			// 1 | 0
-			// 2 | 3
-			//	Edge	---> X+
-		} else if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = 2048; //Preclipping Disable
-		}
-		*/
-		
-		//Alternate Clip Handling
-		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		if( (ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) != CLIP_Z)
-		{
-			pclp = VDP1_PRECLIPPING_DISABLE;
-		}
-		
+		preclipping(ptv, &flip, &pclp);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////

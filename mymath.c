@@ -25,14 +25,14 @@ __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 	"sts MACH,r1;"		// Store system register [sts] , high of 64-bit register MAC to r1
 	"sts MACL,%[out];"	// Low of 64-bit register MAC to the register of output param "out"
 	"xtrct r1,%[out];" 	//This whole procress gets the middle 32-bits of 32 * 32 -> (2x32 bit registers)
-    :    [out] "=r" (rtval)       		 //OUT
-    :    [d1] "r" (d1), [d2] "r" (d2)    //IN
-	:		"r1"						//CLOBBERS
+    :    [out] "=r" (rtval)				//OUT
+    :    [d1] "r" (d1), [d2] "r" (d2)	//IN
+	:		"r1", "mach", "macl"		//CLOBBERS
 	);
 	return rtval;
 }
 
-//Note: this function loves to crash the system, dunno why
+
 __jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
 {
 	register volatile FIXED rtval;
@@ -44,9 +44,9 @@ __jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot produc
 		"sts MACH,r1;"
 		"sts MACL,%[ox];"
 		"xtrct r1,%[ox];"
-		: 	[ox] "=r" (rtval)											//OUT
-		:	[ptr1] "r" (ptA) , [ptr2] "r" (ptB)							//IN
-		:	"r1"														//CLOBBERS
+		: 	[ox] "=r" (rtval)					//OUT
+		:	[ptr1] "r" (ptA) , [ptr2] "r" (ptB)	//IN
+		:	"r1", "mach", "macl"				//CLOBBERS
 	);
 	return rtval;
 }
@@ -56,29 +56,14 @@ __jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot produc
 __jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
 	
-	const int * DVSR = ( int*)0xFFFFFF00;
-	const int * DVDNTH = ( int*)0xFFFFFF10;
-	const int * DVDNTL = ( int*)0xFFFFFF14;
+	volatile int * DVSR = ( int*)0xFFFFFF00;
+	volatile int * DVDNTH = ( int*)0xFFFFFF10;
+	volatile int * DVDNTL = ( int*)0xFFFFFF14;
 
-	register volatile FIXED quotient;
-	asm(
-	".align 2;"
-	"mov.l %[dvs], @%[dvsr];"
-	"mov %[dvd], r1;" //Move the dividend to a general-purpose register, to prevent weird misreading of data.
-	"shlr16 r1;"
-	"exts.w r1, r1;" //Sign extension in case value is negative
-	".align 2;"
-	"mov.l r1, @%[nth];" //Expresses "*DVDNTH = dividend>>16"
-	"mov %[dvd], r1;" 
-	"shll16 r1;"
-	"mov.l r1, @%[ntl];" //Expresses *DVDNTL = dividend<<16";
-	"mov.l @%[ntl], %[out];" //Get result.
-		: 	[out] "=r" (quotient)											//OUT
-		:	[dvs] "r" (divisor) , [dvd] "r" (dividend) ,					//IN
-			[dvsr] "r" (DVSR) ,	[nth] "r" (DVDNTH) , [ntl] "r" (DVDNTL)		//IN
-		:	"r1"															//CLOBBERS
-	);
-	return quotient;
+	*DVSR = divisor;
+	*DVDNTH = (dividend>>16);
+	*DVDNTL = (dividend<<16);
+	return *DVDNTL;
 }
 
 //////////////////////////////////
@@ -414,9 +399,9 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED output[XYZ])
 {
 
-	FIXED line_scalar;
-	FIXED vector_of_line[XYZ];
-	FIXED vector_to_plane[XYZ];
+	FIXED line_scalar = 0;
+	FIXED vector_of_line[XYZ] = {0, 0, 0};
+	FIXED vector_to_plane[XYZ] = {0, 0, 0};
 	
 	vector_of_line[X] = p0[X] - p1[X];
 	vector_of_line[Y] = p0[Y] - p1[Y];
@@ -426,7 +411,8 @@ bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ]
 	vector_to_plane[Y] = (point_on_plane[Y] + (offset[Y])) - p0[Y];
 	vector_to_plane[Z] = (point_on_plane[Z] + (offset[Z])) - p0[Z];
 
-	line_scalar = slDivFX(slInnerProduct(vector_of_line, unitNormal), slInnerProduct(vector_to_plane, unitNormal));
+	line_scalar = fxdiv(slInnerProduct(vector_to_plane, unitNormal), slInnerProduct(vector_of_line, unitNormal));
+	//slDivFX(slInnerProduct(vector_of_line, unitNormal), slInnerProduct(vector_to_plane, unitNormal));
 	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
 		return false;
 	}

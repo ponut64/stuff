@@ -144,6 +144,68 @@ _sobject Build04 = {
 	.light_bright = 0
 };
 
+_sobject Build05 = {
+	.entity_ID = 16,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build06 = {
+	.entity_ID = 17,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build07 = {
+	.entity_ID = 18,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build08 = {
+	.entity_ID = 19,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build09 = {
+	.entity_ID = 20,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build10 = {
+	.entity_ID = 21,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build11 = {
+	.entity_ID = 22,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
 
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
@@ -225,6 +287,13 @@ void	fill_obj_list(void)
 	objList[13] = &Build02;
 	objList[14] = &Build03;
 	objList[15] = &Build04;
+	objList[16] = &Build05;
+	objList[17] = &Build06;
+	objList[18] = &Build07;
+	objList[19] = &Build08;
+	objList[20] = &Build09;
+	objList[21] = &Build10;
+	objList[22] = &Build11;
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;
 

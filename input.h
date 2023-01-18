@@ -24,6 +24,7 @@ void	operate_digital_pad1(void);
 typedef struct {
 	unsigned short pressed;
 	unsigned short prevPressed;
+	unsigned short frameHeld;
 	unsigned short up;
 	unsigned short down;
 	unsigned short change;
@@ -32,14 +33,14 @@ typedef struct {
 
 extern digital_pad pad1;
 
-
-int	is_key_pressed(int keyPattern);
-int	is_key_up(int keyPattern);
-int	is_key_down(int keyPattern);
-int	is_key_change(int keyPattern);
-int	is_key_toggle(int keyPattern);
-int is_key_release(int keyPattern);
-int is_key_struck(int keyPattern);
+void	reset_pad(digital_pad * pad);
+int		is_key_pressed(int keyPattern);
+int		is_key_up(int keyPattern);
+int		is_key_down(int keyPattern);
+int		is_key_change(int keyPattern);
+int		is_key_toggle(int keyPattern);
+int		is_key_release(int keyPattern);
+int		is_key_struck(int keyPattern);
 
 #endif
 

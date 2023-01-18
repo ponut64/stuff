@@ -1,5 +1,6 @@
 
 #include <jo/jo.h>
+#include "render.h"
 #include "def.h"
 
 /*
@@ -71,20 +72,26 @@ unsigned short * vdp2LineColLo = (unsigned short *)(0x1800AA + VDP2_RAMBASE); //
 //
 unsigned short * vdp2_stackptr = (unsigned short *)VDP2_RAMBASE;
 //
-unsigned short * lcl_backscrnptr = (unsigned short *)VDP2_RAMBASE;
+unsigned short * back_scrn_colr_addr = (unsigned short *)(VDP2_RAMBASE + 512);
+unsigned short	back_color_setting;
 //
 
-unsigned short backColor = 0xE726;
+//Screen Erasure Settings
+	unsigned short * VDP1_EWLR = (unsigned short *) (VDP1_VRAM + 0x100008);
+	unsigned short * VDP1_EWRR = (unsigned short *) (VDP1_VRAM + 0x10000A);
 
 void	vblank_requirements(void)
 {
 	//jo_printf(0, 15, "(%x)", (int)BACK_CRAM);
 	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
-	vdp2_sprMode[0] = 0x4; //Sprite Data Type Mode (set to 0xF in hi-res mode)
+	vdp2_sprMode[0] = 0x4; //Sprite Data Type Mode (set to 0xF in hi-res mode, 0x4 in standard res mode)
+
+    *VDP1_EWLR = top_left_erase_pt;
+    *VDP1_EWRR = btm_rite_erase_pt;
 }
 
-void	init_vdp2(void)
+void	init_vdp2(short backColor)
 {
 	slColRAMMode(2); //Set 24bpp
 	//slZoomNbg0(32768, 65536);
@@ -94,4 +101,6 @@ void	init_vdp2(void)
 	slPriorityNbg1(7); //Put NBG1 on top.
 	slShadowOn(BACKON);
 	
+	back_color_setting = backColor;
+	slBack1ColSet((void*)back_scrn_colr_addr, back_color_setting);
 }

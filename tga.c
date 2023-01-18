@@ -1,8 +1,10 @@
 //
 
 #include <jo/jo.h>
+#include <SEGA_GFS.H>
 #include "def.h"
 #include "render.h" 
+#include "vdp2.h"
 
 #include "tga.h"
 
@@ -12,7 +14,6 @@ unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;
 unsigned char * GLOBAL_img_addr = (unsigned char *)LWRAM;
 unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
 
-unsigned char * sprPalette = 0;
 unsigned int sprPaletteCopy[256];
 
 int numTex = 0;
@@ -38,7 +39,7 @@ void	get_file_in_memory(Sint8 * filename, void * destination)
 
 }
 	
-bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful.
+Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
 {
 	unsigned char * readByte = (unsigned char *)file_start;
 	unsigned short * readWord = (unsigned short *)file_start;
@@ -48,14 +49,14 @@ bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful
 	unsigned char col_map_type = readByte[1]; 
 	
 	if(col_map_type != 0){
-		jo_printf(0, 0, "(REJECTED NON-RGB TGA)");
-		return false;
+		slPrint("(REJECTED NON-RGB TGA)", slLocate(0,0));
+		return 0;
 	}
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 2) {
-		jo_printf(0, 0, "(REJECTED RLE TGA)");
-		return false;
+		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
+		return 0;
 	}
 	//Color Map Specification Data is ignored.
 	
@@ -67,8 +68,8 @@ bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful
 	unsigned char byteFormat = readByte[16];
 	
 	if(byteFormat != 24){
-		jo_printf(0, 0, "(TGA NOT 24BPP)");
-		return false; //File Typing Demands 24 bpp.
+		slPrint("(TGA NOT 24BPP)", slLocate(0,0));
+		return 0; //File Typing Demands 24 bpp.
 	}
 	
 	//Descriptor Bytes are skipped.
@@ -92,10 +93,81 @@ bool	set_tga_to_sprite_palette(void * file_start) //Returns "true" if successful
 		sprPaletteCopy[i] = final_color;
 		
 	}
-		sprPalette = (unsigned char *)&cRAM_24bm[256];
+		//Set the text color (temporary, depends on library setting)
 		cRAM_24bm[1] = (255<<16) | (255<<8) | (255);
 	
-	return true;
+	return 1;
+}
+
+//Note: colorCode will be signed.
+//Use: Add a color code to all of VDP1's colors.
+//Also has an "apply once" boolean that controls color addition (will only apply when 1, and writes back 0 when done).
+void	color_offset_vdp1_palette(int colorCode, int * run_only_once)
+{
+	if(*run_only_once == 0) return;
+	int mod_color;
+	short red_channel;
+	short green_channel;
+	short blue_channel;
+	short mod_channel;
+	int sign = (colorCode > 0) ? 1 : -1;
+	int used_color = colorCode * sign;
+	for(int i = 0; i < 256; i++)
+	{
+		mod_color = cRAM_24bm[i+256];
+		
+		blue_channel = (mod_color>>16) & 255;
+		mod_channel = (used_color>>16) & 255;
+		blue_channel = (sign > 0) ? (blue_channel + mod_channel) : (blue_channel - mod_channel);
+		blue_channel = (blue_channel < 0) ? 0 : (blue_channel > 255) ? 255 : blue_channel;
+		
+		green_channel = (mod_color>>8) & 255;
+		mod_channel = (used_color>>8) & 255;
+		green_channel = (sign > 0) ? (green_channel + mod_channel) : (green_channel - mod_channel);
+		green_channel = (green_channel < 0) ? 0 : (green_channel > 255) ? 255 : green_channel;
+		
+		red_channel = (mod_color) & 255;
+		mod_channel = (used_color) & 255;
+		red_channel = (sign > 0) ? (red_channel + mod_channel) : (red_channel - mod_channel);
+		red_channel = (red_channel < 0) ? 0 : (red_channel > 255) ? 255 : red_channel;
+		
+		mod_color = (blue_channel << 16) | (green_channel << 8) | red_channel;
+		cRAM_24bm[i+256] = mod_color;
+	}
+	
+	//Also change the back screen color by this setting
+	//Note: This is a 16-bit color, not a 24-bit (32 bit) color.
+	mod_color = (unsigned short )*back_scrn_colr_addr;
+	mod_channel = (used_color>>19) & 31;
+	blue_channel = (mod_color>>10) & 31;
+	blue_channel = (sign > 0) ? (blue_channel + mod_channel) : (blue_channel - mod_channel);
+	blue_channel = (blue_channel < 0) ? 0 : (blue_channel > 31) ? 31 : blue_channel;
+	
+	mod_channel = (used_color>>11) & 31;
+	green_channel = (mod_color>>5) & 31;
+	green_channel = (sign > 0) ? (green_channel + mod_channel) : (green_channel - mod_channel);
+	green_channel = (green_channel < 0) ? 0 : (green_channel > 31) ? 31 : green_channel;
+	
+	mod_channel = (used_color>>3) & 31;
+	red_channel = (mod_color) & 31;
+	red_channel = (sign > 0) ? (red_channel + mod_channel) : (red_channel - mod_channel);
+	red_channel = (red_channel < 0) ? 0 : (red_channel > 31) ? 31 : red_channel;
+	
+	mod_color = (blue_channel<<10) | (green_channel<<5) | (red_channel);
+	*back_scrn_colr_addr = (unsigned short)mod_color;
+	
+	*run_only_once = 0;
+}
+
+//Use: Restore VDP1 color palette after modifying it to original condition.
+void	restore_vdp1_palette(void)
+{
+	for(int i = 0; i < 256; i++)
+	{
+		cRAM_24bm[i+256] = sprPaletteCopy[i];
+	}
+	//Also restore back color
+	*back_scrn_colr_addr = back_color_setting;
 }
 
 void	add_texture_to_vram(int width, int height)
@@ -374,7 +446,7 @@ Textures Palette --> Supplied by formatted 64-color palette in GIMP to match TGA
 
 Texture	--> Color Index Pixels of exported tga file.
 */
-bool read_pco_in_memory(void * file_start)
+Bool read_pco_in_memory(void * file_start)
 {
 	unsigned char * readByte = (unsigned char *)file_start;
 	
@@ -383,15 +455,15 @@ bool read_pco_in_memory(void * file_start)
 	unsigned char col_map_type = readByte[1]; 
 	
 	if(col_map_type != 1){
-		jo_printf(0, 0, "(REJECTED RGB PCO)");
-		return false;
+		slPrint("(REJECTED RGB PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 1) {
-		jo_printf(0, 0, "(REJECTED RLE PCO)");
-		return false;
+		slPrint("(REJECTED RLE PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
@@ -399,8 +471,8 @@ bool read_pco_in_memory(void * file_start)
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
-		jo_printf(0, 0, "(REJECTED >8B PCO)");
-		return false;
+		slPrint("(REJECTED >8B PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char imdat = id_field_size + col_map_size + 18;
@@ -409,36 +481,36 @@ bool read_pco_in_memory(void * file_start)
 	
 	add_texture_to_vram(readByte[12] | readByte[13]<<8, readByte[14] | readByte[15]<<8);
 	
-	return true;
+	return 1;
 }
 
 //tex_height = the height of each individual texture. must be uniform.
 //You can set 0 to let the system treat your file as having all textures as H x W,
 //meaning the tex height is the width too.
-bool read_tex_table_in_memory(void * file_start, int tex_height)
+int read_tex_table_in_memory(void * file_start, int tex_height)
 {
 	unsigned char * readByte = (unsigned char *)file_start;
 	unsigned char id_field_size = readByte[0];
 	unsigned char col_map_type = readByte[1]; 
 	
 	if(col_map_type != 1){
-		jo_printf(0, 0, "(REJECTED RGB PCO)");
-		return false;
+		slPrint("(REJECTED RGB PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 1) {
-		jo_printf(0, 0, "(REJECTED RLE PCO)");
-		return false;
+		slPrint("(REJECTED RLE PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
-		jo_printf(0, 0, "(REJECTED >8B PCO)");
-		return false;
+		slPrint("(REJECTED >8B PCO)", slLocate(0,0));
+		return 0;
 	}
 	
 	unsigned char imdat = id_field_size + col_map_size + 18;
@@ -457,16 +529,16 @@ bool read_tex_table_in_memory(void * file_start, int tex_height)
 		GLOBAL_img_addr += numPix;
 	}
 	
-	return true;
+	return Twidth;
 }
 
-bool WRAP_NewPalette(Sint8 * filename, void * file_start)
+Bool WRAP_NewPalette(Sint8 * filename, void * file_start)
 {
 	get_file_in_memory(filename, (void*)file_start);
 	return set_tga_to_sprite_palette((void*)file_start);
 }
 
-bool WRAP_NewTexture(Sint8 * filename, void * file_start)
+Bool WRAP_NewTexture(Sint8 * filename, void * file_start)
 {
 	
 	get_file_in_memory(filename, file_start);
@@ -474,7 +546,7 @@ bool WRAP_NewTexture(Sint8 * filename, void * file_start)
 	return read_pco_in_memory(file_start);
 }
 
-bool WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height)
+int WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height)
 {
 	
 	get_file_in_memory(filename, file_start);

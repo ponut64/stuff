@@ -17,7 +17,6 @@ I am sorry for the pain you had to go through.
 
 //Outstanding code contributions from XL2 
 //
-#include "anidefs.h"
 
 #include "render.h"
 #include "collision.h"
@@ -32,6 +31,7 @@ I am sorry for the pain you had to go through.
 #include "pcmsys.h"
 #include "pcmstm.h"
 #include "draw.h"
+#include "anidefs.h"
 #include "player_phy.h"
 //
 #include "lwram.c"
@@ -107,8 +107,7 @@ animationControl dbound;
 
 void	dpinit(void)
 {
-	init_vdp2();
-	initCamera();
+	init_vdp2(0xE726);
 }
 
 #define GRAPH_X_OFFSET (12)
@@ -199,27 +198,40 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_NORMAL);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB02.GVP",		active_HWRAM_ptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB03.GVP",		active_HWRAM_ptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_NORMAL);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB04.GVP",		active_HWRAM_ptr, &entities[4], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",	active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE03.GVP",	active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",	active_HWRAM_ptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		active_HWRAM_ptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		active_HWRAM_ptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		active_HWRAM_ptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		active_HWRAM_ptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		active_HWRAM_ptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		active_HWRAM_ptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME00.GVP",		active_HWRAM_ptr, &entities[5], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME01.GVP",		active_HWRAM_ptr, &entities[6], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME02.GVP",		active_HWRAM_ptr, &entities[7], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB02.GVP",		active_HWRAM_ptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB03.GVP",		active_HWRAM_ptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_NORMAL);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB04.GVP",		active_HWRAM_ptr, &entities[4], GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BLOCK1.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME00.GVP",		active_HWRAM_ptr, &entities[5], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME01.GVP",		active_HWRAM_ptr, &entities[6], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"MEME02.GVP",		active_HWRAM_ptr, &entities[7], GV_SORT_CEN, MODEL_TYPE_BUILDING); 
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RTUNNEL.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRACKOB2.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALKWAL.GVP",		active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HTUNNEL.GVP",		active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SLTUNNL.GVP",		active_HWRAM_ptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BLOCK1.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RTUNNEL.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRACKOB2.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALKWAL.GVP",		active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HTUNNEL.GVP",		active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SLTUNNL.GVP",		active_HWRAM_ptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 
-	start_pcm_stream((Sint8*)"ROCKMEN.MUS", 6);
+	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
 	stm.times_to_loop = 255;
 
 
@@ -234,7 +246,7 @@ void	game_frame(void)
 	update_gamespeed();
 	master_draw_stats();
 	frame_render_prep();
-	
+	reset_pad(&pad1);
 	master_draw(); 
 }
 
@@ -259,6 +271,7 @@ void	attributions(void)
 
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
 	slPrint("Give it a second", slLocate(3, 24));
+	jo_printf(3, 25, "(%i)md", hi_res_switch);
 	
 	load_test();
 	
@@ -278,7 +291,7 @@ void	jo_main(void)
 	init_lwram();
 	active_HWRAM_ptr = &hwram_model_data[0];
 	dpinit();
-	init_render_area();
+	init_render_area(90 * 182);
 	initPhys();
 	anim_defs();
 	init_heightmap();

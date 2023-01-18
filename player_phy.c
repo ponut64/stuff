@@ -143,7 +143,7 @@ void	pl_step_snd(void){
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					add_to_sprite_list(hf_pos, 1 /*Span*/, 0 /*texno*/, 1 /*mesh bool*/, 'B', 1<<16);
+					add_to_sprite_list(hf_pos, 1 /*Span*/, 0 /*texno*/, 1 /*mesh bool*/, 'B', 0 /*no clip*/, 1<<16);
 				}
 				} else {
 					hoofSetBools[h] = false;
@@ -191,9 +191,9 @@ void	player_phys_affect(void)
 	you.viewRot[Y] -= you.rotState[X];
 	
 	//Make the velocity unit vector from the current player's rotation.
-	you.ControlUV[X] = -slSin((you.rot[Y]));
-	you.ControlUV[Y] = slSin(you.rot[X]);
-	you.ControlUV[Z] = -slCos((you.rot[Y]));
+	you.ControlUV[X] = fxm(slSin(you.renderRot[Y]), slCos(you.renderRot[X]));
+	you.ControlUV[Y] = slSin(you.renderRot[X]);
+	you.ControlUV[Z] = fxm(slCos(you.renderRot[Y]), slCos(you.renderRot[X]));
 	
 	//Smart Camera Setup
 	// "uview" is the discrete vector notation of the player's viewport.
@@ -271,13 +271,13 @@ void	player_phys_affect(void)
 		//velocity add by input decisions
 		//Acclimate speed on each axis to your rotation on each axis defined by two-axis input
 		if(you.setSlide != true && you.hitSurface == true){
-		you.velocity[X] += fxm(-you.IPaccel, you.ControlUV[X]);
+		you.velocity[X] += fxm(you.IPaccel, you.ControlUV[X]);
 		you.velocity[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
-		you.velocity[Z] += fxm(-you.IPaccel, you.ControlUV[Z]);
+		you.velocity[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
 		} else { //If sliding, or in air
-		you.velocity[X] += fxm(fxm(-you.IPaccel, you.ControlUV[X]), 3000);
+		you.velocity[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
 		you.velocity[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
-		you.velocity[Z] += fxm(fxm(-you.IPaccel, you.ControlUV[Z]), 3000);
+		you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
 		}
 
 	//Surface / gravity decisions
@@ -291,6 +291,9 @@ void	player_phys_affect(void)
 		you.velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
 		you.velocity[Y] -= (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
 		you.velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
+										slPrintFX(you.velocity[Y], slLocate(1,7));
+										slPrintFX(you.ControlUV[Y], slLocate(1,8));
+		you.velocity[Y] -= fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 		//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
 		if(you.hitObject || you.hitBox){
 			//Because your velocity is added to the floor position in this case, subtract it.
@@ -302,7 +305,6 @@ void	player_phys_affect(void)
 			you.pos[Y] = (you.floorPos[Y]);
 			you.pos[Z] = (you.floorPos[Z]);
 		}
-
 	} else {
 		you.velocity[Y] -= fxm((GRAVITY), frmul);
 	}
@@ -346,6 +348,7 @@ void	player_phys_affect(void)
 	you.hitWall = false;
 	}
 	//
+
 	//Add your speed to your position (incremental / per-frame)
 	you.pos[X] += fxm(you.velocity[X], frmul);
 	you.pos[Y] += fxm(you.velocity[Y], frmul);
@@ -547,7 +550,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 		
 		you.surfFriction = (45875);
 
-		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152 && you.setSlide != true)){
+		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152 /*&& you.setSlide != true*/)){
 
 			//Bounce and, incidentally, a decent way to discourage you from going up steep slopes.
 			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
@@ -558,7 +561,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			//"0xFFFF" is the elasticity factor. Here, it's just 1.
 			FIXED deflectionFactor = -fxdot(you.velocity, you.floorNorm);
-			/** This is ESSENTIAL for the momentum gameplay to work properly **/
+			// This is ESSENTIAL for the momentum gameplay to work properly 
 			you.velocity[X] += fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
 			you.velocity[Y] += fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
 			you.velocity[Z] += fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 
@@ -566,8 +569,6 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 
 			firstSurfHit = true;
 		}
-		
-		you.velocity[Y] -= fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 		
 	} else {
 		firstSurfHit = false;

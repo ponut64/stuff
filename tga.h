@@ -14,14 +14,17 @@ extern short GLOBAL_img_line_count;
 extern short GLOBAL_img_line_width;
 extern int numTex;
 
+void	color_offset_vdp1_palette(int colorCode, int * run_only_once);
+void	restore_vdp1_palette(void);
+
 int		new_dithered_texture(int texno_a, int texno_b);
 void	make_4way_combined_textures(int start_texture_number, int end_texture_number);
 void	make_combined_textures(int texture_number);
 void	add_texture_to_vram(int width, int height);
 void	get_file_in_memory(Sint8 * filename, void * destination);
-bool	WRAP_NewPalette(Sint8 * filename, void * file_start);
-bool	WRAP_NewTexture(Sint8 * filename, void * file_start);
-bool	WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height);
+Bool	WRAP_NewPalette(Sint8 * filename, void * file_start);
+Bool	WRAP_NewTexture(Sint8 * filename, void * file_start);
+int		WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height);
 
 #endif
 

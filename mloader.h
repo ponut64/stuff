@@ -61,10 +61,11 @@ typedef struct {
 
 typedef struct
 {
-	bool file_done;
+	Bool file_done;
 	unsigned int size;
 	short base_texture;
 	unsigned short radius[XYZ];
+	short useClip;		//To clip by system, in user, or outside of user.
 	unsigned char numTexture;
 	unsigned char first_portal;
 	char sortType;

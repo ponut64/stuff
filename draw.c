@@ -42,94 +42,26 @@ FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
 FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
 
 //Note: global light is in order of BLUE, GREEN, RED. [BGR]
-char globalLight[3] = {0, 0, 0};
-unsigned char glblLightApplied = false;
+int globalColorOffset;
+int glblLightApply = true;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
 void	computeLight(void)
 {
 
-	if(glblLightApplied == false)
+	if(glblLightApply == true)
 	{
-	unsigned char color[3] = {0, 0, 0};
-	short finalColors[3] = {0, 0, 0};
-	unsigned char * palPtrCpy = (unsigned char *)&sprPaletteCopy[0];
-		
-		
-		finalColors[0] = backScrn[0] + globalLight[0];
-		backScrn[0] = (finalColors[0] < 255) ? (finalColors[0] < 0) ? 0 : finalColors[0] : 255;
-		finalColors[1] = backScrn[1] + globalLight[1];
-		backScrn[1] = (finalColors[1] < 255) ? (finalColors[1] < 0) ? 0 : finalColors[1] : 255;
-		finalColors[2] = backScrn[2] + globalLight[2];
-		backScrn[2] = (finalColors[2] < 255) ? (finalColors[2] < 0) ? 0 : finalColors[2] : 255;
-		
-	for(int i = 0; i < 1024; ){
-		/*
-		Explanation:
-		Endianess of 24-bits in 32-bits is that byte 0 of the 4-bytes is empty.
-		That's why we start with i+1, then do i+2, i+3 etc.
-		What we do:
-		In Work RAM is a copy of the palette, called sprPaletteCopy.
-		palPtrCopy is a byte-wise pointer to this array.
-		The global light / global palette offset is to be added to ever member of this,
-		and then shoved out to color RAM.
-		**Without modifying the palette copy**
-		sprPalette is a pointer to the palette in color RAM.
-		The color is 24-bit but it's in a 32-bit space.
-		1 byte blue (second, bytewise), 1 byte green (third, bytewise), 1 byte red (fourth, bytewise).
-		*/
-		color[0] = palPtrCpy[i+1];
-		color[1] = palPtrCpy[i+2];
-		color[2] = palPtrCpy[i+3];
-		
-		finalColors[0] = color[0] + globalLight[0];
-		color[0] = (finalColors[0] < 255) ? (finalColors[0] < 0) ? 0 : finalColors[0] : 255;
-		finalColors[1] = color[1] + globalLight[1];
-		color[1] = (finalColors[1] < 255) ? (finalColors[1] < 0) ? 0 : finalColors[1] : 255;
-		finalColors[2] = color[2] + globalLight[2];
-		color[2] = (finalColors[2] < 255) ? (finalColors[2] < 0) ? 0 : finalColors[2] : 255;
-		
-		sprPalette[i+1] = color[0];
-		sprPalette[i+2] = color[1];
-		sprPalette[i+3] = color[2];
-		
-		i+=4;
-	}
 	
-		//Next, set the sun light.
-		active_lights[0].pop = 1;
-		active_lights[0].ambient_light = &sun_light[0];
-		active_lights[0].min_bright = 10000;
-		active_lights[0].bright = 0;
-		//////////////////////////////////////////////////////////////////////////////////////
-		// Math Cluster to brighten or darken the background color, depending on how high the sun light is.
-		//////////////////////////////////////////////////////////////////////////////////////
-		unsigned short back_color = 0xE726;
-	//	unsigned short big_vector = JO_ABS(sun_light[1]);
-		unsigned short big_vector = JO_ABS(sun_light[0]);
-		big_vector = (JO_ABS(sun_light[1]) > big_vector) ? JO_ABS(sun_light[1]) : big_vector;
-		big_vector = (JO_ABS(sun_light[2]) > big_vector) ? JO_ABS(sun_light[2]) : big_vector;
-		unsigned int back_red = fxm((back_color & 0x1F), big_vector);
-		unsigned int back_green = fxm((back_color & (0x1F << 5))>>5, big_vector);
-		unsigned int back_blue = fxm((back_color & (0x1F << 10))>>10, big_vector);
-		back_red = (back_red > 31) ? 31 : back_red;
-		back_green = (back_green > 31) ? (31<<5) : back_green<<5;
-		back_blue = (back_blue > 31) ? (31<<10) : back_blue<<10;
-		back_color = back_red | back_green | back_blue;
-		slBack1ColSet((void *)BACK_CRAM, back_color);
-		//////////////////////////////////////////////////////////////////////////////////////
+	color_offset_vdp1_palette(globalColorOffset, &glblLightApply);
+	//Next, set the sun light.
+	active_lights[0].pop = 1;
+	active_lights[0].ambient_light = &sun_light[0];
+	active_lights[0].min_bright = 10000;
+	active_lights[0].bright = 0;
+	//////////////////////////////////////////////////////////////////////////////////////
 
-		glblLightApplied = true;
+	glblLightApply = false;
 	}
-}
-
-
-void	initCamera(void)
-{
-	//slWindow(16, 8, 336, 232, draw_distance, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
-	slWindow(0, 0, JO_TV_WIDTH-1, JO_TV_HEIGHT-1, 2000, JO_TV_WIDTH_2, JO_TV_HEIGHT_2);
-	slZdspLevel(0);
-	slPerspective((90 * 182)); //FOV
 }
 
 void	set_camera(void)
@@ -166,28 +98,13 @@ void	player_draw(void)
 {
 	slPushMatrix();
 	{
-		//I have to do it like this here **just because** I need to invert the player's position for this matrix.
-		//And yes, that's only for the matrix part. All other logic needs the position not-negated.
-		static MATRIX mat;
 
-		mat[X][X] = pl_RBB.UVX[X];
-		mat[X][Y] = pl_RBB.UVX[Y];
-		mat[X][Z] = pl_RBB.UVX[Z];
-		mat[3][0] = -pl_RBB.pos[X]; //POS
-		
-		mat[Y][X] = pl_RBB.UVY[X];
-		mat[Y][Y] = pl_RBB.UVY[Y];
-		mat[Y][Z] = pl_RBB.UVY[Z];
-		mat[3][1] = -pl_RBB.pos[Y]; //POS
-		
-		mat[Z][X] = pl_RBB.UVZ[X];
-		mat[Z][Y] = pl_RBB.UVZ[Y];
-		mat[Z][Z] = pl_RBB.UVZ[Z];
-		mat[3][2] = -pl_RBB.pos[Z]; //Position
-
-		slMultiMatrix(mat); //Multiplies bound box matrix parameters by global view rotation parameters (really nice!)
-		
-		pl_model.prematrix = &pl_RBB.UVX[0];
+		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Negate, because coordinate madness
+		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Negate, because coordinate madness
+		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Negate, because coordinate madness
+	
+		pl_model.prematrix = (FIXED*)&pl_RBB;
+		wings.prematrix = (FIXED*)&pl_RBB;
 		
 //Animation Chains
 					static int airTimer = 0;
@@ -250,6 +167,11 @@ void	player_draw(void)
 				}//IF AIR ENDIF
 			} //IF MODEL LOADED ENDIF
 			
+			
+	}
+	slPopMatrix();
+	
+	slPushMatrix();
 			//This plays a wing flap animation when you start 'jetting'.
 			//Due to the configuration of the animation, the wings stop after one flap.
 			//This code manually resets the flap animation when you're done jetting, so they will flap again.
@@ -261,15 +183,16 @@ void	player_draw(void)
 				flap.currentKeyFrm = flap.startFrm;
 				flap.reset_enable = 'Y';
 			}
-	}
-
 	slPopMatrix();
+
+		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
+		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
+		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
 
 }
 
 void	obj_draw_queue(void)
 {
-		static POINT * mat;
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -278,26 +201,20 @@ void	obj_draw_queue(void)
 		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
 		
 	slPushMatrix();
-		
-		//Use bound box parameters as matrix
-		mat = (POINT *)&RBBs[i];
 	
-		entities[objDRAW[i]].prematrix = &RBBs[i].UVX[0];
+		entities[objDRAW[i]].prematrix = (FIXED *)&RBBs[i];
 	
 			if( objType != ITEM && objType != LDATA && objType != BUILD )
 			{ //Check if entity is NOT ITEM or LDATA
-		slMultiMatrix(mat); 
 		ssh2DrawModel(&entities[objDRAW[i]]);
 			} else if( objType == ITEM )
 			{ //if entity IS ITEM
 				if( !(dWorldObjects[activeObjects[i]].type.ext_dat & 8) ) //Check if root entity still exists
 				{
-					slMultiMatrix(mat);
 					ssh2DrawModel(&entities[objDRAW[i]]);
 				}
 			} else if( objType == BUILD)
 			{
-		slMultiMatrix(mat);
 		plane_rendering_with_subdivision(&entities[objDRAW[i]]);
 			}
 	slPopMatrix();
@@ -329,26 +246,21 @@ void	shadow_draw(void)
 			
 	slPushMatrix();
 
-		static MATRIX mat;
 		//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
-		mat[X][X] = pl_RBB.UVX[X];
-		mat[X][Y] = pl_RBB.UVX[Y];
-		mat[X][Z] = pl_RBB.UVX[Z];
-		mat[3][0] = -you.shadowPos[X]; //POS
-		
-		mat[Y][X] = pl_RBB.UVY[X];
-		mat[Y][Y] = pl_RBB.UVY[Y];
-		mat[Y][Z] = pl_RBB.UVY[Z];
-		mat[3][1] = -(you.shadowPos[Y] + 8196); //POS
-		
-		mat[Z][X] = pl_RBB.UVZ[X];
-		mat[Z][Y] = pl_RBB.UVZ[Y];
-		mat[Z][Z] = pl_RBB.UVZ[Z];
-		mat[3][2] = -you.shadowPos[Z]; //Position
 
-		slMultiMatrix(mat);
+	pl_RBB.pos[X] = -you.shadowPos[X];
+	pl_RBB.pos[Y] = -(you.shadowPos[Y] - 8192);
+	pl_RBB.pos[Z] = -you.shadowPos[Z]; 
+	
+	shadow.prematrix = (FIXED*)&pl_RBB;
 
 	ssh2DrawModel(&shadow);
+		
+		//Just casually undo that
+		
+	pl_RBB.pos[X] = you.pos[X];
+	pl_RBB.pos[Y] = you.pos[Y];
+	pl_RBB.pos[Z] = you.pos[Z];
 	
 	slPopMatrix();
 		}

@@ -7,6 +7,7 @@
 
 #include <jo/jo.h>
 #include "input.h"
+#include "def.h"
 
 //There are 32 of these
 //2-bytes aligned
@@ -17,9 +18,10 @@ unsigned char * ireg1 = SMPC_IREG1;
 
 digital_pad pad1 = {.pressed = 0xFFFF,
 					.prevPressed = 0xFFFF,
+					.frameHeld = 0xFFFF,
 					.up = 0,
 					.down = 0xFFFF,
-					.change = 0xFFFF,
+					.change = 0,
 					.toggle = 0xFFFF};
 
 void	operate_digital_pad1(void)
@@ -27,6 +29,7 @@ void	operate_digital_pad1(void)
 	pad1.pressed = oregs[6] | (oregs[4]<<8); //Holds current frame data
 	
 	pad1.change = pad1.pressed ^ pad1.prevPressed;
+	pad1.frameHeld ^= pad1.change;
 	
 	pad1.up ^= pad1.change;
 	pad1.down = (pad1.change != 0) ? pad1.down ^ pad1.change : pad1.down;
@@ -34,6 +37,15 @@ void	operate_digital_pad1(void)
 	pad1.toggle ^= (pad1.change != 0) ? pad1.up : 0;
 	
 	pad1.prevPressed = pad1.pressed;
+}
+
+//Specifically for the operation of "is_key_change" to function at 30 hz, 20hz, etc
+//Place once anywhere in game loop
+void	reset_pad(digital_pad * pad)
+{
+
+	pad->frameHeld = 0;
+
 }
 
 int	is_key_pressed(int keyPattern)
@@ -69,7 +81,7 @@ int	is_key_down(int keyPattern)
 
 int	is_key_change(int keyPattern)
 {
-	if( (pad1.change & keyPattern) == keyPattern)
+	if( (pad1.frameHeld & keyPattern) == keyPattern)
 	{
 		return 1;
 	} else {
