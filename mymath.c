@@ -44,9 +44,9 @@ __jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot produc
 		"sts MACH,r1;"
 		"sts MACL,%[ox];"
 		"xtrct r1,%[ox];"
-		: 	[ox] "=r" (rtval)					//OUT
-		:	[ptr1] "r" (ptA) , [ptr2] "r" (ptB)	//IN
-		:	"r1", "mach", "macl"				//CLOBBERS
+		: 	[ox] "=r" (rtval), [ptr1] "+p" (ptA) , [ptr2] "+p" (ptB)	//OUT
+		:																//IN
+		:	"r1", "mach", "macl"										//CLOBBERS
 	);
 	return rtval;
 }
@@ -411,8 +411,7 @@ bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ]
 	vector_to_plane[Y] = (point_on_plane[Y] + (offset[Y])) - p0[Y];
 	vector_to_plane[Z] = (point_on_plane[Z] + (offset[Z])) - p0[Z];
 
-	line_scalar = fxdiv(slInnerProduct(vector_to_plane, unitNormal), slInnerProduct(vector_of_line, unitNormal));
-	//slDivFX(slInnerProduct(vector_of_line, unitNormal), slInnerProduct(vector_to_plane, unitNormal));
+	line_scalar = fxdiv(fxdot(vector_to_plane, unitNormal), fxdot(vector_of_line, unitNormal));
 	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
 		return false;
 	}
