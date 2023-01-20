@@ -170,12 +170,9 @@ FIXED		double_fxisqrt(FIXED input){
 
 void	cpy3(FIXED * src, FIXED * dst)
 {
-	*dst++ = *src++;
-	*dst++ = *src++;
-	*dst++ = *src++;
-	// dst[X] = src[X];
-	// dst[Y] = src[Y];
-	// dst[Z] = src[Z];
+	dst[X] = src[X];
+	dst[Y] = src[Y];
+	dst[Z] = src[Z];
 }
 
 void	normalize(FIXED * vector_in, FIXED * vector_out)
@@ -222,7 +219,7 @@ int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out)
 	return scale;
 }
 
-void	cross_fixed(FIXED * vector1, FIXED * vector2, FIXED * output)
+void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output)
 {
 	output[X] = fxm(vector1[Y], vector2[Z]) - fxm(vector1[Z], vector2[Y]);
 	output[Y] = fxm(vector1[Z], vector2[X]) - fxm(vector1[X], vector2[Z]);
@@ -233,7 +230,7 @@ void	cross_fixed(FIXED * vector1, FIXED * vector2, FIXED * output)
 //////////////////////////////////
 // Checks if "point" is between "start" and "end".
 //////////////////////////////////
-bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
+bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ], int tolerance)
 {
 	FIXED max[XYZ];
 	FIXED min[XYZ];
@@ -246,9 +243,9 @@ bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ])
 	min[Y] = JO_MIN(start[Y], end[Y]);
 	min[Z] = JO_MIN(start[Z], end[Z]);
 	
-	if(point[X] >= (min[X] - MATH_TOLERANCE) && point[X] <= (max[X] + MATH_TOLERANCE) &&
-		point[Y] >= (min[Y] - MATH_TOLERANCE) && point[Y] <= (max[Y] + MATH_TOLERANCE) &&
-		point[Z] >= (min[Z] - MATH_TOLERANCE) && point[Z] <= (max[Z] + MATH_TOLERANCE)){
+	if(point[X] >= (min[X] - tolerance) && point[X] <= (max[X] + tolerance) &&
+		point[Y] >= (min[Y] - tolerance) && point[Y] <= (max[Y] + tolerance) &&
+		point[Z] >= (min[Z] - tolerance) && point[Z] <= (max[Z] + tolerance)){
 				return true;
 	} else {
 		return false;
@@ -277,14 +274,15 @@ int	line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB,
 	da = vector for line A
 	db = vector for line B
 	dc = difference of A and B (new vector)
-	We subtract, because I don't know that's just what put it in the right spot, fuck you, do not pass go, do not collect 200 rubles
+	We subtract, because I don't know that's just what put it in the right spot,
+	fuck you, do not pass go, do not collect 200 rubles
 	*/
 	
 	VECTOR vC = {ptA[X] - ptB[X], ptA[Y] - ptB[Y], ptA[Z] - ptB[Z]};
 	VECTOR crossCB;
 	VECTOR crossAB;
-	cross_fixed(vC, vB, crossCB);
-	cross_fixed(vA, vB, crossAB);
+	fxcross(vC, vB, crossCB);
+	fxcross(vA, vB, crossAB);
 	int sclA = fxdiv(slInnerProduct(crossCB, crossAB), slInnerProduct(crossAB, crossAB));
 	
 	intersection[X] = ptA[X] - fxm(sclA, vA[X]);
@@ -396,7 +394,7 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 // output : the point at which the line intersects the plane
 // return value : whether or not the output point is between p0 and p1
 //////////////////////////////////
-bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ], FIXED output[XYZ])
+bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output)
 {
 
 	FIXED line_scalar = 0;
@@ -420,6 +418,6 @@ bool	line_hit_plane_here(FIXED p0[XYZ], FIXED p1[XYZ], FIXED point_on_plane[XYZ]
 	output[Y] = (p0[Y] + fxm(vector_of_line[Y], line_scalar));
 	output[Z] = (p0[Z] + fxm(vector_of_line[Z], line_scalar));
 
-	return isPointonSegment(output, p0, p1);
+	return isPointonSegment(output, p0, p1, tolerance);
 }
 

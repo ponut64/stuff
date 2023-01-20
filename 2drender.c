@@ -18,7 +18,7 @@ int baseAsciiTexno = 0;
 int sprAsciiWidth = 0;
 int sprAsciiHeight = 0;
 
-void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char mesh, char type, short useClip, int lifetime)
+void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned char mesh, char type, short useClip, int lifetime)
 {
 	int used_sprite = 64;
 	//Find an unused sprite list entry
@@ -36,7 +36,9 @@ void	add_to_sprite_list(FIXED * position, short span, short texno, unsigned char
 	sprWorkList[used_sprite].pos[X] = position[X];
 	sprWorkList[used_sprite].pos[Y] = position[Y];
 	sprWorkList[used_sprite].pos[Z] = position[Z];
-	sprWorkList[used_sprite].span = span;
+	sprWorkList[used_sprite].span[X] = span[X];
+	sprWorkList[used_sprite].span[Y] = span[Y];
+	sprWorkList[used_sprite].span[Z] = span[Z];
 	sprWorkList[used_sprite].texno = texno;
 	sprWorkList[used_sprite].mesh = mesh;
 	sprWorkList[used_sprite].type = type;
@@ -164,13 +166,97 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 		
 		//If the vertice is off-screen or too far away, return.
 		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
-		int used_span = (spr->span * inverseZ)>>16;
-		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + used_span, ssh2VertArea[0].pnt[Y] + used_span};
-		FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - used_span, ssh2VertArea[0].pnt[Y] - used_span};
+		int used_spanX = (spr->span[X] * inverseZ)>>16;
+		int used_spanY = (spr->span[Y] * inverseZ)>>16;
+		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + used_spanX, ssh2VertArea[0].pnt[Y] + used_spanY};
+		FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - used_spanX, ssh2VertArea[0].pnt[Y] - used_spanY};
 		
         ssh2SetCommand(pntA, 0, pntC, 0,
 		1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
 		pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
+}
+
+void	ssh2Line(_sprite * spr)
+{
+	//
+	// Draw A Line
+	// Recieves a 3D position in a matrix, transforms it to screenspace, and then displays a line with pos + span as the line.
+	//
+    static MATRIX newMtx;
+    slGetMatrix(newMtx);
+
+	static FIXED m0x[4];
+	static FIXED m1y[4];
+	static FIXED m2z[4];
+	
+	m0x[0] = newMtx[X][X];
+	m0x[1] = newMtx[Y][X];
+	m0x[2] = newMtx[Z][X];
+	m0x[3] = newMtx[3][X];
+	
+	m1y[0] = newMtx[X][Y];
+	m1y[1] = newMtx[Y][Y];
+	m1y[2] = newMtx[Z][Y];
+	m1y[3] = newMtx[3][Y];
+	
+	m2z[0] = newMtx[X][Z];
+	m2z[1] = newMtx[Y][Z];
+	m2z[2] = newMtx[Z][Z];
+	m2z[3] = newMtx[3][Z];
+	
+	unsigned short usrClp = SYS_CLIPPING; //The clipping setting added to command table
+	if(spr->useClip == USER_CLIP_INSIDE)
+	{
+		//Clip inside the user clipping setting
+		usrClp = 0x400;
+	} else if(spr->useClip == USER_CLIP_OUTSIDE)
+	{
+		//Clip outside the user clipping setting
+		usrClp = 0x600;
+	}
+	
+	/*
+	Matrix Transformation / Perspective Correciton
+	*/
+	static POINT used_pos;
+	used_pos[X] = spr->pos[X];
+	used_pos[Y] = spr->pos[Y];
+	used_pos[Z] = spr->pos[Z];
+	for(int i = 0; i < 2; i++)
+	{
+        /**calculate z**/
+        ssh2VertArea[i].pnt[Z] = trans_pt_by_component(used_pos, m2z);
+		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+
+         /**Starts the division**/
+        SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
+
+        /**Calculates X and Y while waiting for screenDist/z **/
+        ssh2VertArea[i].pnt[Y] = trans_pt_by_component(used_pos, m1y);
+        ssh2VertArea[i].pnt[X] = trans_pt_by_component(used_pos, m0x);
+		
+        /** Retrieves the result of the division **/
+		int inverseZ = *DVDNTL;
+
+        /**Transform X and Y to screen space**/
+        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
+ 
+        //Screen Clip Flags for on-off screen decimation
+		clipping(&ssh2VertArea[i], spr->useClip);
+		ssh2VertArea[i].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this stuff.... could just make a new clipper func..
+		used_pos[X] += spr->span[X]<<3;
+		used_pos[Y] += spr->span[Y]<<3;
+		used_pos[Z] += spr->span[Z]<<3;
+	}
+		transVerts[0] += 2;
+		
+		//If the vertice is off-screen or too far away, return.
+		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
+		
+        ssh2SetCommand(ssh2VertArea[0].pnt, ssh2VertArea[0].pnt, ssh2VertArea[1].pnt, ssh2VertArea[1].pnt,
+		5 /*Polyline Setting*/, 0x8C0 | usrClp/*manual specifies 0xC0 for polyline, DO NOT CHANGE BITS 7-6*/,
+		0 /*SRCA*/, spr->texno /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, 3<<16 /*Z*/);
 }
 
 	//(This function is safe to run on either master or slave)

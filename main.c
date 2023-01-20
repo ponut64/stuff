@@ -53,6 +53,8 @@ void * active_HWRAM_ptr;
 //
 short * division_table;
 
+//short * sine_table;
+
 //A zero vector to be used when you want zero.
 POINT zPt = {0, 0, 0};
 extern Sint8 SynchConst; //SGL System Variable
@@ -235,7 +237,7 @@ void	load_test(void)
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(02);
+	p64MapRequest(04);
 	//
 	
 }
@@ -289,7 +291,6 @@ void	jo_main(void)
 	//Loading Area
 	//
 	init_lwram();
-	active_HWRAM_ptr = &hwram_model_data[0];
 	dpinit();
 	init_render_area(90 * 182);
 	initPhys();

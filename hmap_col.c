@@ -138,7 +138,7 @@ tri1V2[Y] = (tri1p2[Y]) - (tri1p1[Y]);
 tri1V2[Z] = 0;
 
 //Cross 2 - 1. IT IS OPPOSITE IN THE OTHER TRIANGLE.
-cross_fixed(tri1V2, tri1V1, crosstri1);
+fxcross(tri1V2, tri1V1, crosstri1);
 crosstri1[X] = crosstri1[X]>>8;
 crosstri1[Y] = crosstri1[Y]>>8;
 crosstri1[Z] = crosstri1[Z]>>8;
@@ -191,7 +191,7 @@ tri2V2[Z] = CELL_SIZE;
 
 
 //Cross 1 - 2. IT IS OPPOSITE IN THE OTHER TRIANGLE.
-cross_fixed(tri2V1, tri2V2, crosstri2);
+fxcross(tri2V1, tri2V2, crosstri2);
 crosstri2[X] = crosstri2[X]>>8;
 crosstri2[Y] = crosstri2[Y]>>8;
 crosstri2[Z] = crosstri2[Z]>>8;

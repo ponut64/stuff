@@ -436,14 +436,14 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	if(!hitY)
 	{
-	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, lineEnds[Y]);
+	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
 	} else {
 	lineChecks[Y] = false;
 	}
 	if(!hitXZ)
 	{
-	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, lineEnds[Z]);
-	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, lineEnds[X]);	
+	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, 16384, lineEnds[Z]);
+	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, 16384, lineEnds[X]);	
 	} else {
 	lineChecks[Z] = false;
 	lineChecks[X] = false;

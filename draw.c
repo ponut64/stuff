@@ -230,6 +230,9 @@ void	obj_draw_queue(void)
 			if(sprWorkList[s].type == 'B')
 			{
 				ssh2BillboardScaledSprite(&sprWorkList[s]);
+			} else if(sprWorkList[s].type == 'L')
+			{
+				ssh2Line(&sprWorkList[s]);
 			}
 		} else {
 			//Mark expired sprites as unused.

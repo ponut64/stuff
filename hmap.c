@@ -74,13 +74,13 @@ void	read_pgm_header(_heightmap * map)
 				Uint8 spaceChar = 0;
 				Uint8 numLeftOfSpace = 0;
 				Uint8 numRightOfSpace = 0;
-				Uint8 leftFactor = 0;
-				Uint8 rightFactor = 0;
+				Uint16 leftFactor = 0;
+				Uint16 rightFactor = 0;
 				
 				Uint8* newlinePtr[4] = {0, 0, 0, 0};
 				for(Uint8 l = 0; newlines < 4; l++){
 					Uint8 * chset = (Uint8 *)map->dstAddress + l;
-					if(*chset == 10){
+					if(*chset == '\n'){
 						newlinePtr[newlines] = (Uint8 *)map->dstAddress + l;
 						newlines++;
 					}
@@ -91,22 +91,22 @@ void	read_pgm_header(_heightmap * map)
 					//All of this below, to the next comment, is stuff that arbitrates the ASCII characters of numbers to numbers to do math with.
 					NumberOfNumbers = (newlinePtr[2] - newlinePtr[1]) - 1;
 				Uint8* arrayOfCharacters[NumberOfNumbers];
-
+			
 				for(Uint8 c = 0; c < NumberOfNumbers; c++){
 					arrayOfCharacters[c] = newlinePtr[1] + 1 + c;
-					if(*arrayOfCharacters[c] == 32){
+					if(*arrayOfCharacters[c] == ' '){
 						spaceChar = c;
 					}
 				}
 				numLeftOfSpace = spaceChar;
 				numRightOfSpace = (NumberOfNumbers - (spaceChar + 1) );
 
-				Uint8 bufCharLeft[numLeftOfSpace];
-				Uint8 bufCharRight[numRightOfSpace];
+				Uint8 bufCharLeft[4] = {0, 0, 0, 0};
+				Uint8 bufCharRight[4] = {0, 0, 0, 0};
 				for(Uint8 r = 0; r < numLeftOfSpace; r++){
 					bufCharLeft[r] = *arrayOfCharacters[r] - 48; //"48" being the number to subtract ASCII numbers by 
 				}												//to get the number in binary.
-				for(Uint8 v = 0; v < numLeftOfSpace; v++){
+				for(Uint8 v = 0; v < numRightOfSpace; v++){
 					bufCharRight[v] = *arrayOfCharacters[spaceChar+v+1] - 48;
 				}
 				
@@ -408,7 +408,7 @@ void	process_map_for_normals(void)
 
 	sminusb[1] = (ys[3]<<16) - (ys[1]<<16);
 	
-	cross_fixed(rminusb, sminusb, cross);
+	fxcross(rminusb, sminusb, cross);
 
 	cross[X] = cross[X]>>8; //Shift to supresss overflows
 	cross[Y] = cross[Y]>>8;
