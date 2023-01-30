@@ -192,7 +192,6 @@ void	declarations(void)
 // declare_object_at_cell((420 / 40) + 1, -352,  -(60 / 40), 11 /*build00*/, 0, 0, 0, 0);
 
 
-
 // declare_object_at_cell((1770 / 40) + 1, -78,  -(1300 / 40), 12 /*build01*/, 0, 0, 0, 0);
 
 // declare_object_at_cell((360 / 40) + 1, -99,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
@@ -208,6 +207,35 @@ void	declarations(void)
 
 // declare_object_at_cell((660 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
 // declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
+
+/* level 4 ? */
+declare_object_at_cell((420 / 40) + 1, -350, -(4860 / 40), 61 /*start location*/, 0, 0, 0, 0);
+
+declare_object_at_cell((140 / 40) + 1, -211,  -(1020 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell((180 / 40) + 1, -197,  -(480 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell((220 / 40) + 1, -269,  (1060 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+
+declare_object_at_cell((260 / 40) + 1, -270,  -(4340 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
+declare_object_at_cell((300 / 40) + 1, -365,  (860 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
+declare_object_at_cell((300 / 40) + 1, -365,  (1260 / 40), 23 /*bridge2*/, 0, -30, 0, 0);
+
+declare_object_at_cell((140 / 40) + 1, -245, -(4140 / 40), 16 /*overhang*/, 0, 115, 0, 0);
+declare_object_at_cell((20 / 40) + 1, -289, -(3100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
+
+declare_object_at_cell((60 / 40) + 1, -381, -(2300 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+declare_object_at_cell((300 / 40) + 1, -383, (220 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+
+declare_object_at_cell((100 / 40) + 1, -389, -(2300 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40) + 1, -393, (220 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
+
+declare_object_at_cell((180 / 40) + 1, -200, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+declare_object_at_cell((100 / 40) + 1, -200, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+
+declare_object_at_cell((220 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+declare_object_at_cell((140 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+
+declare_object_at_cell(-(20 / 40) + 1, -394, -(1900 / 40), 13 /*greece02*/, 0, 0, 0, 0);
+declare_object_at_cell((340 / 40) + 1, -310, -(300 / 40), 13 /*greece02*/, 0, 180, 0, 0);
 
 }
 

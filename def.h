@@ -57,6 +57,7 @@ extern int snd_cronch;
 extern int snd_alarm;
 extern int snd_win;
 extern int snd_bwee;
+extern int snd_smack;
 //////////////////////////////////////////////////////////////////////////////
 
 //Structs

@@ -97,9 +97,10 @@ void pl_jet(void){
 		you.power -= 1;
 			if(you.dirInp == true)
 			{
-			you.velocity[X] += fxm(fxm(512, -you.ControlUV[X]), frmul); 
+			//Double-up when in jet mode. Same as in-air or sliding velocity addition.
+			you.velocity[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
 			you.velocity[Y] += fxm(GRAVITY, frmul); 
-			you.velocity[Z] += fxm(fxm(512, -you.ControlUV[Z]), frmul); 
+			you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
 			} else {
 			you.velocity[Y] += fxm(GRAVITY, frmul); 
 			}
@@ -227,9 +228,9 @@ void	player_phys_affect(void)
 	you.viewRot[Y] -= you.rotState[X];
 	
 	//Make the velocity unit vector from the current player's rotation.
-	you.ControlUV[X] = fxm(slSin(you.renderRot[Y]), slCos(you.renderRot[X]));
+	you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
 	you.ControlUV[Y] = slSin(you.renderRot[X]);
-	you.ControlUV[Z] = fxm(slCos(you.renderRot[Y]), slCos(you.renderRot[X]));
+	you.ControlUV[Z] = fxm(slCos(you.rot[Y]), slCos(you.renderRot[X]));
 	
 	smart_cam();
 	//
@@ -326,6 +327,7 @@ void	player_phys_affect(void)
 	you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
 	//Wall Math is Done
 	you.hitWall = false;
+	if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
 	}
 	//
 		//velocity add by input decisions
@@ -335,7 +337,11 @@ void	player_phys_affect(void)
 			you.velocity[X] += fxm(you.IPaccel, you.ControlUV[X]);
 			you.velocity[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
 			you.velocity[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
-		} else { //If sliding, or in air
+		} else { 
+		//If sliding or in the air
+		//I don't want this to enable going faster, but I do want it to help you turn.
+		//I also want to increase turning authority at higher speeds.
+		//Also, when you're sliding, you can't go backwards lol
 			you.velocity[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
 			you.velocity[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
 			you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);

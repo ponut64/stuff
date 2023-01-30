@@ -81,12 +81,12 @@ _sobject Ring00 = {
 	.light_bright = 0
 };
 
-_sobject Post00 = {
+_sobject Kyoob = {
 	.entity_ID = 9,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GATE_P,
+	.ext_dat = OBJECT,
 	.light_bright = 0
 };
 
@@ -207,6 +207,24 @@ _sobject Build11 = {
 	.light_bright = 0
 };
 
+_sobject Build12 = {
+	.entity_ID = 23,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build13 = {
+	.entity_ID = 24,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -280,7 +298,7 @@ void	fill_obj_list(void)
 	objList[6] = &Meme01;
 	objList[7] = &Meme02;
 	objList[8] = &Ring00;
-	objList[9] = &Post00;
+	objList[9] = &Kyoob;
 	objList[10] = &Platf00;
 	objList[11] = &Build00;
 	objList[12] = &Build01;
@@ -294,6 +312,8 @@ void	fill_obj_list(void)
 	objList[20] = &Build09;
 	objList[21] = &Build10;
 	objList[22] = &Build11;
+	objList[23] = &Build12;
+	objList[24] = &Build13;
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;
 

@@ -81,6 +81,7 @@ volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
  int snd_alarm;
  int snd_win;
  int snd_bwee;
+ int snd_smack;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //Why are these here?
@@ -178,6 +179,7 @@ void	load_test(void)
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
+	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	//Next up: TGA file system handler?
 	int map_tex_start = numTex;
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
@@ -200,6 +202,9 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
+	
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",	active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING);
@@ -212,6 +217,8 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		active_HWRAM_ptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		active_HWRAM_ptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		active_HWRAM_ptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		active_HWRAM_ptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL);
@@ -225,7 +232,6 @@ void	load_test(void)
 	
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RING00.GVP",		active_HWRAM_ptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
-	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BLOCK1.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL); 
 	
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RTUNNEL.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TRACKOB2.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING);

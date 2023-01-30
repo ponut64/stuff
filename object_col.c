@@ -160,7 +160,21 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
 		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
 	}
+	POINT tRadius = {entities[new_entity_ID].radius[X]<<16, entities[new_entity_ID].radius[Y]<<16, entities[new_entity_ID].radius[Z]<<16};
+	//Transformer the radius.
+	entities[new_entity_ID].radius[X] = JO_ABS((fxdot(tRadius, temp_box.UVX)>>16));
+	entities[new_entity_ID].radius[Y] = JO_ABS((fxdot(tRadius, temp_box.UVY)>>16));
+	entities[new_entity_ID].radius[Z] = JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16));
 	//Done!
+	
+	// jo_printf(2, 6, "ox(%i)", entities[this_entity_ID].radius[X]);
+	// jo_printf(2, 7, "oy(%i)", entities[this_entity_ID].radius[Y]);
+	// jo_printf(2, 8, "oz(%i)", entities[this_entity_ID].radius[Z]);
+	
+	// jo_printf(2, 10, "Nx(%i)", entities[new_entity_ID].radius[X]);
+	// jo_printf(2, 11, "Ny(%i)", entities[new_entity_ID].radius[Y]);
+	// jo_printf(2, 12, "Nz(%i)", entities[new_entity_ID].radius[Z]);
+	
 }
 
 
