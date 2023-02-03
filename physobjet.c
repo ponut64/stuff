@@ -100,6 +100,8 @@ void	declarations(void)
 {
 
 /* level00 ?*/
+//Will replace.
+
 // declare_object_at_cell((300 / 40) + 1, -(343), -(1060 / 40), 12 /*build01*/, 0, 0, 0, 0);
 // declare_object_at_cell(-(300 / 40) + 1, -300, (-1100 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
@@ -109,6 +111,8 @@ void	declarations(void)
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
 /* level01? */
+// Will replace.
+
 // declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0, 0);
 // declare_object_at_cell(-(897 / 40) + 1, -375,  (856 / 40), 12 /*build01*/, 0, 0, 0, 0);
 														 
@@ -141,6 +145,8 @@ void	declarations(void)
 // declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
 /* level2? */
+// Likely will keep, with modification.
+
 // declare_object_at_cell((1680 / 40) + 1, -30, -(1680 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
 // declare_object_at_cell((1080 / 40) + 1, -338, -(1440 / 40), 11 /*bridge1*/, 0, 0, 0, 0);
@@ -185,6 +191,7 @@ void	declarations(void)
 
 
 /* level3 ? */
+//Likely will replace
 
 // declare_object_at_cell(-(20 / 40) + 1, -120, (940 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
@@ -209,33 +216,73 @@ void	declarations(void)
 // declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
 
 /* level 4 ? */
-declare_object_at_cell((420 / 40) + 1, -350, -(4860 / 40), 61 /*start location*/, 0, 0, 0, 0);
+// Hell Run level. I like it.
 
-declare_object_at_cell((140 / 40) + 1, -211,  -(1020 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell((180 / 40) + 1, -197,  -(480 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell((220 / 40) + 1, -269,  (1060 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((460 / 40) + 1, -340, -(4820 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-declare_object_at_cell((260 / 40) + 1, -270,  -(4340 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
-declare_object_at_cell((300 / 40) + 1, -365,  (860 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
-declare_object_at_cell((300 / 40) + 1, -365,  (1260 / 40), 23 /*bridge2*/, 0, -30, 0, 0);
+// declare_object_at_cell((140 / 40) + 1, -211,  -(1020 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((180 / 40) + 1, -197,  -(480 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((220 / 40) + 1, -351,  (1060 / 40), 10 /*platf00*/, 0, 0, 0, 0);
 
-declare_object_at_cell((140 / 40) + 1, -245, -(4140 / 40), 16 /*overhang*/, 0, 115, 0, 0);
-declare_object_at_cell((20 / 40) + 1, -289, -(3100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
+// declare_object_at_cell((260 / 40) + 1, -270,  -(4340 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
+// declare_object_at_cell((300 / 40) + 1, -426,  (860 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
+// declare_object_at_cell((300 / 40) + 1, -426,  (1260 / 40), 23 /*bridge2*/, 0, -30, 0, 0);
 
-declare_object_at_cell((60 / 40) + 1, -381, -(2300 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
-declare_object_at_cell((300 / 40) + 1, -383, (220 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+// declare_object_at_cell((140 / 40) + 1, -245, -(4140 / 40), 16 /*overhang*/, 0, 115, 0, 0);
+// declare_object_at_cell((20 / 40) + 1, -289, -(3100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
 
-declare_object_at_cell((100 / 40) + 1, -389, -(2300 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
-declare_object_at_cell((260 / 40) + 1, -393, (220 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
+// declare_object_at_cell((260 / 40) + 1, -340, (2100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
 
-declare_object_at_cell((180 / 40) + 1, -200, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
-declare_object_at_cell((100 / 40) + 1, -200, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+// declare_object_at_cell((180 / 40) + 1, -201, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+// declare_object_at_cell((100 / 40) + 1, -201, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
 
-declare_object_at_cell((220 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 20, 0, 0, 0);
-declare_object_at_cell((140 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 20, 0, 0, 0);
+// declare_object_at_cell((220 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 14, 0, 0, 0);
+// declare_object_at_cell((140 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 14, 0, 0, 0);
 
-declare_object_at_cell(-(20 / 40) + 1, -394, -(1900 / 40), 13 /*greece02*/, 0, 0, 0, 0);
-declare_object_at_cell((340 / 40) + 1, -310, -(300 / 40), 13 /*greece02*/, 0, 180, 0, 0);
+// declare_object_at_cell(-(140 / 40) + 1, -381, (3340 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+// declare_object_at_cell((60 / 40) + 1, -381, -(2300 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+// declare_object_at_cell((300 / 40) + 1, -383, (220 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
+
+// declare_object_at_cell((100 / 40) + 1, -389, -(2300 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
+// declare_object_at_cell((260 / 40) + 1, -393, (220 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
+
+// declare_object_at_cell(-(20 / 40) + 1, -394, -(1900 / 40), 13 /*greece02*/, 0, 0, 0, 0);
+// declare_object_at_cell((340 / 40) + 1, -310, -(300 / 40), 13 /*greece02*/, 0, 180, 0, 0);
+
+// declare_object_at_cell(-(20 / 40) + 1, -398, (4420 / 40), 13 /*greece02*/, 0, 45, 0, 0);
+// declare_object_at_cell(-(300 / 40) + 1, -398, (4700 / 40), 13 /*greece02*/, 0, 225, 0, 0);
+
+// declare_object_at_cell(-(180 / 40) + 1, -398, (4540 / 40), 15 /*greece04*/, 0, 0, 0, 0);
+
+// declare_object_at_cell(-(140 / 40) + 1, -296, (2940 / 40), 21 /*wall1*/, 0, 0, 60, 0);
+// declare_object_at_cell(-(140 / 40) + 1, -277, (3820 / 40), 21 /*wall1*/, -60, -90, 0, 0);
+
+/* level5 ? */
+//Like this level, will keep.
+
+declare_object_at_cell(-(860 / 40) + 1, -330, (460 / 40), 61 /*start location*/, 0, 0, 0, 0);
+
+declare_object_at_cell((740 / 40) + 1, -148, (740 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+declare_object_at_cell(-(1180 / 40) + 1, -126, (1020 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+declare_object_at_cell((1740 / 40) + 1, -399, (1780 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+
+declare_object_at_cell(-(500 / 40) + 1, -334,  (580 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(340 / 40) + 1, -346,  (380 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell((1020 / 40) + 1, -196,  (460 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+
+declare_object_at_cell((860 / 40) + 1, -22, -(700 / 40), 21 /*wall1*/, 0, -135, 0, 0);
+declare_object_at_cell((340 / 40) + 1, -181, -(1340 / 40), 21 /*wall1*/, 75, 90, 0, 0);
+
+declare_object_at_cell((1380 / 40) + 1, -284, (1380 / 40), 23 /*bridge2*/, 0, -135, 0, 0);
+declare_object_at_cell((660 / 40) + 1, -173, -(900 / 40), 23 /*bridge2*/, 0, -45, 0, 0);
+
+declare_object_at_cell(-(420 / 40) + 1, -164, -(1020 / 40), 17 /*pier1*/, 0, 120, 0, 0);
+
+declare_object_at_cell(-(860 / 40) + 1, -310, -(100 / 40), 20 /*tunnl3*/, 0, 90, 0, 0);
+
+declare_object_at_cell((300 / 40) + 1, -321, -(20 / 40), 14 /*greece03*/, 0, 0, 0, 0);
+
+declare_object_at_cell(-(60 / 40) + 1, -370, (180 / 40), 25 /*float01*/, 0, 0, 0, 0);
 
 }
 
@@ -263,6 +310,7 @@ void	object_control_loop(int ppos[XY])
 	}		//Just in case.
 	static int difX = 0;
 	static int difY = 0;
+	static int difH = 0;
 	static int position_difference[XYZ] = {0,0,0};
 	objUP = 0;
 
@@ -273,14 +321,14 @@ void	object_control_loop(int ppos[XY])
 		
 		difX = fxm(JO_ABS((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]) - (dWorldObjects[i].type.radius[X]<<16), INV_CELL_SIZE)>>16; 
 		difY = fxm(JO_ABS((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]) - (dWorldObjects[i].type.radius[Z]<<16), INV_CELL_SIZE)>>16; 
-
+		difH = JO_ABS(you.pos[Y] + dWorldObjects[i].pos[Y]);
 		
 		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
 		{ 		
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
-				if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
+				if(difH < HEIGHT_CULLING_DIST && difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
 				{
 					//Get the position difference. This is uniquely used for level data collision.
 					//For now, at least.
@@ -336,7 +384,7 @@ void	object_control_loop(int ppos[XY])
 						}
 					}
 				}
-		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && objUP < MAX_PHYS_PROXY)
+		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
 
 				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
@@ -442,7 +490,7 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 			// Object in render-range end stub
 			////////////////////////////////////////////////////
-		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && objUP < MAX_PHYS_PROXY)
+		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
 				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD && dWorldObjects[i].type.light_bright != 0)
 				{

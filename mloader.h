@@ -44,8 +44,8 @@ If it is 254, this is the last portal.
 */
 
 typedef struct {
-	unsigned char render_data_flags;
-	unsigned char portal_information;
+	unsigned short render_data_flags;
+	unsigned short portal_information;
 	unsigned char first_sector;
 	unsigned char second_sector;
 	unsigned short texno;

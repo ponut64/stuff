@@ -219,6 +219,8 @@ void	load_test(void)
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		active_HWRAM_ptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		active_HWRAM_ptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FLOAT01.GVP",		active_HWRAM_ptr, &entities[25], GV_SORT_CEN, MODEL_TYPE_BUILDING);
+	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FLOAT02.GVP",		active_HWRAM_ptr, &entities[26], GV_SORT_CEN, MODEL_TYPE_BUILDING);
 	
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB00.GVP",		active_HWRAM_ptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_NORMAL);
 	// active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BB01.GVP",		active_HWRAM_ptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL);
@@ -243,7 +245,7 @@ void	load_test(void)
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(04);
+	p64MapRequest(05);
 	//
 	
 }

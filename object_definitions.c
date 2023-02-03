@@ -225,6 +225,25 @@ _sobject Build13 = {
 	.light_bright = 0
 };
 
+_sobject Build14 = {
+	.entity_ID = 25,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build15 = {
+	.entity_ID = 26,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -314,6 +333,8 @@ void	fill_obj_list(void)
 	objList[22] = &Build11;
 	objList[23] = &Build12;
 	objList[24] = &Build13;
+	objList[25] = &Build14;
+	objList[26] = &Build15;
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;
 

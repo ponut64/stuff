@@ -67,12 +67,16 @@
 /*
 Render data flags:
 	
+	Byte 1 of render_data_flags:
 	|	0		|	1		|	2		|	3		|	4	-	5 	|	6	-	7 |		
 	  Dual-plane	Mesh		Physical	MSB On		Tex. flip	  Sorting rule
+	Byte 2 of render_data_flags:
+	|	0		|	1		|	2		|	3		|	4	-	5 	|	6	-	7 |		
+							 Subdivision
 */
 	#define GV_FLAG_SINGLE	(0x1) // Zero, dual-plane. One, single-plane.
 	#define GV_FLAG_MESH	(0x2) // Zero, no mesh. One, mesh.
-	#define GV_FLAG_PHYS	(0x4) // Zero, physical plane (in supported objects). Zero, no collision with plane.
+	#define GV_FLAG_PHYS	(0x4) // Zero, physical plane (in supported objects). One, no collision with plane.
 	#define GV_FLAG_DARK	(0x8) // Zero, normal light. One, MSB is enabled, making the polygon dark.
 	#define GV_SORT_MAX		(0x40)
 	#define GV_SORT_CEN		(0x80)
