@@ -230,7 +230,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	for(unsigned int i = 0; i < model->pol->nbPolygon; i++)
 	{
 		//Decimate existing sort type bits
-	model->pol->attbl[0].render_data_flags &= 207;
+	model->pol->attbl[0].render_data_flags &= 0xFFCF;
 		//Inject new sort type bits
 	model->pol->attbl[0].render_data_flags |= sortType;
 		//New render path only reads first attbl for sorting

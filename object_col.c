@@ -343,7 +343,7 @@ prntidx = 0;
 			/////////
 			// Dual-plane handling
 			/////////
-			if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && total_planes < 128)
+			if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
 			{
 				testing_planes[total_planes] = dst_poly;
 				backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
@@ -353,7 +353,7 @@ prntidx = 0;
 			/////////
 			// Single-plane handling
 			/////////
-			if(normal_discard >= -(5<<16) && total_planes < 128)
+			if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
 			{
 				testing_planes[total_planes] = dst_poly;
 				backfaced[total_planes] = 0;
@@ -1177,7 +1177,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		if(cross0 >= cross1) continue;
 	}
 	//
-	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 	//////////////////////////////////////////////////////////////
 	// We have at least four vertices, and at least one polygon (the plane's data itself).
 	//////////////////////////////////////////////////////////////
@@ -1230,6 +1229,12 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//In this case the polygon is far away, use a minimalist 8x8 texture.
 		used_textures[0] = 4;
 		max_subdivisions = 0;
+	}
+	
+	if(flags & GV_FLAG_NDIV)
+	{ 
+		max_subdivisions = 0;
+		used_textures[0] = 0;
 	}
 	
 		if(max_subdivisions > 0)
@@ -1396,6 +1401,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		colorBank = (luma < 32768) ? 3 : colorBank; 
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
  */			
+		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 					ptv[2]->pnt, ptv[3]->pnt,
 		VDP1_BASE_CMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
