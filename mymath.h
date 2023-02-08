@@ -1,6 +1,18 @@
 #ifndef __MYMATH_H__
 # define __MYMATH_H__
 
+//I'm not renaming these because Jo Engine *is* where I got them. ... but its pretty basic stuff.
+
+# define JO_ABS(X)   	((X) < 0 ? -(X) : (X))
+	
+# define JO_MIN(A, B)	(((A) < (B)) ? (A) : (B))
+	
+# define JO_MAX(A, B)	(((A) > (B)) ? (A) : (B))
+	
+# define JO_SQUARE(A)	(A * A)
+	
+# define JO_IS_ODD(A)	((A) & 1)
+
 FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(FIXED * ptA, FIXED * ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);
@@ -22,7 +34,7 @@ Uint8	solve_domain(FIXED normal[XYZ]);
 FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ]);
 int		ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]);
 FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]);
-bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output);
+Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output);
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY);
 
 #endif

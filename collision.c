@@ -3,7 +3,7 @@ This file is compiled separately.
 */
 ///collision.c
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
 #include "bounder.h"
@@ -130,7 +130,7 @@ void	standing_surface_alignment(FIXED * surface_normal, int * output)
 static int angleComponents[XYZ];
 separateAngles(surface_normal, alwaysLow, angleComponents);
 Uint8 domain = solve_domain(surface_normal);
-//jo_printf(0, 20, "(%i)", domain);
+//nbg_sprintf(0, 20, "(%i)", domain);
 // deg * 182 = angle
 if(domain == 1){ //++
 output[X] = (fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49151) ), slSin((output[Y]) - angleComponents[X])) +
@@ -158,8 +158,8 @@ output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), sl
 						//return;
 }	
 
-// jo_printf(1, 8, "sgl(%i)", slAtan(65536, 32768));
-// jo_printf(1, 9, "gvr(%i)", gvAtan2(65536, 32768));
+// nbg_sprintf(1, 8, "sgl(%i)", slAtan(65536, 32768));
+// nbg_sprintf(1, 9, "gvr(%i)", gvAtan2(65536, 32768));
 
 // static short drawposA[3];
 // static short drawposB[3];
@@ -188,7 +188,7 @@ output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), sl
 void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 {
 	
-	//jo_printf(12, 9, "(%i)", normID);
+	//nbg_sprintf(12, 9, "(%i)", normID);
 	
 	if(normID == N_Xp){
 		setNormal[X] = stator.UVX[X];
@@ -223,8 +223,8 @@ void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, Uint
 
 	/*
 	
-Floor collisions pass the boolean "hitSurface" that is processed in player_phy.c
-Wall collisions pass the boolean "hitWall" that is processed in player_phy.c
+Floor collisions pass the Boolean "hitSurface" that is processed in player_phy.c
+Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 	
 	*/
 
@@ -473,7 +473,7 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 
 }
 
-bool	player_collide_boxes(_boundBox * stator, _boundBox * mover)
+Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover)
 {
 
 static FIXED bigRadius = 0;
@@ -482,7 +482,7 @@ static POINT centerDif = {0, 0, 0};
 
 static POINT lineEnds[9];
 
-static bool lineChecks[9];
+static Bool lineChecks[9];
 
 static int hitFace;
 		
@@ -588,7 +588,7 @@ _lineTable moverCFs = {
 		lineChecks[8] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Zneg, stator->UVZ, stator->pos, 16384, lineEnds[8]);
 	}
 	
-//	jo_printf(13, 12, "(%i)", hitFace);
+//	nbg_sprintf(13, 12, "(%i)", hitFace);
 				player_shadow_object(stator, centerDif);
 		//Step 2: Test the points and find which one collides and which face it collided with.
 	for(int i = 0; i < 9; i++){
@@ -630,7 +630,7 @@ void	player_collision_test_loop(void)
 	int skipdat;
 	for(Uint8 i = 0; i < MAX_PHYS_PROXY; i++)
 	{
-		//jo_printf(0, 0, "(PHYS)"); //Debug ONLY
+		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
 		skipdat = dWorldObjects[activeObjects[i]].type.ext_dat & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
 				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
@@ -663,7 +663,7 @@ void	player_collision_test_loop(void)
 	// slPrintHex(dWorldObjects[5].pos[Y], slLocate(0, 15));
 	// slPrintHex(dWorldObjects[6].pos[Y], slLocate(0, 16));
 	
-//	jo_printf(0, 14, "(%i)E", numBoxChecks);
+//	nbg_sprintf(0, 14, "(%i)E", numBoxChecks);
 	numBoxChecks = 0;
 	
 }

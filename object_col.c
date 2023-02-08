@@ -1,6 +1,6 @@
 //object_col.c
 //contains per polygon collision work
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
 #include "render.h"
@@ -62,7 +62,7 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	}
 	
 	//In this sanity-check, we look and see if there are any available entity slots.
-	//An entity slot will be full if "file_done" is boolean "true" (has any data).
+	//An entity slot will be full if "file_done" is Boolean "true" (has any data).
 	//In addition, this also picks the slot we should use.
 	for(int i = 0; i < MAX_MODELS; i++)
 	{
@@ -160,20 +160,22 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
 		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
 	}
-	POINT tRadius = {entities[new_entity_ID].radius[X]<<16, entities[new_entity_ID].radius[Y]<<16, entities[new_entity_ID].radius[Z]<<16};
+	POINT tRadius = {(entities[new_entity_ID].radius[X])<<16,
+	(entities[new_entity_ID].radius[Y])<<16,
+	(entities[new_entity_ID].radius[Z])<<16};
 	//Transformer the radius.
-	entities[new_entity_ID].radius[X] = JO_ABS((fxdot(tRadius, temp_box.UVX)>>16));
+	entities[new_entity_ID].radius[X] = JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16));
 	entities[new_entity_ID].radius[Y] = JO_ABS((fxdot(tRadius, temp_box.UVY)>>16));
-	entities[new_entity_ID].radius[Z] = JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16));
+	entities[new_entity_ID].radius[Z] = JO_ABS((fxdot(tRadius, temp_box.UVX)>>16));
 	//Done!
 	
-	// jo_printf(2, 6, "ox(%i)", entities[this_entity_ID].radius[X]);
-	// jo_printf(2, 7, "oy(%i)", entities[this_entity_ID].radius[Y]);
-	// jo_printf(2, 8, "oz(%i)", entities[this_entity_ID].radius[Z]);
+	// nbg_sprintf(2, 6, "ox(%i)", entities[this_entity_ID].radius[X]);
+	// nbg_sprintf(2, 7, "oy(%i)", entities[this_entity_ID].radius[Y]);
+	// nbg_sprintf(2, 8, "oz(%i)", entities[this_entity_ID].radius[Z]);
 	
-	// jo_printf(2, 10, "Nx(%i)", entities[new_entity_ID].radius[X]);
-	// jo_printf(2, 11, "Ny(%i)", entities[new_entity_ID].radius[Y]);
-	// jo_printf(2, 12, "Nz(%i)", entities[new_entity_ID].radius[Z]);
+	// nbg_sprintf(2, 10, "Nx(%i)", entities[new_entity_ID].radius[X]);
+	// nbg_sprintf(2, 11, "Ny(%i)", entities[new_entity_ID].radius[Y]);
+	// nbg_sprintf(2, 12, "Nz(%i)", entities[new_entity_ID].radius[Z]);
 	
 }
 
@@ -290,9 +292,9 @@ static short testing_planes[128];
 static unsigned char backfaced[128];
 short total_planes = 0;
 POINT discard_vector = {0, 0, 0};
-bool hitY = false;
-bool hitXZ = false;
-bool shadowStruck = false;
+Bool hitY = false;
+Bool hitXZ = false;
+Bool shadowStruck = false;
 
 	discard_vector[X] = (mesh_position[X] - mover->pos[X]);
 	discard_vector[Y] = (mesh_position[Y] - mover->pos[Y]);
@@ -324,14 +326,14 @@ prntidx = 0;
 	//////////////////////////////////////////////////////////////
 	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
 	{
-			discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X])
-			- mover->prevPos[X] - mesh_position[X];
-			discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y])
-			- mover->prevPos[Y] - mesh_position[Y];
-			discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z])
-			- mover->prevPos[Z] - mesh_position[Z];
+		discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X])
+		- mover->prevPos[X] - mesh_position[X];
+		discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y])
+		- mover->prevPos[Y] - mesh_position[Y];
+		discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z])
+		- mover->prevPos[Z] - mesh_position[Z];
 
-			int normal_discard = fxdot(discard_vector, mesh->pltbl[dst_poly].norm);
+		int normal_discard = fxdot(discard_vector, mesh->pltbl[dst_poly].norm);
 				
 	// slPrint("Discard vector:", slLocate(1, 9));
 	// slPrintFX(discard_vector[X], slLocate(2, 10));
@@ -340,30 +342,30 @@ prntidx = 0;
 	// slPrint("Dot product:", slLocate(1, 13));
 	// slPrintFX(normal_discard, slLocate(2, 14));
 			
-			/////////
-			// Dual-plane handling
-			/////////
-			if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
-			{
-				testing_planes[total_planes] = dst_poly;
-				backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
-				total_planes++;
-				continue;
-			}
-			/////////
-			// Single-plane handling
-			/////////
-			if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
-			{
-				testing_planes[total_planes] = dst_poly;
-				backfaced[total_planes] = 0;
-				total_planes++;
-			}
+		/////////
+		// Dual-plane handling
+		/////////
+		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		{
+			testing_planes[total_planes] = dst_poly;
+			backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
+			total_planes++;
+			continue;
+		}
+		/////////
+		// Single-plane handling
+		/////////
+		if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		{
+			testing_planes[total_planes] = dst_poly;
+			backfaced[total_planes] = 0;
+			total_planes++;
+		}
 	}
 	discard_vector[X] = 0;
 	discard_vector[Y] = 0;
 	discard_vector[Z] = 0;
-	//jo_printf(1, 15, "Total planes: (%i)", total_planes);
+	//nbg_sprintf(1, 15, "Total planes: (%i)", total_planes);
 	
 	//////////////////////////////////////////////////////////////
 	// Add the position of the mover's box centre-faces to the mover's world position
@@ -393,7 +395,7 @@ _lineTable moverCFs = {
 POINT plane_points[4];
 VECTOR used_normal;
 int dominant_axis = N_Yp;
-bool lineChecks[3];
+Bool lineChecks[3];
 POINT lineEnds[3];
 
 for(int i = 0; i < total_planes; i++)
@@ -665,13 +667,34 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 	int manhattan_beta;
 	
 	int perimeter = 0;
+
 	
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
 	for(int u = 0; u < 4; u++)
 	{
 		ptv[u] = &subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
+		
+/* 		if(overwritten_polygon != 0)
+		{
+		//////////////////////////////////////////////////////////////
+		// Early screenspace transform to throw out off-screen planes
+		//////////////////////////////////////////////////////////////
+			//Push to near-plane
+			ssh2VertArea[u].pnt[Z] = (ptv[u][Z] > 20<<16) ? ptv[u][Z] : 20<<16;
+			//Get 1/z
+//Hypothesis: Instead of recalculating this every time, couldn't I also put in the first initial Z, and subdivide with it too?
+			int inverseZ = fxdiv(scrn_dist, ssh2VertArea[u].pnt[Z]);
+			//Transform to screen-space
+			ssh2VertArea[u].pnt[X] = fxm(ptv[u][X], inverseZ)>>SCR_SCALE_X;
+			ssh2VertArea[u].pnt[Y] = fxm(ptv[u][Y], inverseZ)>>SCR_SCALE_Y;
+			//Screen Clip Flags for on-off screen decimation
+			clipping(&ssh2VertArea[u], USER_CLIP_INSIDE);
+		} */
 	}
+	
+	//If the polygon to be subdivided is off-screen, stop.
+	//if((ssh2VertArea[0].clipFlag & ssh2VertArea[1].clipFlag & ssh2VertArea[2].clipFlag & ssh2VertArea[3].clipFlag)) return;
 	
 	//////////////////////////////////////////////////////////////////
 	// Quick check: If we are subdividing a polygon that is already tiny, cease further subdivision.
@@ -1151,11 +1174,12 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
         ssh2VertArea[u].pnt[X] = fxm(subdivided_points[u][X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[u].pnt[Y] = fxm(subdivided_points[u][Y], inverseZ)>>SCR_SCALE_Y;
         //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
+		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[u].clipFlag;
+		// clipping(&ssh2VertArea[u], USER_CLIP_INSIDE);
 	}
 		 if(ssh2VertArea[0].clipFlag
 		 & ssh2VertArea[1].clipFlag
@@ -1295,11 +1319,12 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
         ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
         //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
+		ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
+		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
+		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
 		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[v].clipFlag;
+		// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
 	}
 	///////////////////////////////////////////
 	//

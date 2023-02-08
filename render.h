@@ -198,7 +198,8 @@ void	ssh2Line(_sprite * spr);
 void	drawAxis(POINT size);
 void	spr_print(int xPos, int yPos, char * data);
 void	spr_sprintf(int xPos, int yPos, ...);
-void	nbg_sprintf(void * scrnAddr /*to be returned from slLocate or other such function*/,  ...);
+void	nbg_sprintf(int x, int y,  ...);
+void	nbg_clear_text(void);
 short	menu_with_options(__basic_menu * mnu);
 
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);

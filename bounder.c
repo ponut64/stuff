@@ -4,7 +4,7 @@ This file is compiled separately.
 
 ///HIGH LEVEL ALERT///
 /**THIS FUNCTION HAS HIGH PROBABILITY OF CAUSING CRITICAL GLITCHES**/
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
 

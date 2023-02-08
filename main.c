@@ -11,9 +11,10 @@ I am sorry for the pain you had to go through.
 // Compilation updated to use latest version of Jo Engine standard compiler.
 //
 //
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include <SEGA_INT.H>
+#include <SEGA_GFS.H>
 
 //Outstanding code contributions from XL2 
 //
@@ -33,6 +34,7 @@ I am sorry for the pain you had to go through.
 #include "draw.h"
 #include "anidefs.h"
 #include "player_phy.h"
+#include "gamespeed.h"
 //
 #include "lwram.c"
 //
@@ -68,6 +70,7 @@ volatile Uint32 * scuireg = (Uint32*)0x25FE00A4;
 volatile Uint32 * scuimask = (Uint32*)0x25FE00A0;
 volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
 
+int game_set_res = TV_320x240;
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
 //////////////////////////////////////////////////////////////////////////////
@@ -111,53 +114,6 @@ animationControl dbound;
 void	dpinit(void)
 {
 	init_vdp2(0xE726);
-}
-
-#define GRAPH_X_OFFSET (12)
-
-//borrowed/given by XL2 -- Frame limiter to 30 FPS. EXTREMELY USEFUL.
-void	update_gamespeed(void)
-{
-	int frmrt = delta_time>>6;
-	jo_fixed_point_time();
-	
- 	static int lastTimes[66];
-	static int time_selector = 0;
-	static int bad_frames = 0;
-	
-	lastTimes[time_selector] = frmrt;
-	//If the frame-time is too fast or too slow, mark it as a bad frame.
-	bad_frames += (frmrt < 30 || frmrt > 35) ? 1 : 0;
-	time_selector = (time_selector > 66) ? 0 : time_selector+1;
-	
-    framerate = (frmrt)>>4;
-	jo_printf(1, 3, "(%i) Bad Frames)", bad_frames);
-	
-    if (framerate <= 0) framerate=1;
-    else if (framerate > 5) framerate=5;
-
-		//Framegraph
-	char curLine = frmrt;
-	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
-	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
-	
-	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210); //(last argument is color)
-	jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
-		if(time_selector > 1){
-	jo_draw_background_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
-		}
-		if(time_selector > 2){
-	jo_draw_background_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
-		} 
-		//
-		frmul = framerate<<16;
-		
-		jo_printf(16, 4, "(%i) fmrt", frmrt);
-		
-		if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
-		{
-			SYS_Exit(0);
-		}
 }
 
 //Loading. Check msfs.c and mloader c/h
@@ -245,7 +201,7 @@ void	load_test(void)
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(05);
+	p64MapRequest(03);
 	//
 	
 }
@@ -253,6 +209,12 @@ void	load_test(void)
 void	game_frame(void)
 {
 	slCashPurge();
+	//ABC+Start Exit Condition
+	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
+	{
+		SYS_Exit(0);
+	}
+	
 	update_gamespeed();
 	master_draw_stats();
 	frame_render_prep();
@@ -281,20 +243,20 @@ void	attributions(void)
 
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
 	slPrint("Give it a second", slLocate(3, 24));
-	jo_printf(3, 25, "(%i)md", hi_res_switch);
+	nbg_sprintf(3, 25, "(%i)md", hi_res_switch);
 	
 	load_test();
 	
-	jo_clear_screen();
+	nbg_clear_text();
 }
 
-void	jo_main(void)
+int	main(void)
 {
-	jo_core_init(0xE726); 
-	//XL2
+	//jo_core_init(0xE726); 
+	game_set_res = (hi_res_switch) ? TV_704x448 : TV_352x224;
+	slInitSystem(game_set_res, NULL, 2);
 	slDynamicFrame(ON); //Dynamic framerate
-	SynchConst = 2;
-
+    SynchConst = (Sint8)2;  //Framerate control. 1/60 = 60 FPS, 2/60 = 30 FPS, etc.
 	//
 	//Loading Area
 	//
@@ -327,5 +289,6 @@ void	jo_main(void)
 	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);
 	pcm_stream_host(game_frame);
+	return 1;
 }
 

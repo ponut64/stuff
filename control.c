@@ -2,7 +2,7 @@
 This file is compiled separately.
 */
 
-#include <jo/jo.h>
+#include <sl_def.h>
 
 #include "def.h"
 #include "mymath.h"
@@ -15,7 +15,7 @@ This file is compiled separately.
 int spdfactr;
 
 Bool holdCam = false;
-bool usePolyLine = false;
+Bool usePolyLine = false;
 
 // D-PAD -> Move cardinally relative to camera (up -> fwd, right -> mov right, etc)
 //		Y	

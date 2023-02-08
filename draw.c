@@ -1,5 +1,6 @@
 
-#include <jo/jo.h>
+#include <sl_def.h>
+#include <SGL.H>
 
 
 #include "def.h"
@@ -77,21 +78,21 @@ void	master_draw_stats(void)
 	slPrintFX(you.pos[Y], slLocate(19, 1));
 	slPrintFX(you.pos[Z], slLocate(29, 1));
 
-	//jo_printf(18, 0, "(File System Status)");
-	jo_printf(27, 2, "Pts :%x:", you.points);
-	//jo_printf(10, 2, "throttle:(%i)", you.IPaccel);
+	//nbg_sprintf(18, 0, "(File System Status)");
+	nbg_sprintf(27, 2, "Pts :%x:", you.points);
+	//nbg_sprintf(10, 2, "throttle:(%i)", you.IPaccel);
 	//slPrintFX(you.sanics, slLocate(26, 3));
 //		if(delta_time>>6 > 35)
 //		{
-	jo_printf(8, 25, "TRPLY:                ");
-	jo_printf(8, 25, "TRPLY:%i", transPolys[0]);
-	jo_printf(8, 26, "SNTPL:                ");
-	jo_printf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
-	jo_printf(8, 27, "VERTS:                ");
-	jo_printf(8, 27, "VERTS:%i", transVerts[0]);
+	nbg_sprintf(8, 25, "TRPLY:                ");
+	nbg_sprintf(8, 25, "TRPLY:%i", transPolys[0]);
+	nbg_sprintf(8, 26, "SNTPL:                ");
+	nbg_sprintf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	nbg_sprintf(8, 27, "VERTS:                ");
+	nbg_sprintf(8, 27, "VERTS:%i", transVerts[0]);
 //		}
-	jo_printf(37, 26, "cX(%i)", you.cellPos[X]);
-	jo_printf(37, 27, "cY(%i)", you.cellPos[Y]);    
+	nbg_sprintf(37, 26, "cX(%i)", you.cellPos[X]);
+	nbg_sprintf(37, 27, "cY(%i)", you.cellPos[Y]);    
 }
 
 void	player_draw(void)

@@ -1,5 +1,5 @@
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "render.h"
 #include "def.h"
 
@@ -82,7 +82,7 @@ unsigned short	back_color_setting;
 
 void	vblank_requirements(void)
 {
-	//jo_printf(0, 15, "(%x)", (int)BACK_CRAM);
+	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
 	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
 	vdp2_sprMode[0] = 0x4; //Sprite Data Type Mode (set to 0xF in hi-res mode, 0x4 in standard res mode)

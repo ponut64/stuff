@@ -2,7 +2,7 @@
 //This file is compiled separately.
 //Note: Function/data definitions included in hmap.h
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
 #include "collision.h"
@@ -79,10 +79,10 @@ if(pos[Z] >= 0){
 	int vert2pix = cellX2off + cellY2off + (main_map_total_pix>>1); //This pixel # is found simply by dividing the total pixels in half by a bit shift.
 	int vert3pix = cellX3off + cellY3off + (main_map_total_pix>>1);
 //------------------------------------------------------------------------------------------------	
-	// jo_printf(0, 10, "(%i)", vert0pix);
-	// jo_printf(0, 11, "(%i)", vert1pix);
-	// jo_printf(0, 12, "(%i)", vert2pix);
-	// jo_printf(0, 13, "(%i)", vert3pix);
+	// nbg_sprintf(0, 10, "(%i)", vert0pix);
+	// nbg_sprintf(0, 11, "(%i)", vert1pix);
+	// nbg_sprintf(0, 12, "(%i)", vert2pix);
+	// nbg_sprintf(0, 13, "(%i)", vert3pix);
 //------------------------------------------------------------------------------------------------		
 	//Note: The order of application to vertices is intentionally reversed. [Vert 3 uses Vert 0's offset]
 	//Remember: We will NEVER sample a negative pixel. Hitherto, our sampling numbers are unsigned.

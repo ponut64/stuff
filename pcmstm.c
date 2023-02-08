@@ -2,9 +2,12 @@
 // pcmstm.c
 // Note: this file is compiled separately
 //
-#include <jo/jo.h>
+#include <sl_def.h>
+#include <SEGA_GFS.H>
 #include "pcmsys.h"
 #include "pcmstm.h"
+#define	true	(1)
+#define	false	(0)
 
 	_pcm_stm_param stm;
 	_pcm_stm_buf_ctrl buf;
@@ -107,7 +110,7 @@ void		stop_adx_stream(void)
 	The sound RAM pointer is properly incremented such that this region of memory, and this sound slot, are a playable buffer.
 */
 //
-short	add_raw_pcm_buffer(bool is8Bit, short sampleRate, int size)
+short	add_raw_pcm_buffer(Bool is8Bit, short sampleRate, int size)
 {
 	
 	if( (int)scsp_load > 0x7F800) return -1; //Illegal PCM data address, exit
@@ -158,7 +161,7 @@ short	add_adx_front_buffer(short bit_rate)
 	short bpb = calculate_bytes_per_blank((int)bit_rate, false, PCM_SYS_REGION); //Iniitalize as max volume
 	if(bpb != 768 && bpb != 512 && bpb != 384 && bpb != 256 && bpb != 192 && bpb != 128)
 	{
-		jo_printf(0, 1, "!(ADX INVALID BYTE-RATE)!");
+		slPrint("!(ADX INVALID BYTE-RATE)!", slLocate(0, 1));
 		return -2;
 	}
 	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = bpb;
@@ -241,7 +244,7 @@ void	start_adx_stream(Sint8 * filename, short volume)
 	if(adx_stream.file.requested || adx_stream.file.setup_requested || adx_stream.active) return;
 
 	adx_stream.file.id = GFS_NameToId(filename);
-	//jo_printf(0, 17, "started ADX stm");
+	//nbg_sprintf(0, 17, "started ADX stm");
 	adx_stream.active = true;
 	adx_stream.file.setup_requested = true;
 	adx_stream.volume = volume;
@@ -260,7 +263,7 @@ void	start_adx_stream(Sint8 * filename, short volume)
 void	pcm_stream_init(int bitrate, int bit_depth)
 {
 
-	static bool only_run_once = false;
+	static Bool only_run_once = false;
 		
 	if(only_run_once == false)
 	{
@@ -359,7 +362,7 @@ void		sdrv_stm_vblank_rq(void)
 			}
 		}
 
-		//jo_printf(2, 7, "blanks(%i)", buf.vblank_counter);
+		//nbg_sprintf(2, 7, "blanks(%i)", buf.vblank_counter);
 	}
 	
 	///////////////////////////////
@@ -410,7 +413,7 @@ void		pcm_stream_host(void(*game_code)(void))
 		{
 				//game_code();
 			/////////////
-					jo_printf(16, 2, "--SETM--");
+					slPrint("--SETM--", slLocate(16,2));
 			buf.file_handle = GFS_Open(buf.file_id);
 			/*
 				In testing, it has been found that these lines are _strictly necessary_ for this to work.
@@ -462,36 +465,36 @@ void		pcm_stream_host(void(*game_code)(void))
 			{
 			//This branch is for no file system activity. Nothing is being presently accessed or requested to be set up.
 				game_code();
-					jo_printf(16, 2, "--PLAY--");
-					// jo_printf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
-					// jo_printf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
-					// jo_printf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
-					// jo_printf(16, 8, "filerq(%i)", file.requested);
-					// jo_printf(16, 9, "ftrans(%i)", file.transfer_lock);
-					// jo_printf(2, 10, "fsetup(%i)", file.setup_requested);
-					// jo_printf(16, 10, "fsect(%i)", file.sectors_read_so_far);
-					// jo_printf(2, 12, "fsize(%i)", file.total_sectors);
-					// jo_printf(16, 12, "fnsct(%i)", file.total_bytes);
-					// jo_printf(2, 6, "bytes(%i)", bytes_read_now);
+					slPrint("--PLAY--", slLocate(16,2));
+					// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
+					// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
+					// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
+					// nbg_sprintf(16, 8, "filerq(%i)", file.requested);
+					// nbg_sprintf(16, 9, "ftrans(%i)", file.transfer_lock);
+					// nbg_sprintf(2, 10, "fsetup(%i)", file.setup_requested);
+					// nbg_sprintf(16, 10, "fsect(%i)", file.sectors_read_so_far);
+					// nbg_sprintf(2, 12, "fsize(%i)", file.total_sectors);
+					// nbg_sprintf(16, 12, "fnsct(%i)", file.total_bytes);
+					// nbg_sprintf(2, 6, "bytes(%i)", bytes_read_now);
 					
-					// jo_printf(2, 5, "steps(%i)", buf.vblank_counter);
-					// jo_printf(2, 6, "segn(%i)", buf.active_buf_segment);
-					// jo_printf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
-					// jo_printf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
-					// jo_printf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
-					// jo_printf(16, 8, "buf0t(%i)", buf.segment_refresh_timings[0]);
-					// jo_printf(16, 9, "buf1t(%i)", buf.segment_refresh_timings[1]);
-					// jo_printf(16, 10, "buf2t(%i)", buf.segment_refresh_timings[2]);
-					// jo_printf(16, 6, "stpl(%i)", stm.playing);
+					// nbg_sprintf(2, 5, "steps(%i)", buf.vblank_counter);
+					// nbg_sprintf(2, 6, "segn(%i)", buf.active_buf_segment);
+					// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
+					// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
+					// nbg_sprintf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
+					// nbg_sprintf(16, 8, "buf0t(%i)", buf.segment_refresh_timings[0]);
+					// nbg_sprintf(16, 9, "buf1t(%i)", buf.segment_refresh_timings[1]);
+					// nbg_sprintf(16, 10, "buf2t(%i)", buf.segment_refresh_timings[2]);
+					// nbg_sprintf(16, 6, "stpl(%i)", stm.playing);
 					
-					// jo_printf(2, 8, "adx0f(%i)", adx_stream.back_buffer_filled[0]); 
-					// jo_printf(2, 9, "adx1f(%i)", adx_stream.back_buffer_filled[1]); 
-					// jo_printf(16, 8, "adxrq(%i)", adx_stream.file.requested);
-					// jo_printf(16, 9, "a_acti(%i)", adx_stream.active);
-					// jo_printf(2, 10, "asetup(%i)", adx_stream.file.setup_requested);
-					// jo_printf(16, 10, "asect(%i)", adx_stream.file.sectors_read_so_far);
-					// jo_printf(2, 12, "asize(%i)", adx_stream.file.total_bytes);
-					// jo_printf(16, 12, "ansct(%i)", adx_stream.file.total_sectors);
+					// nbg_sprintf(2, 8, "adx0f(%i)", adx_stream.back_buffer_filled[0]); 
+					// nbg_sprintf(2, 9, "adx1f(%i)", adx_stream.back_buffer_filled[1]); 
+					// nbg_sprintf(16, 8, "adxrq(%i)", adx_stream.file.requested);
+					// nbg_sprintf(16, 9, "a_acti(%i)", adx_stream.active);
+					// nbg_sprintf(2, 10, "asetup(%i)", adx_stream.file.setup_requested);
+					// nbg_sprintf(16, 10, "asect(%i)", adx_stream.file.sectors_read_so_far);
+					// nbg_sprintf(2, 12, "asize(%i)", adx_stream.file.total_bytes);
+					// nbg_sprintf(16, 12, "ansct(%i)", adx_stream.file.total_sectors);
 				/////////////
 				file_request_manager();
 				if(!buf.operating)
@@ -508,17 +511,17 @@ void		pcm_stream_host(void(*game_code)(void))
 			file.destination + (file.sectors_read_so_far * 2048), file_transfer_size);
 				do{
 					game_code();
-						jo_printf(16, 2, "--FILE--");
-						// jo_printf(2, 6, "bytes(%i)", byte_dummy);
-						// jo_printf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
-						// jo_printf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
-						// jo_printf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
-						// jo_printf(16, 8, "filerq(%i)", file.requested);
-						// jo_printf(16, 9, "ftrans(%i)", file.transfer_lock);
-						// jo_printf(2, 10, "fsetup(%i)", file.setup_requested);
-						// jo_printf(16, 10, "fsect(%i)", file.sectors_read_so_far);
-						// jo_printf(2, 12, "fsize(%i)", file.total_sectors);
-						// jo_printf(16, 12, "fnsct(%i)", file.total_bytes);
+						slPrint("--FILE--", slLocate(16,2));
+						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
+						// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
+						// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
+						// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
+						// nbg_sprintf(16, 8, "filerq(%i)", file.requested);
+						// nbg_sprintf(16, 9, "ftrans(%i)", file.transfer_lock);
+						// nbg_sprintf(2, 10, "fsetup(%i)", file.setup_requested);
+						// nbg_sprintf(16, 10, "fsect(%i)", file.sectors_read_so_far);
+						// nbg_sprintf(2, 12, "fsize(%i)", file.total_sectors);
+						// nbg_sprintf(16, 12, "fnsct(%i)", file.total_bytes);
 					////////////
 					slSynch();
 					GFS_NwExecOne(file.handle);
@@ -563,17 +566,17 @@ void		pcm_stream_host(void(*game_code)(void))
 			adx_stream.back_buffer[0], file_transfer_size);
 				do{
 					game_code();
-						jo_printf(16, 2, "--ADX--");
-						// jo_printf(2, 6, "bytes(%i)", byte_dummy);
-						// jo_printf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
-						// jo_printf(2, 8, "adx0f(%i)", adx_stream.back_buffer_filled[0]); 
-						// jo_printf(2, 9, "adx1f(%i)", adx_stream.back_buffer_filled[1]); 
-						// jo_printf(16, 8, "adxrq(%i)", adx_stream.file.requested);
-						// jo_printf(16, 9, "atrans(%i)", gfs_svr_status);
-						// jo_printf(2, 10, "asetup(%i)", adx_stream.file.setup_requested);
-						// jo_printf(16, 10, "asect(%i)", adx_stream.file.sectors_read_so_far);
-						// jo_printf(2, 12, "asize(%i)", adx_stream.file.total_bytes);
-						// jo_printf(16, 12, "ansct(%i)", adx_stream.file.total_sectors);
+						slPrint("--iADX--", slLocate(16,2));
+						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
+						// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
+						// nbg_sprintf(2, 8, "adx0f(%i)", adx_stream.back_buffer_filled[0]); 
+						// nbg_sprintf(2, 9, "adx1f(%i)", adx_stream.back_buffer_filled[1]); 
+						// nbg_sprintf(16, 8, "adxrq(%i)", adx_stream.file.requested);
+						// nbg_sprintf(16, 9, "atrans(%i)", gfs_svr_status);
+						// nbg_sprintf(2, 10, "asetup(%i)", adx_stream.file.setup_requested);
+						// nbg_sprintf(16, 10, "asect(%i)", adx_stream.file.sectors_read_so_far);
+						// nbg_sprintf(2, 12, "asize(%i)", adx_stream.file.total_bytes);
+						// nbg_sprintf(16, 12, "ansct(%i)", adx_stream.file.total_sectors);
 					////////////
 					slSynch();
 					GFS_NwExecOne(adx_stream.file.handle);
@@ -643,24 +646,24 @@ void		pcm_stream_host(void(*game_code)(void))
 			buf.steps_of_new_data_in_buffer++;
 			do{
 				game_code();
-					jo_printf(16, 2, "--MUSI--");
-					// jo_printf(2, 5, "steps(%i)", buf.steps_of_new_data_in_buffer);
-					// jo_printf(2, 6, "bytes(%i)", bytes_read_now);
-					// jo_printf(16, 5, "act(%i)", buf.active_buf_segment);
-					// jo_printf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
-					// jo_printf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
-					// jo_printf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
-					// jo_printf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
-					// jo_printf(0, 19, "stat(%i)", gfs_svr_status);
+					slPrint("--MUSI--", slLocate(16,2));
+					// nbg_sprintf(2, 5, "steps(%i)", buf.steps_of_new_data_in_buffer);
+					// nbg_sprintf(2, 6, "bytes(%i)", bytes_read_now);
+					// nbg_sprintf(16, 5, "act(%i)", buf.active_buf_segment);
+					// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
+					// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
+					// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
+					// nbg_sprintf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
+					// nbg_sprintf(0, 19, "stat(%i)", gfs_svr_status);
 					
-					// jo_printf(2, 5, "steps(%i)", buf.vblank_counter);
-					// jo_printf(2, 6, "bytes(%i)", buf.active_buf_segment);
-					// jo_printf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
-					// jo_printf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
-					// jo_printf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
-					// jo_printf(16, 8, "buf0t(%i)", buf.segment_refresh_timings[0]);
-					// jo_printf(16, 9, "buf1t(%i)", buf.segment_refresh_timings[1]);
-					// jo_printf(16, 10, "buf2t(%i)", buf.segment_refresh_timings[2]);
+					// nbg_sprintf(2, 5, "steps(%i)", buf.vblank_counter);
+					// nbg_sprintf(2, 6, "bytes(%i)", buf.active_buf_segment);
+					// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
+					// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
+					// nbg_sprintf(2, 10, "buf2f(%i)", buf.segment_full[2]); 
+					// nbg_sprintf(16, 8, "buf0t(%i)", buf.segment_refresh_timings[0]);
+					// nbg_sprintf(16, 9, "buf1t(%i)", buf.segment_refresh_timings[1]);
+					// nbg_sprintf(16, 10, "buf2t(%i)", buf.segment_refresh_timings[2]);
 				slSynch();
 					if(buf.steps_of_new_data_in_buffer > buf.segment_transfer_time)
 					{

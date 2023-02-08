@@ -66,9 +66,9 @@ typedef struct {
 	int played_blanks;
 	int total_blanks;
 	int volume;
-	bool playing;
-	bool stopping;
-	bool restarting;
+	Bool playing;
+	Bool stopping;
+	Bool restarting;
 	
 } _pcm_stm_param;
 
@@ -83,11 +83,11 @@ typedef struct {
 	int transfer_sectors;
 	int buffer_size_bytes;
 	int transfer_timing;
-	bool operating;
-	bool needs_buffer_filled;
-	bool setup_requested;
+	Bool operating;
+	Bool needs_buffer_filled;
+	Bool setup_requested;
 	
-	bool segment_full[NUM_PCM_BUF];
+	Bool segment_full[NUM_PCM_BUF];
 	void * segment_locations[NUM_PCM_BUF];
 	int	segment_refresh_timings[NUM_PCM_BUF];
 	int active_buf_segment;
@@ -102,9 +102,9 @@ typedef struct {
 	Sint32 total_bytes;
 	Sint32 total_sectors;
 	int sectors_read_so_far;
-	bool requested;
-	bool setup_requested;
-	bool transfer_lock;
+	Bool requested;
+	Bool setup_requested;
+	Bool transfer_lock;
 	void * destination;
 
 } _generic_file_ctrl;
@@ -113,15 +113,15 @@ typedef struct {
 	_generic_file_ctrl file;
 	void * front_buffer[2];
 	void * back_buffer[2];
-	bool front_buffer_okay;
-	bool back_buffer_okay;
-	bool front_buffer_filled[2];
-	bool back_buffer_filled[2];
-	bool request_stop;
+	Bool front_buffer_okay;
+	Bool back_buffer_okay;
+	Bool front_buffer_filled[2];
+	Bool back_buffer_filled[2];
+	Bool request_stop;
 	short volume;
 	short pcm_number; //Used to fill data for the stream sys to know when to stop playing
-	bool active;
-	bool playing;
+	Bool active;
+	Bool playing;
 } adx_stream_param;
 
 //
@@ -131,8 +131,8 @@ typedef struct {
 	Sint32 id; //File-system ID
 	void * destination; //Destination address
 	void (*handler_function)(void *); //Pointer to function used to handle this file
-	bool active; // File request writes "1" when it wants this file served. Manager writes "0" when done.
-	bool done; // File request writes "0" when it wants the file served. Manager writes "1" when done.
+	Bool active; // File request writes "1" when it wants this file served. Manager writes "0" when done.
+	Bool done; // File request writes "0" when it wants the file served. Manager writes "1" when done.
 } _file_request_entry;
 
 void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *));

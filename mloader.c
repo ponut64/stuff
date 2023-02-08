@@ -1,5 +1,7 @@
 
-#include <jo/jo.h>
+#include <SL_DEF.H>
+#include <SEGA_GFS.H>
+#include "def.h"
 #include "tga.h"
 
 #include "bounder.h"

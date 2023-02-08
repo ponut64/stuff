@@ -6,8 +6,8 @@ typedef struct{
 } _pquad;
 
 typedef struct {
-	bool file_done;
-	bool active; //File System Activity
+	Bool file_done;
+	Bool active; //File System Activity
 	void * dstAddress;
 	Sint8* fid;
 	
@@ -29,9 +29,9 @@ extern int main_map_x_pix; //X pixels of map
 extern int main_map_y_pix; //Z pixels of map
 extern int main_map_strata[4]; //Strata Heights of texture tables 0-4 
 extern int map_texture_table_numbers[5]; //The first texture # of each ground texture table.
-extern bool map_update_complete;
-extern bool * sysbool;
-extern bool map_chg;
+extern Bool map_update_complete;
+extern Bool * sysBool;
+extern Bool map_chg;
 extern _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;

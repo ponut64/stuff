@@ -2,7 +2,7 @@
 //	2drender.c
 //
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mloader.h"
 #include "mymath.h"
@@ -423,17 +423,25 @@ do {
 va_end(vmlist);
 }
 
-void	nbg_sprintf(void * scrnAddr /*to be returned from slLocate or other such function*/,  ...)
+void	nbg_sprintf(int x, int y,  ...)
 {
 va_list vmlist;
 va_start(vmlist, NULL);
 
 do {
 	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int));
-	slPrint(sprintf_buffer, scrnAddr); 
+	slPrint(sprintf_buffer, slLocate(x,y)); 
 	} while(0);
 	
 va_end(vmlist);
+}
+
+void	nbg_clear_text(void)
+{
+	for(int y = 0; y < 30; y++)
+	{
+		slPrint("                                        ", slLocate(0,y));
+	}
 }
 
 //Creates a 2D menu on-screen using VDP1 with options:

@@ -1,16 +1,17 @@
 //ldata.c
 //this file is compiled separately
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "bounder.h"
 #include "physobjet.h"
 #include "mloader.h"
+#include "render.h"
 #include "player_phy.h"
 #include "tga.h"
 
 #include "ldata.h"
 
-bool ldata_ready = false;
+Bool ldata_ready = false;
 
 void	process_tga_as_ldata(void * source_data)
 {
@@ -30,12 +31,12 @@ void	process_tga_as_ldata(void * source_data)
 	unsigned char byteFormat = readByte[16];
 	
 	if(col_map_type != 0){
-		jo_printf(0, 0, "(REJECTED NON-RGB TGA)");
+		nbg_sprintf(0, 0, "(REJECTED NON-RGB TGA)");
 		return;
 	}
 	
 	if(data_type != 2) {
-		jo_printf(0, 0, "(REJECTED RLE TGA)");
+		nbg_sprintf(0, 0, "(REJECTED RLE TGA)");
 		return;
 	}
 	//Color Map Specification Data is ignored.
@@ -43,7 +44,7 @@ void	process_tga_as_ldata(void * source_data)
 	//X / Y origin data is ignored.
 	
 	if(byteFormat != 24){
-		jo_printf(0, 0, "(TGA NOT 24BPP)");
+		nbg_sprintf(0, 0, "(TGA NOT 24BPP)");
 		return; //File Typing Demands 24 bpp.
 	}
 	
@@ -64,7 +65,7 @@ void	process_tga_as_ldata(void * source_data)
 	//int totalPix = xSize * ySize;
 	//int yspot;
 	
-	//	jo_printf(0, 0, "(%i)", totalPix);
+	//	nbg_sprintf(0, 0, "(%i)", totalPix);
 	
 	objNEW = 0;
 	for(int k = 0; k < 8; k++)
@@ -74,7 +75,7 @@ void	process_tga_as_ldata(void * source_data)
 	
 		for(int i = 0; i < ySize; i++)
 		{
-		//jo_printf(0, 0, "(DECL)"); //Debug ONLY
+		//nbg_sprintf(0, 0, "(DECL)"); //Debug ONLY
 			//yspot = i * ySize;
 			for(int k = 0; k < xSize; k++)
 			{

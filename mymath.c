@@ -1,4 +1,4 @@
-#include "jo/jo.h"
+#include <sl_def.h>
 #include "def.h"
 
 #include "mymath.h"
@@ -17,7 +17,7 @@
 	static FIXED pFNn[XYZ] = {0, 0, 0};
 
 
-__jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
+inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 {
 	register volatile FIXED rtval;
 	asm(
@@ -33,7 +33,7 @@ __jo_force_inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 }
 
 
-__jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
+inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
 {
 	register volatile FIXED rtval;
 	asm(
@@ -53,7 +53,7 @@ __jo_force_inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot produc
 
 
 
-__jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
+inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
 	
 	volatile int * DVSR = ( int*)0xFFFFFF00;
@@ -67,14 +67,6 @@ __jo_force_inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point divis
 }
 
 //////////////////////////////////
-// un-fixed point the vectors and get a length out of it
-//////////////////////////////////
-int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
-{
-	return slSquart(JO_SQUARE( (Max[X] - Min[X])>>16 ) + JO_SQUARE( (Max[Y] - Min[Y])>>16 ) + JO_SQUARE( (Max[Z] - Min[Z])>>16 ));
-}
-
-//////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
 //////////////////////////////////
 void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
@@ -83,6 +75,15 @@ void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
 	out[Y] = (start[Y] - end[Y]);
 	out[Z] = (start[Z] - end[Z]);
 }
+
+//////////////////////////////////
+// un-fixed point the vectors and get a length out of it
+//////////////////////////////////
+int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
+{
+	return slSquart(JO_SQUARE( (Max[X] - Min[X])>>16 ) + JO_SQUARE( (Max[Y] - Min[Y])>>16 ) + JO_SQUARE( (Max[Z] - Min[Z])>>16 ));
+}
+
 
 //////////////////////////////////
 // Manhattan
@@ -230,7 +231,7 @@ void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output)
 //////////////////////////////////
 // Checks if "point" is between "start" and "end".
 //////////////////////////////////
-bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ], int tolerance)
+Bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ], int tolerance)
 {
 	FIXED max[XYZ];
 	FIXED min[XYZ];
@@ -294,22 +295,22 @@ int	line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB,
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
 {
 	if(normid == N_Xp){
-		jo_printf(spotX, spotY, "((X)");
+		slPrint("((X)", slLocate(spotX, spotY));
 	}
 	if(normid == N_Xn){
-		jo_printf(spotX, spotY, "(NX)");
+		slPrint("(NX)", slLocate(spotX, spotY));
 	}
 	if(normid == N_Yp){
-		jo_printf(spotX, spotY, "((Y)");
+		slPrint("((Y)", slLocate(spotX, spotY));
 	}
 	if(normid == N_Yn){
-		jo_printf(spotX, spotY, "(NY)");
+		slPrint("(NY)", slLocate(spotX, spotY));
 	}
 	if(normid == N_Zp){
-		jo_printf(spotX, spotY, "((Z)");
+		slPrint("((Z)", slLocate(spotX, spotY));
 	}
 	if(normid == N_Zn){
-		jo_printf(spotX, spotY, "(NZ)");
+		slPrint("(NZ)", slLocate(spotX, spotY));
 	}
 }
 
@@ -394,7 +395,7 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
 // output : the point at which the line intersects the plane
 // return value : whether or not the output point is between p0 and p1
 //////////////////////////////////
-bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output)
+Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output)
 {
 
 	FIXED line_scalar = 0;

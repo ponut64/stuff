@@ -1,6 +1,6 @@
 //
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include <SEGA_GFS.H>
 #include "def.h"
 #include "render.h" 
@@ -101,7 +101,7 @@ Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
 
 //Note: colorCode will be signed.
 //Use: Add a color code to all of VDP1's colors.
-//Also has an "apply once" boolean that controls color addition (will only apply when 1, and writes back 0 when done).
+//Also has an "apply once" Boolean that controls color addition (will only apply when 1, and writes back 0 when done).
 void	color_offset_vdp1_palette(int colorCode, int * run_only_once)
 {
 	if(*run_only_once == 0) return;
@@ -297,8 +297,8 @@ void	make_combined_textures(int texture_number)
 	int base_x = (pcoTexDefs[texture_number].SIZE & 0x3F00)>>5;
 	int base_y = (pcoTexDefs[texture_number].SIZE & 0xFF);
 	
-	// jo_printf(5, 10, "bx(%i)", base_x);
-	// jo_printf(5, 11, "by(%i)", base_y);
+	// nbg_sprintf(5, 10, "bx(%i)", base_x);
+	// nbg_sprintf(5, 11, "by(%i)", base_y);
 	
 	int total_bytes_of_original_texture = base_x * base_y;
 

@@ -5,7 +5,7 @@
 //Directly accesses hardware registers and thus is library agnostic.
 //Though I don't start the SMPC or set a peripheral mode. Dear god why is sampling inputs so complex? Ugh!
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "input.h"
 #include "def.h"
 

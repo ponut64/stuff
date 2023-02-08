@@ -1,4 +1,4 @@
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "mloader.h"
 #include "mymath.h"
@@ -244,9 +244,9 @@ void	sort_master_polys(void)
 	} else if(send_draw_stats == 2)
 	{
 		unsigned short txt_base = (hi_res_switch) ? 1 : 2;
-		nbg_sprintf(slLocate(txt_base, 24), "TRPLY:(%i)", transPolys[0]);
-		nbg_sprintf(slLocate(txt_base, 25), "SNTPL:(%i)", ssh2SentPolys[0] + msh2SentPolys[0]);
-		nbg_sprintf(slLocate(txt_base, 26), "VERTS:(%i)", transVerts[0]);
+		nbg_sprintf(txt_base, 24, "TRPLY:(%i)", transPolys[0]);
+		nbg_sprintf(txt_base, 25, "SNTPL:(%i)", ssh2SentPolys[0] + msh2SentPolys[0]);
+		nbg_sprintf(txt_base, 26, "VERTS:(%i)", transVerts[0]);
 	}
 	
 	SPRITE_T * user_sprite;

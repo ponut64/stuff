@@ -2,7 +2,9 @@
 //This file is compiled separately.
 //hmap.c
 
-#include <jo/jo.h>
+#include <sl_def.h>
+#include <SEGA_GFS.H>
+#include <stdio.h>
 #include "def.h"
 #include "pcmstm.h"
 #include "pcmsys.h"
@@ -25,7 +27,7 @@ Uint8 * buf_map = (Uint8*)LWRAM;
 
 char * normTbl;
 unsigned short * mapTex;
-unsigned short * minimap;
+//unsigned short * minimap;
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
@@ -35,9 +37,9 @@ int map_texture_table_numbers[5];
 int map_tex_amt = 35;
 int map_last_combined_texno = 0;
 _heightmap maps[4];
-bool map_update_complete;
-bool * sysbool;
-bool map_chg = true;
+Bool map_update_complete;
+Bool * sysBool;
+Bool map_chg = true;
 
 
 //Only works at start of program
@@ -47,8 +49,8 @@ void 	init_heightmap(void)
 0 - 1
 3 - 2
 */
-	sysbool = (bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	minimap = (void*)jo_malloc(2550 * sizeof(short));
+	sysBool = (Bool *)(((unsigned int)&map_update_complete)|UNCACHE);
+	//minimap = (void*)jo_malloc(2550 * sizeof(short));
 }
 
 void	chg_map(_heightmap * tmap){
@@ -148,11 +150,11 @@ void	map_parser(void * data)
 		
 		level_data_basic();
 		
-	// jo_printf(8, 20, "(%i)", maps[0].totalPix);
-	// jo_printf(15, 20, "(%i)", maps[0].Xval);
-	// jo_printf(20, 20, "(%i)", maps[0].Yval);
+	// nbg_sprintf(8, 20, "(%i)", maps[0].totalPix);
+	// nbg_sprintf(15, 20, "(%i)", maps[0].Xval);
+	// nbg_sprintf(20, 20, "(%i)", maps[0].Yval);
 		} else {
-	jo_printf(8, 25, "MAP REJECTED - IS EVEN");
+	nbg_sprintf(8, 25, "MAP REJECTED - IS EVEN");
 		}
 		
 	map_chg = false;
@@ -210,18 +212,18 @@ void	p64MapRequest(short levelNo)
 						{
 							buf_map[i] = *((Uint8*)activePGM->dstAddress + i);
 						}
-				// jo_printf(8, 20, "(%i)", activePGM->totalPix);
-				// jo_printf(15, 20, "(%i)", activePGM->Xval);
-				// jo_printf(20, 20, "(%i)", activePGM->Yval);
+				// nbg_sprintf(8, 20, "(%i)", activePGM->totalPix);
+				// nbg_sprintf(15, 20, "(%i)", activePGM->Xval);
+				// nbg_sprintf(20, 20, "(%i)", activePGM->Yval);
 					} else {
-				jo_printf(8, 25, "MAP REJECTED - IS EVEN");
+				nbg_sprintf(8, 25, "MAP REJECTED - IS EVEN");
 					}
 			NactivePGM--;
 		//	} */
 
 
 //Texture Table Assignment based on heights from main map strata table.
-__jo_force_inline int	texture_table_by_height(int * ys)
+inline int	texture_table_by_height(int * ys)
 {
 	int avgY = 0;
 	avgY = ((ys[0] + ys[1] + ys[2] + ys[3])>>2);
@@ -239,7 +241,7 @@ __jo_force_inline int	texture_table_by_height(int * ys)
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-__jo_force_inline int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
+inline int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
@@ -666,17 +668,17 @@ void	process_map_for_normals(void)
 	}
 
 	
-	// jo_printf(2, 6, "mp0(%i)", map_texture_table_numbers[0]);
-	// jo_printf(2, 7, "mp0(%i)", map_texture_table_numbers[1]);
-	// jo_printf(2, 8, "mp0(%i)", map_texture_table_numbers[2]);
-	// jo_printf(2, 9, "mp0(%i)", map_texture_table_numbers[3]);
-	// jo_printf(2, 10, "mp0(%i)", map_texture_table_numbers[4]);
+	// nbg_sprintf(2, 6, "mp0(%i)", map_texture_table_numbers[0]);
+	// nbg_sprintf(2, 7, "mp0(%i)", map_texture_table_numbers[1]);
+	// nbg_sprintf(2, 8, "mp0(%i)", map_texture_table_numbers[2]);
+	// nbg_sprintf(2, 9, "mp0(%i)", map_texture_table_numbers[3]);
+	// nbg_sprintf(2, 10, "mp0(%i)", map_texture_table_numbers[4]);
 
 	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
 	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
 	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
 	
-	// jo_printf(0, 13, "(%i)mtp", main_map_total_poly);
+	// nbg_sprintf(0, 13, "(%i)mtp", main_map_total_poly);
 	
 }
 
@@ -684,7 +686,7 @@ void	process_map_for_normals(void)
 	//This is different than the normal light processing in that it will get light data from any number of lights,
 	//based only on the distance from the polygon to the light.
 	/** SHOULD BE INLINED **/
-__jo_force_inline int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
+int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 {
 	int luma = 0;
 	for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
@@ -817,10 +819,10 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
         scrnsub[w].pnt[X] = fxm(new_vertices[w][X], inverseZ)>>SCR_SCALE_X;
         scrnsub[w].pnt[Y] = fxm(new_vertices[w][Y], inverseZ)>>SCR_SCALE_Y;
         //Screen Clip Flags for on-off screen decimation
-		scrnsub[w].clipFlag = ((scrnsub[w].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
-		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : scrnsub[w].clipFlag; 
-		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : scrnsub[w].clipFlag;
-		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : scrnsub[w].clipFlag;
+		scrnsub[w].clipFlag = ((scrnsub[w].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : scrnsub[w].clipFlag; 
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : scrnsub[w].clipFlag;
+		scrnsub[w].clipFlag |= ((scrnsub[w].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : scrnsub[w].clipFlag;
 	}
 	transVerts[0] += 5;
 	vertex_t * ptv[5];
@@ -977,12 +979,11 @@ void	update_hmap(MATRIX msMatrix)
         msh2VertArea[dst_pix].pnt[Y] = fxm(verts_without_inverse_z[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
  
         //Screen Clip Flags for on-off screen decimation
-		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > JO_TV_WIDTH_2) ? SCRN_CLIP_X : 0; 
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -JO_TV_WIDTH_2) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > JO_TV_HEIGHT_2) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -JO_TV_HEIGHT_2) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
-			
 			}	// Row Filler Loop End Stub
 		//} // Row Selector Loop End Stub
 		
@@ -1116,7 +1117,7 @@ void	update_hmap(MATRIX msMatrix)
 		} // Row Selector Loop End Stub
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
-	*sysbool = true;
+	*sysBool = true;
 }
 
 

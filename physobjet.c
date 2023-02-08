@@ -1,4 +1,5 @@
-#include "jo/jo.h"
+#include <sl_def.h>
+#include <SEGA_GFS.H>
 #include "def.h"
 #include "pcmsys.h"
 #include "pcmstm.h"
@@ -190,30 +191,34 @@ void	declarations(void)
 // declare_object_at_cell(-(1360 / 40) + 1, -205, (3280 / 40), 22 /*build00?*/, 0, 45, 0, 0);
 
 
-/* level3 ? */
-//Likely will replace
+/* level3 */
+//Decent. Will keep for testing/improvement.
+//I'm getting better at this.
 
-// declare_object_at_cell(-(20 / 40) + 1, -120, (940 / 40), 61 /*start location*/, 0, 0, 0, 0);
+declare_object_at_cell((1060 / 40) + 1, -420, (220 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((1420 / 40) + 1, -63,  -(1260 / 40), 11 /*build00*/, 0, -20, 7, 0);
-// declare_object_at_cell((420 / 40) + 1, -352,  -(60 / 40), 11 /*build00*/, 0, 0, 0, 0);
+declare_object_at_cell((1020 / 40) + 1, -297, -(420 / 40), 25 /*float01*/, -15, 0, 0, 0);
 
+declare_object_at_cell(-(700 / 40) + 1, -350, -(1020 / 40), 26 /*float02*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((1770 / 40) + 1, -78,  -(1300 / 40), 12 /*build01*/, 0, 0, 0, 0);
+declare_object_at_cell(-(380 / 40) + 1, -325, -(1060 / 40), 10 /*platf00*/, 0, 0, -15, 0);
+declare_object_at_cell((740 / 40) + 1, -369, (500 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(1020 / 40) + 1, -181, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell((1020 / 40) + 1, -243, -(660 / 40), 10 /*platf00*/, -15, 0, 0, 0);
+declare_object_at_cell((1020 / 40) + 1, -326, -(140 / 40), 10 /*platf00*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((360 / 40) + 1, -99,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
-// declare_object_at_cell((660 / 40) + 1, -71,  -(1220 / 40), 12 /*build01*/, 0, 0, 0, 0);
+declare_object_at_cell((540 / 40) + 1, -345, -(1140 / 40), 16 /*overhang*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((2340 / 40) + 1, -44,  -(1180 / 40), 13 /*build02*/, 0, 0, 0, 0);
+declare_object_at_cell((500 / 40) + 1, -362, (740 / 40), 19 /*tunnel2*/, 0, -45, 0, 0);
 
-// declare_object_at_cell(-(20 / 40) + 1, -60,  (1300 / 40), 10 /*block01*/, 0, 0, 0, 0);
-// declare_object_at_cell((420 / 40) + 1, -435,  -(60 / 40), 10 /*block01?*/, 0, 0, 0, 0);
+declare_object_at_cell(-(1140 / 40) + 1, -50, -(100 / 40), 21 /*wall1*/, 0, 180, 0, 0);
+declare_object_at_cell(-(1140 / 40) + 1, -82, -(540 / 40), 21 /*wall1*/, 0, 180, 0, 0);
 
-// declare_object_at_cell((1260 / 40) + 1, -128,  (1180 / 40), 12 /*build02*/, 0, 0, 0, 0);
-// declare_object_at_cell((1620 / 40) + 1, -103,  (1020 / 40), 12 /*build02*/, 0, 0, 0, 0);
+declare_object_at_cell(-(700 / 40) + 1, -107, (540 / 40), 15 /*greece04*/, 0, 90, 0, 0);
+declare_object_at_cell(-(420 / 40) + 1, -107, (820 / 40), 15 /*greece04*/, 0, 90, 0, 0);
 
-// declare_object_at_cell((660 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(620 / 40) + 1, -97,  (1300 / 40), 14 /*build03*/, 0, 0, 0, 0);
+declare_object_at_cell(-(540 / 40) + 1, -107, (660 / 40), 13 /*greece02*/, 0, -45, 0, 0);
+declare_object_at_cell(-(860 / 40) + 1, -107, (420 / 40), 13 /*greece02*/, 0, 135, 0, 0);
 
 /* level 4 ? */
 // Hell Run level. I like it.
@@ -260,29 +265,29 @@ void	declarations(void)
 /* level5 ? */
 //Like this level, will keep.
 
-declare_object_at_cell(-(860 / 40) + 1, -330, (460 / 40), 61 /*start location*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(860 / 40) + 1, -330, (460 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-declare_object_at_cell((740 / 40) + 1, -148, (740 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-declare_object_at_cell(-(1180 / 40) + 1, -126, (1020 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-declare_object_at_cell((1740 / 40) + 1, -399, (1780 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+// declare_object_at_cell((740 / 40) + 1, -148, (740 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+// declare_object_at_cell(-(1180 / 40) + 1, -126, (1020 / 40), 16 /*overhang*/, 0, 45, 0, 0);
+// declare_object_at_cell((1740 / 40) + 1, -399, (1780 / 40), 16 /*overhang*/, 0, 45, 0, 0);
 
-declare_object_at_cell(-(500 / 40) + 1, -334,  (580 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(340 / 40) + 1, -346,  (380 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell((1020 / 40) + 1, -196,  (460 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(500 / 40) + 1, -334,  (580 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(340 / 40) + 1, -346,  (380 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((1020 / 40) + 1, -196,  (460 / 40), 10 /*platf00*/, 0, 0, 0, 0);
 
-declare_object_at_cell((860 / 40) + 1, -22, -(700 / 40), 21 /*wall1*/, 0, -135, 0, 0);
-declare_object_at_cell((340 / 40) + 1, -181, -(1340 / 40), 21 /*wall1*/, 75, 90, 0, 0);
+// declare_object_at_cell((860 / 40) + 1, -22, -(700 / 40), 21 /*wall1*/, 0, -135, 0, 0);
+// declare_object_at_cell((340 / 40) + 1, -181, -(1340 / 40), 21 /*wall1*/, 75, 90, 0, 0);
 
-declare_object_at_cell((1380 / 40) + 1, -284, (1380 / 40), 23 /*bridge2*/, 0, -135, 0, 0);
-declare_object_at_cell((660 / 40) + 1, -173, -(900 / 40), 23 /*bridge2*/, 0, -45, 0, 0);
+// declare_object_at_cell((1380 / 40) + 1, -284, (1380 / 40), 23 /*bridge2*/, 0, -135, 0, 0);
+// declare_object_at_cell((660 / 40) + 1, -173, -(900 / 40), 23 /*bridge2*/, 0, -45, 0, 0);
 
-declare_object_at_cell(-(420 / 40) + 1, -164, -(1020 / 40), 17 /*pier1*/, 0, 120, 0, 0);
+// declare_object_at_cell(-(420 / 40) + 1, -164, -(1020 / 40), 17 /*pier1*/, 0, 120, 0, 0);
 
-declare_object_at_cell(-(860 / 40) + 1, -310, -(100 / 40), 20 /*tunnl3*/, 0, 90, 0, 0);
+// declare_object_at_cell(-(860 / 40) + 1, -310, -(100 / 40), 20 /*tunnl3*/, 0, 90, 0, 0);
 
-declare_object_at_cell((300 / 40) + 1, -321, -(20 / 40), 14 /*greece03*/, 0, 0, 0, 0);
+// declare_object_at_cell((300 / 40) + 1, -321, -(20 / 40), 14 /*greece03*/, 0, 0, 0, 0);
 
-declare_object_at_cell(-(60 / 40) + 1, -370, (180 / 40), 25 /*float01*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(60 / 40) + 1, -370, (180 / 40), 25 /*float01*/, 0, 0, 0, 0);
 
 }
 
@@ -317,7 +322,7 @@ void	object_control_loop(int ppos[XY])
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++){
 		
-		//jo_printf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
+		//nbg_sprintf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
 		
 		difX = fxm(JO_ABS((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]) - (dWorldObjects[i].type.radius[X]<<16), INV_CELL_SIZE)>>16; 
 		difY = fxm(JO_ABS((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]) - (dWorldObjects[i].type.radius[Z]<<16), INV_CELL_SIZE)>>16; 
@@ -431,6 +436,7 @@ void	object_control_loop(int ppos[XY])
 					objUP++; 
 					} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
 				{
+					
 						////////////////////////////////////////////////////
 						// Generate valid matrix parameters for the building.
 						////////////////////////////////////////////////////
@@ -543,8 +549,8 @@ void	object_control_loop(int ppos[XY])
 		
 	flush_boxes(objUP);
 		
-	// jo_printf(12, 5, "objUP:(%i)", objUP);
-	// jo_printf(12, 6, "objNW:(%i)", objNEW);
+	// nbg_sprintf(12, 5, "objUP:(%i)", objUP);
+	// nbg_sprintf(12, 6, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -626,8 +632,8 @@ void	light_control_loop(void)
 		// slPrintFX(active_lights[1].pos[Z], slLocate(2, 9+3));
 
 	
-	// jo_printf(2, 10, "(%i) lights", lights_created);
-	// jo_printf(2, 12, "(%i) obj", objUP);
+	// nbg_sprintf(2, 10, "(%i) lights", lights_created);
+	// nbg_sprintf(2, 12, "(%i) obj", objUP);
 	
 }
 
@@ -783,7 +789,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 
 	// slPrintFX(tDist, slLocate(0, 12));
 	// slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
-	// jo_printf(12, CELL_CULLING_DIST_MED, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
+	// nbg_sprintf(12, CELL_CULLING_DIST_MED, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
 
 //Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
 	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) 
@@ -966,12 +972,12 @@ void	test_gate_posts(int index, _boundBox * tgt)
 					dWorldObjects[index].rot[Y] = slAtan(posDif[Z], posDif[X]);
 					dWorldObjects[index].more_data |= 0x1;
 					
-					// jo_printf(0, 10, "o1id(%i)", index);
-					// jo_printf(10, 10, "o2id(%i)", trackedEntry);
-					// jo_printf(3, 12, "data0(%x)", posDif[X]);
-					// jo_printf(5, 13, "rot0(%i)", dWorldObjects[index].rot[Y]);
-					// jo_printf(3, 14, "data1(%x)", posDif[Z]);
-					// jo_printf(5, 15, "rot1(%i)", dWorldObjects[trackedEntry].rot[Y]);
+					// nbg_sprintf(0, 10, "o1id(%i)", index);
+					// nbg_sprintf(10, 10, "o2id(%i)", trackedEntry);
+					// nbg_sprintf(3, 12, "data0(%x)", posDif[X]);
+					// nbg_sprintf(5, 13, "rot0(%i)", dWorldObjects[index].rot[Y]);
+					// nbg_sprintf(3, 14, "data1(%x)", posDif[Z]);
+					// nbg_sprintf(5, 15, "rot1(%i)", dWorldObjects[trackedEntry].rot[Y]);
 					
 				}
 			}
@@ -1040,12 +1046,12 @@ void	gate_track_manager(void)
 	int num_track_dat =  0;
 	static char complete_tracks = 0;
 	
-	// jo_printf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
-	// jo_printf(0, 16, "act(%i)", activeTrack);
+	// nbg_sprintf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
+	// nbg_sprintf(0, 16, "act(%i)", activeTrack);
 
 	
 	while(someLDATA != &dWorldObjects[objNEW]){
-				//jo_printf(0, 0, "(GTMN)"); //Debug ONLY
+				//nbg_sprintf(0, 0, "(GTMN)"); //Debug ONLY
 		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{
 		////////////////////////////////////////////////////////////////////////////////
@@ -1060,14 +1066,14 @@ void	gate_track_manager(void)
 		somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
 		someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
 		num_track_dat++;
-		//jo_printf(1, 12, "ldats(%i)", num_track_dat);
-		//jo_printf(1, 13, "track(%i)", track_select);
+		//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
+		//nbg_sprintf(1, 13, "track(%i)", track_select);
 				if(activeTrack == -1 || (activeTrack == track_select)) // if active track.. or track released
 					{
-					// jo_printf(0, 17, "ldt(%i)", trackedLDATA);
-					// jo_printf(0, 17, "ldt(%i)", someLDATA->more_data);
+					// nbg_sprintf(0, 17, "ldt(%i)", trackedLDATA);
+					// nbg_sprintf(0, 17, "ldt(%i)", someLDATA->more_data);
 			while(someRINGdata != &dWorldObjects[objNEW]){
-				//jo_printf(0, 0, "(RING)"); //Debug ONLY
+				//nbg_sprintf(0, 0, "(RING)"); //Debug ONLY
 				object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(track_select == object_track)
 					{
@@ -1092,7 +1098,7 @@ void	gate_track_manager(void)
 			}
 
 			while(somePOSTdata != &dWorldObjects[objNEW]){
-				//jo_printf(0, 0, "(POST)"); //Debug ONLY
+				//nbg_sprintf(0, 0, "(POST)"); //Debug ONLY
 				object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 				////////////////////////////////////////////////////
 				// Flush the "checked collision yet" marker for gate posts.
@@ -1117,7 +1123,7 @@ void	gate_track_manager(void)
 			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
 			track_reset[track_select] = false;
-				//jo_printf(0, 0, "(LDAT)"); //Debug ONLY
+				//nbg_sprintf(0, 0, "(LDAT)"); //Debug ONLY
 			//Track completion logic
 			if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0)
 			{
@@ -1182,7 +1188,7 @@ void	gate_track_manager(void)
 			}
 			
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
-	//jo_printf(13, 12, "ac_trk(%i)", activeTrack);
+	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
 			
 	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));
 	// slPrintHex(dWorldObjects[6].dist, slLocate(0, 16));

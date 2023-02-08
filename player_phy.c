@@ -1,5 +1,5 @@
 
-#include <jo/jo.h>
+#include <sl_def.h>
 #include "def.h"
 #include "pcmsys.h"
 #include "input.h"
@@ -145,7 +145,7 @@ void	pl_step_snd(void){
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					add_to_sprite_list(hf_pos, spr_span /*Span*/, 0 /*texno*/, 1 /*mesh bool*/, 'B', 0 /*no clip*/, 1<<16);
+					add_to_sprite_list(hf_pos, spr_span /*Span*/, 0 /*texno*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
 				}
 				} else {
 					hoofSetBools[h] = false;
@@ -216,11 +216,11 @@ void	player_phys_affect(void)
 				you.hitSurface = false; 
 	}
 	
-		// jo_printf(1, 6, "hitObject: (%i)", you.hitObject);
-		// jo_printf(1, 7, "hitBox: (%i)", you.hitBox);
-		// jo_printf(1, 8, "hitMap: (%i)", you.hitMap);			
-		// jo_printf(1, 9, "hitWall: (%i)", you.hitWall);
-		// jo_printf(1, 12, "hitSurface: (%i)", you.hitSurface);
+		// nbg_sprintf(1, 6, "hitObject: (%i)", you.hitObject);
+		// nbg_sprintf(1, 7, "hitBox: (%i)", you.hitBox);
+		// nbg_sprintf(1, 8, "hitMap: (%i)", you.hitMap);			
+		// nbg_sprintf(1, 9, "hitWall: (%i)", you.hitWall);
+		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
 	
 	//Derive three angles from two inputs.
@@ -313,7 +313,7 @@ void	player_phys_affect(void)
 				powerTimer = 0;
 			}
 		}
-		jo_printf(1, 4, "Fuel: (%i)", you.power);
+		nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
 
 	//Wall Collision Decisions
 	if(you.hitWall == true){
@@ -452,7 +452,7 @@ void	player_phys_affect(void)
 void	collide_with_heightmap(_boundBox * sbox)
 {
 
-static bool firstSurfHit = false;
+static Bool firstSurfHit = false;
 
 static _lineTable realCFs;
 
@@ -572,8 +572,8 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 		firstSurfHit = false;
 	}
 
-	// jo_printf(0, 11, "(%i)", cellCenterPos[0]);
-	// jo_printf(5, 11, "(%i)", cellCenterPos[1]);	
+	// nbg_sprintf(0, 11, "(%i)", cellCenterPos[0]);
+	// nbg_sprintf(5, 11, "(%i)", cellCenterPos[1]);	
 
 }
 

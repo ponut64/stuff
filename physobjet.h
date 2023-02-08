@@ -26,6 +26,7 @@
 #define MAX_WOBJS (512)
 #define MAX_BUILD_OBJECTS (256)
 
+#define BUILD_ORIGINAL_ENTITY_ID (0xFF0)
 /*
 ///////////////////////////////////////////////////////////////
 	ext_dat bitflag orientation for BUILD:
@@ -40,7 +41,7 @@
 // 15 <- pop
 // 14-12 <- Pattern is "0x1000" for ITEM
 // 11-4 <- ?
-// 3 	<- Root entity bitflag [booleans]
+// 3 	<- Root entity bitflag [Booleans]
 // 2-0 <- ?
 //ext_dat bitflag orientation for OBJECT:
 // 15 <- pop

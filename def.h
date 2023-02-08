@@ -3,7 +3,8 @@
 # define __DEF_H__
 
 //def.h -- the catch-all "i dunno where else this goes" files
-
+#define true	(1)
+#define false	(0)
 //////////////////////////////////
 // Uniform grid cell information / shorthands
 //////////////////////////////////
@@ -44,6 +45,10 @@
 #define N_Yn (3)
 #define N_Zp (4)
 #define N_Zn (5)
+///////////////////////////////////
+// Game logic timing data
+///////////////////////////////////
+extern int delta_time;
 //////////////////////////////////////////////////////////////////////////////
 //Sound Numbers
 //////////////////////////////////////////////////////////////////////////////
@@ -85,15 +90,15 @@ typedef struct {
 	
 	FIXED moment[XYZ];
 	FIXED mass;
-	bool dirInp;
-	bool setJump;
-	bool setSlide;
-	bool okayStepSnd;
+	Bool dirInp;
+	Bool setJump;
+	Bool setSlide;
+	Bool okayStepSnd;
 	int sanics;
 	
 	short power;
 	short maxPower;
-	bool setJet;
+	Bool setJet;
 	
 	int surfaceHeight;
 	POINT	shadowPos;
@@ -106,12 +111,12 @@ typedef struct {
 	
 	int points;
 	
-	bool aboveObject;
-	bool hitMap;
-	bool hitObject;
-	bool hitBox;
-	bool hitSurface;
-	bool hitWall;
+	Bool aboveObject;
+	Bool hitMap;
+	Bool hitObject;
+	Bool hitBox;
+	Bool hitSurface;
+	Bool hitWall;
 } _player;
 
 //////////////////////////////////////////////////////////////////////////////
