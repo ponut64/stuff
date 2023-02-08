@@ -36,7 +36,6 @@ extern _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
 extern char * normTbl;
-extern unsigned short * minimap;
 //Notice: Map Tex contains a 10-bit texture number, and two extra bits of flip data.
 extern unsigned short * mapTex;
 

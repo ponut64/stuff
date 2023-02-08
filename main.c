@@ -222,7 +222,8 @@ void	game_frame(void)
 	master_draw(); 
 }
 
-void	my_vlank(void){
+void	my_vlank(void)
+{
 	vblank_requirements();
 	operate_digital_pad1();
 	//Sound Driver Stuff

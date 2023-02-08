@@ -4,6 +4,7 @@
 #include <SL_DEF.H>
 #include "def.h"
 #include "render.h"
+#include "vdp2.h"
 
 #define GRAPH_X_OFFSET (12)
 
@@ -72,13 +73,14 @@ void	update_gamespeed(void)
 	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
 	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
 	
-	//jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210); //(last argument is color)
-	//jo_draw_background_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
+	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210); //(last argument is color)
+	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
 		if(time_selector > 1){
-	//jo_draw_background_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
+	draw_vdp2_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
+	//draw_vdp2_line(20, 20, 40, 40, 0x800C);
 		}
 		if(time_selector > 2){
-	//jo_draw_background_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
+	draw_vdp2_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
 		} 
 		//
 		frmul = framerate<<16;

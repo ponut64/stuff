@@ -1,5 +1,6 @@
 
 #include <sl_def.h>
+#include "mymath.h"
 #include "render.h"
 #include "def.h"
 
@@ -80,6 +81,60 @@ unsigned short	back_color_setting;
 	unsigned short * VDP1_EWLR = (unsigned short *) (VDP1_VRAM + 0x100008);
 	unsigned short * VDP1_EWRR = (unsigned short *) (VDP1_VRAM + 0x10000A);
 
+void	put_pixel_in_vdp2_bitmap(unsigned short * layer_address, unsigned short x, unsigned short y, unsigned short color_code, unsigned short line_width)
+{
+	int index = x + (y * line_width);
+	layer_address[index] = color_code;	
+}
+
+void	draw_vdp2_pixel(short x, short y, unsigned short color_code)
+{
+		if(x < 0) x = 0;
+		if(y < 0) y = 0;
+        put_pixel_in_vdp2_bitmap((unsigned short *)VDP2_VRAM_A0, x, y, color_code, 512);
+}
+
+//stolen from johannes
+void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned short color_code)
+{
+    int                         dx;
+    int                         sx;
+    int                         dy;
+    int                         sy;
+    int                         err;
+    int                         e2;
+	if(x0 < 0) x0 = 0;
+	if(x1 < 0) x1 = 0;
+	if(y0 < 0) y0 = 0;
+	if(y1 < 0) y1 = 0;
+
+    dx = JO_ABS(x1 - x0);
+    sx = x0 < x1 ? 1 : -1;
+    dy = JO_ABS(y1 - y0);
+    sy = y0 < y1 ? 1 : -1;
+    if (dx == dy)
+        err = 0;
+    else
+        err = (dx > dy ? dx>>1 : -(dy>>1));
+    for (;;)
+    {
+        put_pixel_in_vdp2_bitmap((unsigned short *)VDP2_VRAM_A0, x0, y0, color_code, 512);
+        if (x0 == x1 && y0 == y1)
+            break;
+        e2 = err;
+        if (e2 > -dx)
+        {
+            err -= dy;
+            x0 += sx;
+        }
+        if (e2 < dy)
+        {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
 void	vblank_requirements(void)
 {
 	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
@@ -97,6 +152,7 @@ void	init_vdp2(short backColor)
 	//slZoomNbg0(32768, 65536);
 	//slZoomNbg1(32768, 65536);
 	//slScrAutoDisp(NBG0ON | NBG1ON);
+	slBitMapNbg1(COL_TYPE_32768, BM_512x512, (void*)VDP2_VRAM_A0);
 	slScrAutoDisp(NBG0ON | NBG1ON);
 	slPriorityNbg1(7); //Put NBG1 on top.
 	slShadowOn(BACKON);

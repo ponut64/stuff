@@ -27,7 +27,6 @@ Uint8 * buf_map = (Uint8*)LWRAM;
 
 char * normTbl;
 unsigned short * mapTex;
-//unsigned short * minimap;
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
 int main_map_x_pix = LCL_MAP_PIX;
@@ -50,7 +49,6 @@ void 	init_heightmap(void)
 3 - 2
 */
 	sysBool = (Bool *)(((unsigned int)&map_update_complete)|UNCACHE);
-	//minimap = (void*)jo_malloc(2550 * sizeof(short));
 }
 
 void	chg_map(_heightmap * tmap){
