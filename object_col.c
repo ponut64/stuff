@@ -160,13 +160,15 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
 		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
 	}
-	POINT tRadius = {(entities[new_entity_ID].radius[X])<<16,
+	POINT tRadius = {(entities[new_entity_ID].radius[X] + 80)<<16,
 	(entities[new_entity_ID].radius[Y])<<16,
-	(entities[new_entity_ID].radius[Z])<<16};
+	(entities[new_entity_ID].radius[Z] + 80)<<16};
 	//Transformer the radius.
-	entities[new_entity_ID].radius[X] = JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16));
+	int bigRadius = JO_MAX(JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16)), JO_ABS((fxdot(tRadius, temp_box.UVX)>>16)));
+	entities[new_entity_ID].radius[X] = bigRadius;
 	entities[new_entity_ID].radius[Y] = JO_ABS((fxdot(tRadius, temp_box.UVY)>>16));
-	entities[new_entity_ID].radius[Z] = JO_ABS((fxdot(tRadius, temp_box.UVX)>>16));
+	entities[new_entity_ID].radius[Z] = bigRadius;
+
 	//Done!
 	
 	// nbg_sprintf(2, 6, "ox(%i)", entities[this_entity_ID].radius[X]);
@@ -288,10 +290,13 @@ void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position)
 		if(you.hitObject == true) return;
 
 GVPLY * mesh = ent->pol;
-static short testing_planes[128];
+static unsigned short testing_planes[128];
 static unsigned char backfaced[128];
+static unsigned short last_hit_floor = 0;
+static entity_t * last_floor_entity = 0;
 short total_planes = 0;
 POINT discard_vector = {0, 0, 0};
+POINT plane_center = {0, 0, 0};
 Bool hitY = false;
 Bool hitXZ = false;
 Bool shadowStruck = false;
@@ -398,9 +403,103 @@ int dominant_axis = N_Yp;
 Bool lineChecks[3];
 POINT lineEnds[3];
 
+//////////////////////////////////////////////////////////////
+//	Shortcut: If we have already collided with a floor plane on the previous frame,
+//	we will store the polygon ID of that floor plane.
+//	If we are currently determined to be standing on a floor this frame,
+//	we sill first collision test with that plane, the last one we were standing on.
+//	If we still collide with that floor properly, don't test for any other floor collision.
+//////////////////////////////////////////////////////////////
+// nbg_sprintf(1, 7, "(%x)", last_floor_entity);
+// nbg_sprintf(1, 8, "(%x)", ent);
+if(you.hitSurface && last_floor_entity == ent)
+{
+	//slPrint("Testing Old Floor", slLocate(2, 6));
+	
+	plane_center[X] = 0;
+	plane_center[Y] = 0;
+	plane_center[Z] = 0;
+	for(int u = 0; u < 4; u++)
+	{
+	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][X]) - mesh_position[X];
+	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][Y]) - mesh_position[Y];
+	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][Z]) - mesh_position[Z];
+	//Add to the plane's center
+	plane_center[X] += plane_points[u][X];
+	plane_center[Y] += plane_points[u][Y];
+	plane_center[Z] += plane_points[u][Z];
+	}
+	//Divide sum of plane points by 4 to average all the points
+	plane_center[X] >>=2;
+	plane_center[Y] >>=2;
+	plane_center[Z] >>=2;
+	//////////////////////////////////////////////////////////////
+	// Grab the normal used for point-to-plane projection
+	// This also retains the sign, which we use to check if the axis is + or -.
+	//////////////////////////////////////////////////////////////
+	used_normal[X] = (mesh->pltbl[last_hit_floor].norm[X]);
+	used_normal[Y] = (mesh->pltbl[last_hit_floor].norm[Y]);
+	used_normal[Z] = (mesh->pltbl[last_hit_floor].norm[Z]);
+	//////////////////////////////////////////////////////////////
+	// Project the lines to the plane
+	// We are only testing the Y axis right now, because we are specifically testing something previously determined to be a floor.
+	// Note the second to last argument here: This is the tolerance level for collision.
+	// The tolerance level for a collision here is double the normal tolerance for hitting a floor.
+	// We prefer to have the player stick to surfaces they are standing on a little more strongly.
+	//////////////////////////////////////////////////////////////
+	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
+	//////////////////////////////////////////////////////////////
+	// Proceed with edge wind testing if the line is still in the right spot.
+	// Notice there are a few conditions here which are either manually inserted to a fixed value or omitted:
+	// 1. We do not check the dominant axis. At this point, we already assume it is N_Yn, since it should be a floor.
+	// 2. We do not check the backface of the plane. At this point, we already assume it met the backface condition to be a floor.
+	// 3. We do not do any checks against it as if it were a wall. We already know it's supposed to be the floor.
+	//////////////////////////////////////////////////////////////
+	if(lineChecks[Y])
+	{
+		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], N_Yn) >= 0)
+		{
+			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], N_Yn) >= 0)
+			{
+				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], N_Yn) >= 0)
+				{
+					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], N_Yn) >= 0)
+					{
+						used_normal[X] = -used_normal[X]; 
+						used_normal[Y] = -used_normal[Y];
+						used_normal[Z] = -used_normal[Z];
+						you.floorNorm[X] = used_normal[X]; 
+						you.floorNorm[Y] = used_normal[Y];
+						you.floorNorm[Z] = used_normal[Z];
+						
+						standing_surface_alignment(used_normal, you.renderRot);
+						
+						you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
+						you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
+						you.floorPos[Z] = ((lineEnds[Y][Z]) - (mover->Yneg[Z]));
+						you.shadowPos[X] = lineEnds[Y][X];
+						you.shadowPos[Y] = lineEnds[Y][Y];
+						you.shadowPos[Z] = lineEnds[Y][Z];
+						
+						you.hitSurface = true;
+						you.aboveObject = true;
+						you.hitObject = true;
+						hitY = true; 
+					}
+				}
+			}
+		}
+	}
+//End of early floor test
+}
+
+
 for(int i = 0; i < total_planes; i++)
 {
-	POINT plane_center = {0, 0, 0};
+	if(testing_planes[i] == last_hit_floor && last_floor_entity == ent && hitY) continue;
+	plane_center[X] = 0;
+	plane_center[Y] = 0;
+	plane_center[Z] = 0;
 	//////////////////////////////////////////////////////////////
 	// Add the position of the mesh to the position of its points
 	// PDATA vector space is inverted, so we negate them
@@ -452,18 +551,19 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	if(!hitY)
 	{
-	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
+	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 1<<16, lineEnds[Y]);
 	} else {
 	lineChecks[Y] = false;
 	}
 	if(!hitXZ)
 	{
-	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, 16384, lineEnds[Z]);
-	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, 16384, lineEnds[X]);	
+	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, 32768, lineEnds[Z]);
+	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, 32768, lineEnds[X]);	
 	} else {
 	lineChecks[Z] = false;
 	lineChecks[X] = false;
 	}
+
 	//////////////////////////////////////////////////////////////
 	// Shadow Posititon
 	//////////////////////////////////////////////////////////////
@@ -534,6 +634,8 @@ for(int i = 0; i < total_planes; i++)
 								you.shadowPos[Z] = lineEnds[Y][Z];
 								
 								you.hitSurface = true;
+								last_hit_floor = testing_planes[i];
+								last_floor_entity = ent;
 							} else {
 								you.wallNorm[X] = used_normal[X];
 								you.wallNorm[Y] = used_normal[Y];
@@ -667,7 +769,6 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 	int manhattan_beta;
 	
 	int perimeter = 0;
-
 	
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
@@ -695,6 +796,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char division
 	
 	//If the polygon to be subdivided is off-screen, stop.
 	//if((ssh2VertArea[0].clipFlag & ssh2VertArea[1].clipFlag & ssh2VertArea[2].clipFlag & ssh2VertArea[3].clipFlag)) return;
+	if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
 	
 	//////////////////////////////////////////////////////////////////
 	// Quick check: If we are subdividing a polygon that is already tiny, cease further subdivision.
