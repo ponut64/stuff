@@ -290,6 +290,70 @@ void	make_combined_textures(int texture_number)
 	Texture 3: Skips every even row and column (appears tiled in XY)
 	Texture 4: Low LOD texture. Texture data reduced to 8x8.
 	*/
+	/**
+	New directive:
+	Say we are starting with an 8x8 texture.
+	This needs to instead create:
+	Tile Once:
+	8x16 Tile on Y
+	16x8 Tile on X
+	16x16 Tile on XY
+	
+	Tile Twice:
+	8x16 Tile on Y Twice (half-res)
+	16x8 Tile on X Twice (half-res)
+	16x16 Tile on XY Twice (half-res)
+	
+	Tile Thrice:
+	16x32 Tile on Y Thrice (quarter-res, in the end)
+	32x16 Tile on X Thrice
+	32x32 Tile on XY Thrice
+	
+	Say this polygon pattern is representing a polygon at maximum subdivision:
+	Forgive the representation, I just mean every letter is a unique polygon.
+	This is subdivision 3; maximal subdivision.
+	A B C D E F a b
+	H I J K L M c d		In this case, we should use the base texture.
+	N O P Q R S e f
+	T U V W X Y g h
+	Z 0 1 2 3 4 i j
+	5 6 7 8 9 + l m
+	n o p q r s t u
+	w x y z ! @ # $
+	
+	At subdivisision two, it looks like:
+	In this case, same-letters mean same polygon.
+	A A B B C C a a
+	A A B B C C	a a		The texture is the base texture tiled twice / represents two identical textures.
+	D D E E F F b b		In two dimensions, it represents four polygons.
+	D D E E F F b b
+	H H I I G G c c 
+	H H I I G G c c
+	d d e e f f g g
+	d d e e f f g g
+	
+	At subdivision one, it looks like:
+	A A A A B B B B
+	A A A A B B B B		The texture is the base texture tiled four times / representing four identical textures.
+	A A A A B B B B		In two dimensions, it represents 16 polygons.
+	A A A A B B B B
+	C C C C D D D D
+	C C C C D D D D
+	C C C C D D D D 
+	C C C C D D D D
+	
+	With no subdivison, it is simply:
+	
+	A A A A A A A A
+	A A A A A A A A		The texture is the base texture tiled eight times / representing eight identical textures.
+	A A A A A A A A		In one dimension, of course. It ends up representing 64 polygons, or 64 textures if it is XY!
+	A A A A A A A A
+	A A A A A A A A
+	A A A A A A A A
+	A A A A A A A A
+	A A A A A A A A
+	
+	**/
 	/////////////////////////////////////////////////
 
 	unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texture_number].SRCA<<3)));

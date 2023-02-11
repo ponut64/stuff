@@ -22,7 +22,7 @@ FIXED		approximate_distance(FIXED * p0, FIXED * p1);
 int		unfix_length(FIXED Max[XYZ], FIXED Min[XYZ]);
 void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);
 
-void	cpy3(FIXED * src, FIXED * dst);
+void	cpy3(FIXED * dst, FIXED * src);
 
 void	normalize(FIXED * vector_in, FIXED * vector_out);
 void	double_normalize(FIXED * vector_in, FIXED * vector_out);

@@ -112,38 +112,20 @@ void	declarations(void)
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
 /* level01? */
-// Will replace.
 
-// declare_object_at_cell(-(632 / 40) + 1, -170, -(632 / 40), 11 /*build00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(897 / 40) + 1, -375,  (856 / 40), 12 /*build01*/, 0, 0, 0, 0);
-														 
-// declare_object_at_cell(-(366 / 40) + 1, -145, -(531 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((612 / 40) + 1, -150,  -(653 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(180 / 40) + 1, -120, -(740 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((61 / 40) + 1, -275,  -(714/40), 8 /*ring00*/, 0, 0, 0, 0);
-// declare_object_at_cell((918 / 40) + 1, -341,  (224/40), 8 /*ring00*/, 90, 0, 0, 0);
-// declare_object_at_cell(-(856 / 40) + 1, -502, (652/40), 8 /*ring00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(180 / 40) + 1, -179, -(340 / 40), 33 /*ramp01*/, 0, 0, 0, 0);
 
-// declare_object_at_cell( (42 / 40) + 1, -182,  (81/40), 9 /*post00*/, 0, 0, 0, 0);
-// declare_object_at_cell( (42 / 40) + 1, -182, (244/40), 9 /*post00*/, 0, 180, 0, 0);
-// declare_object_at_cell( (42 / 40) + 1, -178, (488/40), 9 /*post00*/, 0, 0, 0, 0);
-// declare_object_at_cell( (42 / 40) + 1, -178, (652/40), 9 /*post00*/, 0, 180, 0, 0);
-// declare_object_at_cell( (531 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, 90, 0, 0);
-// declare_object_at_cell( (694 / 40) + 1, -265,(407/40), 9 /*post00*/, 0, -90, 0, 0);
-// declare_object_at_cell(-(611 / 40) + 1, -210,(407/40), 9 /*post00*/, 0, -90, 0, 0);
-// declare_object_at_cell(-(815 / 40) + 1, -297,(407/40), 9 /*post00*/, 0, 90, 0, 0);
+declare_object_at_cell(-(180 / 40) + 1, -237, -(100 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
 
-// declare_object_at_cell(-2 + 1, -115, -14, 0 /*bb00*/,0,0,0, 0);
- // declare_object_at_cell(5 + 1, -150,  -5, 1 /*bb01*/,0,0,0, 0);
-// declare_object_at_cell(17 + 1, -380,  -2, 2 /*bb02*/,0,0,0, 0);
-// declare_object_at_cell(-9 + 1, -255,  -2, 3 /*bb03*/,0,0,0, 0);
- // declare_object_at_cell(0 + 1, -352,  22, 4 /*bb04*/,0,0,0, 0);
+declare_object_at_cell(-(60 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 180, 0, 0);
+declare_object_at_cell(-(300 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 0, 0, 0);
+declare_object_at_cell(-(540 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 180, 0, 0);
+declare_object_at_cell((220 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 0, 0, 0);
 
-// declare_object_at_cell(-5 + 1, -210,  -8, 5 /*meme00*/,0,0,0, 0);
-// declare_object_at_cell(20 + 1, -205, -18, 6 /*meme01*/,0,0,0, 0);
-// declare_object_at_cell(22 + 1, -430,  22, 7 /*meme02*/,0,0,0, 0);
-
-// declare_object_at_cell(-(632 / 40) + 1, -219, (-632 / 40), 61 /*start location*/, 0, 0, 0, 0);
+declare_object_at_cell(-(420 / 40) + 1, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
+declare_object_at_cell((100 / 40) + 1, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
 
 /* level2? */
 // Likely will keep, with modification.
@@ -195,30 +177,30 @@ void	declarations(void)
 //Decent. Will keep for testing/improvement.
 //I'm getting better at this.
 
-declare_object_at_cell((1060 / 40) + 1, -420, (220 / 40), 61 /*start location*/, 0, 0, 0, 0);
+// declare_object_at_cell((1060 / 40) + 1, -420, (220 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-declare_object_at_cell((1020 / 40) + 1, -297, -(420 / 40), 25 /*float01*/, -15, 0, 0, 0);
+// declare_object_at_cell((1020 / 40) + 1, -297, -(420 / 40), 25 /*float01*/, -15, 0, 0, 0);
 
-declare_object_at_cell(-(700 / 40) + 1, -350, -(1020 / 40), 26 /*float02*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(700 / 40) + 1, -350, -(1020 / 40), 26 /*float02*/, 0, 0, 0, 0);
 
-declare_object_at_cell(-(380 / 40) + 1, -325, -(1060 / 40), 10 /*platf00*/, 0, 0, -15, 0);
-declare_object_at_cell((740 / 40) + 1, -369, (500 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(1020 / 40) + 1, -181, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-declare_object_at_cell((1020 / 40) + 1, -243, -(660 / 40), 10 /*platf00*/, -15, 0, 0, 0);
-declare_object_at_cell((1020 / 40) + 1, -326, -(140 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(380 / 40) + 1, -325, -(1060 / 40), 10 /*platf00*/, 0, 0, -15, 0);
+// declare_object_at_cell((740 / 40) + 1, -369, (500 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell(-(1020 / 40) + 1, -181, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0);
+// declare_object_at_cell((1020 / 40) + 1, -243, -(660 / 40), 10 /*platf00*/, -15, 0, 0, 0);
+// declare_object_at_cell((1020 / 40) + 1, -326, -(140 / 40), 10 /*platf00*/, 0, 0, 0, 0);
 
-declare_object_at_cell((540 / 40) + 1, -345, -(1140 / 40), 16 /*overhang*/, 0, 0, 0, 0);
+// declare_object_at_cell((540 / 40) + 1, -345, -(1140 / 40), 16 /*overhang*/, 0, 0, 0, 0);
 
-declare_object_at_cell((500 / 40) + 1, -362, (740 / 40), 19 /*tunnel2*/, 0, -45, 0, 0);
+// declare_object_at_cell((500 / 40) + 1, -362, (740 / 40), 19 /*tunnel2*/, 0, -45, 0, 0);
 
-declare_object_at_cell(-(1140 / 40) + 1, -50, -(100 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-declare_object_at_cell(-(1140 / 40) + 1, -82, -(540 / 40), 21 /*wall1*/, 0, 180, 0, 0);
+// declare_object_at_cell(-(1140 / 40) + 1, -50, -(100 / 40), 21 /*wall1*/, 0, 180, 0, 0);
+// declare_object_at_cell(-(1140 / 40) + 1, -82, -(540 / 40), 21 /*wall1*/, 0, 180, 0, 0);
 
-declare_object_at_cell(-(700 / 40) + 1, -107, (540 / 40), 15 /*greece04*/, 0, 90, 0, 0);
-declare_object_at_cell(-(420 / 40) + 1, -107, (820 / 40), 15 /*greece04*/, 0, 90, 0, 0);
+// declare_object_at_cell(-(700 / 40) + 1, -107, (540 / 40), 15 /*greece04*/, 0, 90, 0, 0);
+// declare_object_at_cell(-(420 / 40) + 1, -107, (820 / 40), 15 /*greece04*/, 0, 90, 0, 0);
 
-declare_object_at_cell(-(540 / 40) + 1, -107, (660 / 40), 13 /*greece02*/, 0, -45, 0, 0);
-declare_object_at_cell(-(860 / 40) + 1, -107, (420 / 40), 13 /*greece02*/, 0, 135, 0, 0);
+// declare_object_at_cell(-(540 / 40) + 1, -107, (660 / 40), 13 /*greece02*/, 0, -45, 0, 0);
+// declare_object_at_cell(-(860 / 40) + 1, -107, (420 / 40), 13 /*greece02*/, 0, 135, 0, 0);
 
 /* level 4 ? */
 // Hell Run level. I like it.

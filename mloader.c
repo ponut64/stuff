@@ -119,7 +119,7 @@ void * loadPDATA(void * startAddress, entity_t * model)
     return workAddress;
 }
 
-void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType)
+void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType, short baseTex)
 {
 
 	modelData_t * model_header;
@@ -130,6 +130,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	Sint32 file_size;
 	
 	Sint32 local_name = GFS_NameToId(filename);
+	char loadingNewTextures = 'N';
 
 //Open GFS
 	gfs_mdat = GFS_Open((Sint32)local_name);
@@ -159,26 +160,36 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	workAddress = loadPDATA((workAddress), model);
 	model->size = (unsigned int)workAddress - model->size;
 
-	model->numTexture = setTextures(model, numTex); //numTex is a tga.c directive
+	if(baseTex == numTex)
+	{
+	loadingNewTextures = 'Y';
+	}
+	model->numTexture = setTextures(model, baseTex); //numTex is a tga.c directive
+
 
     workAddress = loadAnimations(workAddress, model, model_header);
 	// A temporary address is used to retrieve the following data.
 	// This is used because the following data is to be overwritten whenever new model data is loaded.
 	// To facilitate this, workAddress is pointed forward past all important data that must not be overwritten.
 	// Thus the temporary pointer is pointing to all data that can be thrown out once parsed.
-	void * temporaryAddress;
-	temporaryAddress = loadTextures(workAddress, model);
-	unsigned char * readByte = temporaryAddress;
+	// The "NewTex" flag will determine if textures are loaded at all or not.
+	unsigned char * readByte = workAddress;
+	if(loadingNewTextures == 'Y')
+	{
+		void * temporaryAddress;
+		temporaryAddress = loadTextures(workAddress, model);
+		readByte = temporaryAddress;
+	}
 	////////////////
 	// If the model type is 'B' (for BUILDING), create combined textures.
 	// Also read the item data at the end of the payload.
 	////////////////
-	if(model->type == 'B')
+	if(model->type == 'B' && loadingNewTextures == 'Y')
 	{
-		for(int j = 0; j < model->numTexture+1; j++)
-		{
-			make_combined_textures(model->base_texture + j);
-		}
+			for(int j = 0; j < model->numTexture+1; j++)
+			{
+				make_combined_textures(model->base_texture + j);
+			}
 		
 		unsigned char * total_items = &readByte[0];
 		//unsigned char * unique_items = &readByte[1];

@@ -69,7 +69,7 @@ inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
 //////////////////////////////////
-void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
+inline void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
 {
 	out[X] = (start[X] - end[X]);
 	out[Y] = (start[Y] - end[Y]);
@@ -81,9 +81,13 @@ void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out)
 //////////////////////////////////
 int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 {
-	return slSquart(JO_SQUARE( (Max[X] - Min[X])>>16 ) + JO_SQUARE( (Max[Y] - Min[Y])>>16 ) + JO_SQUARE( (Max[Z] - Min[Z])>>16 ));
+	static int vdif[XYZ];
+	segment_to_vector(Max, Min, vdif);
+	vdif[X]>>=16;
+	vdif[Y]>>=16;
+	vdif[Z]>>=16;
+	return slSquart( (vdif[X] * vdif[X]) + (vdif[Y] * vdif[Y]) + (vdif[Z] * vdif[Z]) );
 }
-
 
 //////////////////////////////////
 // Manhattan
@@ -169,7 +173,7 @@ FIXED		double_fxisqrt(FIXED input){
 	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
 }
 
-void	cpy3(FIXED * src, FIXED * dst)
+void	cpy3(FIXED * dst, FIXED * src)
 {
 	dst[X] = src[X];
 	dst[Y] = src[Y];
