@@ -272,8 +272,27 @@ void	shadow_draw(void)
 	you.aboveObject = false;
 }
 
+
+void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
+{
+	slInitMatrix();
+	set_camera();
+	slPushMatrix();
+	{
+	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
+	slRotX((you.viewRot[X]));
+	slRotY((you.viewRot[Y]));
+	slTranslate(hmap_matrix_pos[X], you.pos[Y], hmap_matrix_pos[Z]);
+	slGetMatrix(hmap_mtx);
+	}
+	slPopMatrix();
+}
+
+
 void	object_draw(void)
 {
+	computeLight();
+	prep_map_mtx();
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
@@ -310,31 +329,16 @@ void	object_draw(void)
 void	map_draw(void){	
 
 	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
-update_hmap(hmap_mtx);
+	update_hmap(hmap_mtx);
 
-}
-
-void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
-{
-	slInitMatrix();
-	set_camera();
-	slPushMatrix();
-	{
-	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
-	slRotX((you.viewRot[X]));
-	slRotY((you.viewRot[Y]));
-	slTranslate(hmap_matrix_pos[X], you.pos[Y], hmap_matrix_pos[Z]);
-	slGetMatrix(hmap_mtx);
-	}
-	slPopMatrix();
 }
 
 void	master_draw(void)
 {
-	prep_map_mtx();
-	computeLight();
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
+	light_control_loop(); //lit
+	object_control_loop(you.dispPos);
 
 	hmap_cluster();
 	map_draw();
@@ -361,12 +365,10 @@ void	master_draw(void)
 	run_dsp();
 	
 	//No Touch Order -- Affects animations/mechanics
-		mypad();
+	mypad();
 	player_phys_affect();
 	player_collision_test_loop();
 	collide_with_heightmap(&pl_RBB);
-	light_control_loop(); //lit
-	object_control_loop(you.dispPos);
 	//
 	
 	slSlaveFunc(sort_master_polys, 0);	

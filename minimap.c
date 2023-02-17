@@ -36,8 +36,10 @@ void	init_minimap(void)
 	 pixCt = 0;
 	 oneLineCt = 0;
 
-	MapPixWidth = slDivFX(50<<16, main_map_x_pix<<16);
-	MapZpixWidth = slDivFX(50<<16, main_map_y_pix<<16);
+	//MapPixWidth = slDivFX(50<<16, main_map_x_pix<<16);
+	//MapZpixWidth = slDivFX(50<<16, main_map_y_pix<<16);
+	MapPixWidth = fxdiv(main_map_x_pix<<16, 50<<16);
+	MapZpixWidth = fxdiv(main_map_y_pix<<16, 50<<16);
 	
 	//I want to re-do this in floating points (or find some way around the number cap of fixed points) so I can make bigger map
 	//But then again, the map is so huge then, what use is it? Hmm...

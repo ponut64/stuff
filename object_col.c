@@ -11,7 +11,6 @@
 #include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
-#define SUBDIVISION_SCALE (100)
 
 int prntidx = 0;
 
@@ -103,7 +102,7 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	
 	//Set a new address for the model drawing header (GVPLY struct)
 	GVPLY * oldMesh = entities[this_entity_ID].pol;
-	GVPLY * newMesh = (GVPLY *)active_HWRAM_ptr;
+	GVPLY * newMesh = (GVPLY *)HWRAM_ldptr;
 	// Don't forget to tell the new entity to use the new GVPLY
 	entities[new_entity_ID].pol = newMesh;
 	// Copying
@@ -111,12 +110,12 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	newMesh->nbPoint = oldMesh->nbPoint;
 	newMesh->nbPolygon = oldMesh->nbPolygon;
 	//
-	active_HWRAM_ptr += sizeof(GVPLY);
+	HWRAM_ldptr += sizeof(GVPLY);
 	//Set a new memory address for the pntbl & pltbl.
-	newMesh->pntbl = (POINT *)active_HWRAM_ptr;
-	active_HWRAM_ptr += sizeof(POINT) * oldMesh->nbPoint;
-	newMesh->pltbl = (POLYGON *)active_HWRAM_ptr;
-	active_HWRAM_ptr += sizeof(POLYGON) * oldMesh->nbPolygon;
+	newMesh->pntbl = (POINT *)HWRAM_ldptr;
+	HWRAM_ldptr += sizeof(POINT) * oldMesh->nbPoint;
+	newMesh->pltbl = (POLYGON *)HWRAM_ldptr;
+	HWRAM_ldptr += sizeof(POLYGON) * oldMesh->nbPolygon;
 	//Get the number of points and polygons.
 	short numPt = oldMesh->nbPoint;
 	short numPly = oldMesh->nbPolygon;
@@ -732,84 +731,85 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 }
 
-/**
 
-**/
+	/*
+	
+	TEXTURE ID MATRIX:
+	1	- full size
+	2	- full y, 1/2 x
+	3	- full y, 1/4 x
+	4	- full y, 1/8 x
+	5	- 1/2 y, full x
+	6	- 1/2 y, 1/2 x
+	7	- 1/2 y, 1/4 x
+	8	- 1/2 y, 1/8 x
+	9	- 1/4 y, full x
+	10	- 1/4 y, 1/2 x
+	11	- 1/4 y, 1/4 x
+	12	- 1/4 y, 1/8 x
+	13	- 1/8 y, full x
+	14	- 1/8 y, 1/2 x
+	15	- 1/8 y, 1/4 x
+	16	- 1/8 y, 1/8 x
 
+	*/
+
+	#define TEXTS_GENERATED_PER_TEXTURE_LOADED (16)
+	#define SUBDIVISION_NEAR_PLANE (15<<16)
 
 		POINT	subdivided_points[512];
-		short	subdivided_polygons[256][4]; //4 Vertex IDs of the subdivided_points
-		short	used_textures[256];
+		short	subdivided_polygons[512][4]; //4 Vertex IDs of the subdivided_points
+		short	used_textures[512];
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
-
-void	subdivide_plane(short start_point, short overwritten_polygon, char * division_rules, char num_divisions, int zlvl)
+		char	subdivision_rules[4]	= {'N', 'N', 'N', 'N'};
+		short	texture_rules[4]		= {16, 16, 16, 16};
+		int		z_rules[4]				= {200<<16, 150<<16, 100<<16, 50<<16};
+void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
-	if(num_divisions == 0) return;
-	short tgt_pnt = start_point;
-	
-	short poly_a = overwritten_polygon; //Polygon A is a polygon ID we will overwrite (replace the original polygon)
-	short poly_b = sub_poly_cnt;
-	short poly_c = sub_poly_cnt+1;
-	short poly_d = sub_poly_cnt+2;
-	
-	char new_rule = division_rules[num_divisions-1];
-	if(new_rule != '|' && new_rule != '-' && new_rule != '+') return;
-	unsigned char new_texture = 0;
-	
-	int max_z = -(32767<<16);
-	
+
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
+	static int max_z;
+	static char new_rule;
 	for(int u = 0; u < 4; u++)
 	{
 		ptv[u] = &subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
 	}
 	
 	//if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
-	
+	new_rule = subdivision_rules[total_divisions];
+
+	used_textures[overwritten_polygon] = texture_rules[total_divisions];
+	if(num_divisions == 0)
+	{
+		return;
+	}
+	//////////////////////////////////////////////////////////////////
+	// Warning: There is no extreme polygon smallness exit.
+	// It will mess with texture assignment so I got rid of it.
+	// Unfortunately I think this needs to come back in some way to handle trapezoids.
+	//////////////////////////////////////////////////////////////////
+	//if(minLen <= 50 && maxLen <= 50)
+	//{
+		//return;
+	//} 
 	//////////////////////////////////////////////////////////////////
 	// Quick check: If we are subdividing a polygon above the z level, stop further subdivision.
 	// This is mostly useful in cases where a large polygon is being recursively subdivided and parts of it may be far away.
 	//////////////////////////////////////////////////////////////////
 	int polygon_minimum = JO_MIN(JO_MIN(ptv[0][Z], ptv[1][Z]),  JO_MIN(ptv[2][Z], ptv[3][Z]));
-	if(polygon_minimum > zlvl)
+	if(polygon_minimum > z_rules[total_divisions])
 	{
-		//
-		// It is at this point I would use a texture that is combined enough to represent the *intended* number of subdivisions.
-		// This is important:
-		// If 3 subdivisions were called for on this polygon, but none were used because it is too far away,
-		// a texture should be used that represents the base texture being tiled three times over by the subdivision rule given.
-		// As it is now, I don't calculate that. I need to figure that out, eventually.
-		// For more consistent viewing, of course you can just turn this off.
-		//
 		return;
 	}
+
+	short tgt_pnt = start_point;
 	
-	//////////////////////////////////////////////////////////////
-	// Check: Find the polygon's scale and thus subdivision scale.
-	// We find the true perimeter of the polygon.
-	//////////////////////////////////////////////////////////////
-		// int len01 = unfix_length(ptv[0], ptv[1]);
-		// int len12 = unfix_length(ptv[1], ptv[2]);
-		// int len23 = unfix_length(ptv[2], ptv[3]);
-		// int len30 = unfix_length(ptv[3], ptv[0]);
-		
-		// int minLen = JO_MIN(JO_MIN(len01, len12), JO_MIN(len23, len30));
-		// int maxLen = JO_MAX(JO_MAX(len01, len12), JO_MAX(len23, len30));
-	
-	//////////////////////////////////////////////////////////////////
-	// Small polygon exit: if size is too small, leave.
-	// Caveats:
-	// 1. We don't want to leave if the max length is too large.
-	//////////////////////////////////////////////////////////////////
- 	//if(minLen < 25 && maxLen < 75)
-	//{
-		//Return to master texture, then stop.
-		//used_textures[poly_a] = 0;
-		//return;
-	//} 
-	
+	short poly_a = overwritten_polygon; //Polygon A is a polygon ID we will overwrite (replace the original polygon)
+	short poly_b = sub_poly_cnt;
+	short poly_c = sub_poly_cnt+1;
+	short poly_d = sub_poly_cnt+2;
 	
 	if(new_rule == '+') 
 	{
@@ -890,14 +890,10 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 	
 		if(num_divisions > 0)
 		{
-		///////////////////////////////////////////
-		// If this is not the last subdivision, use a combined texture.
-		// The specific combined texture of "3" is the "+" arrangement.
-		///////////////////////////////////////////
-		used_textures[poly_a] = new_texture;
-		used_textures[poly_b] = new_texture;
-		used_textures[poly_c] = new_texture;
-		used_textures[poly_d] = new_texture;
+		//used_textures[poly_a] = texture_rules[num_divisions];
+		//used_textures[poly_b] = texture_rules[num_divisions];
+		//used_textures[poly_c] = texture_rules[num_divisions];
+		//used_textures[poly_d] = texture_rules[num_divisions];
 		///////////////////////////////////////////
 		//	Recursively subdivide the polygon.
 		//	Check the maximum Z of every new polygon.
@@ -907,30 +903,25 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, division_rules, num_divisions-1, zlvl);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, division_rules, num_divisions-1, zlvl);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_c][0]][Z], subdivided_points[subdivided_polygons[poly_c][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_c][2]][Z], subdivided_points[subdivided_polygons[poly_c][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_c, division_rules, num_divisions-1, zlvl);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_c, num_divisions-1, total_divisions+1);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_d][0]][Z], subdivided_points[subdivided_polygons[poly_d][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_d][2]][Z], subdivided_points[subdivided_polygons[poly_d][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_d, division_rules, num_divisions-1, zlvl);
-		} else {
-		used_textures[poly_a] = 0;
-		used_textures[poly_b] = 0;
-		used_textures[poly_c] = 0;
-		used_textures[poly_d] = 0;
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_d, num_divisions-1, total_divisions+1);
 		}
 	
 	} else if(new_rule == '-') 
@@ -974,14 +965,11 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 		
 	sub_vert_cnt = tgt_pnt;
 	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
+	
 		if(num_divisions > 0)
 		{
-		///////////////////////////////////////////
-		// If this is not the last subdivision, use a combined texture.
-		// The specific combined texture of "1" is the "-" arrangement.
-		///////////////////////////////////////////
-		used_textures[poly_a] = new_texture;
-		used_textures[poly_b] = new_texture;
+		//used_textures[poly_a] = texture_rules[num_divisions];
+		//used_textures[poly_b] = texture_rules[num_divisions];
 		///////////////////////////////////////////
 		//	Recursively subdivide the polygon.
 		//	Check the maximum Z of every new polygon.
@@ -991,16 +979,13 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, division_rules, num_divisions-1, zlvl);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, division_rules, num_divisions-1, zlvl);
-		} else {
-		used_textures[poly_a] = 0;
-		used_textures[poly_b] = 0;
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
 		}
 		
 	} else if(new_rule == '|')
@@ -1046,12 +1031,8 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 	
 		if(num_divisions > 0)
 		{
-		///////////////////////////////////////////
-		// If this is not the last subdivision, use a combined texture.
-		// The specific combined texture of "2" is the "|" arrangement.
-		///////////////////////////////////////////
-		used_textures[poly_a] = new_texture;
-		used_textures[poly_b] = new_texture;
+		//used_textures[poly_a] = texture_rules[num_divisions];
+		//used_textures[poly_b] = texture_rules[num_divisions];
 		///////////////////////////////////////////
 		//	Recursively subdivide the polygon.
 		//	Check the maximum Z of every new polygon.
@@ -1061,16 +1042,13 @@ void	subdivide_plane(short start_point, short overwritten_polygon, char * divisi
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, division_rules, num_divisions-1, zlvl);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, division_rules, num_divisions-1, zlvl);
-		} else {
-		used_textures[poly_a] = 0;
-		used_textures[poly_b] = 0;
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
 		}
 	}
 	
@@ -1148,7 +1126,6 @@ prntidx = 0;
 	
 	int max_subdivisions = 0;
 	int specific_texture = 0;
-	static char division_rules[4] = {'N', 'N', 'N', 'N'};
 	
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
@@ -1195,7 +1172,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	// Early screenspace transform to throw out off-screen planes
 	//////////////////////////////////////////////////////////////
 		//Push to near-plane
-		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > 20<<16) ? subdivided_points[u][Z] : 20<<16;
+		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[u][Z] : SUBDIVISION_NEAR_PLANE;
 		//Get 1/z
 		inverseZ = fxdiv(scrn_dist, ssh2VertArea[u].pnt[Z]);
         //Transform to screen-space
@@ -1206,7 +1183,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
 		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[u].clipFlag;
+		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[u].clipFlag;
 		// clipping(&ssh2VertArea[u], USER_CLIP_INSIDE);
 	}
 		 if(ssh2VertArea[0].clipFlag
@@ -1240,24 +1217,14 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	///////////////////////////////////////////
 	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
 			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
-	if(max_z <= 20<<16) continue;
+	if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
 	min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
 			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
-	
 	///////////////////////////////////////////
-	// New idea:
-	// If the polygon's minimum Z is greater than the near plane distance,
-	// we could proceed using the perspective-corrected polygon, instead just the transformed one.
-	// That would mean the resulting on-screen points in that case would not need further perspective correction.
-	// This is a minor performance optimization, saving a division per vertex generated.
+	// Just a side note:
+	// Doing subdivision in screen-space **does not work**.
+	// Well, technically it works, but affine warping is experienced. It looks pretty awful.
 	///////////////////////////////////////////
-	// if(min_z >= 20<<16)
-	// {
-		// cpy3(subdivided_points[subdivided_polygons[0][0]], ssh2VertArea[0].pnt);
-		// cpy3(subdivided_points[subdivided_polygons[0][1]], ssh2VertArea[1].pnt);
-		// cpy3(subdivided_points[subdivided_polygons[0][2]], ssh2VertArea[2].pnt);
-		// cpy3(subdivided_points[subdivided_polygons[0][3]], ssh2VertArea[3].pnt);
-	// }
 	
 	if(flags & GV_FLAG_NDIV)
 	{ 
@@ -1272,154 +1239,274 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		int len12 = unfix_length(pl_pts[1], pl_pts[2]);
 		int len23 = unfix_length(pl_pts[2], pl_pts[3]);
 		int len30 = unfix_length(pl_pts[3], pl_pts[0]);
-		
 		int perimeter = len01 + len12 + len23 + len30;
-		
-		// int unfix12[XYZ] = {(pl_pts[1][X] - pl_pts[2][X])>>16, (pl_pts[1][Y] - pl_pts[2][Y])>>16, (pl_pts[1][Z] - pl_pts[2][Z])>>16};
-		// int dotprq = slSquart(unfix12[X] * unfix12[X] + unfix12[Y] * unfix12[Y] + unfix12[Z] * unfix12[Z]);
-		
+
+		int len_w = (len01 + len23)>>1;
+		int len_h = (len12 + len30)>>1;
+
 		// nbg_sprintf(1, 6, "len12(%i)", len12);
 		// nbg_sprintf(1, 7, "sx(%i)", unfix12[X]);
 		// nbg_sprintf(1, 8, "sy(%i)", unfix12[Y]);
-		// nbg_sprintf(1, 9, "sz(%i)", unfix12[Z]);
-		// nbg_sprintf(1, 10, "peri(%i)", perimeter);
 		
-		//nbg_sprintf(1, 10, "scale(%i)", scale_wh);
-	
-		///////////////////////////////////////////
-		// Resolve the maximum # of subdivisions.
-		// This is an arbitrary scale, just based on how far away the polygon is (its Z).
-		// New ideas:
-		// If the polygon's minimum Z is greater than the near plane distance,
-		// we could proceed using the perspective-corrected polygon, instead just the transformed one.
-		// That would mean the resulting on-screen points in that case would not need further perspective correction.
-		// Another issue is that in some cases there's memory corruption on no no subdvision polygons.
-		///////////////////////////////////////////
-		int zlvl = 400<<16;
-		if(perimeter > 400)
+		if(perimeter <= 100 || perimeter >= 1600)
 		{
-			max_subdivisions = 3;
-			zlvl = 75<<16;
-		} else if(perimeter > 200)
-		{
-			max_subdivisions = 2;
-			zlvl = 150<<16;
-		} else if(perimeter > 100)
-		{
-			max_subdivisions = 1;
-			zlvl = 400<<16;
-		}
-		
-		if(perimeter <= 100 || min_z > zlvl)
-		{
-			//In this case the polygon is too small or far away, use a combined texture.
-			used_textures[0] = 4;
+			//In this case the polygon is too small or too large.
+			//Large polygons will be excepted by making it look obviously wrong.
+			used_textures[0] = 0;
 			max_subdivisions = 0;
-		}
-		
-		if(max_subdivisions > 0)
-		{
-			int size_w = len01 + len23;
-			int size_h = len12 + len30;
-			// If scale_wh greater than 1, the polygon has a greater width than height.
-			// If scale_wh is less than 1, the polygon has a greater height than width.
-			// Values nearer to 1 are nearer to a square.
-			int scale_wh = fxdiv(size_w<<16, size_h<<16);
-			/////////////////////////
-			// Concept:
-			// Progressively >1 width/height radios increase the number of | divisions.
-			// Progressively <1 width/height ratios increase the number of - divisions.
-			// By default then, it would like to subdivide by +.
-			// However, it should subdivide by + last, and | or - first.
-			/////////////////////////
-			if(scale_wh >= (4<<16)) //Skew H 4
+		} else {
+			///////////////////////////////////////////
+			// Resolve the maximum # of subdivisions.
+			// This scale is based on the perimeter.
+			// The texture assignment is not done yet.
+			///////////////////////////////////////////
+			if(perimeter > 800)
 			{
-				division_rules[0] = '|'; // 16 / 4
-				division_rules[1] = '|';
-				division_rules[2] = '|';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (2<<16)) //Skew H 3
+				max_subdivisions = 3;
+				
+				texture_rules[3] = 16;
+				texture_rules[2] = 11;
+				texture_rules[1] = 6;
+				texture_rules[0] = 1;
+			} else if(perimeter > 400)
 			{
-				division_rules[0] = '-'; // 8 / 4
-				division_rules[1] = '|';
-				division_rules[2] = '|';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (98304)) //Skew H 2
+				max_subdivisions = 2;
+				
+				texture_rules[3] = 16;
+				texture_rules[2] = 16;
+				texture_rules[1] = 11;
+				texture_rules[0] = 6;
+			} else if(perimeter > 100)
 			{
-				division_rules[0] = '+'; // 6 / 4
-				division_rules[1] = '|';
-				division_rules[2] = '|';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (81920)) ///Skew H 1
-			{
-				division_rules[0] = '+'; // 5 / 4
-				division_rules[1] = '+';
-				division_rules[2] = '|';
-				division_rules[3] = 'N'; 
-			} else if(scale_wh >= (49152)) //No skew
-			{
-				division_rules[0] = '+'; // 4 / 4
-				division_rules[1] = '+';
-				division_rules[2] = '+';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (52428)) //Skew W 1
-			{
-				division_rules[0] = '+'; // 4 / 5
-				division_rules[1] = '+';
-				division_rules[2] = '-';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (43690)) //Skew W 2
-			{
-				division_rules[0] = '+';// 4 / 6
-				division_rules[1] = '-';
-				division_rules[2] = '-';
-				division_rules[3] = 'N';
-			} else if(scale_wh >= (32768)) //Skew W 3
-			{
-				division_rules[0] = '|'; // 4 / 8
-				division_rules[1] = '-';
-				division_rules[2] = '-';
-				division_rules[3] = 'N';
-			} else if(scale_wh <= 32768){
-				division_rules[0] = '-'; // 4 / 16
-				division_rules[1] = '-';
-				division_rules[2] = '-';
-				division_rules[3] = 'N';
+				max_subdivisions = 1;
+				
+				texture_rules[3] = 16;
+				texture_rules[2] = 16;
+				texture_rules[1] = 16;
+				texture_rules[0] = 11;
 			}
+			
+			//A ratio should be established between the shorter length and longest length.
+			//The ratio should follow powers-of-two rules, or atleast the logic that handles it should.
+			//It is preferred that + is always done last.
+			subdivision_rules[0] = '+';
+			subdivision_rules[1] = '+';
+			subdivision_rules[2] = '+';
+			subdivision_rules[3] = '+';
+			// nbg_sprintf(1, 7, "lw(%i)", len_w);
+			// nbg_sprintf(1, 8, "lh(%i)", len_h);
+			
+			if(len_w >= (len_h<<2)) 
+			{
+				//If our max subdivisions is <3 at this point, we will never do '+', go ahead and add another subdivision.
+				max_subdivisions += (max_subdivisions < 3) ? 1 : 0;
 
-			subdivide_plane(sub_vert_cnt, 0, division_rules, max_subdivisions, zlvl);
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do |||
+				texture_rules[2] = 15;
+				texture_rules[1] = 14;
+				texture_rules[0] = 13;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do ||
+				texture_rules[2] = 16;
+				texture_rules[1] = 15;
+				texture_rules[0] = 14;
+				}/*  else if(max_subdivisions == 1) // Case is handled by adding a subdivision earlier.
+				{
+				//We know we're going to do |
+				texture_rules[2] = 16;
+				texture_rules[1] = 16;
+				texture_rules[0] = 15;
+				}*/
+				
+				subdivision_rules[2] = '|';
+				subdivision_rules[1] = '|';
+				subdivision_rules[0] = '|';
+			} else if(len_w >= (len_h * 3))
+			{
+				//If our max subdivisions is <2 at this point, we will never do '+', go ahead and add another subdivision.
+				max_subdivisions += (max_subdivisions < 2) ? 1 : 0;
+				
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do ||+
+				texture_rules[2] = 11;
+				texture_rules[1] = 10;
+				texture_rules[0] = 9;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do ||
+				texture_rules[2] = 16;
+				texture_rules[1] = 15;
+				texture_rules[0] = 14;
+				}/*  else if(max_subdivisions == 1) // Case is handled by adding a subdivision earlier.
+				{
+				//We know we're going to do |
+				texture_rules[2] = 16;
+				texture_rules[1] = 16;
+				texture_rules[0] = 15;
+				}*/
+				
+				subdivision_rules[1] = '|';
+				subdivision_rules[0] = '|';
+			} else if(len_w >= (len_h<<1))
+			{
+				//We cannot reach this point in the code if our max subdivisions is <1.
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do |++
+				texture_rules[2] = 11;
+				texture_rules[1] = 6;
+				texture_rules[0] = 5;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do |+
+				texture_rules[2] = 16;
+				texture_rules[1] = 11;
+				texture_rules[0] = 10;
+				} else if(max_subdivisions == 1)
+				{
+				//We know we're going to do ||
+				//Why? To keep a polygon like this on the same scale as another polygon which received + once,
+				//we have to subdivide by | twice. This is because + makes polygons of quarter size, instead of half size.
+				//Again, this only applies to polygons that are twice-width or twice-height.
+				//For thrice-height or thrice-width, a subdivision can be straight added, it will follow the same rules.
+				texture_rules[2] = 16;
+				texture_rules[1] = 15;
+				texture_rules[0] = 14;
+				subdivision_rules[1] = '|';
+				max_subdivisions++;
+				}
+
+				subdivision_rules[0] = '|';
+			}
+			
+			
+			if(len_h >= (len_w<<2)) 
+			{
+				//If our max subdivisions is <3 at this point, we will never do '+', go ahead and add another subdivision.
+				max_subdivisions += (max_subdivisions < 3) ? 1 : 0;
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do ---
+				texture_rules[2] = 12;
+				texture_rules[1] = 8;
+				texture_rules[0] = 4;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do --
+				texture_rules[2] = 16;
+				texture_rules[1] = 12;
+				texture_rules[0] = 8;
+				}/*  else if(max_subdivisions == 1) // Case handled above by adding a subdivision
+				{
+				//We know we're going to do -
+				texture_rules[2] = 16;
+				texture_rules[1] = 16;
+				texture_rules[0] = 12;
+				}*/
+				
+				subdivision_rules[2] = '-';
+				subdivision_rules[1] = '-';
+				subdivision_rules[0] = '-';
+			} else if(len_h >= (len_w * 3))
+			{
+				//If our max subdivisions is <2 at this point, we will never do '+', go ahead and add another subdivision.
+				max_subdivisions += (max_subdivisions < 2) ? 1 : 0;
+				
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do --+
+				texture_rules[2] = 11;
+				texture_rules[1] = 7;
+				texture_rules[0] = 3;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do --
+				texture_rules[2] = 16;
+				texture_rules[1] = 12;
+				texture_rules[0] = 8;
+				}/*  else if(max_subdivisions == 1) //Case handled above by adding a subdivision
+				{
+				//We know we're going to do -
+				texture_rules[2] = 16;
+				texture_rules[1] = 16;
+				texture_rules[0] = 12;
+				} */
+				
+				subdivision_rules[1] = '-';
+				subdivision_rules[0] = '-';
+			
+			} else if(len_h >= (len_w<<1))
+			{
+				//There is no situation where we can be <1 subdivisions if we are at this point in the code.
+				if(max_subdivisions == 3)
+				{
+				//We know we're going to do -++
+				texture_rules[2] = 11;
+				texture_rules[1] = 7;
+				texture_rules[0] = 3;
+				} else if(max_subdivisions == 2)
+				{
+				//We know we're going to do -+
+				texture_rules[2] = 16;
+				texture_rules[1] = 11;
+				texture_rules[0] = 7;
+				} else if(max_subdivisions == 1)
+				{
+				//We know we're going to do --
+				//Why? To keep a polygon like this on the same scale as another polygon which received + once,
+				//we have to subdivide by - twice. This is because + makes polygons of quarter size, instead of half size.
+				//Again, this only applies to polygons that are twice-width or twice-height.
+				texture_rules[2] = 16;
+				texture_rules[1] = 12;
+				texture_rules[0] = 8;
+				subdivision_rules[1] = '-';
+				max_subdivisions++;
+				}
+				
+				subdivision_rules[0] = '-';
+			}
+	
+			// texture_rules[0] = 17;
+			// texture_rules[1] = 17;
+			// texture_rules[2] = 17;
+			// texture_rules[3] = 17;
+			subdivide_plane(sub_vert_cnt, 0, max_subdivisions, 0);
+			///////////////////////////////////////////
+			//
+			// Screenspace Transform of Vertices
+			// v = subdivided point index
+			// testing_planes[i] = plane data index
+			//
+			///////////////////////////////////////////
+			for(int v = 0; v < sub_vert_cnt; v++)
+			{
+				//Push to near-plane
+				ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
+				//Get 1/z
+				inverseZ = fxdiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
+				//Transform to screen-space
+				ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
+				ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
+				//Screen Clip Flags for on-off screen decimation
+				ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
+				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
+				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
+				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[v].clipFlag;
+				// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
+			}
+		//Subdivision activation end stub
 		}
 	//Subdivision enabled end stub
 	}
 	///////////////////////////////////////////
 	//
-	// Screenspace Transform of Vertices
-	// v = subdivided point index
-	// testing_planes[i] = plane data index
-	//
-	///////////////////////////////////////////
-	for(int v = 0; v < sub_vert_cnt; v++)
-	{
-		//Push to near-plane
-		ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > 20<<16) ? subdivided_points[v][Z] : 20<<16;
-		//Get 1/z
-		inverseZ = fxdiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
-        //Transform to screen-space
-        ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
-        //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
-		ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= 20<<16) ? CLIP_Z : ssh2VertArea[v].clipFlag;
-		// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
-	}
-	///////////////////////////////////////////
-	//
 	// Z-sort Insertion & Command Arrangement of Polygons
 	// j = subdivided polygon index
-	// testing_planes[i] = plane data index
 	//
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
@@ -1452,13 +1539,13 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// Use a combined texture, if the subdivision system stated one should be used.
 		// Otherwise, use the base texture.
 		///////////////////////////////////////////
-			//if(used_textures[j] != 0)
-			//{
-			//	specific_texture = ((mesh->attbl[i].texno - ent->base_texture)<<2)
-			//		 + (ent->numTexture + ent->base_texture) + used_textures[j];
-			//} else {
+			if(used_textures[j] != 0)
+			{
+				specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * TEXTS_GENERATED_PER_TEXTURE_LOADED)
+				+ (ent->numTexture + ent->base_texture) + used_textures[j];
+			} else {
 				specific_texture = mesh->attbl[i].texno;
-			//}
+			}
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////

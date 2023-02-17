@@ -3,7 +3,7 @@
 #include <SEGA_GFS.H>
 #include "def.h"
 #include "tga.h"
-
+#include "render.h"
 #include "bounder.h"
 #include "physobjet.h"
 
@@ -119,9 +119,9 @@ void * loadPDATA(void * startAddress, entity_t * model)
     return workAddress;
 }
 
-void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType, short baseTex)
+void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType, entity_t * src_tex_model)
 {
-
+	nbg_sprintf(2, 2, "%s", filename);
 	modelData_t * model_header;
 	void * workAddress = startAddress;
 	model->type = modelType;
@@ -130,7 +130,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	Sint32 file_size;
 	
 	Sint32 local_name = GFS_NameToId(filename);
-	char loadingNewTextures = 'N';
+	char loadingNewTextures = 'Y';
 
 //Open GFS
 	gfs_mdat = GFS_Open((Sint32)local_name);
@@ -160,11 +160,17 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	workAddress = loadPDATA((workAddress), model);
 	model->size = (unsigned int)workAddress - model->size;
 
-	if(baseTex == numTex)
+	int baseTex = numTex; //numTex is a tga.c directive
+	if(src_tex_model != NULL) 
 	{
-	loadingNewTextures = 'Y';
+	baseTex = src_tex_model->base_texture;
+	model->numTexture = src_tex_model->numTexture;
+	setTextures(model, baseTex); 
+	loadingNewTextures = 'N';
+	} else {
+	model->numTexture = setTextures(model, baseTex); 
 	}
-	model->numTexture = setTextures(model, baseTex); //numTex is a tga.c directive
+	
 
 
     workAddress = loadAnimations(workAddress, model, model_header);
@@ -184,13 +190,12 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	// If the model type is 'B' (for BUILDING), create combined textures.
 	// Also read the item data at the end of the payload.
 	////////////////
-	if(model->type == 'B' && loadingNewTextures == 'Y')
+	if(model->type == MODEL_TYPE_BUILDING && loadingNewTextures == 'Y')
 	{
 			for(int j = 0; j < model->numTexture+1; j++)
 			{
 				make_combined_textures(model->base_texture + j);
 			}
-		
 		unsigned char * total_items = &readByte[0];
 		//unsigned char * unique_items = &readByte[1];
 		short * item_data = (short *)&readByte[2];	

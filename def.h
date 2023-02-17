@@ -130,7 +130,7 @@ extern POINT alwaysLow;
 //Lives in main.c
 extern short * division_table;
 //extern short * sine_table;
-extern void * active_HWRAM_ptr;
+extern void * HWRAM_ldptr;
 //System
 extern unsigned char * dirty_buf;
 extern void * currentAddress;

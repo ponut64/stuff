@@ -49,7 +49,7 @@ I am sorry for the pain you had to go through.
 // And then there's just some... "raff" being used, here or there.
 // Let's say then your game code can use about 400KB of HWRAM.
 unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
-void * active_HWRAM_ptr;
+void * HWRAM_ldptr;
 //
 
 //
@@ -120,7 +120,7 @@ void	dpinit(void)
 void	load_test(void)
 {
 	//
-	active_HWRAM_ptr = (void *)(&hwram_model_data[0]);
+	HWRAM_ldptr = (void *)(&hwram_model_data[0]);
 	////////////////////////////////////////////////
 	// REMINDER: All file names must comply with the 8.3 standard.
 	// File extensions can be no longer than 3 letters.
@@ -153,38 +153,42 @@ void	load_test(void)
 	make_4way_combined_textures(map_tex_start, map_tex_amt);
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
+
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		active_HWRAM_ptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		active_HWRAM_ptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		active_HWRAM_ptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, numTex);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		HWRAM_ldptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		HWRAM_ldptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_BUILDING, NULL);
 	
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		active_HWRAM_ptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL, numTex); 
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		active_HWRAM_ptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL, numTex); 
-	
-	int btst = numTex;
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		active_HWRAM_ptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",	active_HWRAM_ptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",	active_HWRAM_ptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE03.GVP",	active_HWRAM_ptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",	active_HWRAM_ptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		active_HWRAM_ptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		active_HWRAM_ptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		active_HWRAM_ptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		active_HWRAM_ptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		active_HWRAM_ptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		active_HWRAM_ptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		active_HWRAM_ptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		active_HWRAM_ptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		active_HWRAM_ptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FLOAT01.GVP",		active_HWRAM_ptr, &entities[25], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"FLOAT02.GVP",		active_HWRAM_ptr, &entities[26], GV_SORT_CEN, MODEL_TYPE_BUILDING, btst);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		active_HWRAM_ptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY01.GVP",		active_HWRAM_ptr, &entities[27], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY02.GVP",		active_HWRAM_ptr, &entities[28], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY03.GVP",		active_HWRAM_ptr, &entities[29], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY04.GVP",		active_HWRAM_ptr, &entities[30], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY05.GVP",		active_HWRAM_ptr, &entities[31], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
-	active_HWRAM_ptr = gvLoad3Dmodel((Sint8*)"HIWAY06.GVP",		active_HWRAM_ptr, &entities[32], GV_SORT_CEN, MODEL_TYPE_BUILDING, numTex);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",		HWRAM_ldptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE03.GVP",		HWRAM_ldptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		HWRAM_ldptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		HWRAM_ldptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		HWRAM_ldptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		HWRAM_ldptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		HWRAM_ldptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+																																	  
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		HWRAM_ldptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+																																	   
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		HWRAM_ldptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		HWRAM_ldptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT01.GVP",		HWRAM_ldptr, &entities[25], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT02.GVP",		HWRAM_ldptr, &entities[26], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY01.GVP",		HWRAM_ldptr, &entities[27], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY02.GVP",		HWRAM_ldptr, &entities[28], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY03.GVP",		HWRAM_ldptr, &entities[29], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY04.GVP",		HWRAM_ldptr, &entities[30], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY05.GVP",		HWRAM_ldptr, &entities[31], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY06.GVP",		HWRAM_ldptr, &entities[32], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		HWRAM_ldptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 
 	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
 	stm.times_to_loop = 255;
@@ -232,8 +236,6 @@ void	attributions(void)
 	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
 
 	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
-	slPrint("Memory corruption on screen edge", slLocate(3, 24));
-	nbg_sprintf(3, 25, "(%i)md", hi_res_switch);
 	
 	load_test();
 	

@@ -5,6 +5,8 @@
 #include "def.h"
 #include "render.h" 
 #include "vdp2.h"
+#include "hmap.h"
+#include "mymath.h"
 
 #include "tga.h"
 
@@ -279,79 +281,71 @@ void	make_4way_combined_textures(int start_texture_number, int end_texture_numbe
 	}
 }
 
+void	select_and_cut_from_x0y0(int img_x, int img_y, int sel_max_x, int sel_max_y, unsigned char * img, unsigned char * sel_img)
+{
+	int total_img_pix = img_x * img_y;
+	int pix_write_pt = 0;
+	
+	for(int p = 0; p < total_img_pix; p++)
+	{
+		int numY = p / (img_x);
+		int numX = p - (numY * (img_x));
+
+		if(numY >= sel_max_y) continue;
+		if(numX >= sel_max_x) continue;
+		sel_img[pix_write_pt] = img[p];
+		pix_write_pt++;
+	}
+	
+}
+
+void	generate_downscale_texture(int img_x, int img_y, int out_img_x, int out_img_y, unsigned char * img)
+{
+	FIXED x_pixel_scale = fxdiv(img_x<<16, out_img_x<<16);
+	FIXED y_pixel_scale = fxdiv(img_y<<16, out_img_y<<16);
+	int total_out_pix = out_img_x * out_img_y;
+	int pix_read_pt = 0;
+	
+	pcoTexDefs[numTex].SIZE = ((out_img_x<<5) | (out_img_y));
+	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); 
+	numTex++;
+	
+	for(int p = 0; p < total_out_pix; p++)
+	{
+		int numY = p / (out_img_x);
+		int numX = p - (numY * (out_img_x));
+
+		int sample_y = (numY * y_pixel_scale)>>16;
+		int sample_x = (numX * x_pixel_scale)>>16;
+		if(sample_y > img_y) sample_y = img_y;
+		if(sample_x > img_x) sample_x = img_x;
+		pix_read_pt = (sample_y * img_x) + sample_x;
+		*curVRAMptr++ = img[pix_read_pt];
+	}
+	
+}
+
 void	make_combined_textures(int texture_number)
 {
 	
 	/////////////////////////////////////////////////
-	/*
-	Creates combined textures of the same size as the original.
-	Texture 1: Skips every even row (appears tiled in Y)
-	Texture 2: Skips every even column (appears tiled in X)
-	Texture 3: Skips every even row and column (appears tiled in XY)
-	Texture 4: Low LOD texture. Texture data reduced to 8x8.
-	*/
 	/**
-	New directive:
-	Say we are starting with an 8x8 texture.
-	This needs to instead create:
-	Tile Once:
-	8x16 Tile on Y
-	16x8 Tile on X
-	16x16 Tile on XY
+
+	REWIND
 	
-	Tile Twice:
-	8x16 Tile on Y Twice (half-res)
-	16x8 Tile on X Twice (half-res)
-	16x16 Tile on XY Twice (half-res)
+	What I want to do, actually, is intake a 64x64 texture and tile it all the way down to 8x8.
+	Texture cuts of the following sizes are needed:
 	
-	Tile Thrice:
-	16x32 Tile on Y Thrice (quarter-res, in the end)
-	32x16 Tile on X Thrice
-	32x32 Tile on XY Thrice
+	8x64	8x32	8x16	8x8
+	16x64	16x32	16x16	16x8
+	32x64	32x32	32x16	32x8
+	64x64	64x32	64x16	64x8
+	(Dimensions past 32x32 will be down-sampled to 32x32)
 	
-	Say this polygon pattern is representing a polygon at maximum subdivision:
-	Forgive the representation, I just mean every letter is a unique polygon.
-	This is subdivision 3; maximal subdivision.
-	A B C D E F a b
-	H I J K L M c d		In this case, we should use the base texture.
-	N O P Q R S e f
-	T U V W X Y g h
-	Z 0 1 2 3 4 i j
-	5 6 7 8 9 + l m
-	n o p q r s t u
-	w x y z ! @ # $
+	For initial testing, I will start by tiling the 8x8 texture all the way up to 128x128.
 	
-	At subdivisision two, it looks like:
-	In this case, same-letters mean same polygon.
-	A A B B C C a a
-	A A B B C C	a a		The texture is the base texture tiled twice / represents two identical textures.
-	D D E E F F b b		In two dimensions, it represents four polygons.
-	D D E E F F b b
-	H H I I G G c c 
-	H H I I G G c c
-	d d e e f f g g
-	d d e e f f g g
-	
-	At subdivision one, it looks like:
-	A A A A B B B B
-	A A A A B B B B		The texture is the base texture tiled four times / representing four identical textures.
-	A A A A B B B B		In two dimensions, it represents 16 polygons.
-	A A A A B B B B
-	C C C C D D D D
-	C C C C D D D D
-	C C C C D D D D 
-	C C C C D D D D
-	
-	With no subdivison, it is simply:
-	
-	A A A A A A A A
-	A A A A A A A A		The texture is the base texture tiled eight times / representing eight identical textures.
-	A A A A A A A A		In one dimension, of course. It ends up representing 64 polygons, or 64 textures if it is XY!
-	A A A A A A A A
-	A A A A A A A A
-	A A A A A A A A
-	A A A A A A A A
-	A A A A A A A A
+	From that 128x128 source, I will generate all of the above textures.
+	I will also continue to support texture-to-tiles like that.
 	
 	**/
 	/////////////////////////////////////////////////
@@ -360,147 +354,70 @@ void	make_combined_textures(int texture_number)
 	unsigned char * readByte = source_texture_data;
 	int base_x = (pcoTexDefs[texture_number].SIZE & 0x3F00)>>5;
 	int base_y = (pcoTexDefs[texture_number].SIZE & 0xFF);
-	
 	// nbg_sprintf(5, 10, "bx(%i)", base_x);
 	// nbg_sprintf(5, 11, "by(%i)", base_y);
-	
-	int total_bytes_of_original_texture = base_x * base_y;
+	int tf_sx = base_x<<3;
+	int tf_sy = base_y<<3;
+//	if(tf_sy < 64) tf_sy = 64;
+	int total_full_scale = tf_sx * tf_sy;
+	int ssx = 0;
+	int ssy = 0;
 
-	//Set up the texture structs.
-	//First texture --> X , Y*2
-	unsigned char * first_texture_start = curVRAMptr;
-	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
-	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)first_texture_start); 
-	numTex++;
-	//Second texture -> X*2, Y
-	unsigned char * second_texture_start = first_texture_start + (total_bytes_of_original_texture);
-	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
-	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)second_texture_start); 
-	numTex++;
-	//Third texture -> X*2, Y*2 
-	unsigned char * third_texture_start = second_texture_start + (total_bytes_of_original_texture);
-	pcoTexDefs[numTex].SIZE = pcoTexDefs[texture_number].SIZE;
-	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)third_texture_start); 
-	numTex++;
-	//Fourth texture -> X = 8, Y = 8
-	unsigned char * fourth_texture_start = third_texture_start + (total_bytes_of_original_texture);
-	pcoTexDefs[numTex].SIZE = (1<<8) | 8;
-	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)fourth_texture_start); 
-	numTex++;
-	//Texture 1: Copy the base texture, but skip every even row.
-	int readPoint = 0;
-	int write_point = 0;
-	//CORE CONCEPT: Get a copy of the texture, written in (base_x) and (base_y>>1) size.
-	//This copy is a downscale.
-	//Then copy that to this texture, two times.
 	/*
-	GETTING DOWNSCALE
+	New:
+	Write to the dirty_buf, the source texture tiled to x<<3 and y<<3.
 	*/
-	for(int j = 0; j < (base_y>>1); j++)
+	int read_point = 0;
+	
+	for(int p = 0; p < total_full_scale; p++)
 	{
-		for(int w = 0; w < (base_x); w++)
-		{
-		readPoint = (j * base_x * 2) + (w);
-		dirty_buf[write_point] = readByte[readPoint];
-		write_point++;
-		}
+		int numY = p / (tf_sx);
+		int numX = p - (numY * (tf_sx));
+		
+		int numY_BaseTex = numY % base_y;
+		int numX_BaseTex = numX % base_x;
+		
+		read_point = (numY_BaseTex * base_x) + numX_BaseTex;
+		dirty_buf[p] = readByte[read_point];
 	}
+
+	int max_axis = 32;
+	
 	/*
-	WRITING DOWNSCALE 2 TIMES
-	COMPLICATION: Pretty simple actually, just write the downscaled texture twice.
+	
+	TEXTURE ID MATRIX:
+	1	- full size			+ to 6,	| to 2,	- to 5	
+	2	- full y, 1/2 x		+ to 7,	| to 3, - to 6
+	3	- full y, 1/4 x		+ to 8, | to 4, - to 7
+	4	- full y, 1/8 x		NO +,	NO |,	- to 8
+	5	- 1/2 y, full x		+ to 10,| to 6, - to 9 
+	6	- 1/2 y, 1/2 x		+ to 11,| to 7, - to 10
+	7	- 1/2 y, 1/4 x		+ to 12,| to 8, - to 11
+	8	- 1/2 y, 1/8 x		NO +,	NO |,	- to 12
+	9	- 1/4 y, full x		+ to 14,| to 10,- to 13
+	10	- 1/4 y, 1/2 x		+ to 15,| to 11,- to 14
+	11	- 1/4 y, 1/4 x		+ to 16,| to 12,- to 15
+	12	- 1/4 y, 1/8 x		NO +,	NO |,	- to 16
+	13	- 1/8 y, full x		NO +,	| to 14,NO -
+	14	- 1/8 y, 1/2 x		NO +,	| to 15,NO -
+	15	- 1/8 y, 1/4 x		NO +,	| to 16,NO -
+	16	- 1/8 y, 1/8 x		NO FURTHER SUBDIVISION
+	
 	*/
-	for(int j = 0; j < 2; j++)
+	
+	for(int dsy = 0; dsy < 4; dsy++)
 	{
-		for(int w = 0; w < (base_y>>1); w++)
+		ssy = tf_sy>>dsy;
+		for(int dsx = 0; dsx < 4; dsx++)
 		{
-			for(int v = 0; v < (base_x); v++)
-			{
-				*first_texture_start++ = dirty_buf[(w * (base_x)) + v];
-			}
+			ssx = tf_sx>>dsx;
+			int tex_x = (ssx > max_axis) ? max_axis : ssx;
+			int tex_y = (ssy > max_axis) ? max_axis : ssy;
+			select_and_cut_from_x0y0(tf_sx, tf_sy, ssx, ssy, dirty_buf, buf_map);
+			generate_downscale_texture(ssx, ssy, tex_x, tex_y, buf_map);
 		}
 	}
-	readPoint = 0;
-	write_point = 0;
-	//Texture 2: Copy the base texture, but skip every even column.
-	//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y) size.
-	//This copy is a downscale.
-	//Then copy that to this texture, two times.
-	/*
-	GETTING DOWNSCALE
-	*/
-	for(int j = 0; j < (base_y); j++)
-	{
-		for(int w = 0; w < (base_x>>1); w++)
-		{
-		readPoint = (j * base_x) + (w * 2);
-		dirty_buf[write_point] = readByte[readPoint];
-		write_point++;
-		}
-	}
-	/*
-	WRITING DOWNSCALE 2 TIMES
-	COMPLICATION: Must write each line of the downscaled texture twice!
-	*/
-	for(int w = 0; w < (base_y); w++)
-	{
-		for(int v = 0; v < (base_x>>1); v++)
-		{
-			*second_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
-		}
-		for(int v = 0; v < (base_x>>1); v++)
-		{
-			*second_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
-		}
-	}
-	readPoint = 0;
-	write_point = 0;
-	//Texture 3: Copy the base texture, but skip every even column and row.
-	//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y>>1) size.
-	//This copy is a downscale.
-	//Then copy that to this texture, four times.
-	/*
-	GETTING DOWNSCALE
-	*/
-	for(int j = 0; j < (base_y>>1); j++)
-	{
-		for(int w = 0; w < (base_x>>1); w++)
-		{
-		readPoint = (j * base_x * 2) + (w * 2);
-		dirty_buf[write_point] = readByte[readPoint];
-		write_point++;
-		}
-	}
-	/*
-	WRITING DOWNSCALE 4 TIMES
-	COMPLICATION: We have to write each scanline of the downscaled texture twice.
-	COMPLICATION: We have to then write those, twice over!
-	*/
-	for(int j = 0; j < 2; j++)
-	{
-		for(int w = 0; w < (base_y>>1); w++)
-		{
-			for(int v = 0; v < (base_x>>1); v++)
-			{
-				*third_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
-			}
-			for(int v = 0; v < (base_x>>1); v++)
-			{
-				*third_texture_start++ = dirty_buf[(w * (base_x>>1)) + v];
-			}
-		}
-	}
-	//Texture 4: Divide the texture's width and height by 8, and sample a pixel every d/8 texels.
-	int x_skip = base_x / 8;
-	int y_skip = base_y / 8;
-	for(int j = 0; j < 8; j++)
-	{
-		for(int w = 0; w < 8; w++)
-		{
-		*fourth_texture_start++ = readByte[(j * y_skip * base_y) + (w * x_skip)];	
-		}
-	}
-	//Total combined texture data is the original texture size, copied three times over, plus 64 (8x8).
-	curVRAMptr = (fourth_texture_start + 64);
+
 }
 
 /*

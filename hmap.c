@@ -221,7 +221,7 @@ void	p64MapRequest(short levelNo)
 
 
 //Texture Table Assignment based on heights from main map strata table.
-inline int	texture_table_by_height(int * ys)
+int	texture_table_by_height(int * ys)
 {
 	int avgY = 0;
 	avgY = ((ys[0] + ys[1] + ys[2] + ys[3])>>2);
@@ -239,7 +239,7 @@ inline int	texture_table_by_height(int * ys)
 	return 0; //No purpose, simply clips compiler warning.
 }
 
-inline int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
+int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
