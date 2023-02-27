@@ -22,6 +22,13 @@ FIXED		approximate_distance(FIXED * p0, FIXED * p1);
 int		unfix_length(FIXED Max[XYZ], FIXED Min[XYZ]);
 void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);
 
+void	fxrotX(int * v_in, int * v_out, int angle);
+void	fxrotY(int * v_in, int * v_out, int angle);
+void	fxrotZ(int * v_in, int * v_out, int angle);
+void	invrotX(int * v_in, int * v_out, int angle);
+void	invrotY(int * v_in, int * v_out, int angle);
+void	invrotZ(int * v_in, int * v_out, int angle);
+
 void	cpy3(FIXED * dst, FIXED * src);
 
 void	normalize(FIXED * vector_in, FIXED * vector_out);

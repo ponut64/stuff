@@ -42,6 +42,7 @@ void reset_player(void)
 	you.hitMap = false;
 	you.hitSurface = false;
 	you.hitWall = false;
+	you.climbing = false;
 	you.okayStepSnd = true;
     you.pos[X]=you.startPos[X];
     you.pos[Y]=you.startPos[Y];
@@ -413,6 +414,17 @@ void	player_phys_affect(void)
 	you.prevPos[Z] = you.pos[Z];
 	}
 	
+	//you.renderRot[X] = 0;
+	//you.renderRot[Y] = 0;
+	//you.renderRot[Z] = 0;
+	
+	// static POINT testUnit = {0, 0, 65536};
+	// standing_surface_alignment(testUnit, you.renderRot);
+	
+	// nbg_sprintf(1, 6, "x(%i)", you.renderRot[X]);
+	// nbg_sprintf(1, 7, "y(%i)", you.renderRot[Y]);
+	// nbg_sprintf(1, 8, "z(%i)", you.renderRot[Z]);
+	
 	bound_box_starter.modified_box = &pl_RBB;
 	bound_box_starter.x_location = you.pos[X];
 	bound_box_starter.y_location = you.pos[Y];
@@ -425,7 +437,6 @@ void	player_phys_affect(void)
 	bound_box_starter.x_radius = 2<<16;
 	bound_box_starter.y_radius = 5<<16;
 	bound_box_starter.z_radius = 5<<16;
-				
 			
 		make2AxisBox(&bound_box_starter);
 		//The player's velocity is calculated independent of an actual value, so use it here instead.

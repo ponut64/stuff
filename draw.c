@@ -146,9 +146,16 @@ void	player_draw(void)
 						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						}
 						}//IF SLIDE ENDIF
-						
-					
-				} else {//IF SURFACE ENDIF
+					//IF SURFACE ENDIF	
+				} else if(you.climbing == true)
+				{
+					if(you.sanics == 0)
+					{
+						ssh2DrawAnimation(&climbIdle, &pl_model,  false);
+					} else {
+						ssh2DrawAnimation(&climbing, &pl_model,  false);
+					}
+				} else {//IF CLIMB ENDIF
 						airTimer++;
 						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0){
 							if(!you.setJet){

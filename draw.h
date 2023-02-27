@@ -46,6 +46,9 @@ extern animationControl hop;
 extern animationControl walk;
 extern animationControl run;
 extern animationControl dbound;
+extern animationControl climbIdle;
+extern animationControl climbing;
+ 
 
 extern animationControl flap;
 

@@ -173,6 +173,171 @@ FIXED		double_fxisqrt(FIXED input){
 	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
 }
 
+void	fxrotX(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward X:
+	1		1		1
+	1		cos*yy	-sin*yz
+	1		sin*zy	cos*zz
+	
+	Transpose X?:
+	1		1		1
+	1		cos*yy	sin*zy
+	1		-sin*yz	cos*zz
+	*/
+	
+	//Vector X unchanged
+	v_out[X] = v_in[X];
+	v_out[Y] = fxm(cosinus, v_in[Y]) - fxm(sinus, v_in[Z]);
+	v_out[Z] = fxm(sinus, v_in[Y]) + fxm(cosinus, v_in[Z]);
+}
+
+void	fxrotY(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward Y:
+	cos*xx	1		sin*xz
+	1		1		1
+	-sin*zx	1		cos*zz
+	
+	Transpose Y?:
+	cos*xx	1		-sin*zx
+	1		1		1
+	sin*xz	1		cos*zz
+	*/
+	
+	v_out[X] = fxm(cosinus, v_in[X]) + fxm(sinus, v_in[Z]);
+	//Vector Y unchanged
+	v_out[Y] = v_in[Y];
+	v_out[Z] = fxm(sinus, -v_in[X]) + fxm(cosinus, v_in[Z]);
+}
+
+void	fxrotZ(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward Z:
+	cos*xx	-sin*xy	1
+	sin*yx	cos*yy	1
+	1		1		1
+	
+	Transpose Z?:
+	cos*xx	sin*yx	1
+	-sin*xy	cos*yy	1
+	1		1		1
+	*/
+	
+	v_out[X] = fxm(cosinus, v_in[X]) - fxm(sinus, v_in[Y]);
+	v_out[Y] = fxm(sinus, v_in[X]) + fxm(cosinus, v_in[Y]);
+	v_out[Z] = v_in[Z];
+	//Vector Z unchanged
+}
+
+void	invrotX(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward X:
+	1		1		1
+	1		cos*yy	-sin*yz
+	1		sin*zy	cos*zz
+	
+	Transpose X?:
+	1		1		1
+	1		cos*yy	sin*zy
+	1		-sin*yz	cos*zz
+	*/
+	
+	//Vector X unchanged
+	v_out[Y] = fxm(cosinus, v_in[Y]) + fxm(sinus, v_in[Y]);
+	v_out[Z] = fxm(sinus, -v_in[Z]) + fxm(cosinus, v_in[Z]);
+}
+
+void	invrotY(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward Y:
+	cos*xx	1		sin*xz
+	1		1		1
+	-sin*zx	1		cos*zz
+	
+	Transpose Y?:
+	cos*xx	1		-sin*zx
+	1		1		1
+	sin*xz	1		cos*zz
+	*/
+	
+	v_out[X] = fxm(cosinus, v_in[X]) + fxm(sinus, -v_in[X]);
+	//Vector Y unchanged
+	v_out[Z] = fxm(sinus, v_in[Z]) + fxm(cosinus, v_in[Z]);
+}
+
+void	invrotZ(int * v_in, int * v_out, int angle)
+{
+	int cosinus = slCos(angle);
+	int sinus = slSin(angle);
+	
+	/*
+	Mtx:
+	xx xy xz
+	yx yy yz
+	zx zy zz
+	
+	Forward Z:
+	cos*xx	-sin*xy	1
+	sin*yx	cos*yy	1
+	1		1		1
+	
+	Transpose Z?:
+	cos*xx	sin*yx	1
+	-sin*xy	cos*yy	1
+	1		1		1
+	*/
+	
+	v_out[X] = fxm(cosinus, v_in[X]) + fxm(sinus, v_in[X]);
+	v_out[Y] = fxm(sinus, -v_in[Y]) + fxm(cosinus, v_in[Y]);
+	//Vector Z unchanged
+}
+
 void	cpy3(FIXED * dst, FIXED * src)
 {
 	dst[X] = src[X];

@@ -190,6 +190,9 @@ extern int baseAsciiTexno;
 extern int sprAsciiHeight;
 extern int sprAsciiWidth;
 
+//subrender.c
+void	plane_rendering_with_subdivision(entity_t * ent);
+//2drender.c
 void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned char mesh, char type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border);
@@ -201,7 +204,7 @@ void	spr_sprintf(int xPos, int yPos, ...);
 void	nbg_sprintf(int x, int y,  ...);
 void	nbg_clear_text(void);
 short	menu_with_options(__basic_menu * mnu);
-
+//render.c
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);
 void	SetFixDiv(FIXED dividend, FIXED divisor); //Defined as "dividend / divisor", for fixed points, using division unit
 void	ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl, Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr, Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty);

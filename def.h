@@ -94,6 +94,7 @@ typedef struct {
 	Bool setJump;
 	Bool setSlide;
 	Bool okayStepSnd;
+	Bool climbing;
 	int sanics;
 	
 	short power;

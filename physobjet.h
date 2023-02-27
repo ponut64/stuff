@@ -16,6 +16,8 @@
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
 #define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
 
+#define LADDER	(0x800)
+
 #define LDATA_TYPE	(0xF00) //Level data type bits
 #define TRACK_DATA	(0x100) //Level data, gate data definition
 #define LEVEL_CHNG	(0x200) //Level data, level change location definition
@@ -46,7 +48,7 @@
 //ext_dat bitflag orientation for OBJECT:
 // 15 <- pop
 // 14-12 <- pattern is "0 0 0" for OBJECT
-// all else unused
+// 11 <- Flags entity as "climbable" or as "ladder". This entities' walls can be climbed vertically.
 /*
 ///////////////////////////////////////////////////////////////
 	bitflag orientation for GATE POST:

@@ -8,6 +8,7 @@ This file is compiled separately.
 #include "mymath.h"
 #include "bounder.h"
 #include "mloader.h"
+#include "render.h"
 #include "physobjet.h"
 #include "object_col.h"
 #include "ldata.h"
@@ -64,121 +65,128 @@ Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 	return true;
 }
 
-//Separates the angles of a normal according to an input reference vector.
-//	Input "surface_normal" is the normal of the plane being tested.
-//	Output "degreeOut" is separated angles that represent the rotation required to pivot to the orientation.
-//	The desired orientation relative to the plane is fixed at (0, -1, 0).
-void	separateAngles(FIXED * surface_normal, FIXED * align_from, int * degreeOut)
-{	
-	FIXED crossXZ[XYZ];
-	FIXED crossYZ[XYZ];
-	FIXED crossYX[XYZ];
-	FIXED mcXZ;
-	FIXED mcYZ;
-	FIXED mcYX;
-	FIXED dotXZ;
-	FIXED dotYZ;
-	FIXED dotYX;
-	FIXED smuXZ[XYZ] = {align_from[X],  0, align_from[Z]};
-	FIXED smuYZ[XYZ] = {0,  align_from[Y], align_from[Z]};
-	FIXED smuYX[XYZ] = {align_from[X],  align_from[Y], 0};
-	FIXED spnXZ[XYZ] = {surface_normal[X],  0, surface_normal[Z]};
-	FIXED spnYZ[XYZ] = {0,  surface_normal[Y], surface_normal[Z]};
-	FIXED spnYX[XYZ] = {surface_normal[X],  surface_normal[Y], 0};
 
-	fxcross(smuXZ, spnXZ, crossXZ);
-	fxcross(smuYZ, spnYZ, crossYZ);
-	fxcross(smuYX, spnYX, crossYX);
-	/////////////////////////////////////////
-	// Efficient (original) version
-	// These appear to be functionally interchangeable, but I will make a note:
-	// the vector cross-products (XZ, YZ, and YX) won't be normalized, because cross-products of normals are less than normals.
-	/////////////////////////////////////////
-	mcXZ = slSquartFX(fxdot(crossXZ, crossXZ));
-	mcYZ = slSquartFX(fxdot(crossYZ, crossYZ));
-	mcYX = slSquartFX(fxdot(crossYX, crossYX));
-	/////////////////////////////////////////
-	// Mathematically correct (new) version
-	/////////////////////////////////////////
-	// int tDot = fxdot(crossXZ, crossXZ);
-	// mcXZ = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
-	// tDot = fxdot(crossYZ, crossYZ);
-	// mcYZ = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
-	// tDot = fxdot(crossYX, crossYX);
-	// mcYX = fxm(fxdiv(1<<16, slSquartFX(tDot)), tDot);
-	//////////////////////////////////////////
-	dotXZ = fxm(align_from[X],surface_normal[X]) + fxm(align_from[Z],surface_normal[Z]);
-	dotYZ = fxm(align_from[Y],surface_normal[Y]) + fxm(align_from[Z],surface_normal[Z]);
-	dotYX = fxm(align_from[Y],surface_normal[Y]) + fxm(align_from[X],surface_normal[X]);
-	if(mcXZ != 0 || dotXZ != 0) degreeOut[X] = (slAtan(mcXZ, dotXZ));
-	if(mcYZ != 0 || dotYZ != 0) degreeOut[Y] = (slAtan(mcYZ, dotYZ));
-	if(mcYX != 0 || dotYX != 0) degreeOut[Z] = (slAtan(mcYX, dotYX));
-	//This is currently producing angle numbers that appear like this:
-	//Degrees are relative to the plane normal as if a plane. 0 degrees is parallel to the plane, but perpendicular to the planar normal direction.
-	//Degrees 360 to 270 appear to be for angles facing away from the plane.
-	//Degrees 0 to 90 appear to be for angles facing into the plane.
-	//The sign (+/-) of the angle does not appear to be spoken of.
-	
-	//Three components: Y rot [X-Z]. Xrot [Y-Z]. Zrot [Y-X]. The exact definition of these rotations depends on the axis.
-}
-
-//What is this doing?
-//It is re-processing the X and Z values of the output as if it were rotated X and Z _after_ it is rotated by output's Y.
-//This is very strange, when I think about it.
 void	standing_surface_alignment(FIXED * surface_normal, int * output)
 {
-static int angleComponents[XYZ];
-separateAngles(surface_normal, alwaysLow, angleComponents);
-Uint8 domain = solve_domain(surface_normal);
-//nbg_sprintf(0, 20, "(%i)", domain);
-// deg * 182 = angle
-if(domain == 1){ //++
-output[X] = (fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49151) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49151) ), slSin((output[Y] + (16383))) )); 
-output[Z] = (fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49151), slCos((output[Y] + (16383))) )); 
-						//return;
-} else if(domain == 2){ //-+
-output[X] = (fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49151) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49151) ), slSin((output[Y] - (16383))) )); 
-output[Z] = (fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49151), slCos((output[Y] - (16383))) )); 
-						//return;
-} else if(domain == 3){ //+-
-output[X] = -(fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49151) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49151) ), slSin((output[Y] - (16383))) )); 
-output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49151), slCos((output[Y] - (16383))) )); 
-						//return;
-} else if(domain == 4){ //--
-output[X] = -(fxm(fxm(slSin(angleComponents[Z]), (angleComponents[Z] - 49151) ), slSin((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), (angleComponents[Y] - 49151) ), slSin((output[Y] + (16383))) )); 
-output[Z] = -(fxm(fxm(slSin(angleComponents[Z]), angleComponents[Z] - 49151), slCos((output[Y]) - angleComponents[X])) +
-						fxm(fxm(slSin(angleComponents[Y]), angleComponents[Y] - 49151), slCos((output[Y] + (16383))) )); 
-						//return;
-}	
+	
+/*
 
-// nbg_sprintf(1, 8, "sgl(%i)", slAtan(65536, 32768));
-// nbg_sprintf(1, 9, "gvr(%i)", gvAtan2(65536, 32768));
+Partially functional, but still has error.
+More importantly, it can align with bigger angles.
+Process, follow comments.
 
-// static short drawposA[3];
-// static short drawposB[3];
+*/
 
-// drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
-// drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
-// drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
+// Plane Matrix unit vector X
+static int rrX[3];
+// Plane Matrix unit vector Z
+static int rrZ[3];
 
-// drawposA[X] = -(surface_normal[X]>>1); 
-// drawposA[Y] = -(surface_normal[Y]>>1); 
-// drawposA[Z] = -(surface_normal[Z]>>1); 
+// Rotation unit vector X
+int rruX[3] = {1<<16, 0, 0};
+// After-rotation unit vector X
+int rrauX[3] = {0, 0, 0};
 
-// drawposB[X] = -(pl_RBB.UVY[X]>>1); 
-// drawposB[Y] = -(pl_RBB.UVY[Y]>>1); 
-// drawposB[Z] = -(pl_RBB.UVY[Z]>>1); 
+// Rotation unit vector Z
+int rruZ[3] = {0, 0, 1<<16};
+// After-rotation unit vector Z
+int rrauZ[3] = {0, 0, 0};
 
-// add_to_sprite_list(drawposC, drawposB, 64, 0, 'L', 0, 2184);
+//Zero-out plane matrix
+rrX[0] = 0;   rrZ[0] = 0;
+rrX[1] = 0;   rrZ[1] = 0;
+rrX[2] = 0;   rrZ[2] = 0;
 
-// add_to_sprite_list(drawposC, drawposA, 1, 0, 'L', 0, 2184);
+//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
+fxrotZ(surface_normal, rrX, 90 * 182);
+//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
+fxrotX(surface_normal, rrZ, 90 * 182);
+
+//Generate unit vectors to stand-in as the player's forward Y rotated matrix
+//Since only X/Z are affected by rotation on Y, we only need to use the X/Z unit vectors.
+fxrotY(rruX, rrauX, -you.rot[Y]);
+fxrotY(rruZ, rrauZ, -you.rot[Y]);
+
+//Finalize the surface matrix from the calculations
+static int mtxX[3];
+static int mtxY[3];
+static int mtxZ[3];
+
+mtxX[0] = rrX[X];
+mtxX[1] = rrX[Y];
+mtxX[2] = rrX[Z];
+
+//Why do I have to make the normal X negative...?
+//This part doesn't make sense...
+mtxY[0] = -surface_normal[X];
+mtxY[1] = surface_normal[Y];
+mtxY[2] = surface_normal[Z];
+
+mtxZ[0] = rrZ[X];
+mtxZ[1] = rrZ[Y];
+mtxZ[2] = rrZ[Z];
+
+//Transform the unit vectors of the player by the floor's matrix
+//Even though in this case the Y vector would be affected, we don't use it (yet?), so we don't calculate it.
+rruX[X] = fxdot(mtxX, rrauX);
+rruX[Y] = -fxdot(mtxY, rrauX);
+rruX[Z] = fxdot(mtxZ, rrauX);
+
+rruZ[X] = fxdot(mtxX, rrauZ);
+rruZ[Y] = -fxdot(mtxY, rrauZ);
+rruZ[Z] = fxdot(mtxZ, rrauZ);
+
+//From this point, the rruX and rruZ will be rotated by the player's Y and then surface-aligned to the floor by the above matrix.
+//We then try to get the angle of this rotation out of the calculation.
+//An alternative way out of this might be to recalculate the player's matrix according to these vectors.
+//That might be less prone to error... but it has other issues...
+
+//Anti-rotate the unit vectors by the player's Y rotation (so that they return to axis alignment)
+fxrotY(rruX, rrX, -you.rot[Y]);
+fxrotY(rruZ, rrZ, -you.rot[Y]);
+//Get the final X and Z rotation angles out of the calculation
+output[X] = -(slAtan(rrZ[Y], rrZ[Z]) - 16383);
+output[Z] = -(slAtan(rrX[Y], rrX[X]) + 16383);
+
+//The output still has a degree of error.
+//The errors are at their largest when 45 degrees away from a right-angle, on a surface whose angle is large (nearer to 90).
+//Not sure where that error is creeping in.
+
+
+// nbg_sprintf(1, 6, "x(%i)", rrZ[X]);
+// nbg_sprintf(1, 7, "y(%i)", rrZ[Y]);
+// nbg_sprintf(1, 8, "z(%i)", rrZ[Z]);
+
+// nbg_sprintf(13, 6, "x(%i)", rrX[X]);
+// nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
+// nbg_sprintf(13, 8, "z(%i)", rrX[Z]);
+
+static short drawposA[3];
+static short drawposB[3];
+static short drawposD[3];
+static int 	drawposC[3];
+
+drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
+drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
+drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
+
+drawposA[X] = -(surface_normal[X]>>1); 
+drawposA[Y] = -(surface_normal[Y]>>1); 
+drawposA[Z] = -(surface_normal[Z]>>1); 
+
+drawposB[X] = -(pl_RBB.UVY[X]>>1); 
+drawposB[Y] = -(pl_RBB.UVY[Y]>>1); 
+drawposB[Z] = -(pl_RBB.UVY[Z]>>1); 
+
+drawposD[X] = -(rruZ[X]>>1); 
+drawposD[Y] = -(rruZ[Y]>>1); 
+drawposD[Z] = -(rruZ[Z]>>1); 
+
+add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposA, 1, 0, 'L', 0, 2184);
 
 
 
@@ -628,19 +636,27 @@ void	player_collision_test_loop(void)
 	you.hitObject = false;
 	if(ldata_ready != true) return; //Just in case.
 	int skipdat;
+	int edata;
 	for(Uint8 i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
-		skipdat = dWorldObjects[activeObjects[i]].type.ext_dat & (0xF000);
+		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
+		skipdat = edata & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
-				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
+				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true)
+				{
+					return;
+				}
 			} else if(skipdat == (ITEM | OBJPOP)) {
 				run_item_collision(i, &pl_RBB);
 			} else if(skipdat == (GATE_R | OBJPOP)) {
 				test_gate_ring(i, &pl_RBB);
 			} else if(skipdat == (GATE_P | OBJPOP)) {
 				test_gate_posts(activeObjects[i], &pl_RBB);
-				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true) return;
+				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true)
+				{
+					return;
+				}
 			} else if(skipdat == (BUILD | OBJPOP))
 			{
 				if(RBBs[i].status[1] == 'C')

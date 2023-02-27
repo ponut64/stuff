@@ -72,12 +72,12 @@ _sobject Meme02 = {
 	.light_bright = 0
 };
 
-_sobject Ring00 = {
+_sobject Tladder = {
 	.entity_ID = 8,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GATE_R,
+	.ext_dat = OBJECT | LADDER,
 	.light_bright = 0
 };
 
@@ -387,7 +387,7 @@ void	fill_obj_list(void)
 	objList[5] = &Meme00;
 	objList[6] = &Meme01;
 	objList[7] = &Meme02;
-	objList[8] = &Ring00;
+	objList[8] = &Tladder;
 	objList[9] = &Kyoob;
 	objList[10] = &Platf00;
 	objList[11] = &Build00;
