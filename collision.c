@@ -71,8 +71,7 @@ void	standing_surface_alignment(FIXED * surface_normal, int * output)
 	
 /*
 
-Partially functional, but still has error.
-More importantly, it can align with bigger angles.
+Mostly great function.
 Process, follow comments.
 
 */
@@ -101,9 +100,16 @@ rrX[2] = 0;   rrZ[2] = 0;
 fxrotZ(surface_normal, rrX, 90 * 182);
 //Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
 fxrotX(surface_normal, rrZ, 90 * 182);
+//These have to be zeroed-out since they must be axis-aligned.
+//Otherwise, they would inherit these portions of the surface normal!
+rrX[Z] = 0;
+rrZ[X] = 0;
 
 //Generate unit vectors to stand-in as the player's forward Y rotated matrix
 //Since only X/Z are affected by rotation on Y, we only need to use the X/Z unit vectors.
+// Why do we use negative Y rotation?
+// In the forward-transform, the spin is opposed. It's weird but that's how it works.
+// You will note however that means these two axis are spinning the wrong way.
 fxrotY(rruX, rrauX, -you.rot[Y]);
 fxrotY(rruZ, rrauZ, -you.rot[Y]);
 
@@ -138,8 +144,6 @@ rruZ[Z] = fxdot(mtxZ, rrauZ);
 
 //From this point, the rruX and rruZ will be rotated by the player's Y and then surface-aligned to the floor by the above matrix.
 //We then try to get the angle of this rotation out of the calculation.
-//An alternative way out of this might be to recalculate the player's matrix according to these vectors.
-//That might be less prone to error... but it has other issues...
 
 //Anti-rotate the unit vectors by the player's Y rotation (so that they return to axis alignment)
 fxrotY(rruX, rrX, -you.rot[Y]);
@@ -147,11 +151,6 @@ fxrotY(rruZ, rrZ, -you.rot[Y]);
 //Get the final X and Z rotation angles out of the calculation
 output[X] = -(slAtan(rrZ[Y], rrZ[Z]) - 16383);
 output[Z] = -(slAtan(rrX[Y], rrX[X]) + 16383);
-
-//The output still has a degree of error.
-//The errors are at their largest when 45 degrees away from a right-angle, on a surface whose angle is large (nearer to 90).
-//Not sure where that error is creeping in.
-
 
 // nbg_sprintf(1, 6, "x(%i)", rrZ[X]);
 // nbg_sprintf(1, 7, "y(%i)", rrZ[Y]);
@@ -177,7 +176,7 @@ drawposA[Z] = -(surface_normal[Z]>>1);
 drawposB[X] = -(pl_RBB.UVY[X]>>1); 
 drawposB[Y] = -(pl_RBB.UVY[Y]>>1); 
 drawposB[Z] = -(pl_RBB.UVY[Z]>>1); 
-
+				  
 drawposD[X] = -(rruZ[X]>>1); 
 drawposD[Y] = -(rruZ[Y]>>1); 
 drawposD[Z] = -(rruZ[Z]>>1); 
