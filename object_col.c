@@ -461,14 +461,11 @@ if(you.hitSurface && last_floor_entity == ent)
 				{
 					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], N_Yn) >= 0)
 					{
-						used_normal[X] = -used_normal[X]; 
-						used_normal[Y] = -used_normal[Y];
-						used_normal[Z] = -used_normal[Z];
 						you.floorNorm[X] = used_normal[X]; 
 						you.floorNorm[Y] = used_normal[Y];
 						you.floorNorm[Z] = used_normal[Z];
 						
-						standing_surface_alignment(used_normal, you.renderRot);
+						standing_surface_alignment(you.floorNorm, you.renderRot);
 						
 						you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 						you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
@@ -613,14 +610,11 @@ for(int i = 0; i < total_planes; i++)
 						{
 							if(dominant_axis == N_Yn && !backfaced[i])
 							{
-								used_normal[X] = -used_normal[X]; 
-								used_normal[Y] = -used_normal[Y];
-								used_normal[Z] = -used_normal[Z];
 								you.floorNorm[X] = used_normal[X]; 
 								you.floorNorm[Y] = used_normal[Y];
 								you.floorNorm[Z] = used_normal[Z];
 								
-								standing_surface_alignment(used_normal, you.renderRot);
+								standing_surface_alignment(you.floorNorm, you.renderRot);
 								
 								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));

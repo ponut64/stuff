@@ -257,85 +257,84 @@ void	fxrotZ(int * v_in, int * v_out, int angle)
 	//Vector Z unchanged
 }
 
-void	invrotX(int * v_in, int * v_out, int angle)
+/**
+INPUTS:
+Matrix: the matrix space the axis is relative to
+Axis: the axis to pivot about (yaw)
+Angle: The angle to rotate about the axis
+Special note: AXIS is commuted through the matrix.
+For example, (0, 1, 0) will be the matrix' Y axis, (1, 0 ,0) will be the matrix' X axis, (0, 0, 1) will be the matrix' Z axis.
+**/
+void	fxRotLocalAxis(int * mtx, int * axis, int angle)
 {
+	int ix[3] = {1<<16, 0, 0};
+	int iy[3] = {0, 1<<16, 0};
+	int iz[3] = {0, 0, 1<<16};
+	
 	int cosinus = slCos(angle);
 	int sinus = slSin(angle);
+		
+	ix[X] = fxm(fxm(axis[X], axis[X]), ((1<<16) - cosinus)) + cosinus;
+	ix[Y] = fxm(fxm(axis[X], axis[Y]), ((1<<16) - cosinus)) - fxm(axis[Z], sinus); // SGL - Google deviation (+)
+	ix[Z] = fxm(fxm(axis[X], axis[Z]), ((1<<16) - cosinus)) + fxm(axis[Y], sinus); // SGL - Google deviation (-)
 	
-	/*
-	Mtx:
-	xx xy xz
-	yx yy yz
-	zx zy zz
+	iy[X] = fxm(fxm(axis[Y], axis[X]), ((1<<16) - cosinus)) + fxm(axis[Z], sinus);
+	iy[Y] = fxm(fxm(axis[Y], axis[Y]), ((1<<16) - cosinus)) + cosinus;
+	iy[Z] = fxm(fxm(axis[Y], axis[Z]), ((1<<16) - cosinus)) - fxm(axis[X], sinus);
 	
-	Forward X:
-	1		1		1
-	1		cos*yy	-sin*yz
-	1		sin*zy	cos*zz
+	iz[X] = fxm(fxm(axis[Z], axis[X]), ((1<<16) - cosinus)) - fxm(axis[Y], sinus);
+	iz[Y] = fxm(fxm(axis[Z], axis[Y]), ((1<<16) - cosinus)) + fxm(axis[X], sinus);
+	iz[Z] = fxm(fxm(axis[Z], axis[Z]), ((1<<16) - cosinus)) + cosinus;
 	
-	Transpose X?:
-	1		1		1
-	1		cos*yy	sin*zy
-	1		-sin*yz	cos*zz
-	*/
+	int trapX[3] = {mtx[0], mtx[3], mtx[6]};
+	int trapY[3] = {mtx[1], mtx[4], mtx[7]};
+	int trapZ[3] = {mtx[2], mtx[5], mtx[8]};
 	
-	//Vector X unchanged
-	v_out[Y] = fxm(cosinus, v_in[Y]) + fxm(sinus, v_in[Y]);
-	v_out[Z] = fxm(sinus, -v_in[Z]) + fxm(cosinus, v_in[Z]);
+	mtx[0] = fxdot(ix, trapX);
+	mtx[1] = fxdot(ix, trapY);
+	mtx[2] = fxdot(ix, trapZ);
+	mtx[3] = fxdot(iy, trapX);
+	mtx[4] = fxdot(iy, trapY);
+	mtx[5] = fxdot(iy, trapZ);
+	mtx[6] = fxdot(iz, trapX);
+	mtx[7] = fxdot(iz, trapY);
+	mtx[8] = fxdot(iz, trapZ);
+	
 }
 
-void	invrotY(int * v_in, int * v_out, int angle)
+void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix)
 {
-	int cosinus = slCos(angle);
-	int sinus = slSin(angle);
+	int * ix1 = matrix_1;
+	int * iy1 = &matrix_1[3];
+	int * iz1 = &matrix_1[6];
 	
-	/*
-	Mtx:
-	xx xy xz
-	yx yy yz
-	zx zy zz
+	int * ix2 = matrix_2;
+	int * iy2 = &matrix_2[3];
+	int * iz2 = &matrix_2[6];
 	
-	Forward Y:
-	cos*xx	1		sin*xz
-	1		1		1
-	-sin*zx	1		cos*zz
+	int trapX[3] = {ix2[X], ix2[X], ix2[X]};
+	int trapY[3] = {iy2[Y], iy2[Y], iy2[Y]};
+	int trapZ[3] = {iz2[Z], iz2[Z], iz2[Z]};
 	
-	Transpose Y?:
-	cos*xx	1		-sin*zx
-	1		1		1
-	sin*xz	1		cos*zz
-	*/
+	output_matrix[0] = fxdot(ix1, trapX);
+	output_matrix[1] = fxdot(ix1, trapY);
+	output_matrix[2] = fxdot(ix1, trapZ);
 	
-	v_out[X] = fxm(cosinus, v_in[X]) + fxm(sinus, -v_in[X]);
-	//Vector Y unchanged
-	v_out[Z] = fxm(sinus, v_in[Z]) + fxm(cosinus, v_in[Z]);
+	output_matrix[3] = fxdot(iy1, trapX);
+	output_matrix[4] = fxdot(iy1, trapY);
+	output_matrix[5] = fxdot(iy1, trapZ);
+	
+	output_matrix[6] = fxdot(iz1, trapX);
+	output_matrix[7] = fxdot(iz1, trapY);
+	output_matrix[9] = fxdot(iz1, trapZ);
 }
 
-void	invrotZ(int * v_in, int * v_out, int angle)
+void	zero_matrix(int * mtx)
 {
-	int cosinus = slCos(angle);
-	int sinus = slSin(angle);
-	
-	/*
-	Mtx:
-	xx xy xz
-	yx yy yz
-	zx zy zz
-	
-	Forward Z:
-	cos*xx	-sin*xy	1
-	sin*yx	cos*yy	1
-	1		1		1
-	
-	Transpose Z?:
-	cos*xx	sin*yx	1
-	-sin*xy	cos*yy	1
-	1		1		1
-	*/
-	
-	v_out[X] = fxm(cosinus, v_in[X]) + fxm(sinus, v_in[X]);
-	v_out[Y] = fxm(sinus, -v_in[Y]) + fxm(cosinus, v_in[Y]);
-	//Vector Z unchanged
+	for(int i = 0; i < 9; i++)
+	{
+		mtx[i] = 0;
+	}
 }
 
 void	cpy3(FIXED * dst, FIXED * src)

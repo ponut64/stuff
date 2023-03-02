@@ -245,9 +245,9 @@ void	ssh2Line(_sprite * spr)
         //Screen Clip Flags for on-off screen decimation
 		clipping(&ssh2VertArea[i], spr->useClip);
 		ssh2VertArea[i].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this stuff.... could just make a new clipper func..
-		used_pos[X] += spr->span[X]<<3;
-		used_pos[Y] += spr->span[Y]<<3;
-		used_pos[Z] += spr->span[Z]<<3;
+		used_pos[X] += spr->span[X]<<4;
+		used_pos[Y] += spr->span[Y]<<4;
+		used_pos[Z] += spr->span[Z]<<4;
 	}
 		transVerts[0] += 2;
 		

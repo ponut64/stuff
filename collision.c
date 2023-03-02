@@ -65,65 +65,76 @@ Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 	return true;
 }
 
-
-void	standing_surface_alignment(FIXED * surface_normal, int * output)
+/* 
+if(alignF == 0)
 {
-	
-/*
-
-Mostly great function.
-Process, follow comments.
-
-*/
-
-// Plane Matrix unit vector X
-static int rrX[3];
-// Plane Matrix unit vector Z
-static int rrZ[3];
-
-// Rotation unit vector X
-int rruX[3] = {1<<16, 0, 0};
-// After-rotation unit vector X
-int rrauX[3] = {0, 0, 0};
-
-// Rotation unit vector Z
-int rruZ[3] = {0, 0, 1<<16};
-// After-rotation unit vector Z
-int rrauZ[3] = {0, 0, 0};
-
-//Zero-out plane matrix
-rrX[0] = 0;   rrZ[0] = 0;
-rrX[1] = 0;   rrZ[1] = 0;
-rrX[2] = 0;   rrZ[2] = 0;
-
-//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
-fxrotZ(surface_normal, rrX, 90 * 182);
-//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
-fxrotX(surface_normal, rrZ, 90 * 182);
-//These have to be zeroed-out since they must be axis-aligned.
-//Otherwise, they would inherit these portions of the surface normal!
-rrX[Z] = 0;
-rrZ[X] = 0;
-
-//Generate unit vectors to stand-in as the player's forward Y rotated matrix
-//Since only X/Z are affected by rotation on Y, we only need to use the X/Z unit vectors.
-// Why do we use negative Y rotation?
-// In the forward-transform, the spin is opposed. It's weird but that's how it works.
-// You will note however that means these two axis are spinning the wrong way.
-fxrotY(rruX, rrauX, -you.rot[Y]);
-fxrotY(rruZ, rrauZ, -you.rot[Y]);
-
-//Finalize the surface matrix from the calculations
-static int mtxX[3];
-static int mtxY[3];
-static int mtxZ[3];
-
 mtxX[0] = rrX[X];
 mtxX[1] = rrX[Y];
 mtxX[2] = rrX[Z];
 
-//Why do I have to make the normal X negative...?
-//This part doesn't make sense...
+mtxY[0] = surface_normal[X];
+mtxY[1] = surface_normal[Y];
+mtxY[2] = surface_normal[Z];
+
+mtxZ[0] = rrZ[X];
+mtxZ[1] = rrZ[Y];
+mtxZ[2] = rrZ[Z];
+
+//Transform the unit vectors of the player by the floor's matrix
+//Even though in this case the Y vector would be affected, we don't use it (yet?), so we don't calculate it.
+rruX[X] = fxdot(mtxX, rrauX);
+rruX[Y] = -fxdot(mtxY, rrauX);
+rruX[Z] = fxdot(mtxZ, rrauX);
+
+rruZ[X] = fxdot(mtxX, rrauZ);
+rruZ[Y] = -fxdot(mtxY, rrauZ);
+rruZ[Z] = fxdot(mtxZ, rrauZ);
+
+pl_RBB.UVX[X] = rruX[X];
+pl_RBB.UVX[Y] = -rruX[Y];
+pl_RBB.UVX[Z] = -rruX[Z];
+pl_RBB.UVY[X] = -surface_normal[X];
+pl_RBB.UVY[Y] = -surface_normal[Y];
+pl_RBB.UVY[Z] = -surface_normal[Z];
+pl_RBB.UVZ[X] = rruZ[X];
+pl_RBB.UVZ[Y] = -rruZ[Y];
+pl_RBB.UVZ[Z] = -rruZ[Z];
+
+pl_RBB.UVNX[X] = -pl_RBB.UVX[X];
+pl_RBB.UVNX[Y] = -pl_RBB.UVX[Y];
+pl_RBB.UVNX[Z] = -pl_RBB.UVX[Z];
+pl_RBB.UVNY[X] = -pl_RBB.UVY[X];
+pl_RBB.UVNY[Y] = -pl_RBB.UVY[Y];
+pl_RBB.UVNY[Z] = -pl_RBB.UVY[Z];
+pl_RBB.UVNZ[X] = -pl_RBB.UVZ[X];
+pl_RBB.UVNZ[Y] = -pl_RBB.UVZ[Y];
+pl_RBB.UVNZ[Z] = -pl_RBB.UVZ[Z];
+
+pl_RBB.Xplus[X] = fxm(pl_RBB.UVX[X], pl_RBB.brad[X]);
+pl_RBB.Xplus[Y] = fxm(pl_RBB.UVX[Y], pl_RBB.brad[Y]);
+pl_RBB.Xplus[Z] = fxm(pl_RBB.UVX[Z], pl_RBB.brad[Z]);
+pl_RBB.Yplus[X] = fxm(pl_RBB.UVY[X], pl_RBB.brad[X]);
+pl_RBB.Yplus[Y] = fxm(pl_RBB.UVY[Y], pl_RBB.brad[Y]);
+pl_RBB.Yplus[Z] = fxm(pl_RBB.UVY[Z], pl_RBB.brad[Z]);
+pl_RBB.Zplus[X] = fxm(pl_RBB.UVZ[X], pl_RBB.brad[X]);
+pl_RBB.Zplus[Y] = fxm(pl_RBB.UVZ[Y], pl_RBB.brad[Y]);
+pl_RBB.Zplus[Z] = fxm(pl_RBB.UVZ[Z], pl_RBB.brad[Z]);
+
+pl_RBB.Xneg[X] = -pl_RBB.Xplus[X];
+pl_RBB.Xneg[Y] = -pl_RBB.Xplus[Y];
+pl_RBB.Xneg[Z] = -pl_RBB.Xplus[Z];
+pl_RBB.Yneg[X] = -pl_RBB.Yplus[X];
+pl_RBB.Yneg[Y] = -pl_RBB.Yplus[Y];
+pl_RBB.Yneg[Z] = -pl_RBB.Yplus[Z];
+pl_RBB.Zneg[X] = -pl_RBB.Zplus[X];
+pl_RBB.Zneg[Y] = -pl_RBB.Zplus[Y];
+pl_RBB.Zneg[Z] = -pl_RBB.Zplus[Z];
+} else {
+	
+mtxX[0] = rrX[X];
+mtxX[1] = rrX[Y];
+mtxX[2] = rrX[Z];
+
 mtxY[0] = -surface_normal[X];
 mtxY[1] = surface_normal[Y];
 mtxY[2] = surface_normal[Z];
@@ -142,19 +153,203 @@ rruZ[X] = fxdot(mtxX, rrauZ);
 rruZ[Y] = -fxdot(mtxY, rrauZ);
 rruZ[Z] = fxdot(mtxZ, rrauZ);
 
-//From this point, the rruX and rruZ will be rotated by the player's Y and then surface-aligned to the floor by the above matrix.
-//We then try to get the angle of this rotation out of the calculation.
-
-//Anti-rotate the unit vectors by the player's Y rotation (so that they return to axis alignment)
+	
 fxrotY(rruX, rrX, -you.rot[Y]);
 fxrotY(rruZ, rrZ, -you.rot[Y]);
 //Get the final X and Z rotation angles out of the calculation
-output[X] = -(slAtan(rrZ[Y], rrZ[Z]) - 16383);
-output[Z] = -(slAtan(rrX[Y], rrX[X]) + 16383);
+output[X] = -(slAtan(rrZ[Y], rrZ[Z]) + 16383);
+output[Z] = -(slAtan(rrX[Y], rrX[X]) - 16383);
+}
+ */
 
-// nbg_sprintf(1, 6, "x(%i)", rrZ[X]);
-// nbg_sprintf(1, 7, "y(%i)", rrZ[Y]);
-// nbg_sprintf(1, 8, "z(%i)", rrZ[Z]);
+int aMtx[XYZ][XYZ];
+
+void	finalize_alignment(_boundBox * fmtx)
+{
+	
+fmtx->UVX[X] = aMtx[X][X];
+fmtx->UVX[Y] = aMtx[X][Y];
+fmtx->UVX[Z] = aMtx[X][Z];
+fmtx->UVY[X] = aMtx[Y][X];
+fmtx->UVY[Y] = aMtx[Y][Y];
+fmtx->UVY[Z] = aMtx[Y][Z];
+fmtx->UVZ[X] = aMtx[Z][X];
+fmtx->UVZ[Y] = aMtx[Z][Y];
+fmtx->UVZ[Z] = aMtx[Z][Z];
+	
+fmtx->UVNX[X] = -fmtx->UVX[X];
+fmtx->UVNX[Y] = -fmtx->UVX[Y];
+fmtx->UVNX[Z] = -fmtx->UVX[Z];
+fmtx->UVNY[X] = -fmtx->UVY[X];
+fmtx->UVNY[Y] = -fmtx->UVY[Y];
+fmtx->UVNY[Z] = -fmtx->UVY[Z];
+fmtx->UVNZ[X] = -fmtx->UVZ[X];
+fmtx->UVNZ[Y] = -fmtx->UVZ[Y];
+fmtx->UVNZ[Z] = -fmtx->UVZ[Z];
+
+fmtx->Xplus[X] = fxm(fmtx->UVX[X], fmtx->brad[X]);
+fmtx->Xplus[Y] = fxm(fmtx->UVX[Y], fmtx->brad[Y]);
+fmtx->Xplus[Z] = fxm(fmtx->UVX[Z], fmtx->brad[Z]);
+fmtx->Yplus[X] = fxm(fmtx->UVY[X], fmtx->brad[X]);
+fmtx->Yplus[Y] = fxm(fmtx->UVY[Y], fmtx->brad[Y]);
+fmtx->Yplus[Z] = fxm(fmtx->UVY[Z], fmtx->brad[Z]);
+fmtx->Zplus[X] = fxm(fmtx->UVZ[X], fmtx->brad[X]);
+fmtx->Zplus[Y] = fxm(fmtx->UVZ[Y], fmtx->brad[Y]);
+fmtx->Zplus[Z] = fxm(fmtx->UVZ[Z], fmtx->brad[Z]);
+
+fmtx->Xneg[X] = -fmtx->Xplus[X];
+fmtx->Xneg[Y] = -fmtx->Xplus[Y];
+fmtx->Xneg[Z] = -fmtx->Xplus[Z];
+fmtx->Yneg[X] = -fmtx->Yplus[X];
+fmtx->Yneg[Y] = -fmtx->Yplus[Y];
+fmtx->Yneg[Z] = -fmtx->Yplus[Z];
+fmtx->Zneg[X] = -fmtx->Zplus[X];
+fmtx->Zneg[Y] = -fmtx->Zplus[Y];
+fmtx->Zneg[Z] = -fmtx->Zplus[Z];
+	
+}
+
+void	standing_surface_alignment(FIXED * surface_normal, int * output)
+{
+	
+/*
+
+Mostly great function.
+Process, follow comments.
+
+*/
+
+static int fwdYmtx[XYZ][XYZ];
+
+static int plane_matrix[XYZ][XYZ];
+
+//Zero-out plane matrix
+zero_matrix(fwdYmtx[0]);
+zero_matrix(plane_matrix[0]);
+
+plane_matrix[Y][X] = surface_normal[X];
+plane_matrix[Y][Y] = surface_normal[Y];
+plane_matrix[Y][Z] = surface_normal[Z];
+
+// Rotation unit vector X
+int rruX[3] = {1<<16, 0, 0};
+
+// Rotation unit vector Z
+int rruZ[3] = {0, 0, 1<<16};
+
+int rruY[3] = {0, 1<<16, 0};
+
+//Initialize this part of the forward-Y matrix
+fwdYmtx[Y][Y] = 1<<16;
+
+/*
+
+The following code chunk generates axis-aligned unit matrix data from the normal.
+It does so with respect to the major axis of the normal and its sign.
+
+*/
+if(JO_ABS(surface_normal[Y]) > 32768)
+{
+	if(surface_normal[Y] < 0)
+	{
+		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
+		fxrotZ(plane_matrix[Y], plane_matrix[X], 16834);
+		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
+		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		
+		fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
+		fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
+	} else {
+		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
+		fxrotZ(plane_matrix[Y], plane_matrix[X], 16834);
+		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
+		fxrotX(plane_matrix[Y], plane_matrix[Z], -16384);
+		
+		fxrotY(rruX, fwdYmtx[X], -(you.rot[Y] + (180 * 182)));
+		fxrotY(rruZ, fwdYmtx[Z], -(you.rot[Y] + (180 * 182)));
+	}
+	//These have to be zeroed-out since they must be axis-aligned.
+	//Otherwise, they would inherit these portions of the surface normal!
+	//Notice: this means these have to be re-normalized.
+	plane_matrix[X][Z] = 0;
+	plane_matrix[Z][X] = 0;
+} else if(JO_ABS(surface_normal[X]) > 32768){
+
+	if(surface_normal[X] > 0)
+	{
+		fxrotZ(plane_matrix[Y], plane_matrix[X], 16384);
+		fxrotY(plane_matrix[Y], plane_matrix[Z], 16384);
+	} else {
+		//This may not be right.
+		fxrotZ(plane_matrix[Y], plane_matrix[X], -16384);
+		fxrotY(plane_matrix[Y], plane_matrix[Z], -16384);
+	}
+	
+	//These have to be zeroed-out since they must be axis-aligned.
+	//Otherwise, they would inherit these portions of the surface normal!
+	//Notice: this means these have to be re-normalized.
+	plane_matrix[X][Z] = 0;
+	plane_matrix[Z][Y] = 0;
+	
+	fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
+	fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
+} else if(JO_ABS(surface_normal[Z]) > 32768)
+{
+
+	if(surface_normal[Z] > 0)
+	{
+		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
+		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+	} else {
+		//This may not be right.
+		fxrotY(plane_matrix[Y], plane_matrix[X], -16384);
+		fxrotX(plane_matrix[Y], plane_matrix[Z], -16384);
+	}
+	//These have to be zeroed-out since they must be axis-aligned.
+	//Otherwise, they would inherit these portions of the surface normal!
+	//Notice: this means these have to be re-normalized.
+	plane_matrix[X][Y] = 0;
+	plane_matrix[Z][X] = 0;
+	
+	fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
+	fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
+}
+
+// accurate_normalize(fwdYmtx[X], fwdYmtx[X]);
+// accurate_normalize(fwdYmtx[Z], fwdYmtx[Z]);
+accurate_normalize(plane_matrix[X], plane_matrix[X]);
+accurate_normalize(plane_matrix[Z], plane_matrix[Z]);
+
+//Use an axis-relative rotation.
+/**
+Special Note:
+NO ONE WILL TELL YOU THIS, BUT...
+Rotation-about-axis (fxRotLocalAxis), and the math associated with it, uses a **MATRIX-SPACE** axis.
+That means if you put (1, 0, 0) as the axis, it does NOT rotate about GLOBAL (1, 0, 0).
+It rotates about (1, 0, 0) COMMUTED THROUGH THE MATRIX, e.g. the matrix' local X axis.
+It may seem obvious to some, but if you want to rotate about the global X axis, you just rotate by X.
+Same for Y and Z, et cetera.
+The axis input into this function is relative to the axis itself.
+In this case, fwdMtx[Y] is {0, 1, 0}, meaning the matrix' Y axis is what I want to rotate around.
+**/
+fxRotLocalAxis(plane_matrix[0], fwdYmtx[Y], you.rot[Y]);
+
+aMtx[X][X] = plane_matrix[X][X];
+aMtx[X][Y] = plane_matrix[X][Y];
+aMtx[X][Z] = plane_matrix[X][Z];
+aMtx[Y][X] = -plane_matrix[Y][X];
+aMtx[Y][Y] = -plane_matrix[Y][Y];
+aMtx[Y][Z] = -plane_matrix[Y][Z];
+aMtx[Z][X] = -plane_matrix[Z][X];
+aMtx[Z][Y] = -plane_matrix[Z][Y];
+aMtx[Z][Z] = -plane_matrix[Z][Z];
+
+//finalize_alignment(&pl_RBB);
+
+
+// nbg_sprintf(1, 6, "x(%i)", surface_normal[X]);
+// nbg_sprintf(1, 7, "y(%i)", surface_normal[Y]);
+// nbg_sprintf(1, 8, "z(%i)", surface_normal[Z]);
 
 // nbg_sprintf(13, 6, "x(%i)", rrX[X]);
 // nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
@@ -162,28 +357,42 @@ output[Z] = -(slAtan(rrX[Y], rrX[X]) + 16383);
 
 static short drawposA[3];
 static short drawposB[3];
-static short drawposD[3];
 static int 	drawposC[3];
+static short drawposD[3];
+static short drawposE[3];
+static short drawposF[3];
 
 drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
 drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
 drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
 
-drawposA[X] = -(surface_normal[X]>>1); 
-drawposA[Y] = -(surface_normal[Y]>>1); 
-drawposA[Z] = -(surface_normal[Z]>>1); 
+drawposA[X] = (plane_matrix[Y][X]>>2); 
+drawposA[Y] = (plane_matrix[Y][Y]>>2); 
+drawposA[Z] = (plane_matrix[Y][Z]>>2); 
 
-drawposB[X] = -(pl_RBB.UVY[X]>>1); 
-drawposB[Y] = -(pl_RBB.UVY[Y]>>1); 
-drawposB[Z] = -(pl_RBB.UVY[Z]>>1); 
+drawposB[X] = (rruY[X]>>2); 
+drawposB[Y] = (rruY[Y]>>2); 
+drawposB[Z] = (rruY[Z]>>2); 
 				  
-drawposD[X] = -(rruZ[X]>>1); 
-drawposD[Y] = -(rruZ[Y]>>1); 
-drawposD[Z] = -(rruZ[Z]>>1); 
+drawposD[X] = (rruX[X]>>2); 
+drawposD[Y] = (rruX[Y]>>2); 
+drawposD[Z] = (rruX[Z]>>2); 
 
-add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
+drawposE[X] = (plane_matrix[X][X]>>2); 
+drawposE[Y] = (plane_matrix[X][Y]>>2); 
+drawposE[Z] = (plane_matrix[X][Z]>>2); 
+				  
+drawposF[X] = (plane_matrix[Z][X]>>2); 
+drawposF[Y] = (plane_matrix[Z][Y]>>2); 
+drawposF[Z] = (plane_matrix[Z][Z]>>2); 
 
-add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
+
+// add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposE, 23, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposF, 31, 0, 'L', 0, 2184);
 
 add_to_sprite_list(drawposC, drawposA, 1, 0, 'L', 0, 2184);
 
@@ -238,11 +447,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 	if(hitFace == N_Yn){
 			if(stator->UVNY[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVY[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVY[Y];
-		you.floorNorm[Z] = stator->UVY[Z];
+		you.floorNorm[X] = stator->UVNY[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNY[Y];
+		you.floorNorm[Z] = stator->UVNY[Z];
 		
-	standing_surface_alignment(stator->UVY, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -266,11 +475,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		
 			if(stator->UVY[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVNY[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVNY[Y];
-		you.floorNorm[Z] = stator->UVNY[Z];
+		you.floorNorm[X] = stator->UVY[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVY[Y];
+		you.floorNorm[Z] = stator->UVY[Z];
 		
-	standing_surface_alignment(stator->UVY, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -294,11 +503,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		
 			if(stator->UVZ[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVNZ[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVNZ[Y];
-		you.floorNorm[Z] = stator->UVNZ[Z];
+		you.floorNorm[X] = stator->UVZ[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVZ[Y];
+		you.floorNorm[Z] = stator->UVZ[Z];
 		
-	standing_surface_alignment(stator->UVZ, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -322,11 +531,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		
 			if(stator->UVNZ[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVZ[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVZ[Y];
-		you.floorNorm[Z] = stator->UVZ[Z];
+		you.floorNorm[X] = stator->UVNZ[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNZ[Y];
+		you.floorNorm[Z] = stator->UVNZ[Z];
 		
-	standing_surface_alignment(stator->UVZ, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -350,11 +559,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 
 			if(stator->UVX[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVNX[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVNX[Y];
-		you.floorNorm[Z] = stator->UVNX[Z];
+		you.floorNorm[X] = stator->UVX[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVX[Y];
+		you.floorNorm[Z] = stator->UVX[Z];
 		
-	standing_surface_alignment(stator->UVX, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -378,11 +587,11 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 
 			if(stator->UVNX[Y] < -32768){
 		
-		you.floorNorm[X] = stator->UVX[X]; //[could just use UVY instead of -UVNY]
-		you.floorNorm[Y] = stator->UVX[Y];
-		you.floorNorm[Z] = stator->UVX[Z];
+		you.floorNorm[X] = stator->UVNX[X]; //[could just use UVY instead of -UVNY]
+		you.floorNorm[Y] = stator->UVNX[Y];
+		you.floorNorm[Z] = stator->UVNX[Z];
 		
-	standing_surface_alignment(stator->UVX, you.rot);
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));

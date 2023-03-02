@@ -107,6 +107,11 @@ void	player_draw(void)
 		pl_model.prematrix = (FIXED*)&pl_RBB;
 		wings.prematrix = (FIXED*)&pl_RBB;
 		
+		if(you.hitWall == true)
+		{
+		standing_surface_alignment(you.wallNorm, you.renderRot);
+		}
+		
 //Animation Chains
 					static int airTimer = 0;
 			if(pl_model.file_done == true){

@@ -54,9 +54,9 @@ void	makeBoundBox(_object_arguments * source_data)
 	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
 	source_data->modified_box->prevPos[Z] = source_data->modified_box->pos[Z];
 	//Give the box its location
-	source_data->modified_box->pos[X] = -source_data->x_location;
-	source_data->modified_box->pos[Y] = -source_data->y_location;
-	source_data->modified_box->pos[Z] = -source_data->z_location;
+	source_data->modified_box->pos[X] = source_data->x_location;
+	source_data->modified_box->pos[Y] = source_data->y_location;
+	source_data->modified_box->pos[Z] = source_data->z_location;
 	//Give the box its rotation
 	source_data->modified_box->boxRot[X] = source_data->x_rotation;
 	source_data->modified_box->boxRot[Y] = source_data->y_rotation;

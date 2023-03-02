@@ -76,6 +76,7 @@ typedef struct {
 	FIXED prevPos[XYZ];
 	int id;
 	int rot[XYZ]; //It needs to be an INT... NO IDEA WHY...
+	int rot2[XYZ];
 	int renderRot[XYZ];
 	ANGLE viewRot[XYZ];
 	int rotState[XYZ];

@@ -74,15 +74,15 @@ void reset_player(void)
 
 void pl_jump(void){
 		if(you.velocity[Y] > 0){
-			you.velocity[Y] = fxm(you.floorNorm[Y], you.velocity[Y]);
+			you.velocity[Y] = -fxm(you.floorNorm[Y], you.velocity[Y]);
 		} else {
 			you.velocity[Y] = 0;
 		}
 		you.hitSurface = false;
 		you.pos[Y] += (GRAVITY);
-			you.velocity[X] += fxm(196608, you.floorNorm[X]); 
-			you.velocity[Y] += fxm(196608, you.floorNorm[Y]);
-			you.velocity[Z] += fxm(196608, you.floorNorm[Z]);
+			you.velocity[X] -= fxm(196608, you.floorNorm[X]); 
+			you.velocity[Y] -= fxm(196608, you.floorNorm[Y]);
+			you.velocity[Z] -= fxm(196608, you.floorNorm[Z]);
 		pcm_play(snd_bstep, PCM_SEMI, 7);
 }
 
@@ -213,7 +213,7 @@ void	player_phys_affect(void)
 	if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
 	{
 				//Release from surface
-				you.hitWall = false;
+				//you.hitWall = false;
 				you.hitSurface = false; 
 	}
 	
@@ -229,11 +229,31 @@ void	player_phys_affect(void)
 	you.viewRot[Y] -= you.rotState[X];
 	
 	//Make the velocity unit vector from the current player's rotation.
+	// Why isn't this the Z-unit vector of the player's bound box?
+	// Sometimes, you can push player off-axis of model's rotation.
+	if(you.setSlide != true)
+	{
 	you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
 	you.ControlUV[Y] = slSin(you.renderRot[X]);
 	you.ControlUV[Z] = fxm(slCos(you.rot[Y]), slCos(you.renderRot[X]));
+	// you.ControlUV[X] = pl_RBB.UVZ[X];
+    // you.ControlUV[Y] = pl_RBB.UVZ[Y];
+    // you.ControlUV[Z] = pl_RBB.UVZ[Z];
+	} else if(you.setSlide == true){
+	you.ControlUV[X] = fxm(slSin(you.rot2[Y]), slCos(you.renderRot[X]));
+	you.ControlUV[Y] = slSin(you.renderRot[X]);
+	you.ControlUV[Z] = fxm(slCos(you.rot2[Y]), slCos(you.renderRot[X]));
+	} else if(you.climbing == true)
+	{
+	you.ControlUV[X] = pl_RBB.UVZ[X];
+    you.ControlUV[Y] = pl_RBB.UVZ[Y];
+    you.ControlUV[Z] = pl_RBB.UVZ[Z];
+	}
 	
+	if(!you.climbing)
+	{
 	smart_cam();
+	}
 	//
 	
 	//F = m * a : This comment means nothing. This math isn't here nor there.
@@ -269,13 +289,13 @@ void	player_phys_affect(void)
 	if(you.hitSurface == true){
 		///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
 		///Also, stiction. You shouldn't ALWAYS slide :)
-		gravAcc[X] = fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
-		gravAcc[Y] = fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
-		gravAcc[Z] = fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
+		gravAcc[X] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
+		gravAcc[Y] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
+		gravAcc[Z] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
 		you.velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
-		you.velocity[Y] -= (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
+		you.velocity[Y] += (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
 		you.velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
-		you.velocity[Y] -= fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
+		you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 		//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
 		if(you.hitObject || you.hitBox){
 			//Because your velocity is added to the floor position in this case, subtract it.
@@ -316,20 +336,6 @@ void	player_phys_affect(void)
 		}
 		nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
 
-	//Wall Collision Decisions
-	if(you.hitWall == true){
-		//'wallPos' is a negative world-space position, that is calculated with player velocity added. So subtract it.
-	you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]) - you.velocity[X];
-	you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]) - you.velocity[Y];
-	you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]) - you.velocity[Z];
-	
-	you.velocity[X] += (you.velocity[X] > 0) ? -fxm(you.wallNorm[X], you.velocity[X]) : fxm(you.wallNorm[X], you.velocity[X]);
-	you.velocity[Y] += (you.velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.velocity[Y]) : fxm(you.wallNorm[Y], you.velocity[Y]);
-	you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
-	//Wall Math is Done
-	you.hitWall = false;
-	if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
-	}
 	//
 		//velocity add by input decisions
 		//Acclimate speed on each axis to your rotation on each axis defined by two-axis input
@@ -347,6 +353,35 @@ void	player_phys_affect(void)
 			you.velocity[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
 			you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
 		}
+		
+	//Wall Collision Decisions
+	if(you.hitWall == true){
+		//'wallPos' is a negative world-space position, that is calculated with player velocity added. So subtract it.
+	// you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]) - you.velocity[X];
+	// you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]) - you.velocity[Y];
+	// you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]) - you.velocity[Z];
+	
+	// you.velocity[X] += (you.velocity[X] > 0) ? -fxm(you.wallNorm[X], you.velocity[X]) : fxm(you.wallNorm[X], you.velocity[X]);
+	// you.velocity[Y] += (you.velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.velocity[Y]) : fxm(you.wallNorm[Y], you.velocity[Y]);
+	// you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
+
+	// you.hitWall = false;
+	
+	you.climbing = true;
+	you.pos[X] = -(you.wallPos[X]);// + pl_RBB.Yneg[X]);
+	you.pos[Y] = -(you.wallPos[Y]);// + pl_RBB.Yneg[Y]);
+	you.pos[Z] = -(you.wallPos[Z]);// + pl_RBB.Yneg[Z]);
+	
+	you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
+	you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
+	you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
+	
+	you.sanics = 0;
+	// you.rot[Y] = 0;
+	// you.renderRot[Y] = 0;
+	//standing_surface_alignment(you.wallNorm, you.renderRot);
+	if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
+	}
 
 	//Add your speed to your position (incremental / per-frame)
 	you.pos[X] += fxm(you.velocity[X], frmul);
@@ -408,7 +443,7 @@ void	player_phys_affect(void)
 	you.moment[Y] = fxm(you.mass, you.velocity[Y]);
 	you.moment[Z] = fxm(you.mass, you.velocity[Z]);
 	//
-	if(you.hitWall != true){
+	if(you.hitWall != true || you.climbing == true){
 	you.prevPos[X] = you.pos[X];
 	you.prevPos[Y] = you.pos[Y];
 	you.prevPos[Z] = you.pos[Z];
@@ -424,6 +459,7 @@ void	player_phys_affect(void)
 	// nbg_sprintf(1, 6, "x(%i)", you.renderRot[X]);
 	// nbg_sprintf(1, 7, "y(%i)", you.renderRot[Y]);
 	// nbg_sprintf(1, 8, "z(%i)", you.renderRot[Z]);
+
 	
 	bound_box_starter.modified_box = &pl_RBB;
 	bound_box_starter.x_location = you.pos[X];
@@ -439,20 +475,21 @@ void	player_phys_affect(void)
 	bound_box_starter.z_radius = 5<<16;
 			
 		make2AxisBox(&bound_box_starter);
+		//Why is this here?
+		// I used to align by angles. Now I align to a matrix.
+		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
+		// By aligning with a matrix, a new matrix is used instead of the one from make2AxisBox.
+		// So that is pasted in to the box here.
+		finalize_alignment(bound_box_starter.modified_box);
 		//The player's velocity is calculated independent of an actual value, so use it here instead.
 		pl_RBB.velocity[X] = you.velocity[X];
 		pl_RBB.velocity[Y] = you.velocity[Y];
 		pl_RBB.velocity[Z] = you.velocity[Z];
-		if(you.setSlide) //Rotational logic changes based on what movement state you are in.
-		{				//This is *after* the rotation is set to the matrix so that when it is drawn (by slave SH2), it is appropriate.
-				you.renderRot[X] = you.rot[X];
-				you.renderRot[Y] = -you.viewRot[Y];
-				you.renderRot[Z] = you.rot[Z];
-		} else {
-				you.renderRot[X] = you.rot[X];
-				you.renderRot[Y] = you.rot[Y];
-				you.renderRot[Z] = you.rot[Z];
-		}
+
+		you.renderRot[X] = you.rot[X];
+		you.renderRot[Y] = you.rot[Y];
+		you.renderRot[Z] = you.rot[Z];
+
 
 	pl_RBB.boxID = 0;
 	pl_RBB.status[0] = 'R';	
@@ -511,7 +548,10 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.hitSurface = true;
 	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, lowPoint);
-	standing_surface_alignment(nyTriNorm2, you.renderRot);
+	you.floorNorm[X] = -nyTriNorm2[X];
+	you.floorNorm[Y] = -nyTriNorm2[Y];
+	you.floorNorm[Z] = -nyTriNorm2[Z];
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
@@ -519,15 +559,15 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.shadowPos[X] = lowPoint[X];
 	you.shadowPos[Y] = lowPoint[Y];
 	you.shadowPos[Z] = lowPoint[Z];
-	you.floorNorm[X] = nyTriNorm2[X];
-	you.floorNorm[Y] = nyTriNorm2[Y];
-	you.floorNorm[Z] = nyTriNorm2[Z];
 } else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (you.hitObject == false && you.hitBox == false)){
 	you.hitMap = true;
 	you.hitSurface = true;
 	
 	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, 1<<16, lowPoint);
-	standing_surface_alignment(nyTriNorm1, you.renderRot);
+	you.floorNorm[X] = -nyTriNorm1[X];
+	you.floorNorm[Y] = -nyTriNorm1[Y];
+	you.floorNorm[Z] = -nyTriNorm1[Z];
+	standing_surface_alignment(you.floorNorm, you.renderRot);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
@@ -535,9 +575,6 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.shadowPos[X] = lowPoint[X];
 	you.shadowPos[Y] = lowPoint[Y];
 	you.shadowPos[Z] = lowPoint[Z];
-	you.floorNorm[X] = nyTriNorm1[X];
-	you.floorNorm[Y] = nyTriNorm1[Y];
-	you.floorNorm[Z] = nyTriNorm1[Z];
 	
 } else {
 	//Find Floor on Map, if not above an object
@@ -569,11 +606,11 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			//"0xFFFF" is the elasticity factor. Here, it's just 1.
-			FIXED deflectionFactor = -fxdot(you.velocity, you.floorNorm);
+			FIXED deflectionFactor = fxdot(you.velocity, you.floorNorm);
 			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] += fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
-			you.velocity[Y] += fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
-			you.velocity[Z] += fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 
 			
 
 			firstSurfHit = true;

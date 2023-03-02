@@ -25,9 +25,9 @@ void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);
 void	fxrotX(int * v_in, int * v_out, int angle);
 void	fxrotY(int * v_in, int * v_out, int angle);
 void	fxrotZ(int * v_in, int * v_out, int angle);
-void	invrotX(int * v_in, int * v_out, int angle);
-void	invrotY(int * v_in, int * v_out, int angle);
-void	invrotZ(int * v_in, int * v_out, int angle);
+void	fxRotLocalAxis(int * mtx, int * axis, int angle);
+void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix);
+void	zero_matrix(int * mtx);
 
 void	cpy3(FIXED * dst, FIXED * src);
 
