@@ -50,27 +50,35 @@ void controls(void)
 		you.dirInp = false;
 	if(is_key_down(DIGI_UP) && is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = (45 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = (45 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_UP) && is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -(45 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = -(45 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = (135 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = (135 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN) && is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -(135 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = -(135 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_UP)){
 		you.rot[Y] = -you.viewRot[Y]; 
+		you.rot2[Y] = 0;
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_DOWN)){
 		you.rot[Y] = -(180 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = -(180 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_LEFT)){
 		you.rot[Y] = -(90 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = -(90 * 182);
 		you.dirInp = true;
 	} else if(is_key_down(DIGI_RIGHT)){
 		you.rot[Y] = (90 * 182) - you.viewRot[Y]; 
+		you.rot2[Y] = (90 * 182);
 		you.dirInp = true;
 	}
 	
@@ -82,7 +90,6 @@ void controls(void)
 		
 	if(is_key_down(DIGI_L) ){
 		you.setSlide = true;
-		you.rot2[Y] = you.rot[Y];
 		you.rot[Y] = -you.viewRot[Y];
 	} else {
 		you.setSlide = false;

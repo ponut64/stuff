@@ -219,28 +219,21 @@ Process, follow comments.
 
 */
 
-static int fwdYmtx[XYZ][XYZ];
-
 static int plane_matrix[XYZ][XYZ];
 
 //Zero-out plane matrix
-zero_matrix(fwdYmtx[0]);
 zero_matrix(plane_matrix[0]);
 
 plane_matrix[Y][X] = surface_normal[X];
 plane_matrix[Y][Y] = surface_normal[Y];
 plane_matrix[Y][Z] = surface_normal[Z];
+int used_angle = you.rot2[Y];
 
-// Rotation unit vector X
-int rruX[3] = {1<<16, 0, 0};
-
-// Rotation unit vector Z
-int rruZ[3] = {0, 0, 1<<16};
+short colr1;
+short colr2;
+short colr3;
 
 int rruY[3] = {0, 1<<16, 0};
-
-//Initialize this part of the forward-Y matrix
-fwdYmtx[Y][Y] = 1<<16;
 
 /*
 
@@ -248,6 +241,9 @@ The following code chunk generates axis-aligned unit matrix data from the normal
 It does so with respect to the major axis of the normal and its sign.
 
 */
+int angax = 0;
+int angaz = 0;
+
 if(JO_ABS(surface_normal[Y]) > 32768)
 {
 	if(surface_normal[Y] < 0)
@@ -256,33 +252,37 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 16834);
 		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
 		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
-		
-		fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
-		fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
+		used_angle = (you.rot[Y]);
+		colr3 = 1;
 	} else {
 		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
-		fxrotZ(plane_matrix[Y], plane_matrix[X], 16834);
+		fxrotZ(plane_matrix[Y], plane_matrix[X], 49152);
 		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
-		fxrotX(plane_matrix[Y], plane_matrix[Z], -16384);
-		
-		fxrotY(rruX, fwdYmtx[X], -(you.rot[Y] + (180 * 182)));
-		fxrotY(rruZ, fwdYmtx[Z], -(you.rot[Y] + (180 * 182)));
+		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		used_angle = (you.rot2[Y]);
+		colr3 = 10;
 	}
 	//These have to be zeroed-out since they must be axis-aligned.
 	//Otherwise, they would inherit these portions of the surface normal!
 	//Notice: this means these have to be re-normalized.
 	plane_matrix[X][Z] = 0;
 	plane_matrix[Z][X] = 0;
+	colr1 = 7;
+	colr2 = 15;
 } else if(JO_ABS(surface_normal[X]) > 32768){
 
 	if(surface_normal[X] > 0)
 	{
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 16384);
 		fxrotY(plane_matrix[Y], plane_matrix[Z], 16384);
+		used_angle = (you.rot2[Y] + 16384);
+		colr3 = 1;
 	} else {
 		//This may not be right.
 		fxrotZ(plane_matrix[Y], plane_matrix[X], -16384);
-		fxrotY(plane_matrix[Y], plane_matrix[Z], -16384);
+		fxrotY(plane_matrix[Y], plane_matrix[Z], 16384);
+		used_angle = (you.rot2[Y] + 16384);
+		colr3 = 10;
 	}
 	
 	//These have to be zeroed-out since they must be axis-aligned.
@@ -290,35 +290,79 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 	//Notice: this means these have to be re-normalized.
 	plane_matrix[X][Z] = 0;
 	plane_matrix[Z][Y] = 0;
-	
-	fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
-	fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
-} else if(JO_ABS(surface_normal[Z]) > 32768)
-{
+	colr1 = 23;
+	colr2 = 31;
+} else {
+	//(Z branch)
 
 	if(surface_normal[Z] > 0)
 	{
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
 		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		colr3 = 1;
+		used_angle = (you.rot2[Y]);
 	} else {
 		//This may not be right.
-		fxrotY(plane_matrix[Y], plane_matrix[X], -16384);
+		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
 		fxrotX(plane_matrix[Y], plane_matrix[Z], -16384);
+		used_angle = (you.rot2[Y]);
+		colr3 = 10;
 	}
 	//These have to be zeroed-out since they must be axis-aligned.
 	//Otherwise, they would inherit these portions of the surface normal!
 	//Notice: this means these have to be re-normalized.
 	plane_matrix[X][Y] = 0;
 	plane_matrix[Z][X] = 0;
-	
-	fxrotY(rruX, fwdYmtx[X], you.rot[Y]);
-	fxrotY(rruZ, fwdYmtx[Z], you.rot[Y]);
+	colr1 = 39;
+	colr2 = 47;
 }
 
 // accurate_normalize(fwdYmtx[X], fwdYmtx[X]);
 // accurate_normalize(fwdYmtx[Z], fwdYmtx[Z]);
 accurate_normalize(plane_matrix[X], plane_matrix[X]);
 accurate_normalize(plane_matrix[Z], plane_matrix[Z]);
+
+static short drawposA[3];
+static short drawposB[3];
+static int 	drawposC[3];
+static short drawposD[3];
+static short drawposE[3];
+static short drawposF[3];
+
+drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
+drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
+drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
+
+drawposA[X] = (plane_matrix[Y][X]>>2); 
+drawposA[Y] = (plane_matrix[Y][Y]>>2); 
+drawposA[Z] = (plane_matrix[Y][Z]>>2); 
+
+// drawposB[X] = (rruY[X]>>2); 
+// drawposB[Y] = (rruY[Y]>>2); 
+// drawposB[Z] = (rruY[Z]>>2); 
+				  
+// drawposD[X] = (rruX[X]>>2); 
+// drawposD[Y] = (rruX[Y]>>2); 
+// drawposD[Z] = (rruX[Z]>>2); 
+
+drawposE[X] = (plane_matrix[X][X]>>2); 
+drawposE[Y] = (plane_matrix[X][Y]>>2); 
+drawposE[Z] = (plane_matrix[X][Z]>>2); 
+				  
+drawposF[X] = (plane_matrix[Z][X]>>2); 
+drawposF[Y] = (plane_matrix[Z][Y]>>2); 
+drawposF[Z] = (plane_matrix[Z][Z]>>2); 
+
+// add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
+
+// add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposE, colr1, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposF, colr2, 0, 'L', 0, 2184);
+
+add_to_sprite_list(drawposC, drawposA, colr3, 0, 'L', 0, 2184);
+
 
 //Use an axis-relative rotation.
 /**
@@ -332,7 +376,7 @@ Same for Y and Z, et cetera.
 The axis input into this function is relative to the axis itself.
 In this case, fwdMtx[Y] is {0, 1, 0}, meaning the matrix' Y axis is what I want to rotate around.
 **/
-fxRotLocalAxis(plane_matrix[0], fwdYmtx[Y], you.rot[Y]);
+fxRotLocalAxis(plane_matrix[0], rruY, used_angle);
 
 aMtx[X][X] = plane_matrix[X][X];
 aMtx[X][Y] = plane_matrix[X][Y];
@@ -354,48 +398,6 @@ aMtx[Z][Z] = -plane_matrix[Z][Z];
 // nbg_sprintf(13, 6, "x(%i)", rrX[X]);
 // nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
 // nbg_sprintf(13, 8, "z(%i)", rrX[Z]);
-
-static short drawposA[3];
-static short drawposB[3];
-static int 	drawposC[3];
-static short drawposD[3];
-static short drawposE[3];
-static short drawposF[3];
-
-drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
-drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
-drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
-
-drawposA[X] = (plane_matrix[Y][X]>>2); 
-drawposA[Y] = (plane_matrix[Y][Y]>>2); 
-drawposA[Z] = (plane_matrix[Y][Z]>>2); 
-
-drawposB[X] = (rruY[X]>>2); 
-drawposB[Y] = (rruY[Y]>>2); 
-drawposB[Z] = (rruY[Z]>>2); 
-				  
-drawposD[X] = (rruX[X]>>2); 
-drawposD[Y] = (rruX[Y]>>2); 
-drawposD[Z] = (rruX[Z]>>2); 
-
-drawposE[X] = (plane_matrix[X][X]>>2); 
-drawposE[Y] = (plane_matrix[X][Y]>>2); 
-drawposE[Z] = (plane_matrix[X][Z]>>2); 
-				  
-drawposF[X] = (plane_matrix[Z][X]>>2); 
-drawposF[Y] = (plane_matrix[Z][Y]>>2); 
-drawposF[Z] = (plane_matrix[Z][Z]>>2); 
-
-// add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
-
-// add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposE, 23, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposF, 31, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposA, 1, 0, 'L', 0, 2184);
-
 
 
 }

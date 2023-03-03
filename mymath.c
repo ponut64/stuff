@@ -259,6 +259,7 @@ void	fxrotZ(int * v_in, int * v_out, int angle)
 
 /**
 INPUTS:
+This function is equivalent to slRotAX.
 Matrix: the matrix space the axis is relative to
 Axis: the axis to pivot about (yaw)
 Angle: The angle to rotate about the axis

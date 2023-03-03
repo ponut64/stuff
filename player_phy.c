@@ -233,16 +233,16 @@ void	player_phys_affect(void)
 	// Sometimes, you can push player off-axis of model's rotation.
 	if(you.setSlide != true)
 	{
-	you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
-	you.ControlUV[Y] = slSin(you.renderRot[X]);
-	you.ControlUV[Z] = fxm(slCos(you.rot[Y]), slCos(you.renderRot[X]));
-	// you.ControlUV[X] = pl_RBB.UVZ[X];
-    // you.ControlUV[Y] = pl_RBB.UVZ[Y];
-    // you.ControlUV[Z] = pl_RBB.UVZ[Z];
+	// you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
+	// you.ControlUV[Y] = slSin(you.renderRot[X]);
+	// you.ControlUV[Z] = fxm(slCos(you.rot[Y]), slCos(you.renderRot[X]));
+	you.ControlUV[X] = pl_RBB.UVZ[X];
+    you.ControlUV[Y] = pl_RBB.UVZ[Y];
+    you.ControlUV[Z] = pl_RBB.UVZ[Z];
 	} else if(you.setSlide == true){
-	you.ControlUV[X] = fxm(slSin(you.rot2[Y]), slCos(you.renderRot[X]));
-	you.ControlUV[Y] = slSin(you.renderRot[X]);
-	you.ControlUV[Z] = fxm(slCos(you.rot2[Y]), slCos(you.renderRot[X]));
+	// you.ControlUV[X] = fxm(slSin(you.rot2[Y]), slCos(you.renderRot[X]));
+	// you.ControlUV[Y] = slSin(you.renderRot[X]);
+	// you.ControlUV[Z] = fxm(slCos(you.rot2[Y]), slCos(you.renderRot[X]));
 	} else if(you.climbing == true)
 	{
 	you.ControlUV[X] = pl_RBB.UVZ[X];
@@ -368,9 +368,9 @@ void	player_phys_affect(void)
 	// you.hitWall = false;
 	
 	you.climbing = true;
-	you.pos[X] = -(you.wallPos[X]);// + pl_RBB.Yneg[X]);
-	you.pos[Y] = -(you.wallPos[Y]);// + pl_RBB.Yneg[Y]);
-	you.pos[Z] = -(you.wallPos[Z]);// + pl_RBB.Yneg[Z]);
+	you.pos[X] = -(you.wallPos[X] + pl_RBB.Yneg[X]);
+	you.pos[Y] = -(you.wallPos[Y] + pl_RBB.Yneg[Y]);
+	you.pos[Z] = -(you.wallPos[Z] + pl_RBB.Yneg[Z]);
 	
 	you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
 	you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
