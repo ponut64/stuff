@@ -90,7 +90,7 @@ void controls(void)
 		
 	if(is_key_down(DIGI_L) ){
 		you.setSlide = true;
-		you.rot[Y] = -you.viewRot[Y];
+		//you.rot[Y] = -you.viewRot[Y];
 	} else {
 		you.setSlide = false;
 	}

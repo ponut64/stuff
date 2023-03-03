@@ -109,7 +109,7 @@ void	player_draw(void)
 		
 		if(you.hitWall == true)
 		{
-		standing_surface_alignment(you.wallNorm, you.renderRot);
+		standing_surface_alignment(you.wallNorm);
 		}
 		
 //Animation Chains

@@ -233,30 +233,28 @@ void	player_phys_affect(void)
 	you.viewRot[X] += you.rotState[Y];
 	you.viewRot[Y] -= you.rotState[X];
 	
-	//Make the velocity unit vector from the current player's rotation.
-	// Why isn't this the Z-unit vector of the player's bound box?
-	// Sometimes, you can push player off-axis of model's rotation.
+	static int slide_control_matrix[9];
+	//The control unit vector is using the player's bound box / matrix parameters.
+	//In this case, it's the forward vector.
+	//When we are sliding, the player's orientation is locked, but the control vector is allowed to be off-axis.
+	//To facilitate this, we have to rotate about the local axis once more.
 	if(you.setSlide != true || you.climbing == true)
 	{
-	// you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
-	// you.ControlUV[Y] = slSin(you.renderRot[X]);
-	// you.ControlUV[Z] = fxm(slCos(you.rot[Y]), slCos(you.renderRot[X]));
 	you.ControlUV[X] = pl_RBB.UVZ[X];
     you.ControlUV[Y] = pl_RBB.UVZ[Y];
     you.ControlUV[Z] = pl_RBB.UVZ[Z];
 	} else if(you.setSlide == true)
 	{
-	// you.ControlUV[X] = fxm(slSin(you.rot2[Y]), slCos(you.renderRot[X]));
-	// you.ControlUV[Y] = slSin(you.renderRot[X]);
-	// you.ControlUV[Z] = fxm(slCos(you.rot2[Y]), slCos(you.renderRot[X]));
+	copy_matrix(slide_control_matrix, &pl_RBB.UVX[0]);
+	fxRotLocalAxis(slide_control_matrix, alwaysHigh, -you.rot2[Y]);
+	you.ControlUV[X] = slide_control_matrix[6];
+    you.ControlUV[Y] = slide_control_matrix[7];
+    you.ControlUV[Z] = slide_control_matrix[8];
+	you.rot[Y] = -you.viewRot[Y];
 	}
-	
-//	if(!you.climbing)
-	//{
+
 	smart_cam();
-	//}
-	//
-	
+
 	//F = m * a : This comment means nothing. This math isn't here nor there.
 	//A = F / M :
 	
@@ -378,9 +376,6 @@ void	player_phys_affect(void)
 	you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
 	
 	you.sanics = 0;
-	// you.rot[Y] = 0;
-	// you.renderRot[Y] = 0;
-	//standing_surface_alignment(you.wallNorm, you.renderRot);
 	if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
 	}
 
@@ -559,7 +554,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.floorNorm[X] = -nyTriNorm2[X];
 	you.floorNorm[Y] = -nyTriNorm2[Y];
 	you.floorNorm[Z] = -nyTriNorm2[Z];
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
@@ -575,7 +570,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.floorNorm[X] = -nyTriNorm1[X];
 	you.floorNorm[Y] = -nyTriNorm1[Y];
 	you.floorNorm[Z] = -nyTriNorm1[Z];
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 
 	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
 	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));

@@ -465,7 +465,7 @@ if(you.hitSurface && last_floor_entity == ent)
 						you.floorNorm[Y] = used_normal[Y];
 						you.floorNorm[Z] = used_normal[Z];
 						
-						standing_surface_alignment(you.floorNorm, you.renderRot);
+						standing_surface_alignment(you.floorNorm);
 						
 						you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 						you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
@@ -614,7 +614,7 @@ for(int i = 0; i < total_planes; i++)
 								you.floorNorm[Y] = used_normal[Y];
 								you.floorNorm[Z] = used_normal[Z];
 								
-								standing_surface_alignment(you.floorNorm, you.renderRot);
+								standing_surface_alignment(you.floorNorm);
 								
 								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
 								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));

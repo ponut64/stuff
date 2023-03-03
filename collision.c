@@ -209,7 +209,7 @@ fmtx->Zneg[Z] = -fmtx->Zplus[Z];
 	
 }
 
-void	standing_surface_alignment(FIXED * surface_normal, int * output)
+void	standing_surface_alignment(FIXED * surface_normal)
 {
 	
 /*
@@ -229,9 +229,9 @@ plane_matrix[Y][Y] = surface_normal[Y];
 plane_matrix[Y][Z] = surface_normal[Z];
 int used_angle = you.rot2[Y];
 
-short colr1;
-short colr2;
-short colr3;
+// short colr1;
+// short colr2;
+// short colr3;
 
 int rruY[3] = {0, 1<<16, 0};
 
@@ -252,7 +252,7 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		//Now the Z axis should be the cross product of Y axis and X axis
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot[Y]);
-		colr3 = 1;
+		//colr3 = 1;
 	} else {
 		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+270)
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 49152);
@@ -261,11 +261,11 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		//Now the Z axis should be the cross product of Y axis and X axis
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y]);
-		colr3 = 10;
+		//colr3 = 10;
 	}
 
-	colr1 = 7;
-	colr2 = 15;
+	//colr1 = 7;
+	//colr2 = 15;
 } else if(JO_ABS(surface_normal[X]) > 32768)
 {
 	//X branch
@@ -277,17 +277,17 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		plane_matrix[X][Z] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y] + 16384);
-		colr3 = 1;
+		//colr3 = 1;
 	} else {
 		fxrotZ(plane_matrix[Y], plane_matrix[X], -16384);
 		plane_matrix[X][Z] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y] + 16384);
-		colr3 = 10;
+		//colr3 = 10;
 	}
 	
-	colr1 = 23;
-	colr2 = 31;
+	//colr1 = 23;
+	//colr2 = 31;
 } else {
 	//(Z branch)
 	//The X axis is instead found with a Y rotation, instead of a Z rotation.
@@ -297,18 +297,18 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
 		plane_matrix[X][Y] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		colr3 = 1;
+		//colr3 = 1;
 		used_angle = (you.rot2[Y]);
 	} else {
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
 		plane_matrix[X][Y] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y]);
-		colr3 = 10;
+		//colr3 = 10;
 	}
 
-	colr1 = 39;
-	colr2 = 47;
+	//colr1 = 39;
+	//colr2 = 47;
 }
 
 accurate_normalize(plane_matrix[X], plane_matrix[X]);
@@ -340,7 +340,6 @@ aMtx[Z][Z] = -plane_matrix[Z][Z];
 
 //finalize_alignment(&pl_RBB);
 
-
 // nbg_sprintf(1, 6, "x(%i)", surface_normal[X]);
 // nbg_sprintf(1, 7, "y(%i)", surface_normal[Y]);
 // nbg_sprintf(1, 8, "z(%i)", surface_normal[Z]);
@@ -349,46 +348,30 @@ aMtx[Z][Z] = -plane_matrix[Z][Z];
 // nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
 // nbg_sprintf(13, 8, "z(%i)", rrX[Z]);
 
-static short drawposA[3];
-static short drawposB[3];
-static int 	drawposC[3];
-static short drawposD[3];
-static short drawposE[3];
-static short drawposF[3];
+// static short drawposA[3];
+// static int 	drawposC[3];
+// static short drawposE[3];
+// static short drawposF[3];
 
-drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
-drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
-drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
+// drawposC[X] = pl_RBB.Yplus[X] - you.pos[X];
+// drawposC[Y] = pl_RBB.Yplus[Y] - you.pos[Y];
+// drawposC[Z] = pl_RBB.Yplus[Z] - you.pos[Z];
 
-drawposA[X] = (plane_matrix[Y][X]>>2); 
-drawposA[Y] = (plane_matrix[Y][Y]>>2); 
-drawposA[Z] = (plane_matrix[Y][Z]>>2); 
+// drawposA[X] = (plane_matrix[Y][X]>>2); 
+// drawposA[Y] = (plane_matrix[Y][Y]>>2); 
+// drawposA[Z] = (plane_matrix[Y][Z]>>2); 
 
-// drawposB[X] = (rruY[X]>>2); 
-// drawposB[Y] = (rruY[Y]>>2); 
-// drawposB[Z] = (rruY[Z]>>2); 
+// drawposE[X] = (plane_matrix[X][X]>>2); 
+// drawposE[Y] = (plane_matrix[X][Y]>>2); 
+// drawposE[Z] = (plane_matrix[X][Z]>>2); 
 				  
-// drawposD[X] = (rruX[X]>>2); 
-// drawposD[Y] = (rruX[Y]>>2); 
-// drawposD[Z] = (rruX[Z]>>2); 
+// drawposF[X] = (plane_matrix[Z][X]>>2); 
+// drawposF[Y] = (plane_matrix[Z][Y]>>2); 
+// drawposF[Z] = (plane_matrix[Z][Z]>>2); 
 
-drawposE[X] = (plane_matrix[X][X]>>2); 
-drawposE[Y] = (plane_matrix[X][Y]>>2); 
-drawposE[Z] = (plane_matrix[X][Z]>>2); 
-				  
-drawposF[X] = (plane_matrix[Z][X]>>2); 
-drawposF[Y] = (plane_matrix[Z][Y]>>2); 
-drawposF[Z] = (plane_matrix[Z][Z]>>2); 
-
-// add_to_sprite_list(drawposC, drawposB, 7, 0, 'L', 0, 2184);
-
-// add_to_sprite_list(drawposC, drawposD, 15, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposE, colr1, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposF, colr2, 0, 'L', 0, 2184);
-
-add_to_sprite_list(drawposC, drawposA, colr3, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposE, colr1, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposF, colr2, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposA, colr3, 0, 'L', 0, 2184);
 
 
 }
@@ -444,7 +427,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNY[Y];
 		you.floorNorm[Z] = stator->UVNY[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -472,7 +455,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVY[Y];
 		you.floorNorm[Z] = stator->UVY[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -500,7 +483,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVZ[Y];
 		you.floorNorm[Z] = stator->UVZ[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -528,7 +511,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNZ[Y];
 		you.floorNorm[Z] = stator->UVNZ[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -556,7 +539,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVX[Y];
 		you.floorNorm[Z] = stator->UVX[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
@@ -584,7 +567,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.floorNorm[Y] = stator->UVNX[Y];
 		you.floorNorm[Z] = stator->UVNX[Z];
 		
-	standing_surface_alignment(you.floorNorm, you.renderRot);
+	standing_surface_alignment(you.floorNorm);
 		
 	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
 	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));

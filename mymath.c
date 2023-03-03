@@ -338,6 +338,14 @@ void	zero_matrix(int * mtx)
 	}
 }
 
+void	copy_matrix(int * mtx_dst, int * mtx_src)
+{
+	for(int i = 0; i < 9; i++)
+	{
+		mtx_dst[i] = mtx_src[i];
+	}
+}
+
 void	cpy3(FIXED * dst, FIXED * src)
 {
 	dst[X] = src[X];
