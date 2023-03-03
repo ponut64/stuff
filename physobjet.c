@@ -112,7 +112,8 @@ void	declarations(void)
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
 /* level01? */
-//Discocovery: if its X+, just add another 1 to its X.
+
+declare_object_at_cell(-(180 / 40) + 1, -200, -(340 / 40), 22 /*ramp01*/, 0, 180, 0, 0);
 
 declare_object_at_cell(-(180 / 40) + 1, -120, -(660 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
@@ -135,8 +136,6 @@ declare_object_at_cell(-(180 / 40) + 1, -120, -(660 / 40), 61 /*start location*/
 // declare_object_at_cell(-(1020 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 0, 10, 0);
 
 // declare_object_at_cell((660 / 40) + 1, -377, (1180 / 40), 25 /*float01*/, 0, 90, 0, 0);
-
-declare_object_at_cell(-(180 / 40) + 1, -200, -(340 / 40), 22 /*ramp01*/, 0, 180, 0, 0);
 
 // declare_object_at_cell(-(180 / 40) + 1, -179, -(340 / 40), 33 /*ramp01*/, 0, 0, 0, 0);
 // declare_object_at_cell(-(100 / 40) + 1, -347, -(1260 / 40), 33 /*ramp01*/, 0, -90, 0, 0);

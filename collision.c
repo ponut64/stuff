@@ -241,86 +241,113 @@ The following code chunk generates axis-aligned unit matrix data from the normal
 It does so with respect to the major axis of the normal and its sign.
 
 */
-int angax = 0;
-int angaz = 0;
-
 if(JO_ABS(surface_normal[Y]) > 32768)
 {
 	if(surface_normal[Y] < 0)
 	{
 		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 16834);
-		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
-		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		//To find the Z axis, first we must axis-align the X axis. We do this by ensuring it has no Z.
+		plane_matrix[X][Z] = 0;
+		//Now the Z axis should be the cross product of Y axis and X axis
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot[Y]);
 		colr3 = 1;
 	} else {
-		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+90)
+		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+270)
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 49152);
-		//Find the Z axis of the floor's matrix (from rotating the Y axis by X+90)
-		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		//To find the Z axis, first we must axis-align the X axis. We do this by ensuring it has no Z.
+		plane_matrix[X][Z] = 0;
+		//Now the Z axis should be the cross product of Y axis and X axis
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y]);
 		colr3 = 10;
 	}
-	//These have to be zeroed-out since they must be axis-aligned.
-	//Otherwise, they would inherit these portions of the surface normal!
-	//Notice: this means these have to be re-normalized.
-	plane_matrix[X][Z] = 0;
-	plane_matrix[Z][X] = 0;
+
 	colr1 = 7;
 	colr2 = 15;
-} else if(JO_ABS(surface_normal[X]) > 32768){
+} else if(JO_ABS(surface_normal[X]) > 32768)
+{
+	//X branch
+	//The X axis can be found with the same rule.
 
 	if(surface_normal[X] > 0)
 	{
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 16384);
-		fxrotY(plane_matrix[Y], plane_matrix[Z], 16384);
+		plane_matrix[X][Z] = 0; //(Axis-alignment)
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y] + 16384);
 		colr3 = 1;
 	} else {
-		//This may not be right.
 		fxrotZ(plane_matrix[Y], plane_matrix[X], -16384);
-		fxrotY(plane_matrix[Y], plane_matrix[Z], 16384);
+		plane_matrix[X][Z] = 0; //(Axis-alignment)
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y] + 16384);
 		colr3 = 10;
 	}
 	
-	//These have to be zeroed-out since they must be axis-aligned.
-	//Otherwise, they would inherit these portions of the surface normal!
-	//Notice: this means these have to be re-normalized.
-	plane_matrix[X][Z] = 0;
-	plane_matrix[Z][Y] = 0;
 	colr1 = 23;
 	colr2 = 31;
 } else {
 	//(Z branch)
+	//The X axis is instead found with a Y rotation, instead of a Z rotation.
 
 	if(surface_normal[Z] > 0)
 	{
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
-		fxrotX(plane_matrix[Y], plane_matrix[Z], 16384);
+		plane_matrix[X][Y] = 0; //(Axis-alignment)
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		colr3 = 1;
 		used_angle = (you.rot2[Y]);
 	} else {
-		//This may not be right.
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
-		fxrotX(plane_matrix[Y], plane_matrix[Z], -16384);
+		plane_matrix[X][Y] = 0; //(Axis-alignment)
+		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		used_angle = (you.rot2[Y]);
 		colr3 = 10;
 	}
-	//These have to be zeroed-out since they must be axis-aligned.
-	//Otherwise, they would inherit these portions of the surface normal!
-	//Notice: this means these have to be re-normalized.
-	plane_matrix[X][Y] = 0;
-	plane_matrix[Z][X] = 0;
+
 	colr1 = 39;
 	colr2 = 47;
 }
 
-// accurate_normalize(fwdYmtx[X], fwdYmtx[X]);
-// accurate_normalize(fwdYmtx[Z], fwdYmtx[Z]);
 accurate_normalize(plane_matrix[X], plane_matrix[X]);
 accurate_normalize(plane_matrix[Z], plane_matrix[Z]);
+
+//Use an axis-relative rotation.
+/**
+Special Note:
+NO ONE WILL TELL YOU THIS, BUT...
+Rotation-about-axis (fxRotLocalAxis), and the math associated with it, uses a **MATRIX-SPACE** axis.
+That means if you put (1, 0, 0) as the axis, it does NOT rotate about GLOBAL (1, 0, 0).
+It rotates about (1, 0, 0) COMMUTED THROUGH THE MATRIX, e.g. the matrix' local X axis.
+It may seem obvious to some, but if you want to rotate about the global X axis, you just rotate by X.
+Same for Y and Z, et cetera.
+The axis input into this function is relative to the axis itself.
+In this case, fwdMtx[Y] is {0, 1, 0}, meaning the matrix' Y axis is what I want to rotate around.
+**/
+fxRotLocalAxis(plane_matrix[0], rruY, used_angle);
+
+aMtx[X][X] = plane_matrix[X][X];
+aMtx[X][Y] = plane_matrix[X][Y];
+aMtx[X][Z] = plane_matrix[X][Z];
+aMtx[Y][X] = -plane_matrix[Y][X];
+aMtx[Y][Y] = -plane_matrix[Y][Y];
+aMtx[Y][Z] = -plane_matrix[Y][Z];
+aMtx[Z][X] = -plane_matrix[Z][X];
+aMtx[Z][Y] = -plane_matrix[Z][Y];
+aMtx[Z][Z] = -plane_matrix[Z][Z];
+
+//finalize_alignment(&pl_RBB);
+
+
+// nbg_sprintf(1, 6, "x(%i)", surface_normal[X]);
+// nbg_sprintf(1, 7, "y(%i)", surface_normal[Y]);
+// nbg_sprintf(1, 8, "z(%i)", surface_normal[Z]);
+
+// nbg_sprintf(13, 6, "x(%i)", rrX[X]);
+// nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
+// nbg_sprintf(13, 8, "z(%i)", rrX[Z]);
 
 static short drawposA[3];
 static short drawposB[3];
@@ -362,42 +389,6 @@ add_to_sprite_list(drawposC, drawposE, colr1, 0, 'L', 0, 2184);
 add_to_sprite_list(drawposC, drawposF, colr2, 0, 'L', 0, 2184);
 
 add_to_sprite_list(drawposC, drawposA, colr3, 0, 'L', 0, 2184);
-
-
-//Use an axis-relative rotation.
-/**
-Special Note:
-NO ONE WILL TELL YOU THIS, BUT...
-Rotation-about-axis (fxRotLocalAxis), and the math associated with it, uses a **MATRIX-SPACE** axis.
-That means if you put (1, 0, 0) as the axis, it does NOT rotate about GLOBAL (1, 0, 0).
-It rotates about (1, 0, 0) COMMUTED THROUGH THE MATRIX, e.g. the matrix' local X axis.
-It may seem obvious to some, but if you want to rotate about the global X axis, you just rotate by X.
-Same for Y and Z, et cetera.
-The axis input into this function is relative to the axis itself.
-In this case, fwdMtx[Y] is {0, 1, 0}, meaning the matrix' Y axis is what I want to rotate around.
-**/
-fxRotLocalAxis(plane_matrix[0], rruY, used_angle);
-
-aMtx[X][X] = plane_matrix[X][X];
-aMtx[X][Y] = plane_matrix[X][Y];
-aMtx[X][Z] = plane_matrix[X][Z];
-aMtx[Y][X] = -plane_matrix[Y][X];
-aMtx[Y][Y] = -plane_matrix[Y][Y];
-aMtx[Y][Z] = -plane_matrix[Y][Z];
-aMtx[Z][X] = -plane_matrix[Z][X];
-aMtx[Z][Y] = -plane_matrix[Z][Y];
-aMtx[Z][Z] = -plane_matrix[Z][Z];
-
-//finalize_alignment(&pl_RBB);
-
-
-// nbg_sprintf(1, 6, "x(%i)", surface_normal[X]);
-// nbg_sprintf(1, 7, "y(%i)", surface_normal[Y]);
-// nbg_sprintf(1, 8, "z(%i)", surface_normal[Z]);
-
-// nbg_sprintf(13, 6, "x(%i)", rrX[X]);
-// nbg_sprintf(13, 7, "y(%i)", rrX[Y]);
-// nbg_sprintf(13, 8, "z(%i)", rrX[Z]);
 
 
 }

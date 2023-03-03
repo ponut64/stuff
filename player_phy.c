@@ -177,16 +177,26 @@ void	smart_cam(void)
 	//Smart Camera Setup
 	// "uview" is the discrete vector notation of the player's viewport.
 	VECTOR uview = {-slSin(you.viewRot[Y]), slSin(you.viewRot[X]), slCos(you.viewRot[Y])};
-	// proportion_y is a mathemagical value that is the positive or negative propotion of the view vector,
+	// proportion_y is a mathemagical value that is the positive or negative proportion of the view vector,
 	// as compared to the movement vector. While we are doing multiplication here, it's ostensibly division (these are <1 values).
-	int proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
-	//angDif_y is an expression of how different the movement vector and viewing vector is,
-	//as it relates to the axis that Y view rotation controls (X and Z).
-	short angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
-	
+	int proportion_y;
 	//This is simply the difference between the movement vector's Y and the viewing vector's Y.
 	//prop y and prop x are shifted down to scale it as desired. Magic shift, in other words.
-	int proportion_x = (you.DirUV[Y] - uview[Y])>>7;
+	int proportion_x;
+	//angDif_y is an expression of how different the movement vector and viewing vector is,
+	//as it relates to the axis that Y view rotation controls (X and Z).
+	short angDif_y;
+	if(!you.climbing)
+	{
+		proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
+		proportion_x = (you.DirUV[Y] - uview[Y])>>7;
+		angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
+	} else {
+		proportion_y = (fxm((you.wallNorm[X] - uview[X]),(you.wallNorm[X] - uview[X])) + fxm((you.wallNorm[Z] - uview[Z]),(you.wallNorm[Z] - uview[Z])))>>7;
+		proportion_x = (you.wallNorm[Y] - uview[Y])>>7;
+		angDif_y = (slAtan(you.wallNorm[X], you.wallNorm[Z]) - slAtan(uview[X], uview[Z]));
+	}
+
 	//This angle will amount to a proportion of angle we're not yet facing towards the ground.
 	int propotion_facing_ground = (-32768 - uview[Y])>>7;
 	//Will pivot camera towards direction of motion
@@ -196,11 +206,12 @@ void	smart_cam(void)
 		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
 		you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
 	}
-	if(JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true)
+	if((JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true))
 	{
 		//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
 		//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
-		you.viewRot[X] += (you.hitSurface == true) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
+		//If we are climbing, proportion_x was pre-adjusted so we'll try and look at the wall.
+		you.viewRot[X] += (you.hitSurface == true || you.climbing) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
 
 	}
 	
@@ -210,12 +221,6 @@ static const int airFriction = 65400;
  
 void	player_phys_affect(void)
 {
-	if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
-	{
-				//Release from surface
-				//you.hitWall = false;
-				you.hitSurface = false; 
-	}
 	
 		// nbg_sprintf(1, 6, "hitObject: (%i)", you.hitObject);
 		// nbg_sprintf(1, 7, "hitBox: (%i)", you.hitBox);
@@ -231,7 +236,7 @@ void	player_phys_affect(void)
 	//Make the velocity unit vector from the current player's rotation.
 	// Why isn't this the Z-unit vector of the player's bound box?
 	// Sometimes, you can push player off-axis of model's rotation.
-	if(you.setSlide != true)
+	if(you.setSlide != true || you.climbing == true)
 	{
 	// you.ControlUV[X] = fxm(slSin(you.rot[Y]), slCos(you.renderRot[X]));
 	// you.ControlUV[Y] = slSin(you.renderRot[X]);
@@ -239,21 +244,17 @@ void	player_phys_affect(void)
 	you.ControlUV[X] = pl_RBB.UVZ[X];
     you.ControlUV[Y] = pl_RBB.UVZ[Y];
     you.ControlUV[Z] = pl_RBB.UVZ[Z];
-	} else if(you.setSlide == true){
+	} else if(you.setSlide == true)
+	{
 	// you.ControlUV[X] = fxm(slSin(you.rot2[Y]), slCos(you.renderRot[X]));
 	// you.ControlUV[Y] = slSin(you.renderRot[X]);
 	// you.ControlUV[Z] = fxm(slCos(you.rot2[Y]), slCos(you.renderRot[X]));
-	} else if(you.climbing == true)
-	{
-	you.ControlUV[X] = pl_RBB.UVZ[X];
-    you.ControlUV[Y] = pl_RBB.UVZ[Y];
-    you.ControlUV[Z] = pl_RBB.UVZ[Z];
 	}
 	
-	if(!you.climbing)
-	{
+//	if(!you.climbing)
+	//{
 	smart_cam();
-	}
+	//}
 	//
 	
 	//F = m * a : This comment means nothing. This math isn't here nor there.
@@ -480,7 +481,14 @@ void	player_phys_affect(void)
 		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
 		// By aligning with a matrix, a new matrix is used instead of the one from make2AxisBox.
 		// So that is pasted in to the box here.
+		if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
+		{
+				//Release from surface
+				//you.hitWall = false;
+				you.hitSurface = false; 
+		} else {
 		finalize_alignment(bound_box_starter.modified_box);
+		}
 		//The player's velocity is calculated independent of an actual value, so use it here instead.
 		pl_RBB.velocity[X] = you.velocity[X];
 		pl_RBB.velocity[Y] = you.velocity[Y];
