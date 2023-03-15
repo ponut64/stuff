@@ -77,7 +77,7 @@ _sobject Tladder = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT | LADDER,
+	.ext_dat = BUILD,
 	.light_bright = 0
 };
 
@@ -315,6 +315,15 @@ _sobject Build23 = {
 	.light_bright = 0
 };
 
+_sobject Build24 = {
+	.entity_ID = 35,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -415,6 +424,7 @@ void	fill_obj_list(void)
 	objList[32] = &Build21;
 	objList[33] = &Build22;
 	objList[34] = &Build23;
+	objList[35] = &Build24;
 	
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;

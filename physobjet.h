@@ -16,7 +16,9 @@
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
 #define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
 
+#define SUB_DATA (0xFFF)
 #define LADDER	(0x800)
+#define CLIMBABLE (0xC00)
 
 #define LDATA_TYPE	(0xF00) //Level data type bits
 #define TRACK_DATA	(0x100) //Level data, gate data definition

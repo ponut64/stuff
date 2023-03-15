@@ -43,6 +43,9 @@ void reset_player(void)
 	you.hitSurface = false;
 	you.hitWall = false;
 	you.climbing = false;
+	you.hitObject = false;
+	you.hitBox = false;
+	you.ladder = false;
 	you.okayStepSnd = true;
     you.pos[X]=you.startPos[X];
     you.pos[Y]=you.startPos[Y];
@@ -192,9 +195,9 @@ void	smart_cam(void)
 		proportion_x = (you.DirUV[Y] - uview[Y])>>7;
 		angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
 	} else {
-		proportion_y = (fxm((you.wallNorm[X] - uview[X]),(you.wallNorm[X] - uview[X])) + fxm((you.wallNorm[Z] - uview[Z]),(you.wallNorm[Z] - uview[Z])))>>7;
-		proportion_x = (you.wallNorm[Y] - uview[Y])>>7;
-		angDif_y = (slAtan(you.wallNorm[X], you.wallNorm[Z]) - slAtan(uview[X], uview[Z]));
+		proportion_y = (fxm((you.floorNorm[X] - uview[X]),(you.floorNorm[X] - uview[X])) + fxm((you.floorNorm[Z] - uview[Z]),(you.floorNorm[Z] - uview[Z])))>>7;
+		proportion_x = (you.floorNorm[Y] - uview[Y])>>7;
+		angDif_y = (slAtan(you.floorNorm[X], you.floorNorm[Z]) - slAtan(uview[X], uview[Z]));
 	}
 
 	//This angle will amount to a proportion of angle we're not yet facing towards the ground.
@@ -285,18 +288,28 @@ void	player_phys_affect(void)
 
 	//Surface / gravity decisions
 	static VECTOR gravAcc;
-	if(you.hitSurface == true){
-		///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
-		///Also, stiction. You shouldn't ALWAYS slide :)
-		gravAcc[X] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
-		gravAcc[Y] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
-		gravAcc[Z] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
-		you.velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
-		you.velocity[Y] += (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
-		you.velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
-		you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
-		//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
-		if(you.hitObject || you.hitBox){
+	if(you.hitSurface == true)
+	{
+		if(you.climbing)
+		{
+			you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
+			you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
+			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
+			you.wasClimbing = true;
+		} else {
+			///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
+			///Also, stiction. You shouldn't ALWAYS slide :)
+			gravAcc[X] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
+			gravAcc[Y] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
+			gravAcc[Z] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
+			you.velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
+			you.velocity[Y] += (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
+			you.velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
+			you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
+			//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
+		}
+		if(you.hitObject || you.hitBox)
+		{
 			//Because your velocity is added to the floor position in this case, subtract it.
 			you.pos[X] = (you.floorPos[X]) - you.velocity[X];
 			you.pos[Y] = (you.floorPos[Y]) - you.velocity[Y];
@@ -354,31 +367,31 @@ void	player_phys_affect(void)
 		}
 		
 	//Wall Collision Decisions
-	if(you.hitWall == true){
-		//'wallPos' is a negative world-space position, that is calculated with player velocity added. So subtract it.
-	// you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]) - you.velocity[X];
-	// you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]) - you.velocity[Y];
-	// you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]) - you.velocity[Z];
-	
-	// you.velocity[X] += (you.velocity[X] > 0) ? -fxm(you.wallNorm[X], you.velocity[X]) : fxm(you.wallNorm[X], you.velocity[X]);
-	// you.velocity[Y] += (you.velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.velocity[Y]) : fxm(you.wallNorm[Y], you.velocity[Y]);
-	// you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
+	if(you.hitWall == true)
+	{
+			//'wallPos' is a negative world-space position, that is calculated with player velocity added. So subtract it.
+			you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]) - you.velocity[X];
+			you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]) - you.velocity[Y];
+			you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]) - you.velocity[Z];
+			
+			you.velocity[X] += (you.velocity[X] > 0) ? -fxm(you.wallNorm[X], you.velocity[X]) : fxm(you.wallNorm[X], you.velocity[X]);
+			you.velocity[Y] += (you.velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.velocity[Y]) : fxm(you.wallNorm[Y], you.velocity[Y]);
+			you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
+		
+			you.hitWall = false;
+			
+			if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
+	} 
 
-	// you.hitWall = false;
-	
-	you.climbing = true;
-	you.pos[X] = -(you.wallPos[X] + pl_RBB.Yneg[X]);
-	you.pos[Y] = -(you.wallPos[Y] + pl_RBB.Yneg[Y]);
-	you.pos[Z] = -(you.wallPos[Z] + pl_RBB.Yneg[Z]);
-	
-	you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
-	you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
-	you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
-	
-	you.sanics = 0;
-	if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
+	//Ladder/Climb Escape Sequence
+	//At least in one test, this was pretty much perfect!
+	if(!you.climbing && you.wasClimbing)
+	{
+		you.velocity[X] += fxm(you.floorNorm[X], 1<<16);
+        you.velocity[Y] += 32768;
+        you.velocity[Z] += fxm(you.floorNorm[Z], 1<<16);
+		you.wasClimbing = false;
 	}
-
 	//Add your speed to your position (incremental / per-frame)
 	you.pos[X] += fxm(you.velocity[X], frmul);
 	you.pos[Y] += fxm(you.velocity[Y], frmul);
@@ -479,7 +492,7 @@ void	player_phys_affect(void)
 		if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
 		{
 				//Release from surface
-				//you.hitWall = false;
+				you.hitWall = false;
 				you.hitSurface = false; 
 		} else {
 		finalize_alignment(bound_box_starter.modified_box);
@@ -492,7 +505,13 @@ void	player_phys_affect(void)
 		you.renderRot[X] = you.rot[X];
 		you.renderRot[Y] = you.rot[Y];
 		you.renderRot[Z] = you.rot[Z];
-
+		
+		//Patchwork logic: Every frame you aren't climbing, you need to start as if not climbing.
+		//If collisions thusly calculate that you are, great!
+		//This is a weird, bad, patchwork system that later on in my career I'll learn how to do better.
+		//For now, there's all sorts of weird one-off exception rules that have to happen like this.
+		you.climbing = false;
+		you.ladder = false;
 
 	pl_RBB.boxID = 0;
 	pl_RBB.status[0] = 'R';	

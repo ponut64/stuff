@@ -107,75 +107,87 @@ void	player_draw(void)
 		pl_model.prematrix = (FIXED*)&pl_RBB;
 		wings.prematrix = (FIXED*)&pl_RBB;
 		
-		if(you.hitWall == true)
-		{
-		standing_surface_alignment(you.wallNorm);
-		}
-		
 //Animation Chains
 					static int airTimer = 0;
-			if(pl_model.file_done == true){
-				if(you.hitSurface == true){
+			if(pl_model.file_done == true)
+			{
+				if(you.hitSurface == true)
+				{
 				airTimer = 0;
-					if(you.setSlide != true && airTimer == 0){
-						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0){
+					if(you.setSlide != true && you.climbing != true && airTimer == 0)
+					{
+						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0)
+						{
 							ssh2DrawAnimation(&idle, &pl_model,  false);
-						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp){
+						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp)
+						{
 						if(you.IPaccel < 0){
-							ssh2DrawAnimation(&stop, &pl_model,  false);
+								ssh2DrawAnimation(&stop, &pl_model,  false);
 							}
 						if(you.sanics < 2<<16 && you.IPaccel > 0){
-							ssh2DrawAnimation(&walk, &pl_model,  true);
+								ssh2DrawAnimation(&walk, &pl_model,  true);
 							}
 						if(you.sanics < 3<<16 && you.sanics > 2<<16){
-							ssh2DrawAnimation(&run, &pl_model,  true);
+								ssh2DrawAnimation(&run, &pl_model,  true);
 							}
 						if(you.sanics >= 3<<16){
-							ssh2DrawAnimation(&dbound, &pl_model,  true);
+								ssh2DrawAnimation(&dbound, &pl_model,  true);
 							}
-						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp){
-						ssh2DrawAnimation(&stop, &pl_model,  false);
+						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp)
+						{
+							ssh2DrawAnimation(&stop, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&idle, &pl_model,  false);
+							ssh2DrawAnimation(&idle, &pl_model,  false);
 						}	
-					} else {//IF NOT SLIDE ENDIF
-						if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&slideRln, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&slideLln, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_UP)){
-						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
+						//IF NOT SLIDE ENDIF
+					} else if(you.setSlide == true && you.climbing != true){
+						if(is_key_pressed(DIGI_RIGHT))
+						{
+							ssh2DrawAnimation(&slideRln, &pl_model,  false);
+						} else if(is_key_pressed(DIGI_LEFT))
+						{
+							ssh2DrawAnimation(&slideLln, &pl_model,  false);
+						} else if(is_key_pressed(DIGI_UP))
+						{
+							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
+						} else if(is_key_pressed(DIGI_DOWN))
+						{
+							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&slideIdle, &pl_model,  false);
+							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						}
-						}//IF SLIDE ENDIF
-					//IF SURFACE ENDIF	
-				} else if(you.climbing == true)
-				{
-					if(you.sanics == 0)
+						//IF SLIDE ENDIF
+					} else if(you.climbing == true)
 					{
-						ssh2DrawAnimation(&climbIdle, &pl_model,  false);
-					} else {
-						ssh2DrawAnimation(&climbing, &pl_model,  false);
-					}
-				} else {//IF CLIMB ENDIF
-						airTimer++;
-						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0){
-							if(!you.setJet){
-							ssh2DrawAnimation(&jump, &pl_model,  false);
-							} else {
-							ssh2DrawAnimation(&hop, &pl_model,  false);
-							}
-						} else if(is_key_pressed(DIGI_RIGHT)){
-						ssh2DrawAnimation(&airRight, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_LEFT)){
-						ssh2DrawAnimation(&airLeft, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_DOWN)){
-						ssh2DrawAnimation(&airIdle, &pl_model,  false);
+						if(you.sanics == 0)
+						{
+							ssh2DrawAnimation(&climbIdle, &pl_model,  false);
 						} else {
-						ssh2DrawAnimation(&airIdle, &pl_model,  false);
+							ssh2DrawAnimation(&climbing, &pl_model,  false);
+						}
+						//IF CLIMB ENDIF
+					}
+					//IF SURFACE ENDIF	
+				} else {
+						airTimer++;
+						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0)
+						{
+							if(!you.setJet){
+								ssh2DrawAnimation(&jump, &pl_model,  false);
+							} else {
+								ssh2DrawAnimation(&hop, &pl_model,  false);
+							}
+						} else if(is_key_pressed(DIGI_RIGHT))
+						{
+							ssh2DrawAnimation(&airRight, &pl_model,  false);
+						} else if(is_key_pressed(DIGI_LEFT))
+						{
+							ssh2DrawAnimation(&airLeft, &pl_model,  false);
+						} else if(is_key_pressed(DIGI_DOWN))
+						{
+							ssh2DrawAnimation(&airIdle, &pl_model,  false);
+						} else {
+							ssh2DrawAnimation(&airIdle, &pl_model,  false);
 						}
 				}//IF AIR ENDIF
 			} //IF MODEL LOADED ENDIF
@@ -362,8 +374,9 @@ void	master_draw(void)
 	//View Distance Extention -- Makes turning view cause performance issue, beware?
 	you.cellPos[X] = (fxm((INV_CELL_SIZE), you.pos[X])>>16);
 	you.cellPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z])>>16);
-	int sineY = fxm(slSin(-you.viewRot[Y]), 275<<16);
-	int sineX = fxm(slCos(-you.viewRot[Y]), 275<<16);
+	int center_distance = (CELL_SIZE_INT * ((LCL_MAP_PLY>>1)-1))<<16;
+	int sineY = fxm(slSin(-you.viewRot[Y]), center_distance);
+	int sineX = fxm(slCos(-you.viewRot[Y]), center_distance);
 	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
 	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
 	//

@@ -65,103 +65,6 @@ Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 	return true;
 }
 
-/* 
-if(alignF == 0)
-{
-mtxX[0] = rrX[X];
-mtxX[1] = rrX[Y];
-mtxX[2] = rrX[Z];
-
-mtxY[0] = surface_normal[X];
-mtxY[1] = surface_normal[Y];
-mtxY[2] = surface_normal[Z];
-
-mtxZ[0] = rrZ[X];
-mtxZ[1] = rrZ[Y];
-mtxZ[2] = rrZ[Z];
-
-//Transform the unit vectors of the player by the floor's matrix
-//Even though in this case the Y vector would be affected, we don't use it (yet?), so we don't calculate it.
-rruX[X] = fxdot(mtxX, rrauX);
-rruX[Y] = -fxdot(mtxY, rrauX);
-rruX[Z] = fxdot(mtxZ, rrauX);
-
-rruZ[X] = fxdot(mtxX, rrauZ);
-rruZ[Y] = -fxdot(mtxY, rrauZ);
-rruZ[Z] = fxdot(mtxZ, rrauZ);
-
-pl_RBB.UVX[X] = rruX[X];
-pl_RBB.UVX[Y] = -rruX[Y];
-pl_RBB.UVX[Z] = -rruX[Z];
-pl_RBB.UVY[X] = -surface_normal[X];
-pl_RBB.UVY[Y] = -surface_normal[Y];
-pl_RBB.UVY[Z] = -surface_normal[Z];
-pl_RBB.UVZ[X] = rruZ[X];
-pl_RBB.UVZ[Y] = -rruZ[Y];
-pl_RBB.UVZ[Z] = -rruZ[Z];
-
-pl_RBB.UVNX[X] = -pl_RBB.UVX[X];
-pl_RBB.UVNX[Y] = -pl_RBB.UVX[Y];
-pl_RBB.UVNX[Z] = -pl_RBB.UVX[Z];
-pl_RBB.UVNY[X] = -pl_RBB.UVY[X];
-pl_RBB.UVNY[Y] = -pl_RBB.UVY[Y];
-pl_RBB.UVNY[Z] = -pl_RBB.UVY[Z];
-pl_RBB.UVNZ[X] = -pl_RBB.UVZ[X];
-pl_RBB.UVNZ[Y] = -pl_RBB.UVZ[Y];
-pl_RBB.UVNZ[Z] = -pl_RBB.UVZ[Z];
-
-pl_RBB.Xplus[X] = fxm(pl_RBB.UVX[X], pl_RBB.brad[X]);
-pl_RBB.Xplus[Y] = fxm(pl_RBB.UVX[Y], pl_RBB.brad[Y]);
-pl_RBB.Xplus[Z] = fxm(pl_RBB.UVX[Z], pl_RBB.brad[Z]);
-pl_RBB.Yplus[X] = fxm(pl_RBB.UVY[X], pl_RBB.brad[X]);
-pl_RBB.Yplus[Y] = fxm(pl_RBB.UVY[Y], pl_RBB.brad[Y]);
-pl_RBB.Yplus[Z] = fxm(pl_RBB.UVY[Z], pl_RBB.brad[Z]);
-pl_RBB.Zplus[X] = fxm(pl_RBB.UVZ[X], pl_RBB.brad[X]);
-pl_RBB.Zplus[Y] = fxm(pl_RBB.UVZ[Y], pl_RBB.brad[Y]);
-pl_RBB.Zplus[Z] = fxm(pl_RBB.UVZ[Z], pl_RBB.brad[Z]);
-
-pl_RBB.Xneg[X] = -pl_RBB.Xplus[X];
-pl_RBB.Xneg[Y] = -pl_RBB.Xplus[Y];
-pl_RBB.Xneg[Z] = -pl_RBB.Xplus[Z];
-pl_RBB.Yneg[X] = -pl_RBB.Yplus[X];
-pl_RBB.Yneg[Y] = -pl_RBB.Yplus[Y];
-pl_RBB.Yneg[Z] = -pl_RBB.Yplus[Z];
-pl_RBB.Zneg[X] = -pl_RBB.Zplus[X];
-pl_RBB.Zneg[Y] = -pl_RBB.Zplus[Y];
-pl_RBB.Zneg[Z] = -pl_RBB.Zplus[Z];
-} else {
-	
-mtxX[0] = rrX[X];
-mtxX[1] = rrX[Y];
-mtxX[2] = rrX[Z];
-
-mtxY[0] = -surface_normal[X];
-mtxY[1] = surface_normal[Y];
-mtxY[2] = surface_normal[Z];
-
-mtxZ[0] = rrZ[X];
-mtxZ[1] = rrZ[Y];
-mtxZ[2] = rrZ[Z];
-
-//Transform the unit vectors of the player by the floor's matrix
-//Even though in this case the Y vector would be affected, we don't use it (yet?), so we don't calculate it.
-rruX[X] = fxdot(mtxX, rrauX);
-rruX[Y] = -fxdot(mtxY, rrauX);
-rruX[Z] = fxdot(mtxZ, rrauX);
-
-rruZ[X] = fxdot(mtxX, rrauZ);
-rruZ[Y] = -fxdot(mtxY, rrauZ);
-rruZ[Z] = fxdot(mtxZ, rrauZ);
-
-	
-fxrotY(rruX, rrX, -you.rot[Y]);
-fxrotY(rruZ, rrZ, -you.rot[Y]);
-//Get the final X and Z rotation angles out of the calculation
-output[X] = -(slAtan(rrZ[Y], rrZ[Z]) + 16383);
-output[Z] = -(slAtan(rrX[Y], rrX[X]) - 16383);
-}
- */
-
 int aMtx[XYZ][XYZ];
 
 void	finalize_alignment(_boundBox * fmtx)
@@ -241,6 +144,10 @@ The following code chunk generates axis-aligned unit matrix data from the normal
 It does so with respect to the major axis of the normal and its sign.
 
 */
+// Okay, listen.
+// I want it to first follow/make the Z axis, not the X axis, since the Z axis is the one we actually walk towards.
+// It can help you always go up, instead of at some angle left or right.
+// But I don't have the time to 'fix' that right now. Of course, it is a non-issue. 
 if(JO_ABS(surface_normal[Y]) > 32768)
 {
 	if(surface_normal[Y] < 0)
@@ -410,7 +317,7 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 
 }
 
-void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, Uint8 hitFace)
+void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, Uint8 hitFace, short obj_type_data)
 {
 
 	/*
@@ -419,11 +326,30 @@ Floor collisions pass the Boolean "hitSurface" that is processed in player_phy.c
 Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 	
 	*/
+	if((obj_type_data & OTYPE) == OBJECT && (obj_type_data & SUB_DATA) == LADDER)
+	{
+		//
+		// This is strictly in case of ladder.
+		// If climbable, we just don't set ladder as true, and don't restrict the Y rotation.
+		//
+		you.climbing = true;
+		you.ladder = true;
+		if(slCos(you.rot2[Y]) >= 0)
+		{
+			you.rot2[Y] = 0;
+		} else {
+			you.rot2[Y] = 32768;
+		}
+	} else if((obj_type_data & OTYPE) == OBJECT && (obj_type_data & SUB_DATA) == CLIMBABLE)
+	{
+		you.climbing = true;
+	}
 
 	if(hitFace == N_Yn){
-			if(stator->UVNY[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVNY[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVNY[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVNY[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVNY[X];
 		you.floorNorm[Y] = stator->UVNY[Y];
 		you.floorNorm[Z] = stator->UVNY[Z];
 		
@@ -449,9 +375,10 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 			}
 	} else if(hitFace == N_Yp){
 		
-			if(stator->UVY[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVY[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVY[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVY[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVY[X]; 
 		you.floorNorm[Y] = stator->UVY[Y];
 		you.floorNorm[Z] = stator->UVY[Z];
 		
@@ -477,9 +404,10 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 			}
 	} else if(hitFace == N_Zp){
 		
-			if(stator->UVZ[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVZ[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVZ[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVZ[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVZ[X]; 
 		you.floorNorm[Y] = stator->UVZ[Y];
 		you.floorNorm[Z] = stator->UVZ[Z];
 		
@@ -505,9 +433,10 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 			}
 	} else if(hitFace == N_Zn){
 		
-			if(stator->UVNZ[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVNZ[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVNZ[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVNZ[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVNZ[X]; 
 		you.floorNorm[Y] = stator->UVNZ[Y];
 		you.floorNorm[Z] = stator->UVNZ[Z];
 		
@@ -533,9 +462,10 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 			}
 	} else if(hitFace == N_Xp){
 
-			if(stator->UVX[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVX[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVX[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVX[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVX[X]; 
 		you.floorNorm[Y] = stator->UVX[Y];
 		you.floorNorm[Z] = stator->UVX[Z];
 		
@@ -561,9 +491,10 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 			}
 	} else if(hitFace == N_Xn){
 
-			if(stator->UVNX[Y] < -32768){
-		
-		you.floorNorm[X] = stator->UVNX[X]; //[could just use UVY instead of -UVNY]
+			if(stator->UVNX[Y] < -32768 || you.climbing){
+		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
+		if(stator->UVNX[Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = stator->UVNX[X]; 
 		you.floorNorm[Y] = stator->UVNX[Y];
 		you.floorNorm[Z] = stator->UVNX[Z];
 		
@@ -665,7 +596,7 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 
 }
 
-Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover)
+Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover, short obj_type_data)
 {
 
 static FIXED bigRadius = 0;
@@ -787,7 +718,7 @@ _lineTable moverCFs = {
 		if(lineChecks[i] == true){
 			if(sort_collide(lineEnds[i], stator, &hitFace, -HIT_TOLERANCE) == true){
 				//Step 3: Use the normal of that face for collision.
-				pl_physics_handler(stator, mover, lineEnds[i], hitFace);
+				pl_physics_handler(stator, mover, lineEnds[i], hitFace, obj_type_data);
 				you.hitBox = true;
 				return true;
 			}
@@ -827,7 +758,7 @@ void	player_collision_test_loop(void)
 		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
 		skipdat = edata & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
-				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true)
+				if(player_collide_boxes(&RBBs[i], &pl_RBB, edata) == true)
 				{
 					return;
 				}
@@ -837,7 +768,7 @@ void	player_collision_test_loop(void)
 				test_gate_ring(i, &pl_RBB);
 			} else if(skipdat == (GATE_P | OBJPOP)) {
 				test_gate_posts(activeObjects[i], &pl_RBB);
-				if(player_collide_boxes(&RBBs[i], &pl_RBB) == true)
+				if(player_collide_boxes(&RBBs[i], &pl_RBB, edata) == true)
 				{
 					return;
 				}

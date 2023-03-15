@@ -40,7 +40,7 @@ Bool 	sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
 void	finalize_alignment(_boundBox * fmtx);
-Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover);
+Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover, short obj_type_data);
 void	player_collision_test_loop(void);
 
 #endif
