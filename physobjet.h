@@ -1,8 +1,8 @@
 #ifndef __PHYSOBJET_H__
 #define __PHYSOBJET_H__
 
-#define CELL_CULLING_DIST_MED (8)
-#define CELL_CULLING_DIST_LONG (10)
+#define CELL_CULLING_DIST_MED (10)
+#define CELL_CULLING_DIST_LONG (14)
 #define HEIGHT_CULLING_DIST	(512<<16)
 
 #define OBJPOP	(0x8000) //Is populated?

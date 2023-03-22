@@ -174,13 +174,12 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		HWRAM_ldptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		HWRAM_ldptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+//	Unused, can be replaced.
+//	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		HWRAM_ldptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		HWRAM_ldptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		HWRAM_ldptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-																																	  
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BUILD00.GVP",		HWRAM_ldptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-																																	   
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT03.GVP",		HWRAM_ldptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		HWRAM_ldptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		HWRAM_ldptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT01.GVP",		HWRAM_ldptr, &entities[25], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -199,7 +198,7 @@ void	load_test(void)
 	stm.times_to_loop = 255;
 
 
-	p64MapRequest(07);
+	p64MapRequest(8);
 	//
 	
 }
