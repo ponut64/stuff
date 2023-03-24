@@ -5,6 +5,7 @@
 #include "def.h"
 #include "render.h"
 #include "vdp2.h"
+#include "menu.h"
 
 #define GRAPH_X_OFFSET (12)
 
@@ -63,7 +64,6 @@ void	update_gamespeed(void)
 	time_selector = (time_selector > 66) ? 0 : time_selector+1;
 	
     framerate = (frmrt)>>4;
-	nbg_sprintf(1, 3, "(%i) Bad Frames)", bad_frames);
 	
     if (framerate <= 0) framerate=1;
     else if (framerate > 5) framerate=5;
@@ -85,7 +85,11 @@ void	update_gamespeed(void)
 		//
 		frmul = framerate<<16;
 		
-		nbg_sprintf(16, 4, "(%i) fmrt", frmrt);
+	if(viewInfoTxt == 1)
+	{
+	nbg_sprintf(1, 3, "(%i) Bad Frames)", bad_frames);
+	nbg_sprintf(16, 4, "(%i) fmrt", frmrt);
+	}
 
 }
 

@@ -1,7 +1,7 @@
 
 #include <sl_def.h>
 #include <SGL.H>
-
+#include <SEGA_GFS.H>
 
 #include "def.h"
 #include "mymath.h"
@@ -14,6 +14,8 @@
 #include "player_phy.h"
 #include "object_col.h"
 #include "collision.h"
+#include "pcmstm.h"
+#include "menu.h"
 //
 #include "dspm.h"
 //
@@ -74,6 +76,8 @@ void	set_camera(void)
 
 void	master_draw_stats(void)
 {
+		if(viewInfoTxt == 1)
+		{
 	slPrintFX(you.pos[X], slLocate(9, 1));
 	slPrintFX(you.pos[Y], slLocate(19, 1));
 	slPrintFX(you.pos[Z], slLocate(29, 1));
@@ -93,6 +97,11 @@ void	master_draw_stats(void)
 //		}
 	nbg_sprintf(37, 26, "cX(%i)", you.cellPos[X]);
 	nbg_sprintf(37, 27, "cY(%i)", you.cellPos[Y]);    
+	
+	nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
+	
+	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
+		}
 }
 
 void	player_draw(void)
@@ -359,6 +368,8 @@ void	map_draw(void){
 
 void	master_draw(void)
 {
+	if(!you.inMenu)
+	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 	light_control_loop(); //lit
@@ -389,12 +400,16 @@ void	master_draw(void)
 	
 	run_dsp();
 	
-	//No Touch Order -- Affects animations/mechanics
-	mypad();
-	player_phys_affect();
-	player_collision_test_loop();
-	collide_with_heightmap(&pl_RBB);
-	//
+		//No Touch Order -- Affects animations/mechanics
+		controls();
+		player_phys_affect();
+		player_collision_test_loop();
+		collide_with_heightmap(&pl_RBB);
+		//
+	} else if(you.inMenu)
+	{
+		start_menu();
+	}
 	
 	slSlaveFunc(sort_master_polys, 0);	
 }

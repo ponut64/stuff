@@ -137,6 +137,7 @@ typedef struct {
 	Bool climbing;
 	Bool ladder;
 	Bool wasClimbing;
+	Bool inMenu;
 	int sanics;
 	
 	short power;

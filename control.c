@@ -122,15 +122,11 @@ void controls(void)
 	//
 
 
-	if(is_key_pressed(DIGI_START)){
-		reset_player();
+	if(is_key_struck(DIGI_START)){
+		//reset_player();
+		you.inMenu = true;
 	}
 	
 }
 
-void	mypad(void)
-{
-	
-	controls();
-}
 

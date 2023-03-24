@@ -346,7 +346,6 @@ void	player_phys_affect(void)
 				powerTimer = 0;
 			}
 		}
-		nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
 
 	//
 		//velocity add by input decisions

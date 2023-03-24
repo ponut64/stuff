@@ -15,6 +15,7 @@
 	
 	int file_transfer_sector = 9;
 	int file_transfer_size = (9 * 2048);
+	int	file_system_status_reporting = REPORT_IDLE;
 
 	adx_stream_param adx_stream;
 
@@ -413,7 +414,8 @@ void		pcm_stream_host(void(*game_code)(void))
 		{
 				//game_code();
 			/////////////
-					slPrint("--SETM--", slLocate(16,2));
+					//slPrint("--SETM--", slLocate(16,2));
+					file_system_status_reporting = REPORT_SETTING_UP_PCMSTM;
 			buf.file_handle = GFS_Open(buf.file_id);
 			/*
 				In testing, it has been found that these lines are _strictly necessary_ for this to work.
@@ -465,7 +467,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			{
 			//This branch is for no file system activity. Nothing is being presently accessed or requested to be set up.
 				game_code();
-					slPrint("--PLAY--", slLocate(16,2));
+					file_system_status_reporting = REPORT_IDLE;
+					//slPrint("--PLAY--", slLocate(16,2));
 					// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
 					// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
 					// nbg_sprintf(2, 9, "buf1f(%i)", buf.segment_full[1]); 
@@ -511,7 +514,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			file.destination + (file.sectors_read_so_far * 2048), file_transfer_size);
 				do{
 					game_code();
-						slPrint("--FILE--", slLocate(16,2));
+						file_system_status_reporting = REPORT_LOADING_FILE;
+						//slPrint("--FILE--", slLocate(16,2));
 						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
 						// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
 						// nbg_sprintf(2, 8, "buf0f(%i)", buf.segment_full[0]); 
@@ -535,6 +539,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			//The file handler function is a function pointer, not a direct reference, so user can change it when file type changes.
 				//game_code();
 			/////////////////
+				file_system_status_reporting = REPORT_CLOSING_FILE;
+				
 				finish_file_request();
 				file.requested = false;
 				GFS_Close(file.handle);
@@ -545,6 +551,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			//The parameters are set and other important parameters are re-set here, too.
 				//game_code();
 			//////////////////
+				file_system_status_reporting = REPORT_SETTING_UP_FILE;
+				
 				file.handle = GFS_Open(file.id);
 				GFS_SetReadPara(file.handle, (64 * 1024));
 				GFS_SetTransPara(file.handle, file_transfer_sector);
@@ -566,7 +574,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			adx_stream.back_buffer[0], file_transfer_size);
 				do{
 					game_code();
-						slPrint("--iADX--", slLocate(16,2));
+						file_system_status_reporting = REPORT_LOADING_ADX;
+						//slPrint("--iADX--", slLocate(16,2));
 						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
 						// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
 						// nbg_sprintf(2, 8, "adx0f(%i)", adx_stream.back_buffer_filled[0]); 
@@ -601,6 +610,8 @@ void		pcm_stream_host(void(*game_code)(void))
 				//End handling ADX file. The driver should know when to properly stop playback.
 			//	game_code();
 				////////////////////////
+				file_system_status_reporting = REPORT_CLOSING_FILE;
+				
 				adx_stream.file.requested = false;
 				adx_stream.file.transfer_lock = false;
 				adx_stream.file.setup_requested = false;
@@ -618,6 +629,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			//
 			//	game_code();
 			////////////////////////////
+				file_system_status_reporting = REPORT_SETTING_UP_ADX;
+				
 				adx_stream.file.handle = GFS_Open(adx_stream.file.id);
 				GFS_SetReadPara(adx_stream.file.handle, (64 * 1024));
 				GFS_SetTransPara(adx_stream.file.handle, file_transfer_sector);
@@ -646,7 +659,8 @@ void		pcm_stream_host(void(*game_code)(void))
 			buf.steps_of_new_data_in_buffer++;
 			do{
 				game_code();
-					slPrint("--MUSI--", slLocate(16,2));
+					file_system_status_reporting = REPORT_LOADING_PCM;
+					//slPrint("--MUSI--", slLocate(16,2));
 					// nbg_sprintf(2, 5, "steps(%i)", buf.steps_of_new_data_in_buffer);
 					// nbg_sprintf(2, 6, "bytes(%i)", bytes_read_now);
 					// nbg_sprintf(16, 5, "act(%i)", buf.active_buf_segment);

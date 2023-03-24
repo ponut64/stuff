@@ -365,7 +365,7 @@ void	drawAxis(POINT size)
 void	spr_print(int xPos, int yPos, char * data)
 {
 	int len = 0;
-	char texIndex = 0;
+	int texIndex = 0;
 	char nextChar = data[0];
 	
 	len = strlen(data);
@@ -440,7 +440,7 @@ void	nbg_clear_text(void)
 {
 	for(int y = 0; y < 30; y++)
 	{
-		slPrint("                                        ", slLocate(0,y));
+		slPrint("                                            ", slLocate(0,y));
 	}
 }
 

@@ -16,6 +16,16 @@
 //
 #define MAX_FILE_REQUESTS (16)
 
+#define REPORT_SETTING_UP_PCMSTM	(0)
+#define	REPORT_LOADING_PCM			(1)
+#define	REPORT_SETTING_UP_ADX		(2)
+#define	REPORT_LOADING_ADX			(3)
+#define	REPORT_SETTING_UP_FILE		(4)
+#define	REPORT_LOADING_FILE			(5)
+#define	REPORT_PLAYING_MUSIC		(6)
+#define	REPORT_IDLE					(7)
+#define REPORT_CLOSING_FILE			(8)
+
 /*
 
 	General addendum: This software-controlled buffer system is much much much slower than CDDA.
@@ -141,6 +151,7 @@ void	new_file_request(Sint8 * filename, void * destination, void (*handler_funct
 //
 
 extern _pcm_stm_param stm;
+extern int file_system_status_reporting;
 
 void	sdrv_stm_vblank_rq(void);
 

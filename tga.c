@@ -176,7 +176,7 @@ void	add_texture_to_vram(int width, int height)
 {
 	int totalPix = width * height;
 	
-	pcoTexDefs[numTex].SIZE = ((width>>3)<<8) | height; //This table is //In LWRAM - see lwram.c
+	pcoTexDefs[numTex].SIZE = ((width)<<5) | height; //This table is //In LWRAM - see lwram.c
 	slDMACopy((void*)GLOBAL_img_addr, (void*)curVRAMptr, totalPix);
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); //This table is //In LWRAM - see lwram.c
 	curVRAMptr += totalPix;

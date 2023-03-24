@@ -61,7 +61,7 @@
 			7-4 <- Link specification [gates in the same TRACK that share this # form the two sides of a gate]
 			3-2 <- first or last gate flag (1 for first gate, 2 for last gate, 0 for all else) (patterns 0x4 first, 0x8 last)
 			1 <- Will be 1 if the post has had its collision checked this frame
-			0 <- Will have *any* data if this gate is passed
+			0 <- Will be 1 if this gate is passed
 		more_data 
 			0 <- will be high if the post has been aligned with the other post, or if the user does not want it aligned.
 */
@@ -75,33 +75,36 @@
 // 7-4 <- unused
 // 3-2 <- first or last gate flag (1 for first gate, 2 for last gate, 0 for all else) (patterns 0x4 first, 0x8 last)
 // 1 <- Unused
-// 0 <- Will have *any* data if this gate is passed
+// 0 <- Will be 1 if this gate is passed
 //ext_dat bitflag orientation for COLLISIONLESS:
 // 15 <- pop
 // 14-12 <- pattern is "0x5000" for collisionless entity
 // all else unused
 //
 // You know it would also be fun to pick up a flag and, by any path neccessary, deliver it to a point.
-// Octree objects maybe
 
-//ext_dat bitflag orientation for LEVEL DATA:
-//15 <- "1" if track is active. "0" if track is inactive.
-//14-12 <- "0x4000" for level data specification
-//11-8 <- Specifications beneath the LEVEL_DATA tree.
-// 0x100 for TRACK_DATA
-// 0x200 for LEVEL_CHNG
-//////////////////////////////////////////////////////////////////
-//TRACK_DATA orientation:
-//ext_dat
-//	4-7: TRACK fail speed setting (if player ever goes lower than this set speed, the gates reset)
-//	3-0: TRACK timer setting (if player takes longer than this setting to get between gates, the gates reset)
-//entity_ID :
-//	0-3: TRACK select. In other words, this TRACK data is used for this TRACK.
-//pix[X] : Passed # of gates in the series
-//pix[Y] : total # of gates in the series
-//more_data : bit 15 is TRACK COMPLETE!
-//////////////////////////////////////////////////////////////////
 /**
+//////////////////////////////////////////////////////////////////
+	TRACK_DATA orientation
+	_sobject
+		entity_ID :
+			0-3 :  Track # selection
+		radius[xyz] (empty)
+		ext_dat :
+			15 : Active boolean (0 for inactive, 1 for active)
+			14-12 : 0x4000, specifies level data.
+			11-8 : 0x100, specifies track data (this entry).
+			7-4 : Track fail speed setting (0 for no fail speed)
+			3-0 : Track timer setting (0 for no fail time)
+	_declaredObject
+		pix[XY] :
+			[X] - the number of gates in the track series that have been passed (for an active track).
+			[Y] - the total # of gates in the track series
+		more_data : 
+			15 : Track completion boolean (if 1, track is complete)
+		link 
+			declared object array entry of another level change
+//////////////////////////////////////////////////////////////////
 	LEVEL_CHNG orientation:
 	_sobject
 		entity_ID :
@@ -118,7 +121,7 @@
 		pos[xyz] 
 			Location of the trigger
 		link 
-			delcared object array entry of another level change
+			declared object array entry of another level change
 //////////////////////////////////////////////////////////////////
 	PSTART orientation:
 	_sobject
@@ -130,6 +133,8 @@
 	_declaredObject
 		pos[xyz] 
 			Location of the trigger
+		link 
+			declared object array entry of another level change
 /////////////////////////////////////////////////////////////////
 	SOUND_TRIG orientation:
 	_sobject
@@ -150,6 +155,8 @@
 		more_data
 			7 - 0 : The sound number intended to play back.
 			11 - 8 : The volume of the sound; directly related to the volume sent to the driver (shift right eight).
+		link 
+			declared object array entry of another level change
 **/
 
 

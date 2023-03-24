@@ -14,7 +14,5 @@ extern Bool holdCam;
 
 void	controls(void);
 
-void	mypad(void);
-
 #endif
 

@@ -121,6 +121,9 @@ void	dpinit(void)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
+	baseAsciiTexno = numTex;
+	sprAsciiHeight = 12;
+	sprAsciiWidth = WRAP_NewTable((Sint8*)"FONT.TGA", dirty_buf, sprAsciiHeight); //last argument, tex height
 	//
 	HWRAM_ldptr = (void *)(&hwram_model_data[0]);
 	////////////////////////////////////////////////
@@ -151,8 +154,8 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	map_texture_table_numbers[4] = numTex;
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
-	map_tex_amt = (numTex);
-	make_4way_combined_textures(map_tex_start, map_tex_amt);
+	map_tex_amt = (numTex - map_tex_start);
+	make_4way_combined_textures(map_tex_start, numTex);
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map();
 
@@ -197,8 +200,7 @@ void	load_test(void)
 	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
 	stm.times_to_loop = 255;
 
-
-	p64MapRequest(8);
+	p64MapRequest(1);
 	//
 	
 }
@@ -215,8 +217,8 @@ void	game_frame(void)
 	update_gamespeed();
 	master_draw_stats();
 	frame_render_prep();
-	reset_pad(&pad1);
 	master_draw(); 
+	reset_pad(&pad1);
 }
 
 void	my_vlank(void)
