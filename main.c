@@ -85,6 +85,7 @@ int game_set_res = TV_320x240;
  int snd_win;
  int snd_bwee;
  int snd_smack;
+ int snd_khit;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //Why are these here?
@@ -141,6 +142,7 @@ void	load_test(void)
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
+	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	//Next up: TGA file system handler?
 	int map_tex_start = numTex;
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
@@ -177,8 +179,9 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		HWRAM_ldptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		HWRAM_ldptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-//	Unused, can be replaced.
-//	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL1.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		HWRAM_ldptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		HWRAM_ldptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		HWRAM_ldptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -200,7 +203,7 @@ void	load_test(void)
 	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
 	stm.times_to_loop = 255;
 
-	p64MapRequest(1);
+	p64MapRequest(0);
 	//
 	
 }
@@ -241,7 +244,7 @@ void	attributions(void)
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
 	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
 
-	slPrint("Sound Driver by Ponut64 [dat me]", slLocate(3, 21));
+	slPrint("Sound Driver by Ponut64", slLocate(3, 21));
 	
 	load_test();
 	

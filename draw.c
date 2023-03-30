@@ -230,27 +230,22 @@ void	obj_draw_queue(void)
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
+		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
+		//Assuming the rest of the game code made sense up to this point. Else the game's gonna crash here.
 		if(RBBs[i].status[0] != 'R') continue;
 		
-		unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
+		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
 		
 	slPushMatrix();
 	
 		entities[objDRAW[i]].prematrix = (FIXED *)&RBBs[i];
 	
-			if( objType != ITEM && objType != LDATA && objType != BUILD )
-			{ //Check if entity is NOT ITEM or LDATA
-		ssh2DrawModel(&entities[objDRAW[i]]);
-			} else if( objType == ITEM )
-			{ //if entity IS ITEM
-				if( !(dWorldObjects[activeObjects[i]].type.ext_dat & 8) ) //Check if root entity still exists
-				{
-					ssh2DrawModel(&entities[objDRAW[i]]);
-				}
-			} else if( objType == BUILD)
-			{
-		plane_rendering_with_subdivision(&entities[objDRAW[i]]);
-			}
+		if(entities[objDRAW[i]].type == MODEL_TYPE_BUILDING)
+		{ 
+			plane_rendering_with_subdivision(&entities[objDRAW[i]]);
+		} else {
+			ssh2DrawModel(&entities[objDRAW[i]]);
+		}
 	slPopMatrix();
 	
 	}

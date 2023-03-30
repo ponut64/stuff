@@ -272,9 +272,9 @@ void	flush_boxes(int start)
 ////////////////////////////////////////////////////
 	for(int f = start; f < MAX_PHYS_PROXY; f++)
 	{
-		RBBs[f].status[0] = 0;
-		RBBs[f].status[1] = 0;
-		RBBs[f].status[2] = 0;
+		RBBs[f].status[0] = 'N';
+		RBBs[f].status[1] = 'N';
+		RBBs[f].status[2] = 'N';
 	}
 ////////////////////////////////////////////////////
 	

@@ -110,7 +110,7 @@ void	level_data_basic(void)
 	for(int i = 0; i < objNEW; i++)
 	{
 		//The following condition should indicate that we've found a declared player start and it hasn't been used yet.
-		if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == PSTART && (dWorldObjects[i].type.ext_dat & 0x8000) != 0x8000)
+		if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == PSTART && (dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
 		{
 			//They're negative because of COORDINATE SYSTEM MAYHEM.
 			you.startPos[X] = -dWorldObjects[i].pos[X];

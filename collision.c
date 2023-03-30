@@ -733,51 +733,35 @@ void	player_collision_test_loop(void)
 {
 	//This runs the physics workhorse stuff, but a lot of this logic is in physobjet.c -
 	//much of it has as much to do with game state as it does physics.
-	//
-	//How could this be structured to be more easily expandable?
-	// 1 - Make a compiler-defined # of "behaviour types"
-	// 2 - Run the loop for every behaviour type
-	// 3 - A behaviour array is a list of pointers to functions that match the type of stuff you want to track
-	// They can be container functions for multiple things, or a direct-to-conclusion sort of thing
-	//Then again, maybe not needed -
-	//Consider, this is just for physics proxies.
-	//What you want to add most is a projectile tracker.
-	//Instead of running checks from the physics proxies to the projectiles, 
-	//run a check from the projectile list on the physics proxy list. (and the ground)
-	//Which involves new control logic.
-	//Also makes me afraid of projectile logic, since I am using RBB (not AABB). But it is just one point to test, so maybe not so bad.
-	//In any case, you end up with projectiles operating on a different control and data method than normal physics proxies.
 	
 	you.hitObject = false;
 	if(ldata_ready != true) return; //Just in case.
 	int skipdat;
 	int edata;
-	for(Uint8 i = 0; i < MAX_PHYS_PROXY; i++)
+	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+		if(RBBs[i].status[1] != 'C') continue;
 		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
 		skipdat = edata & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
-				if(player_collide_boxes(&RBBs[i], &pl_RBB, edata) == true)
-				{
-					return;
-				}
+				player_collide_boxes(&RBBs[i], &pl_RBB, edata);
 			} else if(skipdat == (ITEM | OBJPOP)) {
 				run_item_collision(i, &pl_RBB);
 			} else if(skipdat == (GATE_R | OBJPOP)) {
 				test_gate_ring(i, &pl_RBB);
 			} else if(skipdat == (GATE_P | OBJPOP)) {
 				test_gate_posts(activeObjects[i], &pl_RBB);
-				if(player_collide_boxes(&RBBs[i], &pl_RBB, edata) == true)
+				if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_BUILDING)
 				{
-					return;
+					//If it was loaded as a building-type object, collision test it as such.
+					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
+				} else {
+					player_collide_boxes(&RBBs[i], &pl_RBB, edata);
 				}
 			} else if(skipdat == (BUILD | OBJPOP))
 			{
-				if(RBBs[i].status[1] == 'C')
-				{
-					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
-				}
+				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
 			}
 	}
 	

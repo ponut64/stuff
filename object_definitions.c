@@ -63,12 +63,12 @@ _sobject Meme01 = {
 	.light_bright = 0
 };
 
-_sobject Meme02 = {
-	.entity_ID = 7,
+_sobject Post00 = {
+	.entity_ID = 18,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD,
+	.ext_dat = GATE_P,
 	.light_bright = 0
 };
 
@@ -340,8 +340,8 @@ _sobject GoToLevel1 = {
 	.ext_dat = LDATA | LEVEL_CHNG | 0x80
 };
 
-_sobject WreathTrackData = {
-	.entity_ID = 1,
+_sobject SampleTrackData = {
+	.entity_ID = 0,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
@@ -395,7 +395,7 @@ void	fill_obj_list(void)
 	objList[4] = &BB04;
 	objList[5] = &Meme00;
 	objList[6] = &Meme01;
-	objList[7] = &Meme02;
+	objList[7] = &Post00;
 	objList[8] = &Tladder;
 	objList[9] = &Kyoob;
 	objList[10] = &Platf00;
@@ -426,6 +426,7 @@ void	fill_obj_list(void)
 	objList[34] = &Build23;
 	objList[35] = &Build24;
 	
+	objList[60] = &SampleTrackData;
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;
 

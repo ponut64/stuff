@@ -30,15 +30,16 @@
 #define MAX_WOBJS (512)
 #define MAX_BUILD_OBJECTS (256)
 
-#define BUILD_ORIGINAL_ENTITY_ID (0xFF0)
+#define BUILD_PAYLOAD_LOADED (0x8000)
 /*
 ///////////////////////////////////////////////////////////////
 	ext_dat bitflag orientation for BUILD:
 		15 <- pop
 		14-12 <- will be 0x6 (1 1 0) for BUILD
-		11 - 4 <- Permutation series definition. Has the entity ID of the mesh (in the entity list) which this object is a permutation of.
+		11 - 0 <- unused
+	clone_id <- Permutation series definition. Has the entity ID of the mesh (in the entity list) which this object is a permutation of.
 		If there is no permutation, this otherwise has the entity ID of the building object. 
-		3 - 0 <- unused
+
 */
 
 //ext_dat bitflag orientation for ITEM:
@@ -62,12 +63,37 @@
 			3-2 <- first or last gate flag (1 for first gate, 2 for last gate, 0 for all else) (patterns 0x4 first, 0x8 last)
 			1 <- Will be 1 if the post has had its collision checked this frame
 			0 <- Will be 1 if this gate is passed
-		more_data 
-			0 <- will be high if the post has been aligned with the other post, or if the user does not want it aligned.
+
+	_sobject
+		entity_ID :
+			Contains the entity id# to be drawn for this gate.
+		ext_dat :
+			15 : popped / visible flag
+			14-12 : "0x2000", defines gate post type object
+			11-8 : Track # specification
+			7-4 : Link specification. Two gates of a post share this number.
+			3-2 : 1 for first gate, 2 for last gate, 0 for any other gate / all gates.
+			1 : Boolean collision check flag. Writes 1 when collision with gates checked, refresh to 0 on frame start.
+			0 : Boolean gate pass check. If 1, gate has been passed. Refresh to 0 when track is failed (or otherwise reset).
+	_declaredObject
+		pix[XY] :
+			Contains the location of the object, in grid units.
+		more_data : 
+			0: alignment boolean. 1: alignment complete / do not align. 0: to be aligned.
+			1: discovery boolean. 1: player has discovered it. 0: player has not discovered it.
+		link 
+			declared object array entry of another gate post
+			
 */
 #define SET_GATE_POST_LINK(ext_dat, gate_num) (ext_dat | (gate_num << 4))
 #define SET_GATE_TRACK_NUM(ext_dat, track_num) (ext_dat | (track_num << 8))
 #define FIX_GATE_POST_ALIGNMENT(more_data)	(more_data | 0x1)
+#define	GATE_POST_ALIGNED	(0x1)
+#define GATE_POST_CHECKED	(0x2)
+#define GATE_PASSED			(0x1)
+#define GATE_DISCOVERED		(0x2)
+#define GATE_UNPASSED		(0xFFFE)
+#define GATE_UNCHECKED		(0xFFFD)
 //ext_dat bitflag orientation for GATE_RING: GATE_R
 // 15 <- pop
 // 14-12 <- pattern is "0x3000" for gate ring (single-object gate)
@@ -83,6 +109,10 @@
 //
 // You know it would also be fun to pick up a flag and, by any path neccessary, deliver it to a point.
 
+#define TRACK_DISCOVERED (0x2)
+#define TRACK_COMPLETE (0x1)
+#define TRACK_ACTIVE	(0x8000)
+#define TRACK_INACTIVE	(0x7FFF)
 /**
 //////////////////////////////////////////////////////////////////
 	TRACK_DATA orientation
@@ -101,7 +131,10 @@
 			[X] - the number of gates in the track series that have been passed (for an active track).
 			[Y] - the total # of gates in the track series
 		more_data : 
-			15 : Track completion boolean (if 1, track is complete)
+			0 : Track completion boolean (if 1, track is complete)
+			1 : Discovered boolean (if 1, all gates have been discovered)
+		dist :
+			Silent discovery timer. Counts-down from X seconds when discovered, then enables track.
 		link 
 			declared object array entry of another level change
 //////////////////////////////////////////////////////////////////
@@ -161,7 +194,8 @@
 
 
 typedef struct {
-	unsigned short entity_ID;
+	unsigned char entity_ID;
+	unsigned char clone_ID;
 	unsigned short radius[XYZ];
 	unsigned short ext_dat;
 	unsigned short light_bright;
@@ -180,7 +214,7 @@ typedef struct {
 	ANGLE	rot[XYZ];
 	_sobject type;
 	int		dist; 
-	short	more_data;
+	unsigned short	more_data;
 	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
 } _declaredObject;
 

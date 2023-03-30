@@ -11,6 +11,7 @@
 #include "object_col.h"
 
 #include "physobjet.h"
+#include "minimap.h"
 #include "object_definitions.c"
 
 
@@ -28,6 +29,44 @@ int activeTrack = -1;
 int objUP = 0;
 int total_building_payload = 0;
 
+//Idea:
+//Make function that handles going through the linked lists.
+_declaredObject * step_linked_object_list(_declaredObject * previous_entry)
+{
+	//In case the object is the last in the list, its link will be -1.
+	//So do not try to go deeper in the list.
+	//When we reach the last entry, return a safe, known memory address. In this case, the address of a new object.
+		if(previous_entry->link >= 0)
+		{
+	return (_declaredObject *)&dWorldObjects[previous_entry->link];
+		} else {
+	return (_declaredObject *)&dWorldObjects[objNEW];
+		}
+}
+
+_declaredObject * get_first_in_object_list(short object_type_specification)
+{
+	short first_object_id_num = link_starts[(object_type_specification & OTYPE)>>12];
+	if(first_object_id_num >= 0)
+	{
+	return (_declaredObject *)&dWorldObjects[first_object_id_num];
+	} else {
+	//There's no objects of this type, so just point to the next new object.
+	//It's safe, I guess? If there are open object slots....
+	return (_declaredObject *)&dWorldObjects[objNEW];
+	}
+}
+
+void	align_object_to_object(int index1, int index2)
+{
+	//Note that we only need the X/Z vector, or the XY of the map location.
+	int posDif[XYZ] = {((dWorldObjects[index1].pix[X] - dWorldObjects[index2].pix[X]) * CELL_SIZE)>>8, 0,
+					((dWorldObjects[index1].pix[Y] - dWorldObjects[index2].pix[Y]) * CELL_SIZE)>>8};
+	accurate_normalize(posDif, posDif);
+	dWorldObjects[index1].rot[Y] = slAtan(posDif[Z], posDif[X]);
+	if((dWorldObjects[index1].type.ext_dat & OTYPE) == GATE_P) dWorldObjects[index1].more_data |= GATE_POST_ALIGNED;
+}
+
 void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data)
 {
 		if(objNEW < MAX_WOBJS)
@@ -41,10 +80,12 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].rot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].rot[Z] = (zrot * 182);
-		if((dWorldObjects[objNEW].type.ext_dat & OTYPE) == BUILD)
+		//Contention: Building-type is both a model-type and object-type.
+		//Smartest to use the model type.
+		if(entities[dWorldObjects[objNEW].type.entity_ID].type == MODEL_TYPE_BUILDING)
 		{
 			//Specific for building-type objects, place its entity ID in the ext_dat.
-			dWorldObjects[objNEW].type.ext_dat |= ((dWorldObjects[objNEW].type.entity_ID)<<4);
+			dWorldObjects[objNEW].type.clone_ID = dWorldObjects[objNEW].type.entity_ID;
 			if((xrot | yrot | zrot) != 0)
 			{
 			//For build-type objects, if any rotation is applied, we can't use the same polygon data anymore.
@@ -103,6 +144,51 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 // Of course an easier alternative is just implement a subtitle system,
 // and then use it for event reporting.
 //
+/**
+
+Okey, what's next in the gameplay pipe?
+Slide Hop is to have three "things to do". These aren't just the primary things to do, they are it. These' the things.
+
+1 - Discover & traverse the track in time.
+The track is a series of gates, each one is two linked posts.
+The player first is expected to explore the map. When they first cross a gate, it won't trigger the timer or the whole track.
+Instead, it will flag that gate as "Discovered". It will show up on the player's minimap, play a sound to indicate discovery,
+and (possibly) show up in some other menu to let them know they've discovered X of Y # of gates.
+The player can't run the track by the timer until they discover all of the gates in the track.
+
+When the player does finally discover all of the gates in the track, a silent timer is started (say 5 seconds).
+This silent timer must pass before the player can start the track by its timer.
+When the player starts a track, I want to add some way to help players know where to go next.
+Of course, I'm not sure if this is strictly needed? They did run around the map and discover all of the gates, after all.
+But it might help them to highlight the nearest gate on-screen.
+The problem is this will teach players to chase the nearest gate icons...
+That's going to frustrate players immensely when the nearest gate is not actually the next gate they should go to.
+All the same, I'm not going to program a fixed gate order. However, a suggested gate order might be good enough.
+Yeah, suggested order seems smart. Going out-of-order is something I should suggest is possible.
+I should also add a menu option to "Disable Gate Marker".
+
+Another important part of the track is that there is not a fixed start/end gate. The gates can be done in any order.
+
+2 - Seven Rings
+There are seven collectible rings on the level. This is a simple task of collecting all 7 rings. 
+They might be hidden or in plain sight.
+I'm not sure if I should add a "Discovery" and "Timer" phase to them, too.
+Perhaps I'll add the timer-phase later as an added challenge mode.
+I think I could also hide them in destructible blocks that require the player to go a certain speed to bust them.
+
+3 - CTF
+On the map, there are two Flag Stands. One Goal Stand and one Target Stand (with the flag on it).
+The Target Stand begins under cover of a shield in all levels.
+To uncover the target stand's shield, you must first find and jump on the goal stand.
+There may be other level-specific things that must be done to unveil the flag.
+Once the target stand's shield is gone, you can take the flag from it and return it to the goal stand.
+This is subject to a timer. Very simple.
+If you don't make the flag to the stand in time, it is automatically returned to the target stand.
+It might be fun to add a minimum speed rule to CTF.
+Or in other cases, if you keep going fast the timer does not go down; only goes down when going slow.
+ 
+
+**/
 
 void	declarations(void)
 {
@@ -110,13 +196,20 @@ void	declarations(void)
 /* level00 ?*/
 //Will replace.
 
+//declare_object_at_cell((0 / 40) + 1, -40, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
+declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 7 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 7 /*post00*/, 0, 0, 0, 0);
+objList[7]->ext_dat = SET_GATE_POST_LINK(objList[7]->ext_dat, 1);
+declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 7 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 7 /*post00*/, 0, 0, 0, 0);
+
+declare_object_at_cell(0, 0, 0, 60 /*ldata*/, 0, 0, 0, 0);
+dWorldObjects[objNEW-1].dist = 2<<16; // Sets ldata timer
 
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
 /* level01? */
-
-//declare_object_at_cell(-(180 / 40) + 1, -200, -(340 / 40), 8 /*tladder*/, 30, 0, 0, 0);
 
 // declare_object_at_cell(-(180 / 40) + 1, -120, -(660 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
@@ -539,11 +632,7 @@ void	object_control_loop(int ppos[XY])
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
-	// ldata_ready = true;
-	// declare_object_at_cell(-8, 0, -8, 26 /*House*/, 0, 0, 0);
-	// declare_object_at_cell(8, 0, -8, 27 /*House*/, 0, 0, 0);
-	// declare_object_at_cell(8, 0, 8, 28 /*House*/, 0, 0, 0);
-	// declare_object_at_cell(-8, 0, 8, 29 /*House*/, 0, 0, 0);
+
 	//////////////////////////////////////////////////////////////////////
 	// **TESTING**
 	//////////////////////////////////////////////////////////////////////
@@ -553,7 +642,7 @@ void	object_control_loop(int ppos[XY])
 	static int difY = 0;
 	static int difH = 0;
 	static int position_difference[XYZ] = {0,0,0};
-	objUP = 0;
+	objUP = 0; //Should we start this at -1, because -1 will mean there are no objects in scene?
 
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++){
@@ -615,7 +704,7 @@ void	object_control_loop(int ppos[XY])
 							// Temporary, but will change levels.
 							//////////////////////////////////////////
 							dWorldObjects[i].type.ext_dat |= OBJPOP;
-							pcm_play(snd_win, PCM_PROTECTED, 7);
+							pcm_play(snd_win, PCM_PROTECTED, 5);
 							map_chg = false;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 							///////////////////////////////////////////
@@ -628,7 +717,7 @@ void	object_control_loop(int ppos[XY])
 		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
 
-				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD)
+				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING)
 				{
 					////////////////////////////////////////////////////
 					//If a non-building object was in rendering range, specify it as being populated, 
@@ -670,7 +759,7 @@ void	object_control_loop(int ppos[XY])
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
 					objUP++; 
-					} else if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+					} else if(entities[dWorldObjects[i].type.entity_ID].type == MODEL_TYPE_BUILDING)
 				{
 					
 						////////////////////////////////////////////////////
@@ -703,14 +792,14 @@ void	object_control_loop(int ppos[XY])
 					// After that, flag this building object's "more data" with something to say
 					// its items have already been registered.
 					/////////////////////////////////////////////////////
-					if(dWorldObjects[i].more_data == 0 &&
+					if(!(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED) &&
 						entities[dWorldObjects[i].type.entity_ID].file_done == true)
 					{
 						for(int b = 0; b < total_building_payload; b++)
 						{
 							declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 						}
-						dWorldObjects[i].more_data = 1;
+						dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
 					}
 						////////////////////////////////////////////////////
 						//Set the box status. 
@@ -734,7 +823,7 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
-				if((dWorldObjects[i].type.ext_dat & OTYPE) != BUILD && dWorldObjects[i].type.light_bright != 0)
+				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING && dWorldObjects[i].type.light_bright != 0)
 				{
 				////////////////////////////////////////////////////
 				//If a non-building light-emitting object is in this larger range, add its light data to the light list.
@@ -874,23 +963,50 @@ void	light_control_loop(void)
 }
 
 //I hate this function.
-void	add_to_track_timer(int index) 
+void	add_to_track_timer(int index, int index2) 
 {
 	
 	short trackedLDATA = link_starts[LDATA>>12];
-	short track_select = 0;
+	short ldata_track = 0;
 	short object_track = 0;
+
+	if(!(dWorldObjects[index].more_data & GATE_DISCOVERED))
+	{
+		dWorldObjects[index].more_data |= GATE_DISCOVERED;
+		add_object_to_minimap(&dWorldObjects[index], 0x83E0);
+		if(index2 >= 0) 
+		{
+			dWorldObjects[index2].more_data |= GATE_DISCOVERED;
+			add_object_to_minimap(&dWorldObjects[index2], 0x83E0);
+		}
+		pcm_play(snd_khit, PCM_PROTECTED, 5);
+		return;
+	}
 
 	while(trackedLDATA != -1){
 		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
-			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; //Get the level data's track #
-			track_select = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
-			if(track_select == object_track && (activeTrack == track_select || activeTrack == -1))
+			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; 
+			ldata_track = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
+	//	nbg_sprintf(2, 10, "(%i)otr", object_track);
+	//	nbg_sprintf(2, 12, "(%i)trs", ldata_track);
+			//Only add if the track numbers match, the active track is set to this track or is not set, and the track is discovered
+			if(ldata_track == object_track && (activeTrack == ldata_track || activeTrack == -1)
+				&& (dWorldObjects[trackedLDATA].more_data & TRACK_DISCOVERED))
 			{
-				activeTrack = dWorldObjects[trackedLDATA].type.entity_ID & 0xF;
-				trackTimers[object_track] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
-				pcm_play(snd_button, PCM_PROTECTED, 7);
+				//Gate flag processing
+				dWorldObjects[index].dist = 0;
+				dWorldObjects[index].type.ext_dat |= GATE_PASSED;
+				add_object_to_minimap(&dWorldObjects[index], 0xFC00);
+				if(index2 >= 0)
+				{
+					dWorldObjects[index2].type.ext_dat |= GATE_PASSED;
+					add_object_to_minimap(&dWorldObjects[index2], 0xFC00);
+				}
+				//Track add processing
+				activeTrack = ldata_track;
+				trackTimers[activeTrack] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
+				pcm_play(snd_button, PCM_PROTECTED, 5);
 				break;
 			}
 		}//PAST TRACK DATA
@@ -898,112 +1014,55 @@ void	add_to_track_timer(int index)
 	}
 }
 
+
 void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 {	
 	//////////////////
 	// If the gate has no pair, return.
 	// If the entity has yet to be loaded, return.
+	// If the object is in the wrong direction to the other object, return.
 	// Otherwise, flag the posts has having been checked this frame, then continue.
 	//////////////////
 	if(obj_id1 == obj_id2) return;
+	if(dWorldObjects[obj_id1].pix[X] <= dWorldObjects[obj_id2].pix[X]) return;
+	if(dWorldObjects[obj_id1].pix[Y] <= dWorldObjects[obj_id2].pix[Y]) return;
 	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
+	//Flag as checked this frame
+	dWorldObjects[obj_id1].type.ext_dat |= GATE_POST_CHECKED; 
+	dWorldObjects[obj_id2].type.ext_dat |= GATE_POST_CHECKED; 
 	
-	dWorldObjects[obj_id1].type.ext_dat |= 2; 
-	dWorldObjects[obj_id2].type.ext_dat |= 2; 
-	
-	//////////////////
-	// By default, use the entity radius.
-	// If a radius was manually set, use that instead.
-	//////////////////
-	unsigned short * used_radius = &entities[dWorldObjects[obj_id1].type.entity_ID].radius[X];
-	if(dWorldObjects[obj_id1].type.radius[Y] > 0) used_radius = &dWorldObjects[obj_id1].type.radius[X];
-	POINT fenceA;
-	POINT fenceB;
-	POINT fenceC;
-	POINT fenceD;
-	POINT tgtRelPos = {0, 0, 0};
+	static POINT fenceA;
+	static POINT fenceB;
+	static POINT fenceC;
+	static POINT fenceD;
 	VECTOR rminusb = {0, 0, 0};
 	VECTOR sminusb = {0, 0, 0};
 	VECTOR cross = {0, 0, 0};
-	VECTOR faceNormal = {0, 0, 0};
-	VECTOR edgePrj0 = {0, 0, 0};
-	POINT centerFace = {0, 0, 0};
-	short posts[2];
-	FIXED radius1;
-	FIXED radius2;
-	FIXED bigRadius;
+	VECTOR used_normal = {0, 0, 0};
+	VECTOR fabs_norm = {0, 0, 0};
 	int tDist = 0;
-	
-		posts[0] = (obj_id1 > obj_id2) ? obj_id1 : obj_id2;
-		posts[1] = (obj_id1 > obj_id2) ? obj_id2 : obj_id1; //Order the objects so the face always has the same normal
+	int dominant_axis = 0;
+	//Order the objects so the face always has the same normal
 	
 	//Extrapolate a quad out of the pix given
 	//	0 - 1 // B - D
 	//	3 - 2 // A - C
-	fenceA[X] = -dWorldObjects[posts[0]].pos[X];
-	fenceA[Y] = -((dWorldObjects[posts[0]].pos[Y]) - (main_map[ (-dWorldObjects[posts[0]].pix[X] + (main_map_x_pix * dWorldObjects[posts[0]].pix[Y]) + (main_map_total_pix>>1)) ]<<(MAP_V_SCALE)));
-	fenceA[Z] = -dWorldObjects[posts[0]].pos[Z];
+	fenceA[X] = -dWorldObjects[obj_id1].pos[X];
+	fenceA[Y] = -dWorldObjects[obj_id1].pos[Y];
+	fenceA[Z] = -dWorldObjects[obj_id1].pos[Z];
 	
 	fenceB[X] = fenceA[X];
-	fenceB[Y] = fenceA[Y] + (used_radius[Y]<<16);
+	fenceB[Y] = fenceA[Y] - (dWorldObjects[obj_id1].type.radius[Y]<<16);
 	fenceB[Z] = fenceA[Z];
 	
-	fenceC[X] = -dWorldObjects[posts[1]].pos[X];
-	fenceC[Y] = -((dWorldObjects[posts[1]].pos[Y]) - (main_map[ (-dWorldObjects[posts[1]].pix[X] + (main_map_x_pix * dWorldObjects[posts[1]].pix[Y]) + (main_map_total_pix>>1)) ]<<(MAP_V_SCALE)));
-	fenceC[Z] = -dWorldObjects[posts[1]].pos[Z];
+	fenceC[X] = -dWorldObjects[obj_id2].pos[X];
+	fenceC[Y] = -dWorldObjects[obj_id2].pos[Y];
+	fenceC[Z] = -dWorldObjects[obj_id2].pos[Z];
 	
 	fenceD[X] = fenceC[X];
-	fenceD[Y] = fenceC[Y] + (used_radius[Y]<<16);
+	fenceD[Y] = fenceC[Y] - (dWorldObjects[obj_id2].type.radius[Y]<<16);
 	fenceD[Z] = fenceC[Z];
 
-		//Start math for projection
-	centerFace[X] = (fenceA[X] + fenceC[X] + fenceB[X] + fenceD[X])>>2;
-	centerFace[Y] = (fenceA[Y] + fenceC[Y] + fenceB[Y] + fenceD[Y])>>2;
-	centerFace[Z] = (fenceA[Z] + fenceC[Z] + fenceB[Z] + fenceD[Z])>>2;
-		//Get a relative position
-	tgtRelPos[X] = tgt->pos[X] - centerFace[X];
-	tgtRelPos[Y] = tgt->pos[Y] - centerFace[Y];
-	tgtRelPos[Z] = tgt->pos[Z] - centerFace[Z];
-		//If you are farther away from the face in X and Z than the face's big radius, you can't possibly have collided with it.
-		//Note: Potential for this to be an incorrect conclusion on things moving really fast with small fences.
-		radius1 = JO_ABS(fenceA[X] - fenceC[X]);
-		radius2 = JO_ABS(fenceA[Z] - fenceC[Z]);
-		bigRadius =  (radius1 > radius2) ? radius1 : radius2;
-	if(JO_ABS(tgtRelPos[X]) > bigRadius || JO_ABS(tgtRelPos[Z]) > bigRadius)
-	{
-		//Data cleanup to prevent errant positive detection when culling logic is passed,
-		dWorldObjects[obj_id1].dist = 0; //when previously it may noy have been.
-		return;
-	};
-		//Project to a horizontal edge of the face.
-		//More specifically, this projects to the vector of that edge,
-		//but since the projection is using a relative point rather than an absolute point,
-		//it's already a projection in relation to the center of the face.
-	POINT vfAfC = {fenceA[X] - fenceC[X], fenceA[Y] - fenceC[Y], fenceA[Z] - fenceC[Z]};
-	VECTOR unitRelPos;
-	VECTOR unitvfAfC;
-	normalize(tgtRelPos, unitRelPos);
-	normalize(vfAfC, unitvfAfC);
-
-	line_intersection_function(tgt->pos, unitRelPos, fenceA, unitvfAfC, edgePrj0);
-	
-	
-		//The first condition is if our projection is beyond the X or Z radius of the face, we want to stop now.
-	if(JO_ABS(edgePrj0[X]) > JO_ABS(vfAfC[X]>>1) || JO_ABS(edgePrj0[Z]) > JO_ABS(vfAfC[Z]>>1) )
-	{
-		//Data cleanup to prevent errant positive detection when culling logic is passed,
-		dWorldObjects[obj_id1].dist = 0; //when previously it may noy have been.
-		return;
-	};
-		//Now if we are above or below the Y radius of the face, defined by the radius of the objects, we want to stop.
-/* 	if( JO_ABS((tgtRelPos[Y]) - (edgePrj0[Y])) > (dWorldObjects[posts[0]].type.radius[Y]<<16) )
-	{
-		//Data cleanup to prevent errant positive detection when culling logic is passed,
-		dWorldObjects[activeObjects[index]].dist = 0; //when previously it may noy have been.
-		return;
-	}; */
-	
-	//Then we do the math to find the normal of this area.
 	//Makes a vector from point 3 to point 1.
 	rminusb[X] = (fenceA[X] - fenceD[X]);
 	rminusb[Y] = (fenceA[Y] - fenceD[Y]);
@@ -1019,28 +1078,117 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	cross[Y] = cross[Y]>>8;
 	cross[Z] = cross[Z]>>8;
 	
-	normalize(cross, faceNormal);
-	//Then a collision detector.
-	tDist = ptalt_plane(tgt->pos, faceNormal, centerFace);
+	normalize(cross, used_normal);
 
-	// slPrintFX(tDist, slLocate(0, 12));
-	// slPrintFX(dWorldObjects[obj_id1].dist, slLocate(0, 13));
-	// nbg_sprintf(12, CELL_CULLING_DIST_MED, "(%i)", tDist ^ dWorldObjects[obj_id1].dist);
-
-//Some way to check if the sign is different, also a safety to ensure at least 1 frame of checking has passed
-	if( (tDist ^ dWorldObjects[obj_id1].dist) < 0 && dWorldObjects[obj_id1].dist != 0) 
+	//////////////////////////////////////////////////////////////
+	// Grab the absolute normal used for finding the dominant axis
+	//////////////////////////////////////////////////////////////
+	fabs_norm[X] = JO_ABS(used_normal[X]);
+	fabs_norm[Y] = JO_ABS(used_normal[Y]);
+	fabs_norm[Z] = JO_ABS(used_normal[Z]);
+	FIXED max_axis = JO_MAX(JO_MAX((fabs_norm[X]), (fabs_norm[Y])), (fabs_norm[Z]));
+	dominant_axis = ((fabs_norm[X]) == max_axis) ? N_Xp : dominant_axis;
+	dominant_axis = ((fabs_norm[Y]) == max_axis) ? N_Yp : dominant_axis;
+	dominant_axis = ((fabs_norm[Z]) == max_axis) ? N_Zp : dominant_axis;
+	//	0 - 1 // B - D
+	//	3 - 2 // A - C
+	//////////////////////////////////////////////////////////////
+	// Collision Test Method: Chirality Check
+	// This first tests, line by line, if the player is inside the shape on at least two axis.
+	// Then the final axis is checked with a point-to-plane distance check.
+	// The benefits of this is that the chirality check will exit early a lot of the time.
+	//////////////////////////////////////////////////////////////
+ 	if(edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis) < 0)
 	{
-			dWorldObjects[obj_id1].dist = 0;
-			dWorldObjects[posts[0]].type.ext_dat |= 0x1;
-			dWorldObjects[posts[1]].type.ext_dat |= 0x1;
-			add_to_track_timer(posts[0]);
-		return;
-	} else {
-			dWorldObjects[obj_id1].dist = tDist;
-		return;
-	}
+		if(edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis) < 0)
+		{
+			if(edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis) < 0)
+			{
+				if(edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis) < 0)
+				{
+					tDist = realpt_to_plane(you.pos, used_normal, fenceA);
+					if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
+					{
+						add_to_track_timer(obj_id1, obj_id2);
+						//spr_sprintf(150,112, "bip");
+					}
+				}
+			}
+		}
+	} 
 	
+	// int ab = edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis);
+	// int bb = edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis);
+	// int cb = edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis);
+	// int db = edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis);
+
+	// nbg_sprintf(0 + (obj_id1 * 6),6, "(%i)", ab>>12);
+	// nbg_sprintf(0 + (obj_id1 * 6),7, "(%i)", bb>>12);
+	// nbg_sprintf(0 + (obj_id1 * 6),8, "(%i)", cb>>12);
+	// nbg_sprintf(0 + (obj_id1 * 6),9, "(%i)", db>>12);
+
+	//nbg_sprintf(2,6 + obj_id1, "(%i)", tDist);
+	dWorldObjects[obj_id1].dist = tDist;
 }
+
+/////////
+//
+// Something about gate posts is inefficient and slowing the program down.
+// It's a time like this where profiler would come in super handy.
+// Unfortunately, I'm going to have to scope the issue manually.
+// Regardless there's room for  optimization, here or there.
+//
+//
+/////////
+void	test_gate_posts(int index, _boundBox * tgt)
+{
+
+			if((dWorldObjects[index].type.ext_dat & GATE_PASSED) != 0) return; //Return if the gate is already flagged as passed.
+															
+	short trackedEntry = link_starts[GATE_P>>12];
+	unsigned short flagOne = dWorldObjects[index].type.ext_dat & 0x7FFF;
+	unsigned short flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF;
+	//Goal: Check every entity in the GATE_P link list until the LINK is -1. When it is -1, stop. If it is equal to the current object's index, continue.
+		while(trackedEntry != -1){
+			//Do nothing, and continue to next entry if the entries are identical.
+			if(trackedEntry != index)
+			{				
+				if(flagOne == flagTwo)
+				{
+					has_entity_passed_between(index, trackedEntry, tgt);
+					
+				}
+				/////////////////
+				// Rotation-orientation segment
+				// This code body will automatically rotate posts' to "face" each other.
+				// You can disable this code segment by flagging the object's "ext_dat" with 0x2 when declaring it.
+				// This will rotate meshes such that the Z+ direction of the mesh will face the other gate post.
+				/////////////////
+				if(!(dWorldObjects[index].more_data & GATE_POST_ALIGNED) && ((flagOne & 0xFF0) == (flagTwo & 0xFF0)))
+				{
+					align_object_to_object(index, trackedEntry);
+					if(entities[dWorldObjects[index].type.entity_ID].type == MODEL_TYPE_BUILDING)
+					{
+						//Why do we flip this? Because coordinates are madness.
+						dWorldObjects[index].rot[Y] = -dWorldObjects[index].rot[Y];
+						generate_rotated_entity_for_object(index);
+					}
+					// nbg_sprintf(0, 10, "o1id(%i)", index);
+					// nbg_sprintf(10, 10, "o2id(%i)", trackedEntry);
+					// nbg_sprintf(3, 12, "data0(%x)", posDif[X]);
+					// nbg_sprintf(5, 13, "rot0(%i)", dWorldObjects[index].rot[Y]);
+					// nbg_sprintf(3, 14, "data1(%x)", posDif[Z]);
+					// nbg_sprintf(5, 15, "rot1(%i)", dWorldObjects[trackedEntry].rot[Y]);
+					
+				}
+			}
+			trackedEntry = dWorldObjects[trackedEntry].link; //Retrieve the declared entity ID of the next gate post from linked list
+			flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF; //Get the data of the next post (but ignore the POP?)
+			// Explanation: The POP of two pieces of a gate may not always match, but all of the other data should.
+			// This includes: Is it checked yet, is it passed yet, is it the same track, is it the same set of linked posts.
+		}
+}
+
 
 		//Presently function is unused so is technically incomplete (doesn't return or point to useful data).
 		//For AI pathing, you.. uhh.. find a way.
@@ -1110,7 +1258,7 @@ void	run_item_collision(int index, _boundBox * tgt)
 			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
 			dWorldObjects[activeObjects[index]].type.light_bright = 0; //Remove brightness
 			you.points++;
-			pcm_play(snd_click, PCM_SEMI, 7);
+			pcm_play(snd_click, PCM_SEMI, 5);
 				}
 		}
 			}//Root entity check end
@@ -1162,95 +1310,13 @@ void	test_gate_ring(int index, _boundBox * tgt)
 		if( fxm(tDist, dWorldObjects[activeObjects[index]].dist) < 1 && tRelDist < largeRadius)
 		{	//If the sign of tDist varies from the sign of old object dist, and we are within the radius...
 			//we've passed the plane of the gate's span, and are close enough to have done so within it.
-		add_to_track_timer(activeObjects[index]);
-		dWorldObjects[activeObjects[index]].type.ext_dat |= 0x1; //Flag gate as passed.
+		add_to_track_timer(activeObjects[index], -1);
+		dWorldObjects[activeObjects[index]].type.ext_dat |= GATE_PASSED; //Flag gate as passed.
 		}
 	
 	dWorldObjects[activeObjects[index]].dist = tDist;
 }
 
-
-void	test_gate_posts(int index, _boundBox * tgt)
-{
-
-			if((dWorldObjects[index].type.ext_dat & 0x1) != 0) return; //Return if the gate is already flagged as passed.
-															
-	short trackedEntry = link_starts[GATE_P>>12];
-	unsigned short flagOne = dWorldObjects[index].type.ext_dat & 0x7FFF;
-	unsigned short flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF;
-
-	//Goal: Check every entity in the GATE_P link list until the LINK is -1. When it is -1, stop. If it is equal to the current object's index, continue.
-		while(trackedEntry != -1){
-			//Do nothing, and continue to next entry if the entries are identical.
-			if(trackedEntry != index)
-			{				
-				if(flagOne == flagTwo)
-				{
-					has_entity_passed_between(index, trackedEntry, tgt);
-					
-				}
-				
-				/////////////////
-				// Rotation-orientation segment
-				// This code body will automatically rotate posts' to "face" each other.
-				// You can disable this code segment by flagging the object's "ext_dat" with 0x2 when declaring it.
-				// This will rotate meshes such that the Z+ direction of the mesh will face the other gate post.
-				/////////////////
-				if(!(dWorldObjects[index].more_data & 0x1) && ((flagOne & 0xFF0) == (flagTwo & 0xFF0)))
-				{
-					
-					//Orienting post 1
-					//First, get vector to post 2.
-					//Note that we only need the X/Z vector, or the XY of the map location.
-					int posDif[XYZ] = {((dWorldObjects[index].pix[X] - dWorldObjects[trackedEntry].pix[X]) * CELL_SIZE)>>8, 0,
-									((dWorldObjects[index].pix[Y] - dWorldObjects[trackedEntry].pix[Y]) * CELL_SIZE)>>8};
-					accurate_normalize(posDif, posDif);
-					dWorldObjects[index].rot[Y] = slAtan(posDif[Z], posDif[X]);
-					dWorldObjects[index].more_data |= 0x1;
-					
-					// nbg_sprintf(0, 10, "o1id(%i)", index);
-					// nbg_sprintf(10, 10, "o2id(%i)", trackedEntry);
-					// nbg_sprintf(3, 12, "data0(%x)", posDif[X]);
-					// nbg_sprintf(5, 13, "rot0(%i)", dWorldObjects[index].rot[Y]);
-					// nbg_sprintf(3, 14, "data1(%x)", posDif[Z]);
-					// nbg_sprintf(5, 15, "rot1(%i)", dWorldObjects[trackedEntry].rot[Y]);
-					
-				}
-			}
-			trackedEntry = dWorldObjects[trackedEntry].link; //Retrieve the declared entity ID of the next gate post from linked list
-			flagTwo = dWorldObjects[trackedEntry].type.ext_dat & 0x7FFF; //Get the data of the next post (but ignore the POP?)
-			// Explanation: The POP of two pieces of a gate may not always match, but all of the other data should.
-			// This includes: Is it checked yet, is it passed yet, is it the same track, is it the same set of linked posts.
-		}
-}
-
-//Idea:
-//Make function that handles going through the linked lists.
-_declaredObject * step_linked_object_list(_declaredObject * previous_entry)
-{
-	//In case the object is the last in the list, its link will be -1.
-	//So do not try to go deeper in the list.
-	//When we reach the last entry, return a safe, known memory address. In this case, the address of a new object.
-		if(previous_entry->link >= 0)
-		{
-	return (_declaredObject *)&dWorldObjects[previous_entry->link];
-		} else {
-	return (_declaredObject *)&dWorldObjects[objNEW];
-		}
-}
-
-_declaredObject * get_first_in_object_list(short object_type_specification)
-{
-	short first_object_id_num = link_starts[(object_type_specification & OTYPE)>>12];
-	if(first_object_id_num >= 0)
-	{
-	return (_declaredObject *)&dWorldObjects[first_object_id_num];
-	} else {
-	//There's no objects of this type, so just point to the next new object.
-	//It's safe, I guess? If there are open object slots....
-	return (_declaredObject *)&dWorldObjects[objNEW];
-	}
-}
 
 void	gate_track_manager(void)
 {
@@ -1276,11 +1342,12 @@ void	gate_track_manager(void)
 	//The collision math is ran separately, in a more key spot in the entire physics structure.
 	//This is a purpose-built function, but can be viewed as a method of game state tracking through linked lists.
 	
-	short track_select;
+	short ldata_track;
 	short object_track;
 	
 	int num_track_dat =  0;
-	static char complete_tracks = 0;
+	unsigned short discovery = TRACK_DISCOVERED;
+	static int complete_tracks = 0;
 	
 	// nbg_sprintf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
 	// nbg_sprintf(0, 16, "act(%i)", activeTrack);
@@ -1288,7 +1355,7 @@ void	gate_track_manager(void)
 	
 	while(someLDATA != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(GTMN)"); //Debug ONLY
-		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA)
+		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA && !(someLDATA->more_data & TRACK_COMPLETE))
 		{
 		////////////////////////////////////////////////////////////////////////////////
 		//
@@ -1296,38 +1363,40 @@ void	gate_track_manager(void)
 		// It's messy.
 		//
 		////////////////////////////////////////////////////////////////////////////////
-		track_select = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
+		discovery |= TRACK_DISCOVERED; // Flag the track as discovered. This is used for checking the tracks discovery later.
+		ldata_track = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
 		someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
 		someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
 		somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
 		someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
 		num_track_dat++;
 		//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
-		//nbg_sprintf(1, 13, "track(%i)", track_select);
-				if(activeTrack == -1 || (activeTrack == track_select)) // if active track.. or track released
+		//nbg_sprintf(1, 13, "track(%i)", ldata_track);
+				if(activeTrack == -1 || (activeTrack == ldata_track)) // if active track.. or track released
 					{
 					// nbg_sprintf(0, 17, "ldt(%i)", trackedLDATA);
 					// nbg_sprintf(0, 17, "ldt(%i)", someLDATA->more_data);
 			while(someRINGdata != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(RING)"); //Debug ONLY
 				object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
-					if(track_select == object_track)
+					if(ldata_track == object_track)
 					{
 						//Special magic numbers checking, i guess?
-						if(someRINGdata->type.ext_dat & 0x1 && !(someLDATA->more_data & OBJPOP))
+						if(someRINGdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & OBJPOP))
 						{
 							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
 							//I forget why I set this?
 							someLDATA->pix[X]++;
 						}
-					
+					// Track Discovery Checking
+					discovery &= someRINGdata->more_data;
 					//I still forget why I set this?
 					someLDATA->pix[Y]++;
 				//Reset if track reset enabled
-						if(track_reset[track_select] == true)
+						if(track_reset[ldata_track] == true)
 						{
-						//What even is track reset?
-						someRINGdata->type.ext_dat &= 0xFFFE; 
+						add_object_to_minimap(someRINGdata, 0x83E0);
+						someRINGdata->type.ext_dat &= GATE_UNPASSED; 
 						}
 					}
 			someRINGdata = step_linked_object_list(someRINGdata);
@@ -1338,58 +1407,67 @@ void	gate_track_manager(void)
 				object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 				////////////////////////////////////////////////////
 				// Flush the "checked collision yet" marker for gate posts.
-				somePOSTdata->type.ext_dat &= 0xFFFD;
-					if(track_select == object_track)
+				somePOSTdata->type.ext_dat &= GATE_UNCHECKED;
+					if(ldata_track == object_track)
 					{
-						if(somePOSTdata->type.ext_dat & 0x1 && !(someLDATA->more_data & OBJPOP))
+						if(somePOSTdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & OBJPOP))
 						{
 							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
 							// The "X" pix of track data level data is the number of passed gates in the track.
 							someLDATA->pix[X]++;
 						}
+					// Track Discovery Checking
+					discovery &= somePOSTdata->more_data;
 					//The "Y" pix of a track data level data is the total number of gates in the track.
 					//To complete the track, X must equal Y.
 					someLDATA->pix[Y]++;
 				//Reset if track reset enabled
-						if(track_reset[track_select] == true)
+						if(track_reset[ldata_track] == true)
 						{
-						somePOSTdata->type.ext_dat &= 0xFFFE; 
+						add_object_to_minimap(somePOSTdata, 0x83E0);
+						somePOSTdata->type.ext_dat &= GATE_UNPASSED; 
 						}
 					}
 			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
-			track_reset[track_select] = false;
+			track_reset[ldata_track] = false;
 				//nbg_sprintf(0, 0, "(LDAT)"); //Debug ONLY
 			//Track completion logic
 			if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0)
 			{
-				someLDATA->type.ext_dat &= UNPOP;	//Set track as inactive
-				someLDATA->more_data |= OBJPOP;	//Set track as complete
-				trackTimers[track_select] = 0;	//Re-set the track timer
+				someLDATA->type.ext_dat &= TRACK_INACTIVE;	//Set track as inactive
+				someLDATA->more_data |= TRACK_COMPLETE;	//Set track as complete
+				trackTimers[ldata_track] = 0;	//Re-set the track timer
 				activeTrack = -1;	//Release active track
 				you.points += 10 * someLDATA->pix[X];
 				complete_tracks++;
-				pcm_play(snd_cronch, PCM_PROTECTED, 7); //Sound
+				pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
 				slPrint("                           ", slLocate(0, 6));
 				slPrint("                           ", slLocate(0, 7));
 			}
 
 			//Timer run & check
-			if((someLDATA->type.ext_dat & OBJPOP) != 0)
+			if((someLDATA->type.ext_dat & TRACK_ACTIVE))
 			{
-				trackTimers[track_select] -= delta_time;
-					if(trackTimers[track_select] < 0) //If timer expired...
+				trackTimers[ldata_track] -= delta_time;
+					if(trackTimers[ldata_track] < 0) //If timer expired...
 					{
 						someLDATA->type.ext_dat &= UNPOP;
-						track_reset[track_select] = true; //Reset tracks; timer expired
-						trackTimers[track_select] = 0;
+						track_reset[ldata_track] = true; //Reset tracks; timer expired
+						trackTimers[ldata_track] = 0;
 						activeTrack = -1; //Release active track
 						//Sound stuff
-						pcm_play(snd_alarm, PCM_PROTECTED, 7);
+						pcm_play(snd_alarm, PCM_PROTECTED, 5);
 						//Clear screen in this zone
 				slPrint("                           ", slLocate(0, 6));
 				slPrint("                           ", slLocate(0, 7));
 					}
+			}
+			//Discovery count-down & track discovery
+			if(discovery & TRACK_DISCOVERED && !(someLDATA->more_data & TRACK_DISCOVERED))
+			{
+				someLDATA->dist -= delta_time;
+				if(someLDATA->dist < 0) someLDATA->more_data |= TRACK_DISCOVERED;
 			}
 					}//if active track \ track end
 		////////////////////////////////
@@ -1412,19 +1490,19 @@ void	gate_track_manager(void)
 	//Completed all tracks, but only do anything if there are actually any tracks
 	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
 	{
-		pcm_play(snd_win, PCM_PROTECTED, 7);
+		pcm_play(snd_win, PCM_PROTECTED, 5);
 		complete_tracks = 0;
 		//map_chg = false;
 		//p64MapRequest(1);
 	}
 	
 			if(activeTrack != -1){
-				slPrint("Find the other wreath!", slLocate(0, 6));
+				//slPrint("Find the other wreath!", slLocate(0, 6));
 				slPrintFX(trackTimers[activeTrack], slLocate(0, 7));
 			}
 			
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
-	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
+	nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
 			
 	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));
 	// slPrintHex(dWorldObjects[6].dist, slLocate(0, 16));

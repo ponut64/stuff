@@ -45,10 +45,10 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	//The reason being that objects declared later than this declaration could not possibly have rotated meshes generated yet.
 	for(int i = 0; i < declared_object_entry; i++)
 	{
-		if((dWorldObjects[i].type.ext_dat & OTYPE) == BUILD)
+		if(entities[dWorldObjects[i].type.entity_ID].type == MODEL_TYPE_BUILDING)
 		{
-			short other_entity_id = (dWorldObjects[i].type.ext_dat & 0x0FF0)>>4;
-			if(other_entity_id == this_entity_ID && dWorldObjects[i].rot[X] == object->rot[X]
+			short other_entity_original_id = dWorldObjects[i].type.clone_ID;
+			if(other_entity_original_id == this_entity_ID && dWorldObjects[i].rot[X] == object->rot[X]
 			&& dWorldObjects[i].rot[Y] == object->rot[Y] && dWorldObjects[i].rot[Z] == object->rot[Z])
 			{
 				//In this case, the two objects match rotation and thus should use the same entity ID.

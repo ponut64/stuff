@@ -122,7 +122,7 @@ void controls(void)
 	//
 
 
-	if(is_key_struck(DIGI_START)){
+	if(is_key_down(DIGI_START)){
 		//reset_player();
 		you.inMenu = true;
 	}
