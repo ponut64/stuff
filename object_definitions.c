@@ -1,65 +1,81 @@
 
 
-_sobject BB00 = {
-	.entity_ID = 0,
+_sobject FirstRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GHOST,
+	.ext_dat = ITEM | 0x10,
 	.light_bright = 0
 };
 
-_sobject BB01 = {
-	.entity_ID = 1,
+_sobject SecondRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GHOST,
+	.ext_dat = ITEM | 0x20,
 	.light_bright = 0
 };
 
-_sobject BB02 = {
-	.entity_ID = 2,
+_sobject ThirdRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GHOST,
+	.ext_dat = ITEM | 0x30,
 	.light_bright = 0
 };
 
-_sobject BB03 = {
-	.entity_ID = 3,
+_sobject FourthRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GHOST,
+	.ext_dat = ITEM | 0x40,
 	.light_bright = 0
 };
 
-_sobject BB04 = {
-	.entity_ID = 4,
+_sobject FifthRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GHOST,
+	.ext_dat = ITEM | 0x50,
 	.light_bright = 0
 };
 
-_sobject Meme00 = {
-	.entity_ID = 5,
+_sobject SixthRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD,
+	.ext_dat = ITEM | 0x60,
 	.light_bright = 0
 };
 
-_sobject Meme01 = {
-	.entity_ID = 6,
+_sobject SeventhRing = {
+	.entity_ID = 9,
+	.clone_ID = 1,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD,
+	.ext_dat = ITEM | 0x70,
+	.light_bright = 0
+};
+
+_sobject Titem = {
+	.entity_ID = 9,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = ITEM,
 	.light_bright = 0
 };
 
@@ -155,15 +171,6 @@ _sobject Build05 = {
 
 _sobject Build06 = {
 	.entity_ID = 17,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = BUILD,
-	.light_bright = 0
-};
-
-_sobject Build07 = {
-	.entity_ID = 18,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
@@ -340,6 +347,14 @@ _sobject GoToLevel1 = {
 	.ext_dat = LDATA | LEVEL_CHNG | 0x80
 };
 
+_sobject SampleItemManager = {
+	.entity_ID = 1,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = LDATA | ITEM_MANAGER | MANAGER_7RINGS
+};
+
 _sobject SampleTrackData = {
 	.entity_ID = 0,
 	.radius[X] = 0,
@@ -364,38 +379,78 @@ _sobject PCM_Sound_Trigger = {
 	.ext_dat = LDATA | SOUND_TRIG
 };
 
-_sobject Empty;
+_sobject Empty = {
+	.entity_ID = 0,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = GHOST
+};
+
+_sobject FlagStand = {
+	.entity_ID = 53,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD
+};
+
+_sobject GoalStand = {
+	.entity_ID = 54,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD
+};
+
+_sobject FlagShield = {
+	.entity_ID = 55,
+	.clone_ID = 2,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = OBJECT
+};
+
+_sobject GoalStandItem = {
+	.entity_ID = 56,
+	.clone_ID = 2,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = ITEM
+};
+
+_sobject Flag = {
+	.entity_ID = 57,
+	.clone_ID = 2,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = ITEM | ITEM_TYPE_FLAG
+};
+
+_sobject CTFManager = {
+	.entity_ID = 2,
+	.clone_ID = 0,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = LDATA | ITEM_MANAGER | MANAGER_CTF
+};
 
 _sobject * objList[64];
 
-//To make this into a usable system for game engine, I need to write another tool.
-// The original source file for a level design consists of:
-//	1. A list of object types, specifying the file-name to be used for this object type otherwise adhering to the type " _sobject "
-//	2. A list of object declarations: Type, position, rotation.
-//	Note that building objects declare sub-objects.
-// At its most basic, I need the tool to write a binary file with the following:
-//	1. The total number of entities, the total number of object types, and the total number of declared objects in the level
-//	2. A list of entity file-names to be loaded for the level
-//	3. A list of object types, listing the level-specific appropriate entityID.
-//	4. An object declaration list which is an ordered list of the locations and rotations of all objects in level
-// The game then needs to be prepared to:
-//	1. Re-set the data pointers for meshes, re-set the entity list to zero, re-set the object list, and re-set the delcared object list.
-//	2. Load the binary level data file from disc to a work area
-//	3. Acquire the total total number of entities, number of object types, and total number of declared objects.
-//	4. Load the entities from the file-names in order, according to the total number of entities.
-//	5. Fill the object list according to the total number of object types.
-//	6. Declare all objects from the level data file according to the total number of declared objects.
-
 void	fill_obj_list(void)
 {
-	objList[0] = &BB00;
-	objList[1] = &BB01;
-	objList[2] = &BB02;
-	objList[3] = &BB03;
-	objList[4] = &BB04;
-	objList[5] = &Meme00;
-	objList[6] = &Meme01;
-	objList[7] = &Post00;
+	objList[0] = &Titem;
+	objList[1] = &FirstRing;
+	objList[2] = &SecondRing;
+	objList[3] = &ThirdRing;
+	objList[4] = &FourthRing;
+	objList[5] = &FifthRing;
+	objList[6] = &SixthRing;
+	objList[7] = &SeventhRing;
 	objList[8] = &Tladder;
 	objList[9] = &Kyoob;
 	objList[10] = &Platf00;
@@ -406,7 +461,7 @@ void	fill_obj_list(void)
 	objList[15] = &Build04;
 	objList[16] = &Build05;
 	objList[17] = &Build06;
-	objList[18] = &Build07;
+	objList[18] = &Post00;
 	objList[19] = &Build08;
 	objList[20] = &Build09;
 	objList[21] = &Build10;
@@ -426,6 +481,14 @@ void	fill_obj_list(void)
 	objList[34] = &Build23;
 	objList[35] = &Build24;
 	
+	objList[53] = &FlagStand;
+	objList[54] = &GoalStand;
+	objList[55] = &FlagShield;
+	objList[56] = &GoalStandItem;
+	objList[57] = &Flag;
+	objList[58] = &CTFManager;
+	
+	objList[59] = &SampleItemManager;
 	objList[60] = &SampleTrackData;
 	objList[61] = &Player_Start_Location;
 	objList[62] = &PCM_Sound_Trigger;

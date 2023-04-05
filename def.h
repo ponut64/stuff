@@ -103,6 +103,16 @@ extern int snd_win;
 extern int snd_bwee;
 extern int snd_smack;
 extern int snd_khit;
+extern int snd_clack;
+extern int snd_close;
+extern int snd_button2;
+extern int snd_ring1;
+extern int snd_ring2;
+extern int snd_ring3;
+extern int snd_ring4;
+extern int snd_ring5;
+extern int snd_ring6;
+extern int snd_ring7;
 //////////////////////////////////////////////////////////////////////////////
 
 //Structs

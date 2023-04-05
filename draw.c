@@ -234,7 +234,7 @@ void	obj_draw_queue(void)
 		//Assuming the rest of the game code made sense up to this point. Else the game's gonna crash here.
 		if(RBBs[i].status[0] != 'R') continue;
 		
-		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & OTYPE);
+		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & ETYPE);
 		
 	slPushMatrix();
 	

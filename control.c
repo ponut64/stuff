@@ -9,6 +9,7 @@ This file is compiled separately.
 #include "input.h"
 #include "bounder.h"
 #include "player_phy.h"
+#include "pcmsys.h"
 
 #include "control.h"
 
@@ -124,6 +125,7 @@ void controls(void)
 
 	if(is_key_down(DIGI_START)){
 		//reset_player();
+		//pcm_play(snd_button2, 6, PCM_SEMI);
 		you.inMenu = true;
 	}
 	

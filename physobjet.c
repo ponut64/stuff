@@ -46,7 +46,7 @@ _declaredObject * step_linked_object_list(_declaredObject * previous_entry)
 
 _declaredObject * get_first_in_object_list(short object_type_specification)
 {
-	short first_object_id_num = link_starts[(object_type_specification & OTYPE)>>12];
+	short first_object_id_num = link_starts[(object_type_specification & ETYPE)>>12];
 	if(first_object_id_num >= 0)
 	{
 	return (_declaredObject *)&dWorldObjects[first_object_id_num];
@@ -64,7 +64,7 @@ void	align_object_to_object(int index1, int index2)
 					((dWorldObjects[index1].pix[Y] - dWorldObjects[index2].pix[Y]) * CELL_SIZE)>>8};
 	accurate_normalize(posDif, posDif);
 	dWorldObjects[index1].rot[Y] = slAtan(posDif[Z], posDif[X]);
-	if((dWorldObjects[index1].type.ext_dat & OTYPE) == GATE_P) dWorldObjects[index1].more_data |= GATE_POST_ALIGNED;
+	if((dWorldObjects[index1].type.ext_dat & ETYPE) == GATE_P) dWorldObjects[index1].more_data |= GATE_POST_ALIGNED;
 }
 
 void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data)
@@ -100,7 +100,7 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 		// If no radius was defined for the object, use the radius from the entity.
 		// Must check if the entity is loaded, or else out of bounds access may occur.
 		////////////////////////////////////////////////////
-		if((dWorldObjects[objNEW].type.ext_dat & OTYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
+		if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
 			dWorldObjects[objNEW].type.radius[Y] == 0 && dWorldObjects[objNEW].type.radius[Z] == 0 &&
 			entities[dWorldObjects[objNEW].type.entity_ID].file_done)
 		{
@@ -149,476 +149,47 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 Okey, what's next in the gameplay pipe?
 Slide Hop is to have three "things to do". These aren't just the primary things to do, they are it. These' the things.
 
-1 - Discover & traverse the track in time.
-The track is a series of gates, each one is two linked posts.
-The player first is expected to explore the map. When they first cross a gate, it won't trigger the timer or the whole track.
-Instead, it will flag that gate as "Discovered". It will show up on the player's minimap, play a sound to indicate discovery,
-and (possibly) show up in some other menu to let them know they've discovered X of Y # of gates.
-The player can't run the track by the timer until they discover all of the gates in the track.
-
-When the player does finally discover all of the gates in the track, a silent timer is started (say 5 seconds).
-This silent timer must pass before the player can start the track by its timer.
-When the player starts a track, I want to add some way to help players know where to go next.
-Of course, I'm not sure if this is strictly needed? They did run around the map and discover all of the gates, after all.
-But it might help them to highlight the nearest gate on-screen.
-The problem is this will teach players to chase the nearest gate icons...
-That's going to frustrate players immensely when the nearest gate is not actually the next gate they should go to.
-All the same, I'm not going to program a fixed gate order. However, a suggested gate order might be good enough.
-Yeah, suggested order seems smart. Going out-of-order is something I should suggest is possible.
-I should also add a menu option to "Disable Gate Marker".
-
-Another important part of the track is that there is not a fixed start/end gate. The gates can be done in any order.
+1 - Gates
+a. Passing gates for discovery - done.
+b. Silent timer after discovery - done.
+c. cleaing gates by timer - done.
+d. enabling speed gate - not done, maybe not needed
+e. allow rings in gate series - not tested
+f. represent gate progress in menu - done
+g. gate guide - not done
+h. gates show up on minimap - done
+i. gate ring model - not done
+j. gate post model - not done
 
 2 - Seven Rings
-There are seven collectible rings on the level. This is a simple task of collecting all 7 rings. 
-They might be hidden or in plain sight.
-I'm not sure if I should add a "Discovery" and "Timer" phase to them, too.
-Perhaps I'll add the timer-phase later as an added challenge mode.
-I think I could also hide them in destructible blocks that require the player to go a certain speed to bust them.
+a. Item types - done
+b. 7 Rings with 7 unique item types - done
+c. rings show up on minimap - done
+d. represent ring progress in menu - done
+e. 7 rings models - not done
+f. 7 rings sound effects - not done
+g. timed lap 2 with rings - not done, maybe not needed
+h. manager for items, manager for 7 ring items - done.
 
 3 - CTF
-On the map, there are two Flag Stands. One Goal Stand and one Target Stand (with the flag on it).
-The Target Stand begins under cover of a shield in all levels.
-To uncover the target stand's shield, you must first find and jump on the goal stand.
-There may be other level-specific things that must be done to unveil the flag.
-Once the target stand's shield is gone, you can take the flag from it and return it to the goal stand.
-This is subject to a timer. Very simple.
-If you don't make the flag to the stand in time, it is automatically returned to the target stand.
-It might be fun to add a minimum speed rule to CTF.
-Or in other cases, if you keep going fast the timer does not go down; only goes down when going slow.
- 
+
+How should I handle this?
+The flag which sticks to you is simple enough.
+But it's a multi-step process.
+Upon examination, this is far and away the most complicated thing i've done for game logic.
+there are multiple "moving parts" : the flag stand, the shield, and the goal stand.
+
+a. flag stand - not done
+b. flag stand shield - not done
+c. goal stand - not done
+d. jump on goal stand to unshield - not done
+e. flag - not done
+f. carrying flag - not done
+g. time limit with flag - not done
+h. delivering flag - not done
+i. represent flag progress in menu - not done
 
 **/
-
-void	declarations(void)
-{
-
-/* level00 ?*/
-//Will replace.
-
-//declare_object_at_cell((0 / 40) + 1, -40, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 7 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 7 /*post00*/, 0, 0, 0, 0);
-objList[7]->ext_dat = SET_GATE_POST_LINK(objList[7]->ext_dat, 1);
-declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 7 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 7 /*post00*/, 0, 0, 0, 0);
-
-declare_object_at_cell(0, 0, 0, 60 /*ldata*/, 0, 0, 0, 0);
-dWorldObjects[objNEW-1].dist = 2<<16; // Sets ldata timer
-
-//declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
-
-/* level01? */
-
-// declare_object_at_cell(-(180 / 40) + 1, -120, -(660 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(900 / 40) + 1, -248, -(460 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(620 / 40) + 1, -248, (260 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((340 / 40) + 1, -288, (660 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((1060 / 40) + 1, -297, (620 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(260 / 40) + 1, -368, (1100 / 40), 12 /*greece01*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(260 / 40) + 1, -368, (860 / 40), 13 /*greece02*/, 0, 270, 0, 0);
-// declare_object_at_cell(-(260 / 40) + 1, -368, (1340 / 40), 13 /*greece02*/, 0, 90, 0, 0);
-
-
-// declare_object_at_cell(-(260 / 40) + 1, -302, (580 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell((1540 / 40) + 1, -302, (500 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-// declare_object_at_cell((1740 / 40) + 1, -259, (1060 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-// declare_object_at_cell((1660 / 40) + 1, -313, -(940 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(780 / 40) + 1, -275, -(780 / 40), 21 /*wall1*/, 0, 180, 10, 0);
-// declare_object_at_cell(-(1020 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 0, 10, 0);
-
-// declare_object_at_cell((660 / 40) + 1, -377, (1180 / 40), 25 /*float01*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(180 / 40) + 1, -179, -(340 / 40), 33 /*ramp01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -347, -(1260 / 40), 33 /*ramp01*/, 0, -90, 0, 0);
-
-// declare_object_at_cell((700 / 40) + 1, -273, (660 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell((1420 / 40) + 1, -351, (1140 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(180 / 40) + 1, -237, -(100 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell((540 / 40) + 2, -237, -(100 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(900 / 40) + 1, -237, -(100 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1580 / 40) + 1, -237, (340 / 40) + 1, 27 /*hiway01*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(1260 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(540 / 40) + 1, -237, -(100 / 40), 28 /*hiway02*/, 0, 180, 0, 0);
-// declare_object_at_cell((180 / 40) + 2, -237, -(100 / 40), 28 /*hiway02*/, 0, 0, 0, 0);
-// declare_object_at_cell((900 / 40) + 2, -237, -(100 / 40), 28 /*hiway02*/, 0, 180, 0, 0);
-// declare_object_at_cell((1140 / 40) + 2, -237, -(100 / 40), 28 /*hiway02*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(420 / 40) + 1, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1380 / 40) + 1, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell((60 / 40) + 2, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell((1020 / 40) + 2, -237, -(100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1020 / 40) + 1, -295, (1100 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((300 / 40) + 2, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((660 / 40) + 2, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((780 / 40) + 2, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((1260 / 40) + 2, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((1460 / 40) + 2, -237, -(300 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(60 / 40) + 1, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(300 / 40) + 1, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(660 / 40) + 1, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(780 / 40) + 1, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1140 / 40) + 1, -237, -(100 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1580 / 40) + 1, -237, (100 / 40) + 1, 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1580 / 40) + 1, -237, (220 / 40) + 1, 30 /*hiway04*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(1020 / 40) + 1, -237, -(100 / 40), 31 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((420 / 40) + 2, -237, -(100 / 40), 31 /*hiway04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1420 / 40) + 2, -179, -(140 / 40), 32 /*hiway06*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(1540 / 40) + 1, -179, -(60 / 40), 32 /*hiway06*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1460 / 40) + 2, -237, -(420 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-// declare_object_at_cell((140 / 40) + 2, -405, -(1260 / 40), 34 /*hiway07*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(1140 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(900 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 180, 0, 0);
-
-/* level2? */
-// Likely will keep, with modification.
-
-// declare_object_at_cell((1180 / 40) + 1, -400, -(3140 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1660 / 40) + 1, -159, -(980 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((1060 / 40) + 1, -251, -(2780 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1060 / 40) + 1, -344, -(1460 / 40), 11 /*bridge1*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(580 / 40) + 1, -177, -(300 / 40), 12 /*greece01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(820 / 40) + 1, -177, -(300 / 40), 13 /*greece02*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(340 / 40) + 1, -177, -(140 / 40), 13 /*greece02*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(1580 / 40) + 1, -201, -(2860 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(1300 / 40) + 1, -201, -(3140 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(1220 / 40) + 1, -201, -(3220 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(940 / 40) + 1, -201, -(3500 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-
-// declare_object_at_cell(-(340 / 40) + 1, -177, -(300 / 40), 14 /*greece03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1460 / 40) + 1, -200, -(3020 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1100 / 40) + 1, -200, -(3380 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1660 / 40) + 1, -117, -(1820 / 40), 16 /*overhang*/, 15, 0, 0, 0);
-// declare_object_at_cell((1020 / 40) + 1, -146, -(220 / 40), 16 /*overhang*/, 0, 135, 0, 0);
-// declare_object_at_cell((60 / 40) + 1, -209, (3180 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(580 / 40) + 1, -238, (3340 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell((1540 / 40) + 1, -316, -(2940 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(660 / 40) + 1, -190, -(2220 / 40), 16 /*overhang*/, 0, -45, 15, 0);
-// declare_object_at_cell(-(420 / 40) + 1, -180, -(2580 / 40), 16 /*overhang*/, 0, -45, 15, 0);
-
-// declare_object_at_cell((740 / 40) + 1, -167, -(60 / 40), 17 /*pier1*/, 0, 45, 0, 0);
-// declare_object_at_cell((1180 / 40) + 1, -97, (2300 / 40), 17 /*pier1*/, 0, 45, 0, 0);
-
-// declare_object_at_cell(-(1260 / 40) + 1, -304, (1620 / 40), 19 /*tunnel2*/, 0, 125, 0, 0);
-
-// declare_object_at_cell((1300 / 40) + 1, -133, (860 / 40), 21 /*wall1*/, 0, 140, 0, 0);
-// declare_object_at_cell(-(1420 / 40) + 1, -262, (2620 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(340 / 40) + 1, -226, (740 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(980 / 40) + 1, -208, (380 / 40), 21 /*wall1*/, 0, 40, 0, 0);
-// declare_object_at_cell((300 / 40) + 1, -397, -(620 / 40), 21 /*wall1*/, 0, 40, 0, 0);
-// declare_object_at_cell((620 / 40) + 1, -369, -(2500 / 40), 21 /*wall1*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1340 / 40) + 1, -229, (3260 / 40), 24 /*OBSTCL1*/, 0, 135, 0, 0);
-
-// declare_object_at_cell(-(1100 / 40) + 1, -258, -(1740 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1500 / 40) + 1, -234 , -(2420 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1660 / 40) + 1, -146, -(1340 / 40), 29 /*hiway03*/, 0, 90, 0, 0);
-// declare_object_at_cell((1660 / 40) + 1, -146, -(1460 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-// declare_object_at_cell((1660 / 40) + 1, -146, -(1220 / 40), 34 /*hiway07*/, 0, 270, 0, 0);
-
-// declare_object_at_cell((100 / 40) + 1, -343, (2180 / 40), 35 /*tower01*/, 0, 0, 0, 0);
-
-/* level3 */
-//Decent. Will keep for testing/improvement.
-//I'm getting better at this.
-
-// declare_object_at_cell((1060 / 40) + 1, -420, (220 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1020 / 40) + 1, -297, -(420 / 40), 25 /*float01*/, -15, 0, 0, 0);
-
-// declare_object_at_cell(-(700 / 40) + 1, -350, -(1020 / 40), 26 /*float02*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(380 / 40) + 1, -325, -(1060 / 40), 10 /*platf00*/, 0, 0, -15, 0);
-// declare_object_at_cell((740 / 40) + 1, -369, (500 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1020 / 40) + 1, -181, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((1020 / 40) + 1, -243, -(660 / 40), 10 /*platf00*/, -15, 0, 0, 0);
-// declare_object_at_cell((1020 / 40) + 1, -326, -(140 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((540 / 40) + 1, -345, -(1140 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((500 / 40) + 1, -362, (740 / 40), 19 /*tunnel2*/, 0, -45, 0, 0);
-
-// declare_object_at_cell(-(1140 / 40) + 1, -50, -(100 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(1140 / 40) + 1, -82, -(540 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(700 / 40) + 1, -107, (540 / 40), 15 /*greece04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(420 / 40) + 1, -107, (820 / 40), 15 /*greece04*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(540 / 40) + 1, -107, (660 / 40), 13 /*greece02*/, 0, -45, 0, 0);
-// declare_object_at_cell(-(860 / 40) + 1, -107, (420 / 40), 13 /*greece02*/, 0, 135, 0, 0);
-
-/* level 4 ? */
-// Hell Run level. I like it.
-
-// declare_object_at_cell((460 / 40) + 1, -340, -(4820 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((140 / 40) + 1, -211,  -(1020 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((180 / 40) + 1, -197,  -(480 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((220 / 40) + 1, -351,  (1060 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((260 / 40) + 1, -270,  -(4340 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
-// declare_object_at_cell((300 / 40) + 1, -426,  (860 / 40), 23 /*bridge2*/, 0, 30, 0, 0);
-// declare_object_at_cell((300 / 40) + 1, -426,  (1260 / 40), 23 /*bridge2*/, 0, -30, 0, 0);
-
-// declare_object_at_cell((140 / 40) + 1, -245, -(4140 / 40), 16 /*overhang*/, 0, 115, 0, 0);
-// declare_object_at_cell((20 / 40) + 1, -289, -(3100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-
-// declare_object_at_cell((260 / 40) + 1, -340, (2100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-
-// declare_object_at_cell((180 / 40) + 1, -201, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
-// declare_object_at_cell((100 / 40) + 1, -201, -(1220 / 40), 16 /*overhang*/, 20, 0, 0, 0);
-
-// declare_object_at_cell((220 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 14, 0, 0, 0);
-// declare_object_at_cell((140 / 40) + 1, -152, -(740 / 40), 16 /*overhang*/, 14, 0, 0, 0);
-
-// declare_object_at_cell(-(140 / 40) + 1, -381, (3340 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
-// declare_object_at_cell((60 / 40) + 1, -381, -(2300 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
-// declare_object_at_cell((300 / 40) + 1, -383, (220 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((100 / 40) + 1, -389, -(2300 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40) + 1, -393, (220 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(20 / 40) + 1, -394, -(1900 / 40), 13 /*greece02*/, 0, 0, 0, 0);
-// declare_object_at_cell((340 / 40) + 1, -310, -(300 / 40), 13 /*greece02*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(20 / 40) + 1, -398, (4420 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(300 / 40) + 1, -398, (4700 / 40), 13 /*greece02*/, 0, 225, 0, 0);
-
-// declare_object_at_cell(-(180 / 40) + 1, -398, (4540 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(140 / 40) + 1, -296, (2940 / 40), 21 /*wall1*/, 0, 0, 60, 0);
-// declare_object_at_cell(-(140 / 40) + 1, -277, (3820 / 40), 21 /*wall1*/, -60, -90, 0, 0);
-
-/* level5 ? */
-//Like this level, will keep.
-
-// declare_object_at_cell(-(860 / 40) + 1, -330, (460 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((740 / 40) + 1, -148, (740 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(1180 / 40) + 1, -126, (1020 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-// declare_object_at_cell((1740 / 40) + 1, -399, (1780 / 40), 16 /*overhang*/, 0, 45, 0, 0);
-
-// declare_object_at_cell(-(500 / 40) + 1, -334,  (580 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(340 / 40) + 1, -346,  (380 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell((1020 / 40) + 1, -196,  (460 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((860 / 40) + 1, -22, -(700 / 40), 21 /*wall1*/, 0, -135, 0, 0);
-// declare_object_at_cell((340 / 40) + 1, -181, -(1340 / 40), 21 /*wall1*/, 75, 90, 0, 0);
-
-// declare_object_at_cell((1380 / 40) + 1, -284, (1380 / 40), 23 /*bridge2*/, 0, -135, 0, 0);
-// declare_object_at_cell((660 / 40) + 1, -173, -(900 / 40), 23 /*bridge2*/, 0, -45, 0, 0);
-
-// declare_object_at_cell(-(420 / 40) + 1, -164, -(1020 / 40), 17 /*pier1*/, 0, 120, 0, 0);
-
-// declare_object_at_cell(-(860 / 40) + 1, -310, -(100 / 40), 20 /*tunnl3*/, 0, 90, 0, 0);
-
-// declare_object_at_cell((300 / 40) + 1, -321, -(20 / 40), 14 /*greece03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(60 / 40) + 1, -370, (180 / 40), 25 /*float01*/, 0, 0, 0, 0);
-
-//Level 06 ?
-// Cross level.
-// Mostly just a track level, I don't have too much accomodation for the "seven rings".
-// But I think the concept here is functional and fun.
-// If I forget, path is:
-// South -> North -> West -> East -> South (Ramp) -> West (Tunnel) -> North (Hill) -> East (NE Goal Corner)
-// Now, onto the prospective level 07!
-
-// declare_object_at_cell(-(0 / 40) + 1, -280, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((500 / 40) + 1, -148, (980 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1120 / 40) + 1, -160, -(1080 / 40), 20 /*tunnel3*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1340 / 40) + 1, -359, (900 / 40), 25 /*float01*/, 0, 45, 0, 0);
-
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(460 / 40), 34 /*hiway07*/, 0, 270, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(1420 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (340 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (1300 / 40), 34 /*hiway07*/, 0, 270, 0, 0);
-// declare_object_at_cell((260 / 40) + 1, -247, -(60 / 40), 34 /*hiway07*/, 0, 0, 0, 0);
-// declare_object_at_cell((1220 / 40) + 1, -247, -(60 / 40), 34 /*hiway07*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(500 / 40) + 1, -247, -(60 / 40), 34 /*hiway07*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(1460 / 40) + 1, -247, -(60 / 40), 34 /*hiway07*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((500 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((620 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((860 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell((980 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(740 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(860 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1100 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1220 / 40) + 1, -247, -(60 / 40), 30 /*hiway04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(700 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(820 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(1060 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(1180 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(100 / 40) + 1, -247, (580 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (700 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (940 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (1060 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(580 / 40), 29 /*hiway03*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(1300 / 40), 29 /*hiway03*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (460 / 40), 29 /*hiway03*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (1180 / 40), 29 /*hiway03*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(620 / 40) + 1, -247, -(60 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -247, -(60 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell((380 / 40) + 1, -247, -(60 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-// declare_object_at_cell((1100 / 40) + 1, -247, -(60 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((740 / 40) + 1, -247, -(60 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(980 / 40) + 1, -247, -(60 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, -(940 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(100 / 40) + 1, -247, (820 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-
-//Level 07
-//Aside from level02, most levels have been small; less than 120x120.
-//Now I don't feel like going for a big level "because I have to" is a good idea. Case in point, level02 probably isn't good,
-//and will be re-done. But I think level07 should be bigger.
-
-// declare_object_at_cell(-(1940 / 40) + 1, -100, -(2420 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((100 / 40) + 1, -405,  -(100 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(20 / 40) + 1, -405,  -(20 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(700 / 40) + 1, -357,  (1020 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(580 / 40) + 1, -347,  (1300 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(980 / 40) + 1, -242, (980 / 40), 13 /*greece02*/, 0, 225, 0, 0);
-// declare_object_at_cell(-(1540 / 40) + 1, -342, (300 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(980 / 40) + 1, -242, (980 / 40), 13 /*greece02*/, 0, 225, 0, 0);
-// declare_object_at_cell((1260 / 40) + 1, -127, (1420 / 40), 13 /*greece02*/, 0, 0, 0, 0);
-// declare_object_at_cell((1060 / 40) + 1, -131, (1780 / 40), 13 /*greece02*/, 0, 45, 0, 0);
-
-// declare_object_at_cell((900 / 40) + 1, -170, -(2420 / 40), 15 /*greece04*/, 0, 90, 0, 0);
-// declare_object_at_cell((1140 / 40) + 1, -170, -(2180 / 40), 15 /*greece04*/, 0, 90, 0, 0);
-// declare_object_at_cell((2420 / 40) + 1, -170, -(2580 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-// declare_object_at_cell((2180 / 40) + 1, -170, -(2340 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((180 / 40) + 1, -465, (20 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(140 / 40) + 1, -465, -(100 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell((1020 / 40) + 1, -277, -(540 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(2420 / 40) + 1, -174, (1700 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-
-// declare_object_at_cell((500 / 40) + 1, -245, (2300 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(300 / 40) + 1, -245, (2300 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((1020 / 40) + 1, -254, (900 / 40), 17 /*pier1*/, 0, 270, 0, 0);
-
-// declare_object_at_cell(-(1260 / 40) + 1, -47, -(1260 / 40), 21 /*wall1*/, 0, 180, 0, 0);
-// declare_object_at_cell(-(1020 / 40) + 1, -63, -(1740 / 40), 21 /*wall1*/, 0, 225, 0, 0);
-
-// declare_object_at_cell((1540 / 40) + 1, -100, -(1260 / 40), 24 /*OBSTCL1*/, 0, 45, 0, 0);
-
-// declare_object_at_cell(-(980 / 40) + 1, -352, -(540 / 40), 25 /*float01*/, 0, 45, 0, 0);
-// declare_object_at_cell((540 / 40) + 1, -359, -(1220 / 40), 25 /*float01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(420 / 40) + 1, -318, (1580 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((20 / 40) + 1, -221, -(2180 / 40), 29 /*hiway03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2620 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2500 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2380 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2260 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2140 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (2020 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1340 / 40) + 1, -434, (1900 / 40), 30 /*hiway04*/, 0, 90, 0, 0);
-
-// declare_object_at_cell(-(1380 / 40) + 1, -377, (2780 / 40), 32 /*hiway06*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(1340 / 40) + 1, -377, (1660 / 40), 33 /*ramp01*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1660 / 40) + 1, -377, (2820 / 40), 33 /*ramp01*/, 0, 270, 0, 0);
-
-// declare_object_at_cell(-(140 / 40) + 1, -221, -(2180 / 40), 34 /*hiway07*/, 0, 0, 0, 0);
-// declare_object_at_cell((140 / 40) + 1, -221, -(2180 / 40), 34 /*hiway07*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(2340 / 40) + 1, -270, -(2420 / 40), 35 /*tower01*/, 0, 0, 0, 0);
-
-//Level08
-//Experimental
-//Last level before I start going back and testing functionality
-
-// declare_object_at_cell((1020 / 40) + 1, 459, (2580 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(1020 / 40) + 1, -435, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((3020 / 40) + 1, -299, -(1020 / 40), 13 /*greece02*/, 0, 135, 0, 0);
-// declare_object_at_cell((2620 / 40) + 1, -284, -(620 / 40), 13 /*greece02*/, 0, 135, 0, 0);
-// declare_object_at_cell((3380 / 40) + 1, -121, (2100 / 40), 13 /*greece02*/, 0, 25, 0, 0);
-// declare_object_at_cell(-(3180 / 40) + 1, -479, -(2940 / 40), 13 /*greece02*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(3100 / 40) + 1, -256, (1660 / 40), 13 /*greece02*/, 0, 270, 0, 0);
-
-// declare_object_at_cell((1460 / 40) + 1, -74, (3820 / 40), 15 /*greece04*/, 0, 0, 0, 0);
-// declare_object_at_cell((3700 / 40) + 1, -76, -(60 / 40), 15 /*greece04*/, 0, 135, 0, 0);
-// declare_object_at_cell((3740 / 40) + 1, -78, -(1140 / 40), 15 /*greece04*/, 0, 135, 0, 0);
-
-// declare_object_at_cell((1660 / 40) + 1, -256, -(1020 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell((1180 / 40) + 1, -280, -(980 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(1660 / 40) + 1, -108, -(780 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(1100 / 40) + 1, -108, -(860 / 40), 16 /*overhang*/, 0, 90, 0, 0);
-// declare_object_at_cell(-(820 / 40) + 1, -210, (1220 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(2140 / 40) + 1, -218, (1260 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(3180 / 40) + 1, -209, (3260 / 40), 16 /*overhang*/, 0, 115, 0, 0);
-// declare_object_at_cell((2980 / 40) + 1, -172, (3220 / 40), 16 /*overhang*/, 0, 25, 0, 0);
-// declare_object_at_cell((3820 / 40) + 1, -168, (1020 / 40), 16 /*overhang*/, 0, 25, 0, 0);
-// declare_object_at_cell(-(860 / 40) + 1, -210, (3300 / 40), 16 /*overhang*/, 0, 0, 0, 0);
-
-
-// declare_object_at_cell((460 / 40) + 1, -170, -(900 / 40), 19 /*tunnel2*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(3220 / 40) + 1, -180, -(1260 / 40), 21 /*wall1*/, 0, 330, 0, 0);
-// declare_object_at_cell(-(2380 / 40) + 1, -136, -(660 / 40), 21 /*wall1*/, 0, 300, 0, 0);
-// declare_object_at_cell(-(300 / 40) + 1, -410, (2500 / 40), 21 /*wall1*/, 0, 45, 0, 0);
-// declare_object_at_cell(-(3700 / 40) + 1, -169, (3660 / 40), 21 /*wall1*/, 0, 300, 0, 0);
-
-// declare_object_at_cell((140 / 40) + 1, -520, -(2860 / 40), 22 /*float03*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(620 / 40) + 1, -488, -(2860 / 40), 22 /*float03*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(300 / 40) + 1, -232, -(800 / 40), 22 /*float03*/, 0, 0, 0, 0);
-// declare_object_at_cell((580 / 40) + 1, -474, (2420 / 40), 22 /*float03*/, 0, 0, 0, 0);
-
-// declare_object_at_cell((3460 / 40) + 1, -191, (820 / 40), 23 /*bridge2*/, 0, 115, 0, 0);
-// declare_object_at_cell((2980 / 40) + 1, -187, (1940 / 40), 23 /*bridge2*/, 0, 115, 0, 0);
-// declare_object_at_cell((2580 / 40) + 1, -195, (3060 / 40), 23 /*bridge2*/, 0, 115, 0, 0);
-
-// declare_object_at_cell(-(4020 / 40) + 1, -186, (2460 / 40), 24 /*OBSTCL1*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(3180 / 40) + 1, -373, -(2220 / 40), 25 /*float01*/, 0, 0, 0, 0);
-// declare_object_at_cell((1460 / 40) + 1, -391, (100 / 40), 25 /*float01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(660 / 40) + 1, -155, -(940 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-// declare_object_at_cell((20 / 40) + 1, -155, -(860 / 40), 27 /*hiway01*/, 0, 0, 0, 0);
-
-// declare_object_at_cell(-(2180 / 40) + 1, -214, (3660 / 40), 33 /*ramp01*/, 0, 180, 0, 0);
-// declare_object_at_cell((1460 / 40) + 1, -244, (580 / 40), 33 /*ramp01*/, 0, 180, 0, 0);
-
-// declare_object_at_cell(-(2180 / 40) + 1, -272, (3420 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-// declare_object_at_cell((1460 / 40) + 1, -301, (340 / 40), 34 /*hiway07*/, 0, 90, 0, 0);
-
-}
 
 //I'm not sure if this whole system is ideal.
 //But if I really do end up limited to 256 objects, really.. honestly... it should be okay, it's not logically intensive, and not intense on the bus either.
@@ -653,7 +224,7 @@ void	object_control_loop(int ppos[XY])
 		difY = fxm(JO_ABS((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]) - (dWorldObjects[i].type.radius[Z]<<16), INV_CELL_SIZE)>>16; 
 		difH = JO_ABS(you.pos[Y] + dWorldObjects[i].pos[Y]);
 		
-		if((dWorldObjects[i].type.ext_dat & OTYPE) == LDATA)
+		if((dWorldObjects[i].type.ext_dat & ETYPE) == LDATA)
 		{ 		
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
@@ -716,7 +287,9 @@ void	object_control_loop(int ppos[XY])
 				}
 		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
-
+				//Exit rendering for collected items
+				if((dWorldObjects[i].type.ext_dat & ETYPE) == ITEM && (dWorldObjects[i].type.ext_dat & ITEM_COLLECTED)) continue;
+				
 				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING)
 				{
 					////////////////////////////////////////////////////
@@ -749,7 +322,7 @@ void	object_control_loop(int ppos[XY])
 						// 3. May or may not emit light
 						////////////////////////////////////////////////////
 						RBBs[objUP].status[0] = 'R';
-						RBBs[objUP].status[1] = 'C';
+						RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
 						RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
@@ -799,6 +372,8 @@ void	object_control_loop(int ppos[XY])
 						{
 							declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 						}
+						nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
+						
 						dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
 					}
 						////////////////////////////////////////////////////
@@ -807,8 +382,8 @@ void	object_control_loop(int ppos[XY])
 						//They only need to be rendered, and in a special way, too.
 						////////////////////////////////////////////////////
 						RBBs[objUP].status[0] = 'R';
-						RBBs[objUP].status[1] = 'C';
-						RBBs[objUP].status[2] = 'N';
+						RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
+						RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
@@ -980,6 +555,7 @@ void	add_to_track_timer(int index, int index2)
 			add_object_to_minimap(&dWorldObjects[index2], 0x83E0);
 		}
 		pcm_play(snd_khit, PCM_PROTECTED, 5);
+		you.points += 1;
 		return;
 	}
 
@@ -1189,79 +765,105 @@ void	test_gate_posts(int index, _boundBox * tgt)
 		}
 }
 
-
-		//Presently function is unused so is technically incomplete (doesn't return or point to useful data).
-		//For AI pathing, you.. uhh.. find a way.
-/* void	walk_map_between_objects(short obj_id1, short obj_id2)
+void	item_by_type_processing(_declaredObject * item, unsigned char type)
 {
-		//arrays below contain the in-order X and Y coordinates of cells that draw a line between the two objects.
-		short pixXs[64];
-		short pixYs[64];
-		
-		short cellDif[XY];
-		cellDif[X] = JO_ABS(JO_ABS(dWorldObjects[obj_id1].pix[X]) - JO_ABS(dWorldObjects[obj_id2].pix[X]));
-		cellDif[Y] = JO_ABS(JO_ABS(dWorldObjects[obj_id1].pix[Y]) - JO_ABS(dWorldObjects[obj_id2].pix[Y]));
-		
-		short totalCell = 0;
-		short newCell[XY] = {dWorldObjects[obj_id1].pix[X], dWorldObjects[obj_id1].pix[Y]};
-		Sint8 AddBool[XY];
-		
-		AddBool[X] = (dWorldObjects[obj_id1].pix[X] > dWorldObjects[obj_id2].pix[X]) ? -1 : 1;
-		AddBool[Y] = (dWorldObjects[obj_id1].pix[Y] > dWorldObjects[obj_id2].pix[Y]) ? -1 : 1;
-		
-		//Less Strict Version. Simpler, faster code, but doesn't result in a "touch any cell" pathway.
-		//It is a logical copy of how Jo Engine draws lines in the background layer.
-		//This method makes more sense there since it is more visibly pleasing.
-  		short error = 0;
-		short e2 = 0;
-		error = (cellDif[X] == cellDif[Y]) ? 0 : (cellDif[X] > cellDif[Y] ? cellDif[X] : -cellDif[Y])>>1;
-    for (;;)
-    {
-				//First cell is where we started [0]
-        pixXs[totalCell] = newCell[X];
-		pixYs[totalCell] = newCell[Y];
-		totalCell++;
-				//Last cell is where we end up at
-		if (newCell[X] == dWorldObjects[obj_id2].pix[X] && newCell[Y] == dWorldObjects[obj_id2].pix[Y]) break;
-		e2 = error;
-		
-			error -= (e2 > -cellDif[X]) ? cellDif[Y] : 0;
-			newCell[X] += (e2 > -cellDif[X]) ? AddBool[X] : 0;
-
-			error += (e2 < cellDif[Y]) ? cellDif[X] : 0;
-			newCell[Y] += (e2 < cellDif[Y]) ? AddBool[Y] : 0;
-    } 
+	if(type == 0)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		//add_object_to_minimap(item, 0x801F);
+		pcm_play(snd_clack, PCM_SEMI, 6);
+		you.points += 1;
+	}
+	if(type == 1)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xB3E0);
+		pcm_play(snd_ring1, PCM_SEMI, 6);
+		you.points += 2;
+	}
+	if(type == 2)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xE7E0);
+		pcm_play(snd_ring2, PCM_SEMI, 6);
+		you.points += 4;
+	}
+	if(type == 3)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xCC0C);
+		pcm_play(snd_ring3, PCM_SEMI, 6);
+		you.points += 8;
+	}
+	if(type == 4)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x819F);
+		pcm_play(snd_ring4, PCM_SEMI, 6);
+		you.points += 16;
+	}
+	if(type == 5)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xFFEC);
+		pcm_play(snd_ring5, PCM_SEMI, 6);
+		you.points += 32;
+	}
+	if(type == 6)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x83F3);
+		pcm_play(snd_ring6, PCM_SEMI, 6);
+		you.points += 64;
+	}
+	if(type == 7)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x801F);
+		pcm_play(snd_ring7, PCM_SEMI, 6);
+		you.points += 128;
+	}
+	
+	/*
+	Still think i need a new LDATA type of ITEM_MANAGER.
+	
+	For the flag mechanic, the next essential part of programming is a "Latch to Player" function.
+	I may want to create a dummy object that is the player which has the player's position,
+	and then say "Latch to object". So this object'll always have that position, once latch is enabled.
+	And also rotation.
+	Maybe a good idea, so I can latch an object to any other object too... which, not needed, but might be useful.
+	
+	*/
 	
 }
- */
+
 //Function will check collision with a ITEM-type object and flag entities that have been collided with for removal.
 //It will play a sound, and add to your points too.
 void	run_item_collision(int index, _boundBox * tgt)
 {
-		VECTOR relPos = {0, 0, 0};
-		FIXED realDist = 0;
-		
-			if( !(dWorldObjects[activeObjects[index]].type.ext_dat & 8) ){ //Check if root entity still exists
-	//Root entity collision test
-		relPos[X] = RBBs[index].pos[X] + tgt->pos[X];
-		relPos[Y] = RBBs[index].pos[Y] + tgt->pos[Y];
-		relPos[Z] = RBBs[index].pos[Z] + tgt->pos[Z];
-		//ABS your too-big-check you idiot
-		if( JO_ABS(relPos[X]) < (SQUARE_MAX) && JO_ABS(relPos[Y]) < (SQUARE_MAX) && JO_ABS(relPos[Z]) < (SQUARE_MAX)) //If too far away, don't test
-		{
-		
-		realDist = slSquartFX( fxm(relPos[X], relPos[X]) + fxm(relPos[Y], relPos[Y]) + fxm(relPos[Z], relPos[Z]) ); //a^2 + b^2 = c^2
-		dWorldObjects[activeObjects[index]].rot[Y] += 18; //Spin
-		
-			if(realDist < (dWorldObjects[activeObjects[index]].type.radius[Y]<<16) ) //Explicit radius collision test
-				{
-			dWorldObjects[activeObjects[index]].type.ext_dat |= 8; //Remove root entity from stack object
-			dWorldObjects[activeObjects[index]].type.light_bright = 0; //Remove brightness
-			you.points++;
-			pcm_play(snd_click, PCM_SEMI, 5);
-				}
-		}
-			}//Root entity check end
+
+	static int rel_pos[XYZ];
+	if(dWorldObjects[activeObjects[index]].type.ext_dat & ITEM_COLLECTED) return;
+	
+	rel_pos[X] = JO_ABS(tgt->pos[X] + RBBs[index].pos[X])>>16;
+	rel_pos[Y] = JO_ABS(tgt->pos[Y] + RBBs[index].pos[Y])>>16;
+	rel_pos[Z] = JO_ABS(tgt->pos[Z] + RBBs[index].pos[Z])>>16;
+	
+	dWorldObjects[activeObjects[index]].dist = slSquart( (rel_pos[X] * rel_pos[X]) + (rel_pos[Y] * rel_pos[Y]) + (rel_pos[Z] * rel_pos[Z]) );
+	
+	if(dWorldObjects[activeObjects[index]].dist < dWorldObjects[activeObjects[index]].type.radius[X])
+	{
+		item_by_type_processing(&dWorldObjects[activeObjects[index]], (dWorldObjects[activeObjects[index]].type.ext_dat & ITEM_TYPE)>>4);
+	}
+	
+	/*
+	In addition to this, how am I going to handle the flag?
+	The flag stand is an object with a type. So is the goal stand, two unique types.
+	The flag itself is an ITEM. It is a type of item. Collecting it does something entirely different from other items.
+	So, I think the ITEM may need a way to point to its "collection handler" function.
+	... If I did that, that would solve a lot.
+	I think it's settled then. An item # is a pointer to an array of handler functions.
+	*/
 	
 }
 
@@ -1317,80 +919,26 @@ void	test_gate_ring(int index, _boundBox * tgt)
 	dWorldObjects[activeObjects[index]].dist = tDist;
 }
 
-
-void	gate_track_manager(void)
+void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * someRINGdata,
+		unsigned short * discovery, short ldata_track, short object_track, short * track_reset)
 {
-	//Goal: Make a timer when you first pass through a gate ring or gate in a track
-	//The timer will reset, and reset all the gates in the track, when it exceeds the time setting by LDATA
-	//Also:
-	//If the player's speed goes lower than the setting of the track's LDATA, it will reset.
-	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
-	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
-	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
-	
-	static char track_reset[16] = 	{0, 0, 0, 0,
-									0, 0, 0, 0,
-									0, 0, 0, 0,
-									0, 0, 0, 0};
-	
-	//More to do:
-	//Minimum speed reset [maybe not for now]
-	//First and last gate logic
-	//What is this though?
-	//A control loop for a specific level data type, as "track data". A track is a series of rings or gates that make a... track.
-	//This keeps an eye on what's going on in each track.
-	//The collision math is ran separately, in a more key spot in the entire physics structure.
-	//This is a purpose-built function, but can be viewed as a method of game state tracking through linked lists.
-	
-	short ldata_track;
-	short object_track;
-	
-	int num_track_dat =  0;
-	unsigned short discovery = TRACK_DISCOVERED;
-	static int complete_tracks = 0;
-	
-	// nbg_sprintf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
-	// nbg_sprintf(0, 16, "act(%i)", activeTrack);
-
-	
-	while(someLDATA != &dWorldObjects[objNEW]){
-				//nbg_sprintf(0, 0, "(GTMN)"); //Debug ONLY
-		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA && !(someLDATA->more_data & TRACK_COMPLETE))
-		{
-		////////////////////////////////////////////////////////////////////////////////
-		//
-		// Level data, track data manager section
-		// It's messy.
-		//
-		////////////////////////////////////////////////////////////////////////////////
-		discovery |= TRACK_DISCOVERED; // Flag the track as discovered. This is used for checking the tracks discovery later.
-		ldata_track = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
-		someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
-		someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
-		somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
-		someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
-		num_track_dat++;
-		//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
-		//nbg_sprintf(1, 13, "track(%i)", ldata_track);
-				if(activeTrack == -1 || (activeTrack == ldata_track)) // if active track.. or track released
-					{
-					// nbg_sprintf(0, 17, "ldt(%i)", trackedLDATA);
-					// nbg_sprintf(0, 17, "ldt(%i)", someLDATA->more_data);
 			while(someRINGdata != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(RING)"); //Debug ONLY
 				object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(ldata_track == object_track)
 					{
 						//Special magic numbers checking, i guess?
-						if(someRINGdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & OBJPOP))
+						if(someRINGdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & TRACK_ACTIVE))
 						{
-							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
+							someLDATA->type.ext_dat |= TRACK_ACTIVE; //will set the track data as ACTIVE 
 							//I forget why I set this?
 							someLDATA->pix[X]++;
 						}
 					// Track Discovery Checking
-					discovery &= someRINGdata->more_data;
-					//I still forget why I set this?
+					*discovery &= someRINGdata->more_data;
+					//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
+					if(((*discovery ^ someLDATA->more_data) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
+					//This is a counter that adds up the total # of gates in a track.
 					someLDATA->pix[Y]++;
 				//Reset if track reset enabled
 						if(track_reset[ldata_track] == true)
@@ -1401,7 +949,11 @@ void	gate_track_manager(void)
 					}
 			someRINGdata = step_linked_object_list(someRINGdata);
 			}
+}
 
+void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * somePOSTdata,
+		unsigned short * discovery, short ldata_track, short object_track, short * track_reset)
+{
 			while(somePOSTdata != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(POST)"); //Debug ONLY
 				object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
@@ -1410,14 +962,16 @@ void	gate_track_manager(void)
 				somePOSTdata->type.ext_dat &= GATE_UNCHECKED;
 					if(ldata_track == object_track)
 					{
-						if(somePOSTdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & OBJPOP))
+						if(somePOSTdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & TRACK_ACTIVE))
 						{
-							someLDATA->type.ext_dat |= OBJPOP; //will set the track data as ACTIVE 
+							someLDATA->type.ext_dat |= TRACK_ACTIVE; //will set the track data as ACTIVE 
 							// The "X" pix of track data level data is the number of passed gates in the track.
 							someLDATA->pix[X]++;
 						}
 					// Track Discovery Checking
-					discovery &= somePOSTdata->more_data;
+					*discovery &= somePOSTdata->more_data;
+					//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
+					if(((*discovery ^ someLDATA->more_data) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
 					//The "Y" pix of a track data level data is the total number of gates in the track.
 					//To complete the track, X must equal Y.
 					someLDATA->pix[Y]++;
@@ -1430,46 +984,181 @@ void	gate_track_manager(void)
 					}
 			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
-			track_reset[ldata_track] = false;
-				//nbg_sprintf(0, 0, "(LDAT)"); //Debug ONLY
-			//Track completion logic
-			if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0)
-			{
-				someLDATA->type.ext_dat &= TRACK_INACTIVE;	//Set track as inactive
-				someLDATA->more_data |= TRACK_COMPLETE;	//Set track as complete
-				trackTimers[ldata_track] = 0;	//Re-set the track timer
-				activeTrack = -1;	//Release active track
-				you.points += 10 * someLDATA->pix[X];
-				complete_tracks++;
-				pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
-				slPrint("                           ", slLocate(0, 6));
-				slPrint("                           ", slLocate(0, 7));
-			}
+}
 
-			//Timer run & check
-			if((someLDATA->type.ext_dat & TRACK_ACTIVE))
+void	manage_track_data(_declaredObject * someLDATA)
+{
+	
+	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
+	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
+	
+	static short track_reset[16] = 	{0, 0, 0, 0,
+									0, 0, 0, 0,
+									0, 0, 0, 0,
+									0, 0, 0, 0};
+	
+	short ldata_track = 0;
+	short object_track = 0;
+	
+	int num_track_dat =  0;
+	static unsigned short discovery;
+	discovery = 0;
+	static int complete_tracks = 0;
+	////////////////////////////////////////////////////////////////////////////////
+	//
+	// Level data, track data manager section
+	// It's messy.
+	//
+	////////////////////////////////////////////////////////////////////////////////
+	discovery |= TRACK_DISCOVERED; // Flag the track as discovered. This is used for checking the tracks discovery later.
+	ldata_track = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
+	someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
+	someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
+	somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
+	someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
+	num_track_dat++;
+	//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
+	//nbg_sprintf(1, 13, "track(%i)", ldata_track);
+	if(activeTrack == -1 || (activeTrack == ldata_track)) // if active track.. or track released
+	{
+				// nbg_sprintf(0, 17, "ldt(%i)", trackedLDATA);
+				// nbg_sprintf(0, 17, "ldt(%i)", someLDATA->more_data);
+		track_data_manage_rings(someLDATA, someRINGdata, &discovery, ldata_track, object_track, track_reset);
+		track_data_manage_posts(someLDATA, somePOSTdata, &discovery, ldata_track, object_track, track_reset);
+	
+		track_reset[ldata_track] = false;
+			//nbg_sprintf(0, 0, "(LDAT)"); //Debug ONLY
+		//Track completion logic
+		if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0 && ldata_track == activeTrack)
+		{
+			someLDATA->type.ext_dat &= TRACK_INACTIVE;	//Set track as inactive
+			someLDATA->more_data |= TRACK_COMPLETE;	//Set track as complete
+			trackTimers[ldata_track] = 0;	//Re-set the track timer
+			activeTrack = -1;	//Release active track
+			you.points += 10 * someLDATA->pix[X];
+			complete_tracks++;
+			pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
+			slPrint("                           ", slLocate(0, 6));
+			slPrint("                           ", slLocate(0, 7));
+		}
+	
+		//Timer run & check
+		if((someLDATA->type.ext_dat & TRACK_ACTIVE))
+		{
+			trackTimers[ldata_track] -= delta_time;
+				if(trackTimers[ldata_track] < 0) //If timer expired...
+				{
+					someLDATA->type.ext_dat &= UNPOP;
+					track_reset[ldata_track] = true; //Reset tracks; timer expired
+					trackTimers[ldata_track] = 0;
+					activeTrack = -1; //Release active track
+					//Sound stuff
+					pcm_play(snd_alarm, PCM_PROTECTED, 5);
+					//Clear screen in this zone
+			slPrint("                           ", slLocate(0, 6));
+			slPrint("                           ", slLocate(0, 7));
+				}
+		}
+		//Discovery count-down & track discovery
+		if(discovery & TRACK_DISCOVERED && !(someLDATA->more_data & TRACK_DISCOVERED))
+		{
+			someLDATA->dist -= delta_time;
+			if(someLDATA->dist < 0)
 			{
-				trackTimers[ldata_track] -= delta_time;
-					if(trackTimers[ldata_track] < 0) //If timer expired...
-					{
-						someLDATA->type.ext_dat &= UNPOP;
-						track_reset[ldata_track] = true; //Reset tracks; timer expired
-						trackTimers[ldata_track] = 0;
-						activeTrack = -1; //Release active track
-						//Sound stuff
-						pcm_play(snd_alarm, PCM_PROTECTED, 5);
-						//Clear screen in this zone
-				slPrint("                           ", slLocate(0, 6));
-				slPrint("                           ", slLocate(0, 7));
-					}
+				someLDATA->more_data |= TRACK_DISCOVERED;
+				someLDATA->pix[X] = 0;
 			}
-			//Discovery count-down & track discovery
-			if(discovery & TRACK_DISCOVERED && !(someLDATA->more_data & TRACK_DISCOVERED))
+		}
+	}
+	
+	//Completed all tracks, but only do anything if there are actually any tracks
+	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
+	{
+		pcm_play(snd_win, PCM_PROTECTED, 5);
+		complete_tracks = 0;
+		//map_chg = false;
+		//p64MapRequest(1);
+	}
+	
+}
+
+void	run_an_item_manager(_declaredObject * someLDATA)
+{
+	//aight so wtf am i doing lol
+	_declaredObject * someITEMdata = get_first_in_object_list(ITEM);
+	
+	short manager_series = someLDATA->type.entity_ID;
+	short item_series;
+	short item_type;
+	short manager_type = someLDATA->type.ext_dat & ITEM_CONDITION_TYPES;
+	//Zero out some counters
+	someLDATA->rot[X] = 0;
+	someLDATA->rot[Y] = 0;
+	
+	while(someITEMdata != &dWorldObjects[objNEW])
+	{
+		item_series = someITEMdata->type.clone_ID;
+		item_type = GET_ITEM_TYPE(someITEMdata->type.ext_dat);
+		if(item_series == manager_series)
+		{
+			someLDATA->rot[X]++;
+			if(someITEMdata->type.ext_dat & 1)
 			{
-				someLDATA->dist -= delta_time;
-				if(someLDATA->dist < 0) someLDATA->more_data |= TRACK_DISCOVERED;
+				someLDATA->rot[Y]++;
+				if(manager_type == MANAGER_7RINGS)
+				{
+					someLDATA->more_data |= (1<<(item_type-1));
+				}
 			}
-					}//if active track \ track end
+		
+		}
+		
+		someITEMdata = step_linked_object_list(someITEMdata);
+	}
+	
+	if(manager_type == MANAGER_COLLECT_ALL)
+	{
+		if(someLDATA->rot[X] == someLDATA->rot[Y])
+		{
+			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
+			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
+			pcm_play(snd_cronch, PCM_PROTECTED, 6);
+		}
+	}
+	if(manager_type == MANAGER_7RINGS)
+	{
+		if((someLDATA->more_data & 0x7F) == 0x7F)
+		{
+			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
+			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
+			pcm_play(snd_alarm, PCM_PROTECTED, 6);
+		}
+	}
+	
+}
+
+
+void	gate_track_manager(void)
+{
+	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
+	
+	//More to do:
+	//Minimum speed reset [maybe not for now]
+	//What is this though?
+	//A control loop for a specific level data type, as "track data". A track is a series of rings or gates that make a... track.
+	//This keeps an eye on what's going on in each track.
+	//The collision math is ran separately, in a more key spot in the entire physics structure.
+	//This is a purpose-built function, but can be viewed as a method of game state tracking through linked lists.
+	
+	// nbg_sprintf(0, 15, "tim(%i)", (dWorldObjects[activeTrack].type.ext_dat & 0xF)<<17);
+	// nbg_sprintf(0, 16, "act(%i)", activeTrack);
+
+	
+	while(someLDATA != &dWorldObjects[objNEW]){
+				//nbg_sprintf(0, 0, "(GTMN)"); //Debug ONLY
+		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA && !(someLDATA->more_data & TRACK_COMPLETE))
+		{
+			manage_track_data(someLDATA);
 		////////////////////////////////
 		/// Track data manager end stub
 		////////////////////////////////
@@ -1483,18 +1172,12 @@ void	gate_track_manager(void)
 					//If you have enough points and crossed all the tracks, enable the level changer.
 					someLDATA->type.ext_dat |= 0x80;
 			//	}
+		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && !(someLDATA->type.ext_dat & ITEM_MANAGER_INACTIVE))
+		{
+			run_an_item_manager(someLDATA);
 		}
 		someLDATA = step_linked_object_list(someLDATA);
 	}//while LDATA end
-	
-	//Completed all tracks, but only do anything if there are actually any tracks
-	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
-	{
-		pcm_play(snd_win, PCM_PROTECTED, 5);
-		complete_tracks = 0;
-		//map_chg = false;
-		//p64MapRequest(1);
-	}
 	
 			if(activeTrack != -1){
 				//slPrint("Find the other wreath!", slLocate(0, 6));
@@ -1502,7 +1185,7 @@ void	gate_track_manager(void)
 			}
 			
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
-	nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
+	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
 			
 	// slPrintHex(dWorldObjects[5].dist, slLocate(0, 15));
 	// slPrintHex(dWorldObjects[6].dist, slLocate(0, 16));

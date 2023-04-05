@@ -7,7 +7,7 @@
 
 #define OBJPOP	(0x8000) //Is populated?
 #define UNPOP	(0x7FFF) //Unpop
-#define OTYPE	(0x7000) //Entity type bits (may also define a specific entity type)
+#define ETYPE	(0x7000) //Entity type bits (may also define a specific entity type)
 #define OBJECT	(0x0000) //Normal entity
 #define ITEM	(0x1000) //Collectible item
 #define GATE_P	(0x2000) //Gate post [has collision]
@@ -16,16 +16,13 @@
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
 #define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
 
-#define SUB_DATA (0xFFF)
-#define LADDER	(0x800)
-#define CLIMBABLE (0xC00)
-
-#define LDATA_TYPE	(0xF00) //Level data type bits
-#define TRACK_DATA	(0x100) //Level data, gate data definition
-#define LEVEL_CHNG	(0x200) //Level data, level change location definition
-#define PSTART		(0x300) //Level data, player start location definition
-#define SOUND_TRIG	(0x400) //Level data, sound event trigger, stream-type
-#define SDTRIG_PCM	(0x410) //Level data, sound event trigger, PCM-type
+#define LDATA_TYPE		(0xF00) //Level data type bits
+#define TRACK_DATA		(0x100) //Level data, gate data definition
+#define LEVEL_CHNG		(0x200) //Level data, level change location definition
+#define PSTART			(0x300) //Level data, player start location definition
+#define SOUND_TRIG		(0x400) //Level data, sound event trigger, stream-type
+#define SDTRIG_PCM		(0x410) //Level data, sound event trigger, PCM-type
+#define ITEM_MANAGER	(0x500) //Level data, item manager
 
 #define MAX_WOBJS (512)
 #define MAX_BUILD_OBJECTS (256)
@@ -42,31 +39,128 @@
 
 */
 
-//ext_dat bitflag orientation for ITEM:
-// 15 <- pop
-// 14-12 <- Pattern is "0x1000" for ITEM
-// 11-4 <- ?
-// 3 	<- Root entity bitflag [Booleans]
-// 2-0 <- ?
-//ext_dat bitflag orientation for OBJECT:
-// 15 <- pop
-// 14-12 <- pattern is "0 0 0" for OBJECT
-// 11 <- Flags entity as "climbable" or as "ladder". This entities' walls can be climbed vertically.
+/*
+///////////////////////////////////////////////////////////////
+bitflag orientation for OBJECT:
+	_sobject
+		entity_ID
+			Drawn entity ID for the item.
+		clone_ID
+			Series ID. Objects that share this # are registered to the same item manager (if one exists).
+		ext_dat	
+			15 : popped / visible flag
+			14-12 : 0x0000 specifies object data (default)
+			11-4 : Object type definition
+				#0: Normal collidable object.
+				#1: Ladder climbable object
+				#2: Free-climbable object
+			3-0: Reserved
+		radius
+			Collision radius of the object
+		light_bright / light_y_offset
+			Data for lighting
+	_declaredObject
+		Since this object is rendered, conventional use applies.
+		
+		more_data :
+			No data right now.
+*/
+#define OBJECT_TYPE		(0xFF0)
+#define NO_TYPE			(0x000)
+#define LADDER_OBJECT	(0x010)
+#define CLIMB_OBJECT	(0x020)
+#define SET_OBJECT_TYPE(ext_dat, object_num)	(ext_dat | (object_num & 0xFF)<<4)
+#define GET_OBJECT_TYPE(ext_dat)				((ext_dat & OBJECT_TYPE)>>4)
+
+/*
+///////////////////////////////////////////////////////////////
+	bitflag orientation for ITEM:
+
+	_sobject
+		entity_ID
+			Drawn entity ID for the item.
+		clone_ID
+			Series ID. Items that share this # are registered to the same item manager (if one exists).
+		ext_dat	
+			15 : popped / visible flag
+			14-12 : 0x1000 specifies ITEM data.
+			11-4 : item sub-type flag. Just determines what the game does with it.
+				#0 : Normal collectible 
+				#1 - #7: 7 Rings special collectible
+				#8: Flag
+			3-1 : empty?
+			0 : Collected flag. If 1, the object has been collected.
+		radius
+			Collision radius of the item
+		light_bright / light_y_offset
+			Data for lighting
+	_declaredObject
+		Since this object is rendered, conventional use applies.
+		
+		more_data :
+			No data right now.
+*/
+#define ITEM_COLLECTED	(0x1)
+#define ITEM_RESET		(0xFFFE)
+#define ITEM_TYPE		(0xFF0)
+#define SET_ITEM_TYPE(ext_dat, item_num)	(ext_dat | (item_num & 0xFF)<<4)
+#define GET_ITEM_TYPE(ext_dat)				((ext_dat & ITEM_TYPE)>>4)
+#define ITEM_TYPE_FLAG	(0x80)
+/*
+///////////////////////////////////////////////////////////////
+	bitflag orientation for ITEM_MANAGER
+
+	_sobject
+		entity_ID
+			Specifies the item series # that this item manager will manage.
+		clone_ID
+			Currently unused
+		ext_dat	
+			15 : Active boolean. When 1, the item manager's conditions will not be checked (marked complete).
+			14-12 : 0x4000, specifies level data.
+			11-8 : 0x500, specifies item manager data
+			7-4 : Condition type data
+			3-0 : Condition pass boolean
+		radius
+			Radius of item event trigger, if used.
+		light_bright 
+			Unused
+		light_y_offset
+			Unused
+	_declaredObject
+		pos
+		pix
+			Position of item event trigger, if used.
+		rot
+			rot[X] : The total # of items registered in this manager's series
+			rot[Y] : The # of collected items registered in this manager's series
+		dist
+			Unused
+		more_data 
+			Contains bit-flag data
+		link
+			Links to other LDATA types
+*/
+#define ITEM_MANAGER_INACTIVE	(0x8000)
+#define ITEM_MANAGER_ACTIVE		(0x7FFF)
+#define ITEM_CONDITION_TYPES	(0xF0)
+#define ITEM_CONDITION_FLAGS	(0xF)
+#define CLEAR_MANAGER_FLAGS		(0xFFF0)
+#define CLEAR_MANAGER_TYPES		(0xFF0F)
+#define MANAGER_COLLECT_ALL		(0x00)
+#define COLLECT_ALL_COMPLETE	(0x01)
+#define MANAGER_7RINGS			(0x10)
+#define MANAGER_CTF				(0x20)
+
 /*
 ///////////////////////////////////////////////////////////////
 	bitflag orientation for GATE POST:
-		ext_dat 
-			15 <- pop
-			14-12 <- pattern is "0x2000" for gate post objects
-			11-8 <- TRACK # [all gates in a series share this #]
-			7-4 <- Link specification [gates in the same TRACK that share this # form the two sides of a gate]
-			3-2 <- first or last gate flag (1 for first gate, 2 for last gate, 0 for all else) (patterns 0x4 first, 0x8 last)
-			1 <- Will be 1 if the post has had its collision checked this frame
-			0 <- Will be 1 if this gate is passed
-
+	
 	_sobject
 		entity_ID :
 			Contains the entity id# to be drawn for this gate.
+		clone_ID :
+			Since Gate-posts can be allowed to be BUILD-type object, this is used to refer to the original entity ID of the _sobject.
 		ext_dat :
 			15 : popped / visible flag
 			14-12 : "0x2000", defines gate post type object
@@ -220,6 +314,7 @@ typedef struct {
 
 //extern _declaredObject dWorldObjects[257];
 extern _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
+extern _sobject * objList[64];
 extern unsigned short objNEW;
 extern unsigned short objDRAW[MAX_WOBJS];
 extern unsigned short activeObjects[MAX_WOBJS];
@@ -227,6 +322,9 @@ extern _buildingObject * BuildingPayload; //In LWRAM
 extern short link_starts[8];
 extern int total_building_payload;
 extern int objUP;
+
+_declaredObject * step_linked_object_list(_declaredObject * previous_entry);
+_declaredObject * get_first_in_object_list(short object_type_specification);
 
 void	fill_obj_list(void);
 

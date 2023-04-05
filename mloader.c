@@ -190,12 +190,15 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	// If the model type is 'B' (for BUILDING), create combined textures.
 	// Also read the item data at the end of the payload.
 	////////////////
-	if(model->type == MODEL_TYPE_BUILDING && loadingNewTextures == 'Y')
+	if(model->type == MODEL_TYPE_BUILDING)
 	{
+		if(loadingNewTextures == 'Y')
+		{
 			for(int j = 0; j < model->numTexture+1; j++)
 			{
 				make_combined_textures(model->base_texture + j);
 			}
+		}
 		unsigned char * total_items = &readByte[0];
 		//unsigned char * unique_items = &readByte[1];
 		short * item_data = (short *)&readByte[2];	

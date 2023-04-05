@@ -201,6 +201,7 @@ void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigne
 void	ssh2BillboardScaledSprite(_sprite * spr);
 void	ssh2Line(_sprite * spr);
 void	drawAxis(POINT size);
+void	draw_normal_sprite(int xPos, int yPos, unsigned short texno, unsigned short colrBank);
 void	spr_print(int xPos, int yPos, char * data);
 void	spr_sprintf(int xPos, int yPos, ...);
 void	nbg_sprintf(int x, int y,  ...);

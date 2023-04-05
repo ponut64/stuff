@@ -72,6 +72,7 @@ void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 	transVerts[0]++;
 }
 
+//solid_or_border : 0 for solid, 1 for border
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border)
 {
 	//
@@ -362,6 +363,15 @@ void	drawAxis(POINT size)
 	
 }
 
+void	draw_normal_sprite(int xPos, int yPos, unsigned short texno, unsigned short colrBank)
+{
+	int ptv[XY] = {xPos - TV_HALF_WIDTH, yPos - TV_HALF_HEIGHT};
+	msh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 /*COMMAND MODES*/, 
+				pcoTexDefs[texno].SRCA /*SRCA*/, colrBank /*COLOR BANK CODE*/,
+				pcoTexDefs[texno].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
+				);
+}
+
 void	spr_print(int xPos, int yPos, char * data)
 {
 	int len = 0;
@@ -399,7 +409,7 @@ void	spr_print(int xPos, int yPos, char * data)
 	texIndex = (baseAsciiTexno + nextChar)-32;
 
 	msh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 /*COMMAND MODES*/, 
-				pcoTexDefs[(unsigned char)texIndex].SRCA /*SRCA*/, 0 /*COLOR BANK CODE*/,
+				pcoTexDefs[(unsigned char)texIndex].SRCA /*SRCA*/, 2 /*COLOR BANK CODE*/,
 				pcoTexDefs[(unsigned char)texIndex].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
 				);
 	ptv[X] += sprAsciiWidth; //Some number added to xPos to distance the characters

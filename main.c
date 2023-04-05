@@ -35,6 +35,7 @@ I am sorry for the pain you had to go through.
 #include "anidefs.h"
 #include "player_phy.h"
 #include "gamespeed.h"
+#include "menu.h"
 //
 #include "lwram.c"
 //
@@ -86,6 +87,17 @@ int game_set_res = TV_320x240;
  int snd_bwee;
  int snd_smack;
  int snd_khit;
+ int snd_clack;
+ int snd_close;
+ int snd_button2;
+ int snd_ring1;
+ int snd_ring2;
+ int snd_ring3;
+ int snd_ring4;
+ int snd_ring5;
+ int snd_ring6;
+ int snd_ring7;
+
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //Why are these here?
@@ -122,6 +134,7 @@ void	dpinit(void)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
+	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
 	sprAsciiWidth = WRAP_NewTable((Sint8*)"FONT.TGA", dirty_buf, sprAsciiHeight); //last argument, tex height
@@ -136,16 +149,27 @@ void	load_test(void)
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
-	snd_click = load_8bit_pcm((Sint8*)"CLCK1.PCM", 15360);
-	snd_button = load_8bit_pcm((Sint8*)"BTN1.PCM", 15360);
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
+	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
+	snd_click = load_8bit_pcm((Sint8*)"CLICK.PCM", 7680);
+	snd_close = load_8bit_pcm((Sint8*)"CLOSE.PCM", 7680);
+	snd_button = load_8bit_pcm((Sint8*)"BUTTON1.PCM", 7680);
+	snd_button2 = load_8bit_pcm((Sint8*)"BUTTON2.PCM", 7680);
+	snd_ring1 = load_8bit_pcm((Sint8*)"CRING1.PCM", 7680);
+	snd_ring2 = load_8bit_pcm((Sint8*)"CRING2.PCM", 7680);
+	snd_ring3 = load_8bit_pcm((Sint8*)"CRING3.PCM", 7680);
+	snd_ring4 = load_8bit_pcm((Sint8*)"CRING4.PCM", 7680);
+	snd_ring5 = load_8bit_pcm((Sint8*)"CRING5.PCM", 7680);
+	snd_ring6 = load_8bit_pcm((Sint8*)"CRING6.PCM", 7680);
+	snd_ring7 = load_8bit_pcm((Sint8*)"CRING7.PCM", 7680);
+	baseRingMenuTexno = numTex;
+	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	//Next up: TGA file system handler?
 	int map_tex_start = numTex;
-	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	map_texture_table_numbers[0] = numTex;
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
 	map_texture_table_numbers[1] = numTex;
@@ -167,11 +191,12 @@ void	load_test(void)
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		HWRAM_ldptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		HWRAM_ldptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAG.GVP",			HWRAM_ldptr, &entities[57], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FFIELD.GVP",		HWRAM_ldptr, &entities[55], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_BUILDING, NULL);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TLADDER.GVP",		HWRAM_ldptr, &entities[8], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]); 
-	
+		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",		HWRAM_ldptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -199,6 +224,9 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		HWRAM_ldptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 
 	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
 	stm.times_to_loop = 255;
@@ -239,6 +267,7 @@ void	attributions(void)
 	slPrint("Created by Ponut64", slLocate(3, 4));
 	slPrint("Contributions:", slLocate(3, 6));
 	slPrint("XL2 - Essential knowledge & tools", slLocate(3, 7));
+	slPrint("dannyduarte - fixed workarea.c", slLocate(3, 8));
 	slPrint("Emerald Nova - fixed-point timer", slLocate(3, 11));
 	slPrint("fafling - actually read VDP2 manual", slLocate(3, 13));
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));

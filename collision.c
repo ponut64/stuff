@@ -326,7 +326,7 @@ Floor collisions pass the Boolean "hitSurface" that is processed in player_phy.c
 Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 	
 	*/
-	if((obj_type_data & OTYPE) == OBJECT && (obj_type_data & SUB_DATA) == LADDER)
+	if((obj_type_data & ETYPE) == OBJECT && (obj_type_data & OBJECT_TYPE) == LADDER_OBJECT)
 	{
 		//
 		// This is strictly in case of ladder.
@@ -340,7 +340,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		} else {
 			you.rot2[Y] = 32768;
 		}
-	} else if((obj_type_data & OTYPE) == OBJECT && (obj_type_data & SUB_DATA) == CLIMBABLE)
+	} else if((obj_type_data & ETYPE) == OBJECT && (obj_type_data & OBJECT_TYPE) == CLIMB_OBJECT)
 	{
 		you.climbing = true;
 	}
