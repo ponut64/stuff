@@ -367,6 +367,7 @@ void	master_draw(void)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
+	flush_boxes(0);
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);
 

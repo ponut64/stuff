@@ -264,17 +264,17 @@ void	flush_boxes(int start)
 	
 ////////////////////////////////////////////////////
 //Flush boxes
-//This is somewhat important.
-//It's kind of funny, the engine mostly works if you don't do this.
-//Since every box was in a rational location to begin with, it will just render stuff off-screen.
-//But for the light source data, it'll get confused as it will start using old box data
-// that has a nonsensical 3D location.
+//Very important for making sure things don't render when they aren't supposed to.
 ////////////////////////////////////////////////////
-	for(int f = start; f < MAX_PHYS_PROXY; f++)
+	for(int i = start; i < MAX_PHYS_PROXY; i++)
 	{
-		RBBs[f].status[0] = 'N';
-		RBBs[f].status[1] = 'N';
-		RBBs[f].status[2] = 'N';
+		//If you reach a box marked as void, stop. Don't need to go any further.
+		if(RBBs[i].boxID == BOXID_VOID) break;
+		RBBs[i].boxID = BOXID_VOID;
+		RBBs[i].collisionID = BOXID_VOID;
+		RBBs[i].status[0] = 'N';
+		RBBs[i].status[1] = 'N';
+		RBBs[i].status[2] = 'N';
 	}
 ////////////////////////////////////////////////////
 	
@@ -312,5 +312,7 @@ void	initPhys(void){
 		RBBs[x].veloNZ[X] = 0;
 		RBBs[x].veloNZ[Y] = 0;
 		RBBs[x].veloNZ[Z] = 0;
+		RBBs[x].boxID = -1;
+		RBBs[x].collisionID = -1;
 	}
 }

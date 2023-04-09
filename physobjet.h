@@ -15,6 +15,7 @@
 #define LDATA	(0x4000) //Level data definition
 #define GHOST	(0x5000) //Entity, but no collision (ghost)
 #define BUILD	(0x6000) //Building. Per polygon collision. May have polygons or other elements that define other object types.
+#define GET_ETYPE(ext_dat)	(ext_dat & ETYPE)
 
 #define LDATA_TYPE		(0xF00) //Level data type bits
 #define TRACK_DATA		(0x100) //Level data, gate data definition
@@ -24,7 +25,7 @@
 #define SDTRIG_PCM		(0x410) //Level data, sound event trigger, PCM-type
 #define ITEM_MANAGER	(0x500) //Level data, item manager
 
-#define MAX_WOBJS (512)
+#define MAX_WOBJS (256)
 #define MAX_BUILD_OBJECTS (256)
 
 #define BUILD_PAYLOAD_LOADED (0x8000)
@@ -54,7 +55,8 @@ bitflag orientation for OBJECT:
 				#0: Normal collidable object.
 				#1: Ladder climbable object
 				#2: Free-climbable object
-			3-0: Reserved
+			3-1: Reserved for type-specific data
+			0: Enable/disable flag. If 1, the object will not be displayed or collided with at all.
 		radius
 			Collision radius of the object
 		light_bright / light_y_offset
@@ -63,14 +65,25 @@ bitflag orientation for OBJECT:
 		Since this object is rendered, conventional use applies.
 		
 		more_data :
-			No data right now.
+			No data right now
+		dist :
+			Reserved for type-specific data
 */
-#define OBJECT_TYPE		(0xFF0)
-#define NO_TYPE			(0x000)
-#define LADDER_OBJECT	(0x010)
-#define CLIMB_OBJECT	(0x020)
+#define OBJECT_TYPE			(0xFF0)
+#define NO_TYPE				(0x000)
+#define OBJECT_DISABLED		(0x1)
+#define OBJECT_ENABLE		(0x7FFE)
 #define SET_OBJECT_TYPE(ext_dat, object_num)	(ext_dat | (object_num & 0xFF)<<4)
-#define GET_OBJECT_TYPE(ext_dat)				((ext_dat & OBJECT_TYPE)>>4)
+#define GET_OBJECT_TYPE(ext_dat)				(ext_dat & OBJECT_TYPE)
+#define LADDER_OBJECT		(0x010)
+#define CLIMB_OBJECT		(0x020)
+#define FORCEFIELD_TOUCH	(0x030)
+#define FORCEFIELD_REMOTE	(0x040)
+
+#define OBJECT_FLAGS		(0xE)
+#define OBJECT_RESET		(0x7FF0)
+#define FF_TIMER_STARTED	(0x2)
+#define FF_RESET_STARTED	(0x4)
 
 /*
 ///////////////////////////////////////////////////////////////
@@ -88,7 +101,7 @@ bitflag orientation for OBJECT:
 				#0 : Normal collectible 
 				#1 - #7: 7 Rings special collectible
 				#8: Flag
-			3-1 : empty?
+			3-1 : Bits reserved for use by item type
 			0 : Collected flag. If 1, the object has been collected.
 		radius
 			Collision radius of the item
@@ -98,14 +111,29 @@ bitflag orientation for OBJECT:
 		Since this object is rendered, conventional use applies.
 		
 		more_data :
-			No data right now.
+			0 : Always collided / snap-collision flag. If 1, collision will always evaluate as true (if possible to collide).
 */
-#define ITEM_COLLECTED	(0x1)
-#define ITEM_RESET		(0xFFFE)
-#define ITEM_TYPE		(0xFF0)
+#define ITEM_COLLECTED			(0x1)
+#define ITEM_RESET				(0x7FFE)
+#define ITEM_TYPE				(0xFF0)
 #define SET_ITEM_TYPE(ext_dat, item_num)	(ext_dat | (item_num & 0xFF)<<4)
-#define GET_ITEM_TYPE(ext_dat)				((ext_dat & ITEM_TYPE)>>4)
-#define ITEM_TYPE_FLAG	(0x80)
+#define GET_ITEM_TYPE(ext_dat)				((ext_dat & ITEM_TYPE))
+#define ITEM_TYPE_PTADR			(0x00)
+#define ITEM_TYPE_RING1			(0x10)
+#define ITEM_TYPE_RING2			(0x20)
+#define ITEM_TYPE_RING3			(0x30)
+#define ITEM_TYPE_RING4			(0x40)
+#define ITEM_TYPE_RING5			(0x50)
+#define ITEM_TYPE_RING6			(0x60)
+#define ITEM_TYPE_RING7			(0x70)
+#define ITEM_TYPE_FLAG			(0x80)
+#define ITEM_FLAGS				(0xE)
+#define ITEM_NO_FLAGS			(0x7FF0)
+#define FLAG_OPEN				(0x2)
+#define FLAG_GRABBED			(0x4)
+#define FLAG_RETURN				(0x8)
+
+#define ITEM_MDATA_SNAP_COLLISION	(0x1)
 /*
 ///////////////////////////////////////////////////////////////
 	bitflag orientation for ITEM_MANAGER
@@ -114,7 +142,7 @@ bitflag orientation for OBJECT:
 		entity_ID
 			Specifies the item series # that this item manager will manage.
 		clone_ID
-			Currently unused
+			Use is specified by the manager type
 		ext_dat	
 			15 : Active boolean. When 1, the item manager's conditions will not be checked (marked complete).
 			14-12 : 0x4000, specifies level data.
@@ -124,9 +152,9 @@ bitflag orientation for OBJECT:
 		radius
 			Radius of item event trigger, if used.
 		light_bright 
-			Unused
+			Use is specified by the manager type
 		light_y_offset
-			Unused
+			Use is specified by the manager type
 	_declaredObject
 		pos
 		pix
@@ -151,6 +179,10 @@ bitflag orientation for OBJECT:
 #define COLLECT_ALL_COMPLETE	(0x01)
 #define MANAGER_7RINGS			(0x10)
 #define MANAGER_CTF				(0x20)
+#define MANAGER_RETURN_PT		(0x30)
+#define CTF_FLAG_OPEN			(0x1)
+#define CTF_FLAG_TAKEN			(0x2)
+#define CTF_FLAG_CAPTURED		(0x4)
 
 /*
 ///////////////////////////////////////////////////////////////
@@ -201,7 +233,6 @@ bitflag orientation for OBJECT:
 // 14-12 <- pattern is "0x5000" for collisionless entity
 // all else unused
 //
-// You know it would also be fun to pick up a flag and, by any path neccessary, deliver it to a point.
 
 #define TRACK_DISCOVERED (0x2)
 #define TRACK_COMPLETE (0x1)
@@ -324,7 +355,7 @@ extern int total_building_payload;
 extern int objUP;
 
 _declaredObject * step_linked_object_list(_declaredObject * previous_entry);
-_declaredObject * get_first_in_object_list(short object_type_specification);
+_declaredObject * get_first_in_object_list(unsigned short object_type_specification);
 
 void	fill_obj_list(void);
 
@@ -339,14 +370,14 @@ void	object_control_loop(int ppos[XY]);
 void	light_control_loop(void);
 
 void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt);
-void	walk_map_between_objects(short obj_id1, short obj_id2);
-
-void	run_item_collision(int index, _boundBox * tgt);
 
 void	test_gate_ring(int index, _boundBox * tgt);
 void	test_gate_posts(int index, _boundBox * tgt);
 
-void	gate_track_manager(void);
+void	item_collision(int index, _boundBox * tgt);
+void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stator, _boundBox * mover);
+
+void	ldata_manager(void);
 
 //cleaned out
 

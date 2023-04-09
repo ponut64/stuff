@@ -84,12 +84,16 @@ int game_set_res = TV_320x240;
  int snd_cronch;
  int snd_alarm;
  int snd_win;
+ int snd_freturn;
+ int snd_ftake;
  int snd_bwee;
  int snd_smack;
  int snd_khit;
  int snd_clack;
  int snd_close;
  int snd_button2;
+ int snd_ffield1;
+ int snd_ffield2;
  int snd_ring1;
  int snd_ring2;
  int snd_ring3;
@@ -145,13 +149,15 @@ void	load_test(void)
 	// File extensions can be no longer than 3 letters.
 	// File names can be no longer than 8 letters.
 	////////////////////////////////////////////////
+//	snd_win = load_adx((Sint8*)"WIN.ADX");
+//	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
-	snd_win = load_8bit_pcm((Sint8*)"WIN.PCM", 15360);
+	snd_ftake = load_8bit_pcm((Sint8*)"FLAG.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
@@ -159,6 +165,8 @@ void	load_test(void)
 	snd_close = load_8bit_pcm((Sint8*)"CLOSE.PCM", 7680);
 	snd_button = load_8bit_pcm((Sint8*)"BUTTON1.PCM", 7680);
 	snd_button2 = load_8bit_pcm((Sint8*)"BUTTON2.PCM", 7680);
+	snd_ffield1 = load_8bit_pcm((Sint8*)"FOPEN.PCM", 7680);
+	snd_ffield2 = load_8bit_pcm((Sint8*)"FCLOSE.PCM", 7680);
 	snd_ring1 = load_8bit_pcm((Sint8*)"CRING1.PCM", 7680);
 	snd_ring2 = load_8bit_pcm((Sint8*)"CRING2.PCM", 7680);
 	snd_ring3 = load_8bit_pcm((Sint8*)"CRING3.PCM", 7680);
@@ -315,7 +323,7 @@ int	main(void)
 	reset_player();
 
 	run_dsp(); //Dry-run the DSP to get it to flag done
-	add_adx_front_buffer(11520);
+	add_adx_front_buffer(23040);
 	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);
 	pcm_stream_host(game_frame);

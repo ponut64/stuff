@@ -94,14 +94,16 @@ void	start_menu(void)
 	{
 		if(dPreview >= MAX_PHYS_PROXY) dPreview = MAX_PHYS_PROXY-1;
 	_boundBox * rdbox = &RBBs[dPreview];
-	spr_sprintf(8,		0  + (72),		"RBB:(%i)", dPreview);
-	spr_sprintf(8,		12 + (72),		"st0:(%c)", rdbox->status[0]);
-	spr_sprintf(8,		24 + (72),		"st1:(%c)", rdbox->status[1]);
-	spr_sprintf(8,		36 + (72),		"st2:(%c)", rdbox->status[2]);
-	spr_sprintf(8,		48 + (72),		"pX:(%i)", rdbox->pos[X]);
-	spr_sprintf(8,		60 + (72),		"pY:(%i)", rdbox->pos[Y]);
-	spr_sprintf(8,		72 + (72),		"pZ:(%i)", rdbox->pos[Z]);
-	spr_sprintf(8,		90 + (72),		"Object:(%i)", activeObjects[dPreview]);
+	spr_sprintf(8,		0  + (60),		"RBB:(%i)", dPreview);
+	spr_sprintf(8,		12 + (60),		"Player Hit:(%i)", pl_RBB.collisionID);
+	spr_sprintf(8,		24 + (60),		"st0:(%c)", rdbox->status[0]);
+	spr_sprintf(8,		36 + (60),		"st1:(%c)", rdbox->status[1]);
+	spr_sprintf(8,		48 + (60),		"st2:(%c)", rdbox->status[2]);
+	spr_sprintf(8,		60 + (60),		"pX:(%i)", rdbox->pos[X]);
+	spr_sprintf(8,		72 + (60),		"pY:(%i)", rdbox->pos[Y]);
+	spr_sprintf(8,		84 + (60),		"pZ:(%i)", rdbox->pos[Z]);
+	spr_sprintf(8,		96 + (60),		"Obj:(%i)", rdbox->boxID);
+	spr_sprintf(100,	96 + (60),		"Hit:(%i)", rdbox->collisionID);
 	}
 	
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;

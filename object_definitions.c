@@ -409,33 +409,33 @@ _sobject FlagShield = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT
+	.ext_dat = OBJECT | FORCEFIELD_REMOTE
 };
 
-_sobject GoalStandItem = {
-	.entity_ID = 56,
-	.clone_ID = 2,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = ITEM
+_sobject FlagStandItem = {
+	.entity_ID = 2,
+	.clone_ID = 0,
+	.radius[X] = 20,
+	.radius[Y] = 20,
+	.radius[Z] = 20,
+	.ext_dat = LDATA | ITEM_MANAGER | MANAGER_RETURN_PT
 };
 
 _sobject Flag = {
 	.entity_ID = 57,
 	.clone_ID = 2,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 8,
+	.radius[Y] = 8,
+	.radius[Z] = 8,
 	.ext_dat = ITEM | ITEM_TYPE_FLAG
 };
 
 _sobject CTFManager = {
 	.entity_ID = 2,
-	.clone_ID = 0,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.clone_ID = 15,
+	.radius[X] = 20,
+	.radius[Y] = 20,
+	.radius[Z] = 20,
 	.ext_dat = LDATA | ITEM_MANAGER | MANAGER_CTF
 };
 
@@ -484,7 +484,7 @@ void	fill_obj_list(void)
 	objList[53] = &FlagStand;
 	objList[54] = &GoalStand;
 	objList[55] = &FlagShield;
-	objList[56] = &GoalStandItem;
+	objList[56] = &FlagStandItem;
 	objList[57] = &Flag;
 	objList[58] = &CTFManager;
 	

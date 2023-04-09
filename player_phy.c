@@ -163,7 +163,7 @@ void	pl_step_snd(void){
 	
 	if(runSnd == 1)
 	{
-		pcm_play(snd_lstep, PCM_SEMI, 6);
+		pcm_play(snd_lstep, PCM_PROTECTED, 6);
 	}
 	
 	oldHoofSetBools[0] = hoofSetBools[0];
@@ -488,11 +488,14 @@ void	player_phys_affect(void)
 		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
 		// By aligning with a matrix, a new matrix is used instead of the one from make2AxisBox.
 		// So that is pasted in to the box here.
-		if(you.hitBox != 1 && you.hitObject != 1 && you.hitMap != 1)
+		if(pl_RBB.collisionID == BOXID_VOID)
 		{
 				//Release from surface
+				you.hitMap = false;
+				you.hitObject = false;
+				you.hitBox = false;
+				you.hitSurface = false;
 				you.hitWall = false;
-				you.hitSurface = false; 
 		} else {
 		finalize_alignment(bound_box_starter.modified_box);
 		}
@@ -512,7 +515,8 @@ void	player_phys_affect(void)
 		you.climbing = false;
 		you.ladder = false;
 
-	pl_RBB.boxID = 0;
+	pl_RBB.boxID = BOXID_PLAYER;
+	pl_RBB.collisionID = BOXID_VOID;
 	pl_RBB.status[0] = 'R';	
 	pl_RBB.status[1] = 'C';	
 	pl_RBB.status[2] = 'L';	
@@ -564,7 +568,7 @@ nyToTri1 = realpt_to_plane(realCFs.yp1, nyTriNorm1, nyNearTriCF1);
 nyToTri2 = realpt_to_plane(realCFs.yp1, nyTriNorm2, nyNearTriCF2);
 //Collision detection is using heightmap data
 
-if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hitBox == false)){
+if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false)){
 	you.hitMap = true;
 	you.hitSurface = true;
 	
@@ -580,7 +584,9 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.shadowPos[X] = lowPoint[X];
 	you.shadowPos[Y] = lowPoint[Y];
 	you.shadowPos[Z] = lowPoint[Z];
-} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (you.hitObject == false && you.hitBox == false)){
+	
+	pl_RBB.collisionID = BOXID_MAP;
+} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false)){
 	you.hitMap = true;
 	you.hitSurface = true;
 	
@@ -597,6 +603,7 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (you.hitObject == false && you.hi
 	you.shadowPos[Y] = lowPoint[Y];
 	you.shadowPos[Z] = lowPoint[Z];
 	
+	pl_RBB.collisionID = BOXID_MAP;
 } else {
 	//Find Floor on Map, if not above an object
 			if(you.aboveObject != true){

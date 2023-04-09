@@ -3,6 +3,9 @@
 
 
 #define MAX_PHYS_PROXY (32)
+#define BOXID_PLAYER	(-2)
+#define BOXID_MAP		(-3)
+#define BOXID_VOID		(-1)
 //Structs
 
 typedef struct {
@@ -45,8 +48,10 @@ typedef struct {
 	//Three separate flags to tell the engine if the box is populated, and ready to ..
 	// [0] == 'R', render, [1] == 'C', collide, [2] == 'L', light.
 	char status[3];
-	//ID
-	Uint8 boxID;
+	//ID# for collision. Usually throws the object # collided with. -1 signals no collision.
+	short collisionID;
+	//ID#. Used to verify the box object #. -1 signals the box is void.
+	short boxID;
 } _boundBox;
 
 typedef struct {

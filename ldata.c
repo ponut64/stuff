@@ -42,9 +42,11 @@ void	declarations(void)
 
 // declare_object_at_cell(0, 0, 0, 59 /*item mngr*/, 0, 0, 0, 0);
 
-declare_object_at_cell(-(300 / 40) + 1, 0, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
+declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
 
-declare_object_at_cell((340 / 40) + 1, 0, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0);
+declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0);
+
+declare_object_at_cell((0 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0);
 
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 

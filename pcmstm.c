@@ -249,6 +249,12 @@ void	start_adx_stream(Sint8 * filename, short volume)
 	adx_stream.active = true;
 	adx_stream.file.setup_requested = true;
 	adx_stream.volume = volume;
+	//idk this is stupid shouldn't have to do it but for now i do
+	unsigned short * writedummy = (unsigned short *)adx_stream.back_buffer[0];
+	for(int i = 0; i < m68k_com->pcmCtrl[adx_stream.pcm_number].bytes_per_blank; i++)
+	{
+		*writedummy++ = 0;
+	}
 }
 
 

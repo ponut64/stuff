@@ -44,7 +44,7 @@ _declaredObject * step_linked_object_list(_declaredObject * previous_entry)
 		}
 }
 
-_declaredObject * get_first_in_object_list(short object_type_specification)
+_declaredObject * get_first_in_object_list(unsigned short object_type_specification)
 {
 	short first_object_id_num = link_starts[(object_type_specification & ETYPE)>>12];
 	if(first_object_id_num >= 0)
@@ -118,24 +118,36 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 void	declare_building_object(_declaredObject * root_object, _buildingObject * building_item)
 {
 	//If the root object does not possess the entity ID of the item's root entity, do not add it.
-		if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
+	if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
+	{
+		dWorldObjects[objNEW].pix[X] = root_object->pix[X];
+		dWorldObjects[objNEW].pix[Y] = root_object->pix[Y];
+		dWorldObjects[objNEW].type = *objList[building_item->object_type];
+		dWorldObjects[objNEW].rot[X] = 0;
+		dWorldObjects[objNEW].rot[Y] = 0;
+		dWorldObjects[objNEW].rot[Z] = 0;
+		dWorldObjects[objNEW].more_data = 0;
+		dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
+		link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
+		////////////////////////////////////////////////////
+		// If no radius was defined for the object, use the radius from the entity.
+		// Must check if the entity is loaded, or else out of bounds access may occur.
+		////////////////////////////////////////////////////
+		if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
+			dWorldObjects[objNEW].type.radius[Y] == 0 && dWorldObjects[objNEW].type.radius[Z] == 0 &&
+			entities[dWorldObjects[objNEW].type.entity_ID].file_done)
 		{
-	int root_object_y = (entities[root_object->type.entity_ID].radius[Y]<<16);
-	dWorldObjects[objNEW].pos[X] = (root_object->pos[X] + ((int)building_item->pos[X]<<16));
-	dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16)) - root_object_y;
-	dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
-	
-	dWorldObjects[objNEW].pix[X] = root_object->pix[X];
-	dWorldObjects[objNEW].pix[Y] = root_object->pix[Y];
-	dWorldObjects[objNEW].type = *objList[building_item->object_type];
-	dWorldObjects[objNEW].rot[X] = 0;
-	dWorldObjects[objNEW].rot[Y] = 0;
-	dWorldObjects[objNEW].rot[Z] = 0;
-	dWorldObjects[objNEW].more_data = 0;
-	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
-	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
-	objNEW++;
+			dWorldObjects[objNEW].type.radius[X] = entities[dWorldObjects[objNEW].type.entity_ID].radius[X];
+			dWorldObjects[objNEW].type.radius[Y] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Y];
+			dWorldObjects[objNEW].type.radius[Z] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Z];
 		}
+		
+		dWorldObjects[objNEW].pos[X] = (root_object->pos[X] + ((int)building_item->pos[X]<<16));
+		dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16));
+		dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
+		
+		objNEW++;
+	}
 }
 
 //
@@ -179,11 +191,11 @@ But it's a multi-step process.
 Upon examination, this is far and away the most complicated thing i've done for game logic.
 there are multiple "moving parts" : the flag stand, the shield, and the goal stand.
 
-a. flag stand - not done
-b. flag stand shield - not done
-c. goal stand - not done
+a. flag stand - modeled
+b. flag stand shield - modeled, some issue?
+c. goal stand - modeled
 d. jump on goal stand to unshield - not done
-e. flag - not done
+e. flag - modeled, seems ok?
 f. carrying flag - not done
 g. time limit with flag - not done
 h. delivering flag - not done
@@ -259,8 +271,7 @@ void	object_control_loop(int ppos[XY])
 							}
 						}
 
-					}
-					if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
+					} else if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == LEVEL_CHNG)
 					{
 						// We've found a level change trigger close to the player.
 						// If we are close enough to the level change trigger and it is enabled, change levels.
@@ -275,7 +286,8 @@ void	object_control_loop(int ppos[XY])
 							// Temporary, but will change levels.
 							//////////////////////////////////////////
 							dWorldObjects[i].type.ext_dat |= OBJPOP;
-							pcm_play(snd_win, PCM_PROTECTED, 5);
+							//pcm_play(snd_win, PCM_PROTECTED, 5);
+							start_adx_stream((Sint8*)"WIN.ADX", 5);
 							map_chg = false;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 							///////////////////////////////////////////
@@ -283,12 +295,26 @@ void	object_control_loop(int ppos[XY])
 							///////////////////////////////////////////
 							you.points = 0;
 						}
+					} else if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == ITEM_MANAGER)
+					{
+						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
+						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
+						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16))
+						{
+						//There being only one type that does this right now.
+							if((dWorldObjects[i].type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_CTF)
+							{
+								dWorldObjects[i].type.ext_dat |= CTF_FLAG_OPEN;
+							}
+							
+						}
 					}
 				}
 		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
-				//Exit rendering for collected items
+				//Exit rendering for collected items or inactive objects
 				if((dWorldObjects[i].type.ext_dat & ETYPE) == ITEM && (dWorldObjects[i].type.ext_dat & ITEM_COLLECTED)) continue;
+				if((dWorldObjects[i].type.ext_dat & ETYPE) == OBJECT && (dWorldObjects[i].type.ext_dat & OBJECT_DISABLED)) continue;
 				
 				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING)
 				{
@@ -314,7 +340,7 @@ void	object_control_loop(int ppos[XY])
 					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
 							
 					make2AxisBox(&bound_box_starter);
-
+					RBBs[objUP].boxID = i;
 						////////////////////////////////////////////////////
 						//Set the box status. This branch of the logic dictates the box is:
 						// 1. Render-able
@@ -356,6 +382,7 @@ void	object_control_loop(int ppos[XY])
 					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
 							
 					make2AxisBox(&bound_box_starter);
+					RBBs[objUP].boxID = i;
 					
 					/////////////////////////////////////////////////////
 					// This object is a building. 
@@ -372,7 +399,7 @@ void	object_control_loop(int ppos[XY])
 						{
 							declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 						}
-						nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
+						//nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
 						
 						dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
 					}
@@ -414,6 +441,7 @@ void	object_control_loop(int ppos[XY])
 					//
 					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 					make2AxisBox(&bound_box_starter);
+					RBBs[objUP].boxID = i;
 						////////////////////////////////////////////////////
 						//Set the box status. This branch of the logic dictates the box is:
 						// 1. Not render-able
@@ -446,8 +474,6 @@ void	object_control_loop(int ppos[XY])
 			//Object control loop end stub
 			////////////////////////////////////////////////////
 		}
-		
-	flush_boxes(objUP);
 		
 	// nbg_sprintf(12, 5, "objUP:(%i)", objUP);
 	// nbg_sprintf(12, 6, "objNW:(%i)", objNEW);
@@ -765,114 +791,13 @@ void	test_gate_posts(int index, _boundBox * tgt)
 		}
 }
 
-void	item_by_type_processing(_declaredObject * item, unsigned char type)
-{
-	if(type == 0)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		//add_object_to_minimap(item, 0x801F);
-		pcm_play(snd_clack, PCM_SEMI, 6);
-		you.points += 1;
-	}
-	if(type == 1)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xB3E0);
-		pcm_play(snd_ring1, PCM_SEMI, 6);
-		you.points += 2;
-	}
-	if(type == 2)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xE7E0);
-		pcm_play(snd_ring2, PCM_SEMI, 6);
-		you.points += 4;
-	}
-	if(type == 3)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xCC0C);
-		pcm_play(snd_ring3, PCM_SEMI, 6);
-		you.points += 8;
-	}
-	if(type == 4)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x819F);
-		pcm_play(snd_ring4, PCM_SEMI, 6);
-		you.points += 16;
-	}
-	if(type == 5)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xFFEC);
-		pcm_play(snd_ring5, PCM_SEMI, 6);
-		you.points += 32;
-	}
-	if(type == 6)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x83F3);
-		pcm_play(snd_ring6, PCM_SEMI, 6);
-		you.points += 64;
-	}
-	if(type == 7)
-	{
-		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x801F);
-		pcm_play(snd_ring7, PCM_SEMI, 6);
-		you.points += 128;
-	}
-	
-	/*
-	Still think i need a new LDATA type of ITEM_MANAGER.
-	
-	For the flag mechanic, the next essential part of programming is a "Latch to Player" function.
-	I may want to create a dummy object that is the player which has the player's position,
-	and then say "Latch to object". So this object'll always have that position, once latch is enabled.
-	And also rotation.
-	Maybe a good idea, so I can latch an object to any other object too... which, not needed, but might be useful.
-	
-	*/
-	
-}
-
-//Function will check collision with a ITEM-type object and flag entities that have been collided with for removal.
-//It will play a sound, and add to your points too.
-void	run_item_collision(int index, _boundBox * tgt)
-{
-
-	static int rel_pos[XYZ];
-	if(dWorldObjects[activeObjects[index]].type.ext_dat & ITEM_COLLECTED) return;
-	
-	rel_pos[X] = JO_ABS(tgt->pos[X] + RBBs[index].pos[X])>>16;
-	rel_pos[Y] = JO_ABS(tgt->pos[Y] + RBBs[index].pos[Y])>>16;
-	rel_pos[Z] = JO_ABS(tgt->pos[Z] + RBBs[index].pos[Z])>>16;
-	
-	dWorldObjects[activeObjects[index]].dist = slSquart( (rel_pos[X] * rel_pos[X]) + (rel_pos[Y] * rel_pos[Y]) + (rel_pos[Z] * rel_pos[Z]) );
-	
-	if(dWorldObjects[activeObjects[index]].dist < dWorldObjects[activeObjects[index]].type.radius[X])
-	{
-		item_by_type_processing(&dWorldObjects[activeObjects[index]], (dWorldObjects[activeObjects[index]].type.ext_dat & ITEM_TYPE)>>4);
-	}
-	
-	/*
-	In addition to this, how am I going to handle the flag?
-	The flag stand is an object with a type. So is the goal stand, two unique types.
-	The flag itself is an ITEM. It is a type of item. Collecting it does something entirely different from other items.
-	So, I think the ITEM may need a way to point to its "collection handler" function.
-	... If I did that, that would solve a lot.
-	I think it's settled then. An item # is a pointer to an array of handler functions.
-	*/
-	
-}
 
 void	test_gate_ring(int index, _boundBox * tgt)
 {
 	//
 	//Objective / Concept:
 	// Test if player has passed through a ring,
-	// based on a bound box object from a dWorldObject entry.
+	// based on a bound box object from a dWorldObjects entry.
 	// The radius of the ring being the span of the largest axis of the object.
 	//The test method is a dot product test on the plane and whether or not we are within the largest radius distance.
 	//
@@ -917,6 +842,136 @@ void	test_gate_ring(int index, _boundBox * tgt)
 		}
 	
 	dWorldObjects[activeObjects[index]].dist = tDist;
+}
+
+
+void	item_by_type_processing(_declaredObject * item, unsigned short type)
+{
+	if(type == ITEM_TYPE_PTADR)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		//add_object_to_minimap(item, 0x801F);
+		pcm_play(snd_clack, PCM_SEMI, 6);
+		you.points += 1;
+	}
+	if(type == ITEM_TYPE_RING1)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xB3E0);
+		pcm_play(snd_ring1, PCM_SEMI, 6);
+		you.points += 2;
+	}
+	if(type == ITEM_TYPE_RING2)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xE7E0);
+		pcm_play(snd_ring2, PCM_SEMI, 6);
+		you.points += 4;
+	}
+	if(type == ITEM_TYPE_RING3)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xCC0C);
+		pcm_play(snd_ring3, PCM_SEMI, 6);
+		you.points += 8;
+	}
+	if(type == ITEM_TYPE_RING4)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x819F);
+		pcm_play(snd_ring4, PCM_SEMI, 6);
+		you.points += 16;
+	}
+	if(type == ITEM_TYPE_RING5)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0xFFEC);
+		pcm_play(snd_ring5, PCM_SEMI, 6);
+		you.points += 32;
+	}
+	if(type == ITEM_TYPE_RING6)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x83F3);
+		pcm_play(snd_ring6, PCM_SEMI, 6);
+		you.points += 64;
+	}
+	if(type == ITEM_TYPE_RING7)
+	{
+		item->type.ext_dat |= ITEM_COLLECTED;
+		add_object_to_minimap(item, 0x801F);
+		pcm_play(snd_ring7, PCM_SEMI, 6);
+		you.points += 128;
+	}
+	if(type == ITEM_TYPE_FLAG)
+	{
+		//Multiple things that could happen with a flag.
+		if(item->type.ext_dat & FLAG_OPEN && !(item->type.ext_dat & FLAG_RETURN))
+		{
+			item->type.ext_dat |= FLAG_GRABBED;
+			item->more_data |= ITEM_MDATA_SNAP_COLLISION;
+		} 
+
+		if(item->type.ext_dat & FLAG_GRABBED && !(item->type.ext_dat & FLAG_RETURN))
+		{
+			item->pos[X] = -pl_RBB.pos[X];
+			item->pos[Y] = -pl_RBB.pos[Y];
+			item->pos[Z] = -pl_RBB.pos[Z];
+			item->rot[X] = pl_RBB.boxRot[X];
+			item->rot[Y] = pl_RBB.boxRot[Y];
+			item->rot[Z] = pl_RBB.boxRot[Z];
+			item->pix[X] = -you.cellPos[X];
+			item->pix[Y] = -you.cellPos[Y];
+		}
+		
+	}
+	
+	/*
+	Still think i need a new LDATA type of ITEM_MANAGER.
+	
+	For the flag mechanic, the next essential part of programming is a "Latch to Player" function.
+	I may want to create a dummy object that is the player which has the player's position,
+	and then say "Latch to object". So this object'll always have that position, once latch is enabled.
+	And also rotation.
+	Maybe a good idea, so I can latch an object to any other object too... which, not needed, but might be useful.
+	
+	*/
+	
+}
+
+
+//Function will check collision with a ITEM-type object and flag entities that have been collided with for removal.
+//It will play a sound, and add to your points too.
+void	item_collision(int index, _boundBox * tgt)
+{
+
+	static int rel_pos[XYZ];
+	if(dWorldObjects[activeObjects[index]].type.ext_dat & ITEM_COLLECTED) return;
+	
+	rel_pos[X] = JO_ABS(tgt->pos[X] + RBBs[index].pos[X])>>16;
+	rel_pos[Y] = JO_ABS(tgt->pos[Y] + RBBs[index].pos[Y])>>16;
+	rel_pos[Z] = JO_ABS(tgt->pos[Z] + RBBs[index].pos[Z])>>16;
+	
+	dWorldObjects[activeObjects[index]].dist = slSquart( (rel_pos[X] * rel_pos[X]) + (rel_pos[Y] * rel_pos[Y]) + (rel_pos[Z] * rel_pos[Z]) );
+	
+	if(dWorldObjects[activeObjects[index]].dist < dWorldObjects[activeObjects[index]].type.radius[X]
+	|| dWorldObjects[activeObjects[index]].more_data & ITEM_MDATA_SNAP_COLLISION)
+	{
+		item_by_type_processing(&dWorldObjects[activeObjects[index]], GET_ITEM_TYPE(dWorldObjects[activeObjects[index]].type.ext_dat));
+	}
+	
+}
+
+void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stator, _boundBox * mover)
+{
+	if(stator->collisionID != mover->boxID) return; //If these objects aren't colliding with each other, exit.
+	if(GET_OBJECT_TYPE(someOBJECTdata->type.ext_dat) == FORCEFIELD_TOUCH && !(someOBJECTdata->type.ext_dat & FF_TIMER_STARTED))
+	{
+		someOBJECTdata->dist += 32768; //Add to the timer.
+		someOBJECTdata->type.ext_dat |= FF_TIMER_STARTED;
+		pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+	}
+	
 }
 
 void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * someRINGdata,
@@ -989,9 +1044,6 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 void	manage_track_data(_declaredObject * someLDATA)
 {
 	
-	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
-	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
-	
 	static short track_reset[16] = 	{0, 0, 0, 0,
 									0, 0, 0, 0,
 									0, 0, 0, 0,
@@ -1014,8 +1066,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 	ldata_track = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
 	someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
 	someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
-	somePOSTdata = get_first_in_object_list(GATE_P); //Re-set this link pointer (so we can re-scan)
-	someRINGdata = get_first_in_object_list(GATE_R); //Re-set this link pointer (so we can re-scan)
+	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
+	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
 	num_track_dat++;
 	//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
 	//nbg_sprintf(1, 13, "track(%i)", ldata_track);
@@ -1074,7 +1126,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 	//Completed all tracks, but only do anything if there are actually any tracks
 	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
 	{
-		pcm_play(snd_win, PCM_PROTECTED, 5);
+		//pcm_play(snd_win, PCM_PROTECTED, 5);
+		start_adx_stream((Sint8*)"WIN.ADX", 5);
 		complete_tracks = 0;
 		//map_chg = false;
 		//p64MapRequest(1);
@@ -1086,28 +1139,79 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 {
 	//aight so wtf am i doing lol
 	_declaredObject * someITEMdata = get_first_in_object_list(ITEM);
+	_declaredObject * someOBJECTdata = get_first_in_object_list(OBJECT);
 	
-	short manager_series = someLDATA->type.entity_ID;
-	short item_series;
-	short item_type;
-	short manager_type = someLDATA->type.ext_dat & ITEM_CONDITION_TYPES;
+	unsigned short manager_series = someLDATA->type.entity_ID;
+	unsigned short item_series;
+	unsigned short item_type;
+	unsigned short manager_type = someLDATA->type.ext_dat & ITEM_CONDITION_TYPES;
+	unsigned short * edata;
 	//Zero out some counters
 	someLDATA->rot[X] = 0;
 	someLDATA->rot[Y] = 0;
 	
 	while(someITEMdata != &dWorldObjects[objNEW])
 	{
+		edata = &someITEMdata->type.ext_dat;
 		item_series = someITEMdata->type.clone_ID;
-		item_type = GET_ITEM_TYPE(someITEMdata->type.ext_dat);
+		item_type = GET_ITEM_TYPE(*edata);
 		if(item_series == manager_series)
 		{
 			someLDATA->rot[X]++;
-			if(someITEMdata->type.ext_dat & 1)
+			if(*edata & ITEM_COLLECTED)
 			{
 				someLDATA->rot[Y]++;
 				if(manager_type == MANAGER_7RINGS)
 				{
-					someLDATA->more_data |= (1<<(item_type-1));
+					someLDATA->more_data |= (1<<((item_type>>4)-1));
+				}
+			}
+			
+			if(manager_type == MANAGER_CTF && item_type == ITEM_TYPE_FLAG)
+			{
+				if(someLDATA->type.ext_dat & CTF_FLAG_OPEN)
+				{
+					*edata |= FLAG_OPEN;
+				}
+				if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
+				{
+					someITEMdata->dist = approximate_distance(someLDATA->pos, someITEMdata->pos)>>16;
+					 if(someITEMdata->dist < someLDATA->type.radius[X])
+					 {
+						 *edata |= ITEM_COLLECTED;
+						 someITEMdata->more_data = 0;
+						 someLDATA->type.ext_dat |= CTF_FLAG_CAPTURED;
+					 }
+					 if(someLDATA->dist < 0)
+					 {
+						*edata |= FLAG_RETURN;
+					 }
+				}
+				if(!(someLDATA->type.ext_dat & CTF_FLAG_TAKEN) && *edata & FLAG_GRABBED)
+				{
+					//Start a timer. The clone ID of the CTF manager is used as the seconds count.
+					someLDATA->dist += someLDATA->type.clone_ID<<16;
+					someLDATA->type.ext_dat |= CTF_FLAG_TAKEN;
+					pcm_play(snd_ftake, PCM_PROTECTED, 5);
+				}
+			}
+			
+			if(manager_type == MANAGER_RETURN_PT)
+			{
+				if(item_type == ITEM_TYPE_FLAG && *edata & FLAG_RETURN)
+				{
+					*edata &= ITEM_NO_FLAGS;
+					someITEMdata->pix[X] = someLDATA->pix[X];
+					someITEMdata->pix[Y] = someLDATA->pix[Y];
+					someITEMdata->pos[X] = someLDATA->pos[X];
+					someITEMdata->pos[Y] = someLDATA->pos[Y];
+					someITEMdata->pos[Z] = someLDATA->pos[Z];
+					someITEMdata->rot[X] = someLDATA->rot[X];
+					someITEMdata->rot[Y] = someLDATA->rot[Y];
+					someITEMdata->rot[Z] = someLDATA->rot[Z];
+					someITEMdata->more_data = 0;
+					//pcm_play(snd_freturn, PCM_PROTECTED, 6);
+					start_adx_stream((Sint8*)"FRETURN.ADX", 5);
 				}
 			}
 		
@@ -1115,6 +1219,29 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		
 		someITEMdata = step_linked_object_list(someITEMdata);
 	}
+	
+	while(someOBJECTdata != &dWorldObjects[objNEW])
+	{
+		edata = &someOBJECTdata->type.ext_dat;
+		item_series = someOBJECTdata->type.clone_ID;
+		item_type = GET_OBJECT_TYPE(someOBJECTdata->type.ext_dat);
+		
+		if(item_series == manager_series)
+		{
+			someLDATA->rot[X]++;
+			if(manager_type == MANAGER_CTF && item_type == FORCEFIELD_REMOTE
+			&& someLDATA->type.ext_dat & CTF_FLAG_OPEN && !(*edata & OBJECT_DISABLED))
+			{
+				*edata |= OBJECT_DISABLED;
+				pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+			}
+		}
+		
+		someOBJECTdata = step_linked_object_list(someOBJECTdata);
+	}
+	
+	
+	
 	
 	if(manager_type == MANAGER_COLLECT_ALL)
 	{
@@ -1124,8 +1251,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
 			pcm_play(snd_cronch, PCM_PROTECTED, 6);
 		}
-	}
-	if(manager_type == MANAGER_7RINGS)
+	} else if(manager_type == MANAGER_7RINGS)
 	{
 		if((someLDATA->more_data & 0x7F) == 0x7F)
 		{
@@ -1133,12 +1259,70 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
 			pcm_play(snd_alarm, PCM_PROTECTED, 6);
 		}
+	} else if(manager_type == MANAGER_CTF)
+	{
+		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
+		{
+			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
+			start_adx_stream((Sint8*)"WIN.ADX", 5);
+		}
+		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
+		{
+			if(someLDATA->dist < 0)
+			{
+				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
+				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
+			}
+			someLDATA->dist -= delta_time;
+		}
+	}
+	
+}
+
+void	manage_object_data(void)
+{
+	//Objects are particular.
+	//They can be part of item managers, or not.
+	//This only manages the type of object data that are not managed by other means.
+	//Items should also have a loop like this eventually, but not yet.
+	
+	_declaredObject * someOBJECTdata = get_first_in_object_list(OBJECT);
+	
+	while(someOBJECTdata != &dWorldObjects[objNEW])
+	{
+		unsigned short * edata = &someOBJECTdata->type.ext_dat;
+		
+		if(GET_OBJECT_TYPE(*edata) == FORCEFIELD_TOUCH)
+		{
+			if(*edata & FF_TIMER_STARTED)
+			{
+				if(someOBJECTdata->dist < 0)
+				{
+					*edata |= OBJECT_DISABLED;
+					*edata |= FF_RESET_STARTED;
+					someOBJECTdata->dist += 2<<16;
+				}
+				someOBJECTdata->dist -= delta_time;
+			}
+			if(*edata & FF_RESET_STARTED)
+			{
+				if(someOBJECTdata->dist < 0)
+				{
+					*edata &= OBJECT_RESET;
+					someOBJECTdata->dist = 0;
+					pcm_play(snd_ffield2, PCM_PROTECTED, 6);
+				}
+				someOBJECTdata->dist -= delta_time;
+			}
+		}
+		
+		someOBJECTdata = step_linked_object_list(someOBJECTdata);
 	}
 	
 }
 
 
-void	gate_track_manager(void)
+void	ldata_manager(void)
 {
 	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
 	
@@ -1154,7 +1338,8 @@ void	gate_track_manager(void)
 	// nbg_sprintf(0, 16, "act(%i)", activeTrack);
 
 	
-	while(someLDATA != &dWorldObjects[objNEW]){
+	while(someLDATA != &dWorldObjects[objNEW])
+	{
 				//nbg_sprintf(0, 0, "(GTMN)"); //Debug ONLY
 		if( (someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA && !(someLDATA->more_data & TRACK_COMPLETE))
 		{
@@ -1184,6 +1369,7 @@ void	gate_track_manager(void)
 				slPrintFX(trackTimers[activeTrack], slLocate(0, 7));
 			}
 			
+	manage_object_data();
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
 	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
 			

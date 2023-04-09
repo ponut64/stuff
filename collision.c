@@ -719,13 +719,14 @@ _lineTable moverCFs = {
 			if(sort_collide(lineEnds[i], stator, &hitFace, -HIT_TOLERANCE) == true){
 				//Step 3: Use the normal of that face for collision.
 				pl_physics_handler(stator, mover, lineEnds[i], hitFace, obj_type_data);
+				mover->collisionID = stator->boxID;
+				stator->collisionID = mover->boxID;
 				you.hitBox = true;
 				return true;
 			}
 		}
 		
 	}
-		you.hitBox = false;
 		return false;
 }
 
@@ -746,8 +747,9 @@ void	player_collision_test_loop(void)
 		skipdat = edata & (0xF000);
 		if( skipdat == OBJPOP ){ //Check if object # is a collision-approved type
 				player_collide_boxes(&RBBs[i], &pl_RBB, edata);
+				subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
 			} else if(skipdat == (ITEM | OBJPOP)) {
-				run_item_collision(i, &pl_RBB);
+				item_collision(i, &pl_RBB);
 			} else if(skipdat == (GATE_R | OBJPOP)) {
 				test_gate_ring(i, &pl_RBB);
 			} else if(skipdat == (GATE_P | OBJPOP)) {
@@ -756,16 +758,24 @@ void	player_collision_test_loop(void)
 				{
 					//If it was loaded as a building-type object, collision test it as such.
 					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
+					if(you.hitObject == true){
+						RBBs[i].collisionID = pl_RBB.boxID;
+						pl_RBB.collisionID = RBBs[i].boxID;
+					}
 				} else {
 					player_collide_boxes(&RBBs[i], &pl_RBB, edata);
 				}
 			} else if(skipdat == (BUILD | OBJPOP))
 			{
 				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
+				if(you.hitObject  == true){
+					RBBs[i].collisionID = pl_RBB.boxID;
+					pl_RBB.collisionID = RBBs[i].boxID;
+				}
 			}
 	}
 	
-	gate_track_manager();
+	ldata_manager();
 	
 	// slPrintHex(dWorldObjects[1].rot[Y], slLocate(0, 10));
 	// slPrintHex(dWorldObjects[2].rot[Y], slLocate(0, 11));
