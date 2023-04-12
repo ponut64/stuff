@@ -22,29 +22,29 @@ void	declarations(void)
 
 //declare_object_at_cell((0 / 40) + 1, -40, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
-// declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0);
-// objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 1);
-// declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0);
-// declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0);
+objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 1);
+declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0);
 
-// declare_object_at_cell(0, 0, 0, 60 /*track dat*/, 0, 0, 0, 0);
-// dWorldObjects[objNEW-1].dist = 2<<16; // Sets ldata timer
+declare_object_at_cell(0, 0, 0, 60 /*track dat*/, 0, 0, 0, 0);
 
-// declare_object_at_cell((260 / 40), -20, (140 / 40), 1 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (180 / 40), 2 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (220 / 40), 3 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (260 / 40), 4 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (300 / 40), 5 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (340 / 40), 6 /*t item*/, 0, 0, 0, 0);
-// declare_object_at_cell((260 / 40), -20, (380 / 40), 7 /*t item*/, 0, 0, 0, 0);
-// dWorldObjects[objNEW-1].type.ext_dat |= (1<<4); //set item type 1
+declare_object_at_cell((260 / 40), -20, (140 / 40), 1 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (180 / 40), 2 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (220 / 40), 3 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (260 / 40), 4 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (300 / 40), 5 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (340 / 40), 6 /*t item*/, 0, 0, 0, 0);
+declare_object_at_cell((260 / 40), -20, (380 / 40), 7 /*t item*/, 0, 0, 0, 0);
+dWorldObjects[objNEW-1].type.ext_dat |= (1<<4); //set item type 1
 
-// declare_object_at_cell(0, 0, 0, 59 /*item mngr*/, 0, 0, 0, 0);
+declare_object_at_cell(0, 0, 0, 59 /*item mngr*/, 0, 0, 0, 0);
 
 declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
 
 declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0);
+declare_object_at_cell((340 / 40) + 1, -25, -(340 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
 
 declare_object_at_cell((0 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0);
 

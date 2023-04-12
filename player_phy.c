@@ -508,6 +508,10 @@ void	player_phys_affect(void)
 		you.renderRot[Y] = you.rot[Y];
 		you.renderRot[Z] = you.rot[Z];
 		
+		you.wpos[X] = -you.pos[X];
+		you.wpos[Y] = -you.pos[Y];
+		you.wpos[Z] = -you.pos[Z];
+		
 		//Patchwork logic: Every frame you aren't climbing, you need to start as if not climbing.
 		//If collisions thusly calculate that you are, great!
 		//This is a weird, bad, patchwork system that later on in my career I'll learn how to do better.

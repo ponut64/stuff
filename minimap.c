@@ -57,10 +57,10 @@ void	init_minimap(void)
 
 }
 
-void	add_object_to_minimap(_declaredObject * obj, unsigned short color)
+void	add_position_to_minimap(int xpos, int ypos, unsigned short color)
 {
-	int xSclPos = -fxm(obj->pix[X]<<16, mmapXScale)>>16;
-	int ySclPos = fxm(obj->pix[Y]<<16, mmapYScale)>>16;
+	int xSclPos = -fxm(xpos<<16, mmapXScale)>>16;
+	int ySclPos = fxm(ypos<<16, mmapYScale)>>16;
 	
 	int tgtPix = MMAP_CTR_PIX + xSclPos + (ySclPos * 51);
 	

@@ -122,6 +122,7 @@ extern int snd_ring7;
 //Structs
 typedef struct {
 	FIXED pos[XYZ];
+	FIXED wpos[XYZ];
 	int startPos[XYZ];
 	int cellPos[XY];
 	int dispPos[XY];

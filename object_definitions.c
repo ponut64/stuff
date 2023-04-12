@@ -84,7 +84,7 @@ _sobject Post00 = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = GATE_P,
+	.ext_dat = GATE_P | (3<<8),
 	.light_bright = 0
 };
 
@@ -102,7 +102,7 @@ _sobject Kyoob = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT,
+	.ext_dat = OBJECT | CRUSH_BLOCK_SLOW,
 	.light_bright = 0
 };
 
@@ -356,11 +356,13 @@ _sobject SampleItemManager = {
 };
 
 _sobject SampleTrackData = {
-	.entity_ID = 0,
+	.entity_ID = 3,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = LDATA | TRACK_DATA | 0x0F
+	.ext_dat = LDATA | TRACK_DATA,
+	.light_bright = 0,
+	.light_y_offset = 10
 };
 
 _sobject Player_Start_Location = {

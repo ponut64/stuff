@@ -132,10 +132,10 @@ void	start_menu(void)
 	{
 		if((someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{
-			if(!(someLDATA->more_data & TRACK_COMPLETE))
+			if(!(someLDATA->type.ext_dat & TRACK_COMPLETE))
 			{
 				spr_sprintf(100, 188, "Gates in Track:(%i)", someLDATA->pix[Y]);
-				if(someLDATA->more_data & TRACK_DISCOVERED)
+				if(someLDATA->type.ext_dat & TRACK_DISCOVERED)
 				{
 				spr_sprintf(100, 200, "Track Discovered!");
 				} else {
@@ -188,6 +188,20 @@ void	start_menu(void)
 				draw_normal_sprite(rix + 96, 172, baseRingMenuTexno+6, 0);
 			} else {
 				draw_normal_sprite(rix + 96, 172, baseRingMenuTexno+6, 0x8003);
+			}
+		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_CTF)
+		{
+			if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
+			{
+				spr_sprintf(100, 212, "Flag Captured!");
+			} else if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
+			{
+				spr_sprintf(100, 212, "Flag Taken!");
+			} else if(someLDATA->type.ext_dat & CTF_FLAG_OPEN)
+			{
+				spr_sprintf(100, 212, "Flag is open! At:x%i,y%i", someLDATA->pix[X], someLDATA->pix[Y]);
+			} else {
+				spr_sprintf(100, 212, "Flag stand is shielded!");
 			}
 		}
 		

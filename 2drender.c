@@ -426,7 +426,7 @@ va_list vmlist;
 va_start(vmlist, NULL);
 
 do {
-	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int));
+	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
 	spr_print(xPos, yPos, sprintf_buffer); 
 	} while(0);
 	
@@ -439,7 +439,7 @@ va_list vmlist;
 va_start(vmlist, NULL);
 
 do {
-	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int));
+	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
 	slPrint(sprintf_buffer, slLocate(x,y)); 
 	} while(0);
 	

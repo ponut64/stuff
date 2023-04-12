@@ -79,6 +79,7 @@ bitflag orientation for OBJECT:
 #define CLIMB_OBJECT		(0x020)
 #define FORCEFIELD_TOUCH	(0x030)
 #define FORCEFIELD_REMOTE	(0x040)
+#define CRUSH_BLOCK_SLOW	(0x050)
 
 #define OBJECT_FLAGS		(0xE)
 #define OBJECT_RESET		(0x7FF0)
@@ -163,9 +164,9 @@ bitflag orientation for OBJECT:
 			rot[X] : The total # of items registered in this manager's series
 			rot[Y] : The # of collected items registered in this manager's series
 		dist
-			Unused
+			Use is specified by the manager type
 		more_data 
-			Contains bit-flag data
+			Use is specified by the manager type
 		link
 			Links to other LDATA types
 */
@@ -183,6 +184,7 @@ bitflag orientation for OBJECT:
 #define CTF_FLAG_OPEN			(0x1)
 #define CTF_FLAG_TAKEN			(0x2)
 #define CTF_FLAG_CAPTURED		(0x4)
+
 
 /*
 ///////////////////////////////////////////////////////////////
@@ -234,32 +236,41 @@ bitflag orientation for OBJECT:
 // all else unused
 //
 
-#define TRACK_DISCOVERED (0x2)
-#define TRACK_COMPLETE (0x1)
+#define TRACK_RESET			(0x4)
+#define TRACK_DISCOVERED	(0x2)
+#define TRACK_COMPLETE		(0x1)
+#define	TRACK_CLEAR_RESET	(0xFFFB)
 #define TRACK_ACTIVE	(0x8000)
 #define TRACK_INACTIVE	(0x7FFF)
+
 /**
 //////////////////////////////////////////////////////////////////
 	TRACK_DATA orientation
+			This really doesn't need to exist. I've added more ways to do this kind of stuff.
+			So I could really just backport the track manager back into an item manager.
 	_sobject
-		entity_ID :
-			0-3 :  Track # selection
+		entity_ID : Track # selection / Item series #
 		radius[xyz] (empty)
 		ext_dat :
 			15 : Active boolean (0 for inactive, 1 for active)
 			14-12 : 0x4000, specifies level data.
 			11-8 : 0x100, specifies track data (this entry).
-			7-4 : Track fail speed setting (0 for no fail speed)
-			3-0 : Track timer setting (0 for no fail time)
+			7-4 : (empty)
+			3:
+			2: Track reset boolean
+			1: Track discovered boolean
+			0: Track complete boolean
+		light_bright : Track fail speed setting (0 for no speed ??? )
+		light_y_offset : Track timer setting (0 for no fail time ??? )
 	_declaredObject
 		pix[XY] :
 			[X] - the number of gates in the track series that have been passed (for an active track).
 			[Y] - the total # of gates in the track series
 		more_data : 
-			0 : Track completion boolean (if 1, track is complete)
-			1 : Discovered boolean (if 1, all gates have been discovered)
+			
 		dist :
 			Silent discovery timer. Counts-down from X seconds when discovered, then enables track.
+			Also the tracks timer host when running.
 		link 
 			declared object array entry of another level change
 //////////////////////////////////////////////////////////////////

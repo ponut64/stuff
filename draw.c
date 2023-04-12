@@ -101,6 +101,7 @@ void	master_draw_stats(void)
 	nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
+	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
 		}
 }
 
@@ -130,7 +131,7 @@ void	player_draw(void)
 							ssh2DrawAnimation(&idle, &pl_model,  false);
 						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp)
 						{
-						if(you.IPaccel < 0){
+						if(you.IPaccel <= 0){
 								ssh2DrawAnimation(&stop, &pl_model,  false);
 							}
 						if(you.sanics < 2<<16 && you.IPaccel > 0){

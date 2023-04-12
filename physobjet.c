@@ -24,8 +24,6 @@ unsigned short activeObjects[MAX_WOBJS]; //activeObjects is a list of the declar
 // Setting the link starts as -1 is what also sets that the last object in the list will link to -1.
 short link_starts[8] = {-1, -1, -1, -1,
 						-1, -1, -1, -1};
-int trackTimers[16];
-int activeTrack = -1;
 int objUP = 0;
 int total_building_payload = 0;
 
@@ -185,21 +183,22 @@ h. manager for items, manager for 7 ring items - done.
 
 3 - CTF
 
-How should I handle this?
-The flag which sticks to you is simple enough.
-But it's a multi-step process.
-Upon examination, this is far and away the most complicated thing i've done for game logic.
-there are multiple "moving parts" : the flag stand, the shield, and the goal stand.
+a. flag stand - test model OK
+b. flag stand shield - test model OK
+c. goal stand - test model OK
+d. jump on goal stand to unshield - contact to unshield, jump not done, is jump needed?
+e. flag - test model OK
+f. carrying flag - done
+g. time limit with flag - done
+h. delivering flag - done
+i. represent flag progress in menu - done
+j. on-screen guide - this is the one thing where a screen marker for where the flag is *might* be appreciated.
 
-a. flag stand - modeled
-b. flag stand shield - modeled, some issue?
-c. goal stand - modeled
-d. jump on goal stand to unshield - not done
-e. flag - modeled, seems ok?
-f. carrying flag - not done
-g. time limit with flag - not done
-h. delivering flag - not done
-i. represent flag progress in menu - not done
+4 - other things
+a. particle effect system ?
+b. destruction of entity into particles ?
+c. shrink effect on entity ?
+d. i am absolutely going to have to figure out texture cutting
 
 **/
 
@@ -294,19 +293,6 @@ void	object_control_loop(int ppos[XY])
 							// More temporary stuff.
 							///////////////////////////////////////////
 							you.points = 0;
-						}
-					} else if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == ITEM_MANAGER)
-					{
-						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
-						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
-						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16))
-						{
-						//There being only one type that does this right now.
-							if((dWorldObjects[i].type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_CTF)
-							{
-								dWorldObjects[i].type.ext_dat |= CTF_FLAG_OPEN;
-							}
-							
 						}
 					}
 				}
@@ -574,11 +560,11 @@ void	add_to_track_timer(int index, int index2)
 	if(!(dWorldObjects[index].more_data & GATE_DISCOVERED))
 	{
 		dWorldObjects[index].more_data |= GATE_DISCOVERED;
-		add_object_to_minimap(&dWorldObjects[index], 0x83E0);
+		add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 0x83E0);
 		if(index2 >= 0) 
 		{
 			dWorldObjects[index2].more_data |= GATE_DISCOVERED;
-			add_object_to_minimap(&dWorldObjects[index2], 0x83E0);
+			add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0x83E0);
 		}
 		pcm_play(snd_khit, PCM_PROTECTED, 5);
 		you.points += 1;
@@ -589,25 +575,22 @@ void	add_to_track_timer(int index, int index2)
 		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
 			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; 
-			ldata_track = dWorldObjects[trackedLDATA].type.entity_ID & 0xF; 
+			ldata_track = dWorldObjects[trackedLDATA].type.entity_ID; 
 	//	nbg_sprintf(2, 10, "(%i)otr", object_track);
 	//	nbg_sprintf(2, 12, "(%i)trs", ldata_track);
 			//Only add if the track numbers match, the active track is set to this track or is not set, and the track is discovered
-			if(ldata_track == object_track && (activeTrack == ldata_track || activeTrack == -1)
-				&& (dWorldObjects[trackedLDATA].more_data & TRACK_DISCOVERED))
+			if(ldata_track == object_track && (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DISCOVERED))
 			{
 				//Gate flag processing
 				dWorldObjects[index].dist = 0;
 				dWorldObjects[index].type.ext_dat |= GATE_PASSED;
-				add_object_to_minimap(&dWorldObjects[index], 0xFC00);
+				add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 0xFC00);
 				if(index2 >= 0)
 				{
 					dWorldObjects[index2].type.ext_dat |= GATE_PASSED;
-					add_object_to_minimap(&dWorldObjects[index2], 0xFC00);
+					add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0xFC00);
 				}
-				//Track add processing
-				activeTrack = ldata_track;
-				trackTimers[activeTrack] += (dWorldObjects[trackedLDATA].type.ext_dat & 0xF)<<17;
+				dWorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
 				pcm_play(snd_button, PCM_PROTECTED, 5);
 				break;
 			}
@@ -850,56 +833,55 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_PTADR)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		//add_object_to_minimap(item, 0x801F);
 		pcm_play(snd_clack, PCM_SEMI, 6);
 		you.points += 1;
 	}
 	if(type == ITEM_TYPE_RING1)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xB3E0);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0xB3E0);
 		pcm_play(snd_ring1, PCM_SEMI, 6);
 		you.points += 2;
 	}
 	if(type == ITEM_TYPE_RING2)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xE7E0);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0xE7E0);
 		pcm_play(snd_ring2, PCM_SEMI, 6);
 		you.points += 4;
 	}
 	if(type == ITEM_TYPE_RING3)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xCC0C);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0xCC0C);
 		pcm_play(snd_ring3, PCM_SEMI, 6);
 		you.points += 8;
 	}
 	if(type == ITEM_TYPE_RING4)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x819F);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0x819F);
 		pcm_play(snd_ring4, PCM_SEMI, 6);
 		you.points += 16;
 	}
 	if(type == ITEM_TYPE_RING5)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0xFFEC);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0xFFEC);
 		pcm_play(snd_ring5, PCM_SEMI, 6);
 		you.points += 32;
 	}
 	if(type == ITEM_TYPE_RING6)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x83F3);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0x83F3);
 		pcm_play(snd_ring6, PCM_SEMI, 6);
 		you.points += 64;
 	}
 	if(type == ITEM_TYPE_RING7)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_object_to_minimap(item, 0x801F);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 0x801F);
 		pcm_play(snd_ring7, PCM_SEMI, 6);
 		you.points += 128;
 	}
@@ -915,7 +897,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		if(item->type.ext_dat & FLAG_GRABBED && !(item->type.ext_dat & FLAG_RETURN))
 		{
 			item->pos[X] = -pl_RBB.pos[X];
-			item->pos[Y] = -pl_RBB.pos[Y];
+			item->pos[Y] = -pl_RBB.pos[Y] - (item->type.radius[Y]<<15);
 			item->pos[Z] = -pl_RBB.pos[Z];
 			item->rot[X] = pl_RBB.boxRot[X];
 			item->rot[Y] = pl_RBB.boxRot[Y];
@@ -965,41 +947,46 @@ void	item_collision(int index, _boundBox * tgt)
 void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stator, _boundBox * mover)
 {
 	if(stator->collisionID != mover->boxID) return; //If these objects aren't colliding with each other, exit.
-	if(GET_OBJECT_TYPE(someOBJECTdata->type.ext_dat) == FORCEFIELD_TOUCH && !(someOBJECTdata->type.ext_dat & FF_TIMER_STARTED))
+	unsigned short otype = GET_OBJECT_TYPE(someOBJECTdata->type.ext_dat);
+	if(otype == FORCEFIELD_TOUCH && !(someOBJECTdata->type.ext_dat & FF_TIMER_STARTED))
 	{
 		someOBJECTdata->dist += 32768; //Add to the timer.
 		someOBJECTdata->type.ext_dat |= FF_TIMER_STARTED;
 		pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+	} else if(otype == CRUSH_BLOCK_SLOW)
+	{
+		if(you.sanics > (4<<16))
+		{
+		someOBJECTdata->type.ext_dat |= OBJECT_DISABLED;
+		pcm_play(snd_khit, PCM_PROTECTED, 6);
+		}
 	}
 	
 }
 
 void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * someRINGdata,
-		unsigned short * discovery, short ldata_track, short object_track, short * track_reset)
+		unsigned short * discovery, short ldata_track)
 {
 			while(someRINGdata != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(RING)"); //Debug ONLY
-				object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
+				short object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(ldata_track == object_track)
 					{
-						//Special magic numbers checking, i guess?
-						if(someRINGdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & TRACK_ACTIVE))
+						// Track Discovery Checking
+						*discovery &= someRINGdata->more_data;
+						//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
+						if(((*discovery ^ someLDATA->type.ext_dat) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
+						//This is a counter that adds up the total # of gates in a track.
+						someLDATA->pix[Y]++;
+						//Reset if track reset enabled
+						if(someLDATA->type.ext_dat & TRACK_RESET)
 						{
-							someLDATA->type.ext_dat |= TRACK_ACTIVE; //will set the track data as ACTIVE 
-							//I forget why I set this?
+							add_position_to_minimap(someRINGdata->pix[X], someRINGdata->pix[Y], 0x83E0);
+							someRINGdata->type.ext_dat &= GATE_UNPASSED; 
+						} else if(someRINGdata->type.ext_dat & GATE_PASSED)
+						{
+							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
-						}
-					// Track Discovery Checking
-					*discovery &= someRINGdata->more_data;
-					//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
-					if(((*discovery ^ someLDATA->more_data) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
-					//This is a counter that adds up the total # of gates in a track.
-					someLDATA->pix[Y]++;
-				//Reset if track reset enabled
-						if(track_reset[ldata_track] == true)
-						{
-						add_object_to_minimap(someRINGdata, 0x83E0);
-						someRINGdata->type.ext_dat &= GATE_UNPASSED; 
 						}
 					}
 			someRINGdata = step_linked_object_list(someRINGdata);
@@ -1007,34 +994,32 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 }
 
 void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * somePOSTdata,
-		unsigned short * discovery, short ldata_track, short object_track, short * track_reset)
+		unsigned short * discovery, short ldata_track)
 {
 			while(somePOSTdata != &dWorldObjects[objNEW]){
 				//nbg_sprintf(0, 0, "(POST)"); //Debug ONLY
-				object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
+				short object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 				////////////////////////////////////////////////////
 				// Flush the "checked collision yet" marker for gate posts.
 				somePOSTdata->type.ext_dat &= GATE_UNCHECKED;
 					if(ldata_track == object_track)
 					{
-						if(somePOSTdata->type.ext_dat & GATE_PASSED && !(someLDATA->more_data & TRACK_ACTIVE))
+						// Track Discovery Checking
+						*discovery &= somePOSTdata->more_data;
+						//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
+						if(((*discovery ^ someLDATA->type.ext_dat) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
+						//The "Y" pix of a track data level data is the total number of gates in the track.
+						//To complete the track, X must equal Y.
+						someLDATA->pix[Y]++;
+						//Reset if track reset enabled
+						if(someLDATA->type.ext_dat & TRACK_RESET)
 						{
-							someLDATA->type.ext_dat |= TRACK_ACTIVE; //will set the track data as ACTIVE 
-							// The "X" pix of track data level data is the number of passed gates in the track.
+							add_position_to_minimap(somePOSTdata->pix[X], somePOSTdata->pix[Y], 0x83E0);
+							somePOSTdata->type.ext_dat &= GATE_UNPASSED; 
+						} else if(somePOSTdata->type.ext_dat & GATE_PASSED)
+						{
+							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
-						}
-					// Track Discovery Checking
-					*discovery &= somePOSTdata->more_data;
-					//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
-					if(((*discovery ^ someLDATA->more_data) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
-					//The "Y" pix of a track data level data is the total number of gates in the track.
-					//To complete the track, X must equal Y.
-					someLDATA->pix[Y]++;
-				//Reset if track reset enabled
-						if(track_reset[ldata_track] == true)
-						{
-						add_object_to_minimap(somePOSTdata, 0x83E0);
-						somePOSTdata->type.ext_dat &= GATE_UNPASSED; 
 						}
 					}
 			somePOSTdata = step_linked_object_list(somePOSTdata);
@@ -1044,18 +1029,9 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 void	manage_track_data(_declaredObject * someLDATA)
 {
 	
-	static short track_reset[16] = 	{0, 0, 0, 0,
-									0, 0, 0, 0,
-									0, 0, 0, 0,
-									0, 0, 0, 0};
-	
 	short ldata_track = 0;
-	short object_track = 0;
-	
-	int num_track_dat =  0;
 	static unsigned short discovery;
 	discovery = 0;
-	static int complete_tracks = 0;
 	////////////////////////////////////////////////////////////////////////////////
 	//
 	// Level data, track data manager section
@@ -1063,47 +1039,31 @@ void	manage_track_data(_declaredObject * someLDATA)
 	//
 	////////////////////////////////////////////////////////////////////////////////
 	discovery |= TRACK_DISCOVERED; // Flag the track as discovered. This is used for checking the tracks discovery later.
-	ldata_track = someLDATA->type.entity_ID & 0xF; //Get the level data's track #
+	ldata_track = someLDATA->type.entity_ID; //Get the level data's track #
 	someLDATA->pix[X] = 0; //Re-set the passed/to-pass counters (pix x and pix y) of the track level data.
 	someLDATA->pix[Y] = 0; //We do this every time because we count them up every time.
 	_declaredObject * somePOSTdata = get_first_in_object_list(GATE_P);
 	_declaredObject * someRINGdata = get_first_in_object_list(GATE_R);
-	num_track_dat++;
-	//nbg_sprintf(1, 12, "ldats(%i)", num_track_dat);
 	//nbg_sprintf(1, 13, "track(%i)", ldata_track);
-	if(activeTrack == -1 || (activeTrack == ldata_track)) // if active track.. or track released
+	if(!(someLDATA->type.ext_dat & TRACK_COMPLETE)) // if track isn't complete
 	{
 				// nbg_sprintf(0, 17, "ldt(%i)", trackedLDATA);
 				// nbg_sprintf(0, 17, "ldt(%i)", someLDATA->more_data);
-		track_data_manage_rings(someLDATA, someRINGdata, &discovery, ldata_track, object_track, track_reset);
-		track_data_manage_posts(someLDATA, somePOSTdata, &discovery, ldata_track, object_track, track_reset);
+		track_data_manage_rings(someLDATA, someRINGdata, &discovery, ldata_track);
+		track_data_manage_posts(someLDATA, somePOSTdata, &discovery, ldata_track);
 	
-		track_reset[ldata_track] = false;
-			//nbg_sprintf(0, 0, "(LDAT)"); //Debug ONLY
-		//Track completion logic
-		if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[X] != 0 && ldata_track == activeTrack)
-		{
-			someLDATA->type.ext_dat &= TRACK_INACTIVE;	//Set track as inactive
-			someLDATA->more_data |= TRACK_COMPLETE;	//Set track as complete
-			trackTimers[ldata_track] = 0;	//Re-set the track timer
-			activeTrack = -1;	//Release active track
-			you.points += 10 * someLDATA->pix[X];
-			complete_tracks++;
-			pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
-			slPrint("                           ", slLocate(0, 6));
-			slPrint("                           ", slLocate(0, 7));
-		}
-	
+		someLDATA->type.ext_dat &= TRACK_CLEAR_RESET;
+			
 		//Timer run & check
 		if((someLDATA->type.ext_dat & TRACK_ACTIVE))
 		{
-			trackTimers[ldata_track] -= delta_time;
-				if(trackTimers[ldata_track] < 0) //If timer expired...
+			someLDATA->dist -= delta_time;
+			slPrintFX(someLDATA->dist, slLocate(0, 7));
+				if(someLDATA->dist < 0) //If timer expired...
 				{
-					someLDATA->type.ext_dat &= UNPOP;
-					track_reset[ldata_track] = true; //Reset tracks; timer expired
-					trackTimers[ldata_track] = 0;
-					activeTrack = -1; //Release active track
+					someLDATA->type.ext_dat &= TRACK_INACTIVE;
+					someLDATA->type.ext_dat |= TRACK_RESET; //Reset tracks; timer expired
+					someLDATA->dist = 0;
 					//Sound stuff
 					pcm_play(snd_alarm, PCM_PROTECTED, 5);
 					//Clear screen in this zone
@@ -1111,28 +1071,47 @@ void	manage_track_data(_declaredObject * someLDATA)
 			slPrint("                           ", slLocate(0, 7));
 				}
 		}
+			
+		//Track completion logic
+		if(someLDATA->pix[X] == someLDATA->pix[Y] && someLDATA->pix[Y] != 0 && someLDATA->type.ext_dat & TRACK_ACTIVE)
+		{
+			someLDATA->type.ext_dat &= TRACK_INACTIVE;	//Set track as inactive
+			someLDATA->type.ext_dat |= TRACK_COMPLETE;	//Set track as complete
+			you.points += 10 * someLDATA->pix[X];
+			//pcm_play(snd_win, PCM_PROTECTED, 5);
+			start_adx_stream((Sint8*)"WIN.ADX", 5);
+			slPrint("                           ", slLocate(0, 6));
+			slPrint("                           ", slLocate(0, 7));
+		}
+
 		//Discovery count-down & track discovery
-		if(discovery & TRACK_DISCOVERED && !(someLDATA->more_data & TRACK_DISCOVERED))
+		if(discovery & TRACK_DISCOVERED && !(someLDATA->type.ext_dat & TRACK_DISCOVERED))
 		{
 			someLDATA->dist -= delta_time;
-			if(someLDATA->dist < 0)
+			if(someLDATA->dist < 0 && someLDATA->pix[Y] != 0)
 			{
-				someLDATA->more_data |= TRACK_DISCOVERED;
+				pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
+				someLDATA->type.ext_dat |= TRACK_DISCOVERED;
 				someLDATA->pix[X] = 0;
+				someLDATA->dist = 0;
 			}
+		} else if(!(someLDATA->type.ext_dat & TRACK_DISCOVERED))
+		{
+			someLDATA->dist = 2<<16; //Set track discovery timer
 		}
 	}
-	
-	//Completed all tracks, but only do anything if there are actually any tracks
-	if(complete_tracks == num_track_dat && (num_track_dat > 0) && link_starts[LDATA>>12] > -1)
+
+	_declaredObject * someOBJECTdata = get_first_in_object_list(OBJECT);
+	while(someOBJECTdata != &dWorldObjects[objNEW] && someLDATA->type.ext_dat & TRACK_RESET)
 	{
-		//pcm_play(snd_win, PCM_PROTECTED, 5);
-		start_adx_stream((Sint8*)"WIN.ADX", 5);
-		complete_tracks = 0;
-		//map_chg = false;
-		//p64MapRequest(1);
+		//If the track data's series and object data's series match, reset the object.
+		if(ldata_track == someOBJECTdata->type.clone_ID)
+		{
+			someOBJECTdata->type.ext_dat &= OBJECT_RESET;
+		}
+		
+		someOBJECTdata = step_linked_object_list(someOBJECTdata);
 	}
-	
 }
 
 void	run_an_item_manager(_declaredObject * someLDATA)
@@ -1233,7 +1212,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			&& someLDATA->type.ext_dat & CTF_FLAG_OPEN && !(*edata & OBJECT_DISABLED))
 			{
 				*edata |= OBJECT_DISABLED;
-				pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+				add_position_to_minimap(someOBJECTdata->pix[X], someOBJECTdata->pix[Y], 0xFFEC);
+				add_position_to_minimap((someLDATA->pos[X]>>16) / CELL_SIZE_INT, (someLDATA->pos[Z]>>16) / CELL_SIZE_INT, 0xFFEC);
 			}
 		}
 		
@@ -1261,6 +1241,17 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 	} else if(manager_type == MANAGER_CTF)
 	{
+		if(!(someLDATA->type.ext_dat & CTF_FLAG_OPEN))
+		{
+			//Not a great solution since it can't abstract to a different target.
+			//But right now that doesn't matter.
+			someLDATA->more_data = approximate_distance(someLDATA->pos, you.wpos)>>16;
+			if(someLDATA->more_data < someLDATA->type.radius[X])
+			{
+			someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
+			pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+			}
+		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
@@ -1363,11 +1354,6 @@ void	ldata_manager(void)
 		}
 		someLDATA = step_linked_object_list(someLDATA);
 	}//while LDATA end
-	
-			if(activeTrack != -1){
-				//slPrint("Find the other wreath!", slLocate(0, 6));
-				slPrintFX(trackTimers[activeTrack], slLocate(0, 7));
-			}
 			
 	manage_object_data();
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
