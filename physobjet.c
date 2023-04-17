@@ -186,7 +186,7 @@ h. manager for items, manager for 7 ring items - done.
 a. flag stand - test model OK
 b. flag stand shield - test model OK
 c. goal stand - test model OK
-d. jump on goal stand to unshield - contact to unshield, jump not done, is jump needed?
+d. jump on goal stand to unshield - done
 e. flag - test model OK
 f. carrying flag - done
 g. time limit with flag - done
@@ -198,7 +198,7 @@ j. on-screen guide - this is the one thing where a screen marker for where the f
 a. particle effect system ?
 b. destruction of entity into particles ?
 c. shrink effect on entity ?
-d. i am absolutely going to have to figure out texture cutting
+d. i am absolutely going to have to figure out texture cutting (in addition to the current tiling system)
 
 **/
 
@@ -591,6 +591,8 @@ void	add_to_track_timer(int index, int index2)
 					add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0xFC00);
 				}
 				dWorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
+				dWorldObjects[trackedLDATA].more_data &= TRACK_NO_GUIDE;
+				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER)<<4;
 				pcm_play(snd_button, PCM_PROTECTED, 5);
 				break;
 			}
@@ -967,15 +969,20 @@ void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stato
 void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * someRINGdata,
 		unsigned short * discovery, short ldata_track)
 {
-			while(someRINGdata != &dWorldObjects[objNEW]){
+			while(someRINGdata != &dWorldObjects[objNEW])
+			{
 				//nbg_sprintf(0, 0, "(RING)"); //Debug ONLY
 				short object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(ldata_track == object_track)
 					{
+						int gNum = someRINGdata->type.ext_dat & GATE_LINK_NUMBER;
+						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
 						// Track Discovery Checking
-						*discovery &= someRINGdata->more_data;
-						//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
-						if(((*discovery ^ someLDATA->type.ext_dat) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
+						if(!(someLDATA->type.ext_dat & TRACK_DISCOVERED))
+						{
+							*discovery &= someRINGdata->more_data;
+							if(someRINGdata->more_data) someLDATA->pix[X]++;
+						}
 						//This is a counter that adds up the total # of gates in a track.
 						someLDATA->pix[Y]++;
 						//Reset if track reset enabled
@@ -987,7 +994,13 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 						{
 							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
+						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
+						{
+							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 						}
+
+						someLDATA->more_data &= TRACK_NO_CHECK;
+						someLDATA->more_data |= (someRINGdata->type.ext_dat & GATE_LINK_NUMBER);
 					}
 			someRINGdata = step_linked_object_list(someRINGdata);
 			}
@@ -996,7 +1009,8 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * somePOSTdata,
 		unsigned short * discovery, short ldata_track)
 {
-			while(somePOSTdata != &dWorldObjects[objNEW]){
+			while(somePOSTdata != &dWorldObjects[objNEW])
+			{
 				//nbg_sprintf(0, 0, "(POST)"); //Debug ONLY
 				short object_track = (somePOSTdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 				////////////////////////////////////////////////////
@@ -1004,23 +1018,43 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 				somePOSTdata->type.ext_dat &= GATE_UNCHECKED;
 					if(ldata_track == object_track)
 					{
+						int gNum = somePOSTdata->type.ext_dat & GATE_LINK_NUMBER;
+						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
+						int lastCheck = someLDATA->more_data & TRACK_LAST_CHECKED;
 						// Track Discovery Checking
-						*discovery &= somePOSTdata->more_data;
-						//If the gate's discovery flag is HIGH and the tracks discovery flag is LOW, add to PIX.
-						if(((*discovery ^ someLDATA->type.ext_dat) & TRACK_DISCOVERED)) someLDATA->pix[X]++;
+						if(!(someLDATA->type.ext_dat & TRACK_DISCOVERED))
+						{
+							*discovery &= somePOSTdata->more_data;
+							if(somePOSTdata->more_data & TRACK_DISCOVERED && lastCheck != gNum) someLDATA->pix[X]++;
+
+						}
 						//The "Y" pix of a track data level data is the total number of gates in the track.
 						//To complete the track, X must equal Y.
-						someLDATA->pix[Y]++;
+						if(lastCheck != gNum || someLDATA->pix[Y] == 0)
+						{
+							someLDATA->pix[Y]++;
+						}
 						//Reset if track reset enabled
 						if(someLDATA->type.ext_dat & TRACK_RESET)
 						{
 							add_position_to_minimap(somePOSTdata->pix[X], somePOSTdata->pix[Y], 0x83E0);
 							somePOSTdata->type.ext_dat &= GATE_UNPASSED; 
-						} else if(somePOSTdata->type.ext_dat & GATE_PASSED)
+						} else if(somePOSTdata->type.ext_dat & GATE_PASSED && lastCheck != gNum)
 						{
 							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
+							if(gGuide == (gNum>>4))
+							{
+								someLDATA->more_data &= TRACK_NO_GUIDE;
+								gGuide = (gGuide >= 15) ? 0 : gGuide+1;
+								someLDATA->more_data |= (gGuide)<<8;
+							}
+						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
+						{
+							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 						}
+						someLDATA->more_data &= TRACK_NO_CHECK;
+						someLDATA->more_data |= (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER);
 					}
 			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
@@ -1070,6 +1104,16 @@ void	manage_track_data(_declaredObject * someLDATA)
 			slPrint("                           ", slLocate(0, 6));
 			slPrint("                           ", slLocate(0, 7));
 				}
+				
+			//Drawing Gate Guide
+			int gateToGuideTo = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
+			if(gateToGuideTo >= someLDATA->pix[Y])
+			{
+				//In case the gate-guide number is higher than the number of gates in the track ...
+				//Set the gate-to-guide to to zero.
+				someLDATA->more_data &= TRACK_NO_GUIDE;
+			}
+				
 		}
 			
 		//Track completion logic
@@ -1259,6 +1303,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
+			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 			if(someLDATA->dist < 0)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;

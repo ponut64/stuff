@@ -11,8 +11,19 @@
 
 #include "ldata.h"
 
-Bool ldata_ready = false;
 
+/*
+
+Process plan:
+Gate pass will indicate that gatenum+1 is the gate to guide to.
+In track managment, if gatenum+1 is found and is already passed, guide to that gatenum+1 again.
+After all gates are checked:
+If guide gatenum is over the total # of gates, set guide # to zero, do not spawn guide.
+If guide gatenum is not over the total # of gates, guide to that gate number.
+
+*/
+
+Bool ldata_ready = false;
 
 void	declarations(void)
 {
@@ -22,11 +33,15 @@ void	declarations(void)
 
 //declare_object_at_cell((0 / 40) + 1, -40, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
 
+
 declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);
 declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0);
 objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 1);
 declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0);
 declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0);
+objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 2);
+declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell((140 / 40) + 1, -69, -(260 / 40), 18 /*post00*/, 0, 0, 0, 0);
 
 declare_object_at_cell(0, 0, 0, 60 /*track dat*/, 0, 0, 0, 0);
 
@@ -44,9 +59,8 @@ declare_object_at_cell(0, 0, 0, 59 /*item mngr*/, 0, 0, 0, 0);
 declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
 
 declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0);
-declare_object_at_cell((340 / 40) + 1, -25, -(340 / 40), 9 /*KYOOB*/, 0, 0, 0, 0);
 
-declare_object_at_cell((0 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0);
+declare_object_at_cell((120 / 40) + 1, -0, -(0 / 40), 21 /*wall1*/, 0, 0, 0, 0);
 
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 

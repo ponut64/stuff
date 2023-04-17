@@ -118,6 +118,7 @@ extern int snd_ring5;
 extern int snd_ring6;
 extern int snd_ring7;
 //////////////////////////////////////////////////////////////////////////////
+extern int flagIconTexno;
 
 //Structs
 typedef struct {

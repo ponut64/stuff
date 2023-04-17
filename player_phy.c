@@ -149,7 +149,7 @@ void	pl_step_snd(void){
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					add_to_sprite_list(hf_pos, spr_span /*Span*/, 0 /*texno*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
+					add_to_sprite_list(hf_pos, spr_span /*Span*/, 3 /*texno*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
 				}
 				} else {
 					hoofSetBools[h] = false;
@@ -366,16 +366,30 @@ void	player_phys_affect(void)
 		}
 		
 	//Wall Collision Decisions
+	
 	if(you.hitWall == true)
 	{
-			//'wallPos' is a negative world-space position, that is calculated with player velocity added. So subtract it.
-			you.pos[X] = you.prevPos[X] + (you.prevPos[X] + you.wallPos[X]) - you.velocity[X];
-			you.pos[Y] = you.prevPos[Y] + (you.prevPos[Y] + you.wallPos[Y]) - you.velocity[Y];
-			you.pos[Z] = you.prevPos[Z] + (you.prevPos[Z] + you.wallPos[Z]) - you.velocity[Z];
+			//Push away.
+			you.pos[X] -= you.wallNorm[X]>>4;
+			you.pos[Y] -= you.wallNorm[Y]>>4;
+			you.pos[Z] -= you.wallNorm[Z]>>4;
+			//Floor position must also be pushed in case you are on the surface.
+			you.floorPos[X] -= you.wallNorm[X]>>4;
+			you.floorPos[Y] -= you.wallNorm[Y]>>4;
+			you.floorPos[Z] -= you.wallNorm[Z]>>4;
+			/*
+	This code is a relatively direct lift from Tribes.
+	I wouldn't have independently come up with a solution that works this well.
+	Instead, I was fixated on simply multiplying the wallNorm by velocity and subtracting that away from velocity.
+	My goal with that was to zero-out all direction towards the wall. That only mostly works.
+	This code however will let you bounce off of surfaces by an amount from 0-1 determined by the rebound elasticity.
+	Most notably, this works even if rebound elasticity is set to zero.
+			*/
+			int deflectionFactor = fxdot(you.velocity, you.wallNorm);
 			
-			you.velocity[X] += (you.velocity[X] > 0) ? -fxm(you.wallNorm[X], you.velocity[X]) : fxm(you.wallNorm[X], you.velocity[X]);
-			you.velocity[Y] += (you.velocity[Y] > 0) ? -fxm(you.wallNorm[Y], you.velocity[Y]) : fxm(you.wallNorm[Y], you.velocity[Y]);
-			you.velocity[Z] += (you.velocity[Z] > 0) ? -fxm(you.wallNorm[Z], you.velocity[Z]) : fxm(you.wallNorm[Z], you.velocity[Z]);
+			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Y] -= fxm(you.wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Z] -= fxm(you.wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
 		
 			you.hitWall = false;
 			
@@ -402,6 +416,10 @@ void	player_phys_affect(void)
 	tempDif[Z] = you.pos[Z] - you.prevPos[Z];
 	normalize(tempDif, you.DirUV);
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
+	//Set prev pos
+	you.prevPos[X] = you.pos[X];
+	you.prevPos[Y] = you.pos[Y];
+	you.prevPos[Z] = you.pos[Z];
 
 	//Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
 	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
@@ -451,11 +469,6 @@ void	player_phys_affect(void)
 	you.moment[Y] = fxm(you.mass, you.velocity[Y]);
 	you.moment[Z] = fxm(you.mass, you.velocity[Z]);
 	//
-	if(you.hitWall != true || you.climbing == true){
-	you.prevPos[X] = you.pos[X];
-	you.prevPos[Y] = you.pos[Y];
-	you.prevPos[Z] = you.pos[Z];
-	}
 	
 	//you.renderRot[X] = 0;
 	//you.renderRot[Y] = 0;
@@ -488,15 +501,15 @@ void	player_phys_affect(void)
 		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
 		// By aligning with a matrix, a new matrix is used instead of the one from make2AxisBox.
 		// So that is pasted in to the box here.
-		if(pl_RBB.collisionID == BOXID_VOID)
-		{
+//		if(pl_RBB.collisionID == BOXID_VOID)
+//		{
 				//Release from surface
 				you.hitMap = false;
 				you.hitObject = false;
 				you.hitBox = false;
 				you.hitSurface = false;
 				you.hitWall = false;
-		} else {
+		if(pl_RBB.status[0] == 'A'){
 		finalize_alignment(bound_box_starter.modified_box);
 		}
 		//The player's velocity is calculated independent of an actual value, so use it here instead.
@@ -640,9 +653,9 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID
 			//"0xFFFF" is the elasticity factor. Here, it's just 1.
 			FIXED deflectionFactor = fxdot(you.velocity, you.floorNorm);
 			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + 0xFFFF); 
-			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + 0xFFFF); 
-			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + 0xFFFF); 
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
 			
 
 			firstSurfHit = true;

@@ -4,6 +4,7 @@
 #include "bounder.h"
 
 #define HIT_TOLERANCE (6553)
+#define REBOUND_ELASTICITY (0x8000)
 
 typedef struct {
 	FIXED xp0[XYZ];

@@ -176,6 +176,14 @@ void	add_texture_to_vram(int width, int height)
 {
 	int totalPix = width * height;
 	
+	/*
+	SIZE parameter:
+	CMDSIZE of VDP1 Command Table
+	15		14		13		12		11		10		9		8		7		6		5		4		3		2		1		0
+	N		N	|				Texture width / 8				||						Texture height						|
+	13-8: Texture width (in << 3 units)
+	7-0: Texture height (in integer units)
+	*/
 	pcoTexDefs[numTex].SIZE = ((width)<<5) | height; //This table is //In LWRAM - see lwram.c
 	slDMACopy((void*)GLOBAL_img_addr, (void*)curVRAMptr, totalPix);
 	pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); //This table is //In LWRAM - see lwram.c

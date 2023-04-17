@@ -17,8 +17,11 @@ This file is compiled separately.
 
 int numBoxChecks = 0;
 
-///Alternative point collision detection. Faster, though less strict. Works entirely with integers, mostly 16-bit.
-//FIXED point operation is commented out as it has issues with domain, particularly of Y axis rotation.
+/*
+
+So this function is dumb as hell.
+
+*/
 Bool sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance)
 {
 	int dotX = realpt_to_plane(pos, targetBox->Xplus, targetBox->pos);
@@ -115,6 +118,7 @@ fmtx->Zneg[Z] = -fmtx->Zplus[Z];
 void	standing_surface_alignment(FIXED * surface_normal)
 {
 	
+	pl_RBB.status[0] = 'A'; //"A" for "Needs Adjustment"
 /*
 
 Mostly great function.
@@ -716,7 +720,7 @@ _lineTable moverCFs = {
 		//Step 2: Test the points and find which one collides and which face it collided with.
 	for(int i = 0; i < 9; i++){
 		if(lineChecks[i] == true){
-			if(sort_collide(lineEnds[i], stator, &hitFace, -HIT_TOLERANCE) == true){
+			if(sort_collide(lineEnds[i], stator, &hitFace, -(1<<16)) == true){
 				//Step 3: Use the normal of that face for collision.
 				pl_physics_handler(stator, mover, lineEnds[i], hitFace, obj_type_data);
 				mover->collisionID = stator->boxID;

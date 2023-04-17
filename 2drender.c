@@ -161,20 +161,38 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
  
         //Screen Clip Flags for on-off screen decimation
 		clipping(&ssh2VertArea[0], spr->useClip);
-		ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this stuff.... could just make a new clipper func..
 	
 		transVerts[0] += 1;
+		int spanX;
+		int spanY;
 		
-		//If the vertice is off-screen or too far away, return.
-		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
-		int used_spanX = (spr->span[X] * inverseZ)>>16;
-		int used_spanY = (spr->span[Y] * inverseZ)>>16;
-		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + used_spanX, ssh2VertArea[0].pnt[Y] + used_spanY};
-		FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - used_spanX, ssh2VertArea[0].pnt[Y] - used_spanY};
 		
-        ssh2SetCommand(pntA, 0, pntC, 0,
-		1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
-		pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
+		if(spr->type == 'B')
+		{
+			ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this (?)
+			//If the vertice is off-screen or too far away, return.
+			if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
+			spanX = (spr->span[X] * inverseZ)>>16;
+			spanY = (spr->span[Y] * inverseZ)>>16;
+			FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + spanX, ssh2VertArea[0].pnt[Y] + spanY};
+			FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
+			
+			ssh2SetCommand(pntA, 0, pntC, 0,
+			1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
+			pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
+		} else if(spr->type == 'U')
+		{
+			//If the vertice is off-screen, return. Note does not stop if too far away.
+			if(ssh2VertArea[0].clipFlag) return;
+			spanX = ((pcoTexDefs[spr->texno].SIZE & 0x3F00)>>5)>>1;
+			spanY = (pcoTexDefs[spr->texno].SIZE & 0xFF)>>1;
+			FIXED pntA[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
+			
+			ssh2SetCommand(pntA, 0, 0, 0,
+			0 /*Normal Sprite*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
+			pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, 1<<16);
+		}
+
 }
 
 void	ssh2Line(_sprite * spr)

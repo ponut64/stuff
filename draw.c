@@ -102,6 +102,37 @@ void	master_draw_stats(void)
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
 	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
+		} else if(viewInfoTxt == 2)
+		{
+			
+			slPrintFX(you.pos[X], slLocate(9, 1));
+			slPrintFX(you.pos[Y], slLocate(19, 1));
+			slPrintFX(you.pos[Z], slLocate(29, 1));
+			
+			slPrintFX(you.velocity[X], slLocate(9, 2));
+			slPrintFX(you.velocity[Y], slLocate(19, 2));
+			slPrintFX(you.velocity[Z], slLocate(29, 2));
+			
+			slPrintFX(you.wallNorm[X], slLocate(9, 3));
+			slPrintFX(you.wallNorm[Y], slLocate(19, 3));
+			slPrintFX(you.wallNorm[Z], slLocate(29, 3));
+			
+			slPrintFX(you.floorNorm[X], slLocate(9, 4));
+			slPrintFX(you.floorNorm[Y], slLocate(19, 4));
+			slPrintFX(you.floorNorm[Z], slLocate(29, 4));
+			
+			nbg_sprintf(2, 5, "rX:(%i)", you.rot[X]);
+			nbg_sprintf(15, 5, "rY:(%i)", you.rot[Y]);
+			nbg_sprintf(29, 5, "rZ:(%i)", you.rot[Z]);
+			
+			nbg_sprintf(2, 6, "rRX:(%i)", you.renderRot[X]);
+			nbg_sprintf(15, 6,"rRY:(%i)", you.renderRot[Y]);
+			nbg_sprintf(29, 6, "rRZ:(%i)", you.renderRot[Z]);
+			
+			nbg_sprintf(2, 7, "hitWall:(%i)", you.hitWall);
+			nbg_sprintf(2, 8, "hitSurf:(%i)", you.hitSurface);
+			nbg_sprintf(20, 8,"hitItm:(%i)", pl_RBB.collisionID);
+			
 		}
 }
 
@@ -257,7 +288,7 @@ void	obj_draw_queue(void)
 		if(sprWorkList[s].lifetime >= 0)
 		{
 			sprWorkList[s].lifetime -= delta_time;
-			if(sprWorkList[s].type == 'B')
+			if(sprWorkList[s].type == 'B' || sprWorkList[s].type == 'U')
 			{
 				ssh2BillboardScaledSprite(&sprWorkList[s]);
 			} else if(sprWorkList[s].type == 'L')

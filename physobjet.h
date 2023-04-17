@@ -213,8 +213,8 @@ bitflag orientation for OBJECT:
 			declared object array entry of another gate post
 			
 */
-#define SET_GATE_POST_LINK(ext_dat, gate_num) (ext_dat | (gate_num << 4))
-#define SET_GATE_TRACK_NUM(ext_dat, track_num) (ext_dat | (track_num << 8))
+#define SET_GATE_POST_LINK(ext_dat, gate_num) ((ext_dat & 0xFF0F) | (gate_num << 4))
+#define SET_GATE_TRACK_NUM(ext_dat, track_num) ((ext_dat & 0xF0FF) | (track_num << 8))
 #define FIX_GATE_POST_ALIGNMENT(more_data)	(more_data | 0x1)
 #define	GATE_POST_ALIGNED	(0x1)
 #define GATE_POST_CHECKED	(0x2)
@@ -222,11 +222,12 @@ bitflag orientation for OBJECT:
 #define GATE_DISCOVERED		(0x2)
 #define GATE_UNPASSED		(0xFFFE)
 #define GATE_UNCHECKED		(0xFFFD)
+#define GATE_LINK_NUMBER	(0xF0)
 //ext_dat bitflag orientation for GATE_RING: GATE_R
 // 15 <- pop
 // 14-12 <- pattern is "0x3000" for gate ring (single-object gate)
 // 11-8 <- TRACK # [all gates in a TRACK share this #]
-// 7-4 <- unused
+// 7-4 <- gate # / gate link #. Should be unique per gate declared.
 // 3-2 <- first or last gate flag (1 for first gate, 2 for last gate, 0 for all else) (patterns 0x4 first, 0x8 last)
 // 1 <- Unused
 // 0 <- Will be 1 if this gate is passed
@@ -240,8 +241,14 @@ bitflag orientation for OBJECT:
 #define TRACK_DISCOVERED	(0x2)
 #define TRACK_COMPLETE		(0x1)
 #define	TRACK_CLEAR_RESET	(0xFFFB)
-#define TRACK_ACTIVE	(0x8000)
-#define TRACK_INACTIVE	(0x7FFF)
+#define TRACK_ACTIVE		(0x8000)
+#define TRACK_INACTIVE		(0x7FFF)
+#define TRACK_NO_CHECK		(0xFF0F)
+#define TRACK_NO_PASS		(0xFFF0)
+#define TRACK_NO_GUIDE		(0xF0FF)
+#define TRACK_GUIDE_NUMBER	(0xF00)
+#define TRACK_LAST_CHECKED	(0xF0)
+#define TRACK_LAST_PASSED	(0xF)
 
 /**
 //////////////////////////////////////////////////////////////////
@@ -267,7 +274,8 @@ bitflag orientation for OBJECT:
 			[X] - the number of gates in the track series that have been passed (for an active track).
 			[Y] - the total # of gates in the track series
 		more_data : 
-			
+			7-4 : The last gate # checked.
+			0-3 : The last gate # passed.
 		dist :
 			Silent discovery timer. Counts-down from X seconds when discovered, then enables track.
 			Also the tracks timer host when running.

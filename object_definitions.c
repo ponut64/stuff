@@ -102,6 +102,15 @@ _sobject Kyoob = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
+	.ext_dat = OBJECT,
+	.light_bright = 0
+};
+
+_sobject CrushBlock = {
+	.entity_ID = 9,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
 	.ext_dat = OBJECT | CRUSH_BLOCK_SLOW,
 	.light_bright = 0
 };
@@ -436,7 +445,7 @@ _sobject CTFManager = {
 	.entity_ID = 2,
 	.clone_ID = 15,
 	.radius[X] = 20,
-	.radius[Y] = 20,
+	.radius[Y] = 10,
 	.radius[Z] = 20,
 	.ext_dat = LDATA | ITEM_MANAGER | MANAGER_CTF
 };
@@ -483,6 +492,7 @@ void	fill_obj_list(void)
 	objList[34] = &Build23;
 	objList[35] = &Build24;
 	
+	objList[52] = &CrushBlock;
 	objList[53] = &FlagStand;
 	objList[54] = &GoalStand;
 	objList[55] = &FlagShield;

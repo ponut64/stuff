@@ -101,7 +101,8 @@ int game_set_res = TV_320x240;
  int snd_ring5;
  int snd_ring6;
  int snd_ring7;
-
+//////////////////////////////////////////////////////////////////////////////
+int flagIconTexno = 0;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //Why are these here?
@@ -176,6 +177,8 @@ void	load_test(void)
 	snd_ring7 = load_8bit_pcm((Sint8*)"CRING7.PCM", 7680);
 	baseRingMenuTexno = numTex;
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
+	flagIconTexno = numTex;
+	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
 	//Next up: TGA file system handler?
 	int map_tex_start = numTex;
 	map_texture_table_numbers[0] = numTex;
