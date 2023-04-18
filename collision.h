@@ -15,29 +15,7 @@ typedef struct {
 	FIXED zp1[XYZ];
 } _lineTable;
 
-typedef struct {
-	FIXED pXpYpZ[XYZ];
-	FIXED pXnYpZ[XYZ];
-	FIXED pXnYnZ[XYZ];
-	FIXED pXpYnZ[XYZ];
-	FIXED nXpYpZ[XYZ];
-	FIXED nXnYpZ[XYZ];
-	FIXED nXnYnZ[XYZ];
-	FIXED nXpYnZ[XYZ];
-} _boxPrimitive;
-
-typedef struct {
-	int pXpYpZ[XYZ];
-	int pXnYpZ[XYZ];
-	int pXnYnZ[XYZ];
-	int pXpYnZ[XYZ];
-	int nXpYpZ[XYZ];
-	int nXnYpZ[XYZ];
-	int nXnYnZ[XYZ];
-	int nXpYnZ[XYZ];
-} _16bePrimitive;
-
-Bool 	sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance);
+void	init_box_handling(void);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
 void	finalize_alignment(_boundBox * fmtx);

@@ -328,8 +328,6 @@ void	shadow_draw(void)
 	
 	slPopMatrix();
 		}
-	// Reset the shadow position controller
-	you.aboveObject = false;
 }
 
 

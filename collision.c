@@ -17,45 +17,84 @@ This file is compiled separately.
 
 int numBoxChecks = 0;
 
-/*
+int boxPointField[8][3];
+int * boxNormField[6];
+int * boxPolyField[6][4];
+int * boxCenterField[6];
+int boxDisField[6];
 
-So this function is dumb as hell.
+void	init_box_handling(void)
+{
+	
+/*
+			Y-		  Z+
+		3-----------2
+	  /	|		   /|
+	0---+--------1  |
+X-	|	|	     |	|	X+
+	|	7--------+--6
+	| / 		 |/
+	4------------5 
+	Z-		Y+
+	Verts
+	0 = X- Y- Z-
+	1 = X+ Y- Z-
+	2 = X+ Y- Z+
+	3 = X- Y- Z+
+	4 = X- Y+ Z-
+	5 = X+ Y+ Z-
+	6 = X+ Y+ Z+
+	7 = X- Y+ Z+
+	Polygons:
+	0: 3 - 2 - 1 - 0, normal Y-
+	1: 0 - 1 - 5 - 4, normal Z-
+	2: 0 - 4 - 7 - 3, normal X-
+	3: 4 - 5 - 6 - 7, normal Y+
+	4: 3 - 7 - 6 - 2, normal Z+
+	5: 1 - 2 - 6 - 5, normal X+
 
 */
-Bool sort_collide(FIXED pos[XYZ], _boundBox * targetBox, int* nearNormalID, int tolerance)
-{
-	int dotX = realpt_to_plane(pos, targetBox->Xplus, targetBox->pos);
-		if(dotX < tolerance){return false;}
-	int dotNX = realpt_to_plane(pos, targetBox->Xneg, targetBox->pos);
-		if(dotNX < tolerance){return false;}
-	int dotY = realpt_to_plane(pos, targetBox->Yplus, targetBox->pos);
-		if(dotY < tolerance){return false;}
-	int dotNY = realpt_to_plane(pos, targetBox->Yneg, targetBox->pos);
-		if(dotNY < tolerance){return false;}
-	int dotZ = realpt_to_plane(pos, targetBox->Zplus, targetBox->pos);
-		if(dotZ < tolerance){return false;}
-	int dotNZ = realpt_to_plane(pos, targetBox->Zneg, targetBox->pos);
-		if(dotNZ < tolerance){return false;}
+	
+boxDisField[0] = N_Yn;
+boxDisField[1] = N_Zn;
+boxDisField[2] = N_Xn;
+boxDisField[3] = N_Yp;
+boxDisField[4] = N_Zp;
+boxDisField[5] = N_Xp;
 
-	int leastDistance;
-		leastDistance = JO_MIN(JO_MIN(JO_MIN(JO_MIN(JO_MIN(JO_ABS(dotZ), JO_ABS(dotNZ)), JO_ABS(dotX)), JO_ABS(dotNX)), JO_ABS(dotY)), JO_ABS(dotNY));
-		if(leastDistance == JO_ABS(dotZ) ){
-			*nearNormalID = N_Zp;
-		} else if(leastDistance == JO_ABS(dotNZ) ){
-			*nearNormalID = N_Zn;
-		} else if(leastDistance == JO_ABS(dotX) ){
-			*nearNormalID = N_Xp;
-		} else if(leastDistance == JO_ABS(dotNX) ){
-			*nearNormalID = N_Xn;
-		} else if(leastDistance == JO_ABS(dotY) ){
-			*nearNormalID = N_Yp;
-		} else if(leastDistance == JO_ABS(dotNY) ){
-			*nearNormalID = N_Yn;
-			}
-//End surface collision detection.
 
-	return true;
-}	
+boxPolyField[0][0] = boxPointField[3];	
+boxPolyField[0][1] = boxPointField[2];
+boxPolyField[0][2] = boxPointField[1];
+boxPolyField[0][3] = boxPointField[0];
+
+boxPolyField[1][0] = boxPointField[0];	
+boxPolyField[1][1] = boxPointField[1];
+boxPolyField[1][2] = boxPointField[5];
+boxPolyField[1][3] = boxPointField[4];
+
+boxPolyField[2][0] = boxPointField[0];	
+boxPolyField[2][1] = boxPointField[4];
+boxPolyField[2][2] = boxPointField[7];
+boxPolyField[2][3] = boxPointField[3];
+
+boxPolyField[3][0] = boxPointField[4];	
+boxPolyField[3][1] = boxPointField[5];
+boxPolyField[3][2] = boxPointField[6];
+boxPolyField[3][3] = boxPointField[7];
+
+boxPolyField[4][0] = boxPointField[3];	
+boxPolyField[4][1] = boxPointField[7];
+boxPolyField[4][2] = boxPointField[6];
+boxPolyField[4][3] = boxPointField[2];
+
+boxPolyField[5][0] = boxPointField[1];	
+boxPolyField[5][1] = boxPointField[2];
+boxPolyField[5][2] = boxPointField[6];
+boxPolyField[5][3] = boxPointField[5];
+	
+}
+
 
 Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 {
@@ -93,14 +132,16 @@ fmtx->UVNZ[X] = -fmtx->UVZ[X];
 fmtx->UVNZ[Y] = -fmtx->UVZ[Y];
 fmtx->UVNZ[Z] = -fmtx->UVZ[Z];
 
+//You know a really funny bug?
+//Transforming the radius instead of using it as the per-axis scalar....
 fmtx->Xplus[X] = fxm(fmtx->UVX[X], fmtx->brad[X]);
-fmtx->Xplus[Y] = fxm(fmtx->UVX[Y], fmtx->brad[Y]);
-fmtx->Xplus[Z] = fxm(fmtx->UVX[Z], fmtx->brad[Z]);
-fmtx->Yplus[X] = fxm(fmtx->UVY[X], fmtx->brad[X]);
+fmtx->Xplus[Y] = fxm(fmtx->UVX[Y], fmtx->brad[X]);
+fmtx->Xplus[Z] = fxm(fmtx->UVX[Z], fmtx->brad[X]);
+fmtx->Yplus[X] = fxm(fmtx->UVY[X], fmtx->brad[Y]);
 fmtx->Yplus[Y] = fxm(fmtx->UVY[Y], fmtx->brad[Y]);
-fmtx->Yplus[Z] = fxm(fmtx->UVY[Z], fmtx->brad[Z]);
-fmtx->Zplus[X] = fxm(fmtx->UVZ[X], fmtx->brad[X]);
-fmtx->Zplus[Y] = fxm(fmtx->UVZ[Y], fmtx->brad[Y]);
+fmtx->Yplus[Z] = fxm(fmtx->UVY[Z], fmtx->brad[Y]);
+fmtx->Zplus[X] = fxm(fmtx->UVZ[X], fmtx->brad[Z]);
+fmtx->Zplus[Y] = fxm(fmtx->UVZ[Y], fmtx->brad[Z]);
 fmtx->Zplus[Z] = fxm(fmtx->UVZ[Z], fmtx->brad[Z]);
 
 fmtx->Xneg[X] = -fmtx->Xplus[X];
@@ -121,8 +162,7 @@ void	standing_surface_alignment(FIXED * surface_normal)
 	pl_RBB.status[0] = 'A'; //"A" for "Needs Adjustment"
 /*
 
-Mostly great function.
-Process, follow comments.
+Fuck this shit...
 
 */
 
@@ -321,9 +361,8 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 
 }
 
-void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, Uint8 hitFace, short obj_type_data)
+void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, short hitFace, short faceIndex, short obj_type_data)
 {
-
 	/*
 	
 Floor collisions pass the Boolean "hitSurface" that is processed in player_phy.c
@@ -349,217 +388,71 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.climbing = true;
 	}
 
-	if(hitFace == N_Yn){
-			if(stator->UVNY[Y] < -32768 || you.climbing){
-		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVNY[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVNY[X];
-		you.floorNorm[Y] = stator->UVNY[Y];
-		you.floorNorm[Z] = stator->UVNY[Z];
-		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVNY[X];
-	you.wallNorm[Y] = stator->UVNY[Y];
-	you.wallNorm[Z] = stator->UVNY[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
-	} else if(hitFace == N_Yp){
-		
-			if(stator->UVY[Y] < -32768 || you.climbing){
-		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVY[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVY[X]; 
-		you.floorNorm[Y] = stator->UVY[Y];
-		you.floorNorm[Z] = stator->UVY[Z];
-		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVY[X];
-	you.wallNorm[Y] = stator->UVY[Y];
-	you.wallNorm[Z] = stator->UVY[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
-	} else if(hitFace == N_Zp){
-		
-			if(stator->UVZ[Y] < -32768 || you.climbing){
-		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVZ[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVZ[X]; 
-		you.floorNorm[Y] = stator->UVZ[Y];
-		you.floorNorm[Z] = stator->UVZ[Z];
-		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVZ[X];
-	you.wallNorm[Y] = stator->UVZ[Y];
-	you.wallNorm[Z] = stator->UVZ[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
-	} else if(hitFace == N_Zn){
-		
-			if(stator->UVNZ[Y] < -32768 || you.climbing){
-		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVNZ[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVNZ[X]; 
-		you.floorNorm[Y] = stator->UVNZ[Y];
-		you.floorNorm[Z] = stator->UVNZ[Z];
-		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVNZ[X];
-	you.wallNorm[Y] = stator->UVNZ[Y];
-	you.wallNorm[Z] = stator->UVNZ[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
-	} else if(hitFace == N_Xp){
 
-			if(stator->UVX[Y] < -32768 || you.climbing){
+	if(boxNormField[faceIndex][Y] < -32768 || you.climbing)
+	{
 		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVX[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVX[X]; 
-		you.floorNorm[Y] = stator->UVX[Y];
-		you.floorNorm[Z] = stator->UVX[Z];
+		if(boxNormField[faceIndex][Y] < -49152) you.climbing = false;
+		you.floorNorm[X] = boxNormField[faceIndex][X];
+		you.floorNorm[Y] = boxNormField[faceIndex][Y];
+		you.floorNorm[Z] = boxNormField[faceIndex][Z];
 		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-	
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVX[X];
-	you.wallNorm[Y] = stator->UVX[Y];
-	you.wallNorm[Z] = stator->UVX[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
-	} else if(hitFace == N_Xn){
-
-			if(stator->UVNX[Y] < -32768 || you.climbing){
-		//If we were going to stand on this surface anyway, un-flag climbing; we can just stand.
-		if(stator->UVNX[Y] < -49152) you.climbing = false;
-		you.floorNorm[X] = stator->UVNX[X]; 
-		you.floorNorm[Y] = stator->UVNX[Y];
-		you.floorNorm[Z] = stator->UVNX[Z];
-		
-	standing_surface_alignment(you.floorNorm);
-		
-	you.floorPos[X] = (-(hitPt[X]) - (mover->Yneg[X]));
-	you.floorPos[Y] = (-(hitPt[Y]) - (mover->Yneg[Y]));
-	you.floorPos[Z] = (-(hitPt[Z]) - (mover->Yneg[Z]));
-	you.shadowPos[X] = -hitPt[X];
-	you.shadowPos[Y] = -hitPt[Y];
-	you.shadowPos[Z] = -hitPt[Z];
-		
-	you.hitSurface = true;
-			} else {
-	you.wallNorm[X] = stator->UVNX[X];
-	you.wallNorm[Y] = stator->UVNX[Y];
-	you.wallNorm[Z] = stator->UVNX[Z];
-	you.wallPos[X] = hitPt[X];
-	you.wallPos[Y] = hitPt[Y];
-	you.wallPos[Z] = hitPt[Z];
-		
-	you.hitWall = true;
-			}
+		standing_surface_alignment(you.floorNorm);
+			
+		you.floorPos[X] = -(hitPt[X]) - (mover->Yneg[X]);
+		you.floorPos[Y] = -(hitPt[Y]) - (mover->Yneg[Y]);
+		you.floorPos[Z] = -(hitPt[Z]) - (mover->Yneg[Z]);
+		you.shadowPos[X] = -hitPt[X];
+		you.shadowPos[Y] = -hitPt[Y];
+		you.shadowPos[Z] = -hitPt[Z];
+			
+		you.aboveObject = true;
+		you.hitSurface = true;
+	} else {
+		you.wallNorm[X] = boxNormField[faceIndex][X];
+		you.wallNorm[Y] = boxNormField[faceIndex][Y];
+		you.wallNorm[Z] = boxNormField[faceIndex][Z];
+		you.wallPos[X] = hitPt[X];
+		you.wallPos[Y] = hitPt[Y];
+		you.wallPos[Z] = hitPt[Z];
+			
+		you.hitWall = true;
 	}
-
 }
 
 void	player_shadow_object(_boundBox * stator, POINT centerDif)
 {
 	
 	//Again, I have no idea how my coordinate systems get so reliably inverted...
-	POINT below_player = {-you.pos[X], -(you.pos[Y] - (1<<16)), -you.pos[Z]};
-	POINT negative_pos = {-you.pos[X], -(you.pos[Y]), -you.pos[Z]};
+	POINT below_player = {you.wpos[X], (you.wpos[Y] - (1<<16)), you.wpos[Z]};
 	POINT xHit;
 	POINT yHit;
 	POINT zHit;
 	int hitBools[XYZ];
 	POINT highHit = {0, 0, 0};
 
-	if( centerDif[X] < 0){
+	if(fxdot(centerDif, stator->UVX) < 0){
 		//This means we draw to X+
-		line_hit_plane_here(negative_pos, below_player, stator->Xplus, stator->UVX, stator->pos, 16384, xHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Xplus, stator->UVX, stator->pos, 16384, xHit);
 	} else {
 		//This means we draw to X-
-		line_hit_plane_here(negative_pos, below_player, stator->Xneg, stator->UVX, stator->pos, 16384, xHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Xneg, stator->UVX, stator->pos, 16384, xHit);
 	}
 	
-	if( centerDif[Y] < 0){
+	if(fxdot(centerDif, stator->UVY) < 0){
 		//This means we draw to Y+
-		line_hit_plane_here(negative_pos, below_player, stator->Yplus, stator->UVY, stator->pos, 1<<16, yHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Yplus, stator->UVY, stator->pos, 16384, yHit);
 	} else {
 		//This means we draw to Y-
-		line_hit_plane_here(negative_pos, below_player, stator->Yneg, stator->UVY, stator->pos, 1<<16, yHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Yneg, stator->UVY, stator->pos, 16384, yHit);
 	}
 	
-	if( centerDif[Z] < 0){
+	if(fxdot(centerDif, stator->UVZ) < 0){
 		//This means we draw to Z+
-		line_hit_plane_here(negative_pos, below_player, stator->Zplus, stator->UVZ, stator->pos, 16384, zHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Zplus, stator->UVZ, stator->pos, 16384, zHit);
 	} else {
 		//This means we draw to Z-
-		line_hit_plane_here(negative_pos, below_player, stator->Zneg, stator->UVZ, stator->pos, 16384, zHit);
+		line_hit_plane_here(you.wpos, below_player, stator->Zneg, stator->UVZ, stator->pos, 16384, zHit);
 	}
 	
 	if(simple_collide(xHit, stator) == true){
@@ -589,7 +482,11 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 		hitBools[Z] = false;
 	}
 	
-	if((hitBools[X] == true || hitBools[Y] == true || hitBools[Z] == true) && you.pos[Y] > -highHit[Y])
+			// slPrintFX(highHit[X], slLocate(9, 7));
+			// slPrintFX(highHit[Y], slLocate(19, 7));
+			// slPrintFX(highHit[Z], slLocate(29, 7));
+	
+	if((hitBools[X] == true || hitBools[Y] == true || hitBools[Z] == true) && you.pos[Y] > highHit[Y])
 	{
 		//Inverted coordinates...
 		you.shadowPos[X] = -highHit[X];
@@ -633,105 +530,116 @@ centerDif[Z] = stator->pos[Z] + mover->pos[Z];
 
 
 bigDif = JO_MAX(JO_MAX(JO_ABS(centerDif[X]), JO_ABS(centerDif[Y])),JO_ABS(centerDif[Z]));
-
+	//Shadow projector has to happen before radius cut.
+	if(centerDif[X] < bigRadius && centerDif[Z] < bigRadius)
+	{
+	player_shadow_object(stator, centerDif);
+	}
 if(bigDif > (bigRadius + (20<<16))) return false;
+
+
 
 numBoxChecks++;
 
 //Box Collision Check
 _lineTable moverCFs = {
-	.xp0[X] = mover->Xplus[X] 	- mover->pos[X] - mover->velocity[X],
-	.xp0[Y] = mover->Xplus[Y] 	- mover->pos[Y] - mover->velocity[Y],
-	.xp0[Z] = mover->Xplus[Z] 	- mover->pos[Z] - mover->velocity[Z],
-	.xp1[X] = mover->Xneg[X] 	- mover->pos[X] + mover->velocity[X],
-	.xp1[Y] = mover->Xneg[Y] 	- mover->pos[Y] + mover->velocity[Y],
-	.xp1[Z] = mover->Xneg[Z] 	- mover->pos[Z] + mover->velocity[Z],
-	.yp0[X] = mover->Yplus[X] 	- mover->pos[X] - mover->velocity[X],
-	.yp0[Y] = mover->Yplus[Y] 	- mover->pos[Y] - mover->velocity[Y],
-	.yp0[Z] = mover->Yplus[Z] 	- mover->pos[Z] - mover->velocity[Z],
-	.yp1[X] = mover->Yneg[X] 	- mover->pos[X] + mover->velocity[X],
-	.yp1[Y] = mover->Yneg[Y] 	- mover->pos[Y] + mover->velocity[Y],
-	.yp1[Z] = mover->Yneg[Z] 	- mover->pos[Z] + mover->velocity[Z],
-	.zp0[X] = mover->Zplus[X] 	- mover->pos[X] - mover->velocity[X],
-	.zp0[Y] = mover->Zplus[Y] 	- mover->pos[Y] - mover->velocity[Y],
-	.zp0[Z] = mover->Zplus[Z] 	- mover->pos[Z] - mover->velocity[Z],
-	.zp1[X] = mover->Zneg[X] 	- mover->pos[X] + mover->velocity[X],
-	.zp1[Y] = mover->Zneg[Y] 	- mover->pos[Y] + mover->velocity[Y],
-	.zp1[Z] = mover->Zneg[Z] 	- mover->pos[Z] + mover->velocity[Z]
+	.xp0[X] = mover->Xplus[X] 	- mover->pos[X],// - mover->velocity[X],
+	.xp0[Y] = mover->Xplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
+	.xp0[Z] = mover->Xplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
+	.xp1[X] = mover->Xneg[X] 	- mover->pos[X],// + mover->velocity[X],
+	.xp1[Y] = mover->Xneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
+	.xp1[Z] = mover->Xneg[Z] 	- mover->pos[Z],// + mover->velocity[Z],
+	.yp0[X] = mover->Yplus[X] 	- mover->pos[X],// - mover->velocity[X],
+	.yp0[Y] = mover->Yplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
+	.yp0[Z] = mover->Yplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
+	.yp1[X] = mover->Yneg[X] 	- mover->pos[X],// + mover->velocity[X],
+	.yp1[Y] = mover->Yneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
+	.yp1[Z] = mover->Yneg[Z] 	- mover->pos[Z],// + mover->velocity[Z],
+	.zp0[X] = mover->Zplus[X] 	- mover->pos[X],// - mover->velocity[X],
+	.zp0[Y] = mover->Zplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
+	.zp0[Z] = mover->Zplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
+	.zp1[X] = mover->Zneg[X] 	- mover->pos[X],// + mover->velocity[X],
+	.zp1[Y] = mover->Zneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
+	.zp1[Z] = mover->Zneg[Z] 	- mover->pos[Z]// + mover->velocity[Z]
 }; 
 
-		/*
-	ABSOLUTE PRIORITY: Once again, the normal hit during collision must be found ABSOLUTELY. ACCURATELY.
-	How we did this best before:
-	Step 0: Determine which faces face you.
-	Step 1: Draw lines to a point from every pair of CFs on the mover to every facing face of the stator->
-	Step 2: Test the points and find which one collides and which face it collided with.
-	Step 3: Use the normal of that face for collision.
 
-		*/
+boxNormField[0] = stator->UVNY;
+boxNormField[1] = stator->UVNZ;
+boxNormField[2] = stator->UVNX;
+boxNormField[3] = stator->UVY;
+boxNormField[4] = stator->UVZ;
+boxNormField[5] = stator->UVX;
+boxCenterField[0] = stator->Yneg;
+boxCenterField[1] = stator->Zneg;
+boxCenterField[2] = stator->Xneg;
+boxCenterField[3] = stator->Yplus;
+boxCenterField[4] = stator->Zplus;
+boxCenterField[5] = stator->Xplus;
+
+boxPointField[0][X] = (stator->Xneg[X] +  stator->Yneg[X] + stator->Zneg[X]		+ stator->pos[X]);
+boxPointField[0][Y] = (stator->Xneg[Y] +  stator->Yneg[Y] + stator->Zneg[Y]		+ stator->pos[Y]);
+boxPointField[0][Z] = (stator->Xneg[Z] +  stator->Yneg[Z] + stator->Zneg[Z]		+ stator->pos[Z]);
+boxPointField[1][X] = (stator->Xplus[X] + stator->Yneg[X] + stator->Zneg[X]		+ stator->pos[X]);
+boxPointField[1][Y] = (stator->Xplus[Y] + stator->Yneg[Y] + stator->Zneg[Y]		+ stator->pos[Y]);
+boxPointField[1][Z] = (stator->Xplus[Z] + stator->Yneg[Z] + stator->Zneg[Z]		+ stator->pos[Z]);
+boxPointField[2][X] = (stator->Xplus[X] + stator->Yneg[X] + stator->Zplus[X]	+ stator->pos[X]);
+boxPointField[2][Y] = (stator->Xplus[Y] + stator->Yneg[Y] + stator->Zplus[Y]	+ stator->pos[Y]);
+boxPointField[2][Z] = (stator->Xplus[Z] + stator->Yneg[Z] + stator->Zplus[Z]	+ stator->pos[Z]);
+boxPointField[3][X] = (stator->Xneg[X] +  stator->Yneg[X] + stator->Zplus[X]	+ stator->pos[X]);
+boxPointField[3][Y] = (stator->Xneg[Y] +  stator->Yneg[Y] + stator->Zplus[Y]	+ stator->pos[Y]);
+boxPointField[3][Z] = (stator->Xneg[Z] +  stator->Yneg[Z] + stator->Zplus[Z]	+ stator->pos[Z]);
+boxPointField[4][X] = (stator->Xneg[X] +  stator->Yplus[X] + stator->Zneg[X]	+ stator->pos[X]);
+boxPointField[4][Y] = (stator->Xneg[Y] +  stator->Yplus[Y] + stator->Zneg[Y]	+ stator->pos[Y]);
+boxPointField[4][Z] = (stator->Xneg[Z] +  stator->Yplus[Z] + stator->Zneg[Z]	+ stator->pos[Z]);
+boxPointField[5][X] = (stator->Xplus[X] + stator->Yplus[X] + stator->Zneg[X]	+ stator->pos[X]);
+boxPointField[5][Y] = (stator->Xplus[Y] + stator->Yplus[Y] + stator->Zneg[Y]	+ stator->pos[Y]);
+boxPointField[5][Z] = (stator->Xplus[Z] + stator->Yplus[Z] + stator->Zneg[Z]	+ stator->pos[Z]);
+boxPointField[6][X] = (stator->Xplus[X] + stator->Yplus[X] + stator->Zplus[X]	+ stator->pos[X]);
+boxPointField[6][Y] = (stator->Xplus[Y] + stator->Yplus[Y] + stator->Zplus[Y]	+ stator->pos[Y]);
+boxPointField[6][Z] = (stator->Xplus[Z] + stator->Yplus[Z] + stator->Zplus[Z]	+ stator->pos[Z]);
+boxPointField[7][X] = (stator->Xneg[X] +  stator->Yplus[X] + stator->Zplus[X]	+ stator->pos[X]);
+boxPointField[7][Y] = (stator->Xneg[Y] +  stator->Yplus[Y] + stator->Zplus[Y]	+ stator->pos[Y]);
+boxPointField[7][Z] = (stator->Xneg[Z] +  stator->Yplus[Z] + stator->Zplus[Z]	+ stator->pos[Z]);
+
+	for(int i = 0; i < 6; i++)
+	{
+   		//Backfacing Faces
+		if(fxdot(centerDif, boxNormField[i]) > 0) continue;
+		//Drawing lines to face
 		
-
-//	Step 0: Determine which faces face you.
-
-	POINT negCenter = {-mover->pos[X], -mover->pos[Y], -mover->pos[Z]};
-	//This math figures out what side of the box we're on, with respect to its rotation, too.
-	centerDif[X] = realpt_to_plane(negCenter, stator->UVX, stator->pos);
-	centerDif[Y] = realpt_to_plane(negCenter, stator->UVY, stator->pos);
-	centerDif[Z] = realpt_to_plane(negCenter, stator->UVZ, stator->pos);
-//	Step 1: Draw lines to a point from every pair of CFs on the mover to every face of the stator->
-	if( centerDif[X] < 0){
-		//This means we draw to X+
-		lineChecks[0] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Xplus, stator->UVX, stator->pos, 16384, lineEnds[0]);
-		lineChecks[1] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Xplus, stator->UVX, stator->pos, 1<<16, lineEnds[1]);
-		lineChecks[2] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Xplus, stator->UVX, stator->pos, 16384, lineEnds[2]);
-	} else {
-		//This means we draw to X-
-		lineChecks[0] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Xneg, stator->UVX, stator->pos, 16384, lineEnds[0]);
-		lineChecks[1] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Xneg, stator->UVX, stator->pos, 1<<16, lineEnds[1]);
-		lineChecks[2] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Xneg, stator->UVX, stator->pos, 16384, lineEnds[2]);
-	}
-	
-	if( centerDif[Y] < 0){
-		//This means we draw to Y+
-		lineChecks[3] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Yplus, stator->UVY, stator->pos, 16384, lineEnds[3]);
-		lineChecks[4] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Yplus, stator->UVY, stator->pos, 1<<16, lineEnds[4]);
-		lineChecks[5] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Yplus, stator->UVY, stator->pos, 16384, lineEnds[5]);
-	} else {
-		//This means we draw to Y-
-		lineChecks[3] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Yneg, stator->UVY, stator->pos, 16384, lineEnds[3]);
-		lineChecks[4] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Yneg, stator->UVY, stator->pos, 1<<16, lineEnds[4]);
-		lineChecks[5] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Yneg, stator->UVY, stator->pos, 16384, lineEnds[5]);
-	}
-	
-	if( centerDif[Z] < 0){
-		//This means we draw to Z+
-		lineChecks[6] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Zplus, stator->UVZ, stator->pos, 16384, lineEnds[6]);
-		lineChecks[7] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Zplus, stator->UVZ, stator->pos, 1<<16, lineEnds[7]);
-		lineChecks[8] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Zplus, stator->UVZ, stator->pos, 16384, lineEnds[8]);
-	} else {
-		//This means we draw to Z-
-		lineChecks[6] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->Zneg, stator->UVZ, stator->pos, 16384, lineEnds[6]);
-		lineChecks[7] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->Zneg, stator->UVZ, stator->pos, 1<<16, lineEnds[7]);
-		lineChecks[8] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->Zneg, stator->UVZ, stator->pos, 16384, lineEnds[8]);
-	}
-	
-//	nbg_sprintf(13, 12, "(%i)", hitFace);
-				player_shadow_object(stator, centerDif);
-		//Step 2: Test the points and find which one collides and which face it collided with.
-	for(int i = 0; i < 9; i++){
-		if(lineChecks[i] == true){
-			if(sort_collide(lineEnds[i], stator, &hitFace, -(1<<16)) == true){
-				//Step 3: Use the normal of that face for collision.
-				pl_physics_handler(stator, mover, lineEnds[i], hitFace, obj_type_data);
-				mover->collisionID = stator->boxID;
-				stator->collisionID = mover->boxID;
-				you.hitBox = true;
-				return true;
+		lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, boxCenterField[i],
+										boxNormField[i], stator->pos, 16384, lineEnds[X]);
+		lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, boxCenterField[i],
+										boxNormField[i], stator->pos, 65536, lineEnds[Y]);
+		lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, boxCenterField[i],
+										boxNormField[i], stator->pos, 16384, lineEnds[Z]);
+		for(int u = 0; u < 3; u++)
+		{
+			if(lineChecks[u])
+			{
+				if(edge_wind_test(boxPolyField[i][0], boxPolyField[i][1], lineEnds[u], boxDisField[i]) > 0)
+				{
+					if(edge_wind_test(boxPolyField[i][1], boxPolyField[i][2], lineEnds[u], boxDisField[i]) > 0)
+					{
+						if(edge_wind_test(boxPolyField[i][2], boxPolyField[i][3], lineEnds[u], boxDisField[i]) > 0)
+						{
+							if(edge_wind_test(boxPolyField[i][3], boxPolyField[i][0], lineEnds[u], boxDisField[i]) > 0)
+							{
+								pl_physics_handler(stator, mover, lineEnds[u], boxDisField[i], i, obj_type_data);
+								mover->collisionID = stator->boxID;
+								stator->collisionID = mover->boxID;
+								you.hitBox = true;
+								return true;
+							}
+						}
+					}
+				} 
 			}
-		}
-		
+		}  
 	}
-		return false;
+
+	return false;
 }
 
 void	player_collision_test_loop(void)

@@ -232,17 +232,17 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->UVNZ[Y] = -source_data->modified_box->UVZ[Y];
 	source_data->modified_box->UVNZ[Z] = -source_data->modified_box->UVZ[Z];
 	//axis given: Y (on Z axis and does not change Y axis) circle going only right/left, forward/backward
-	source_data->modified_box->Xneg[X] = -fxm((source_data->x_radius), source_data->modified_box->UVX[X]);
-	source_data->modified_box->Xneg[Y] = -fxm((source_data->x_radius), source_data->modified_box->UVX[Y]);
-	source_data->modified_box->Xneg[Z] = -fxm((source_data->x_radius), source_data->modified_box->UVX[Z]);
+	source_data->modified_box->Xneg[X] = -source_data->modified_box->Xplus[X];
+	source_data->modified_box->Xneg[Y] = -source_data->modified_box->Xplus[Y];
+	source_data->modified_box->Xneg[Z] = -source_data->modified_box->Xplus[Z];
 	//axis given: X (on Y axis and does not change X axis) circle going only up/down, forward/backward
-	source_data->modified_box->Yneg[X] = -fxm((source_data->y_radius), source_data->modified_box->UVY[X]);
-	source_data->modified_box->Yneg[Y] = -fxm((source_data->y_radius), source_data->modified_box->UVY[Y]);
-	source_data->modified_box->Yneg[Z] = -fxm((source_data->y_radius), source_data->modified_box->UVY[Z]);
+	source_data->modified_box->Yneg[X] = -source_data->modified_box->Yplus[X];
+	source_data->modified_box->Yneg[Y] = -source_data->modified_box->Yplus[Y];
+	source_data->modified_box->Yneg[Z] = -source_data->modified_box->Yplus[Z];
 	//axis given: Z (on X axis and does not change Z axis) Circle going only up/down, left/right
-	source_data->modified_box->Zneg[X] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[X]);
-	source_data->modified_box->Zneg[Y] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[Y]);
-	source_data->modified_box->Zneg[Z] = -fxm((source_data->z_radius), source_data->modified_box->UVZ[Z]);
+	source_data->modified_box->Zneg[X] = -source_data->modified_box->Zplus[X];
+	source_data->modified_box->Zneg[Y] = -source_data->modified_box->Zplus[Y];
+	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
 	
 	//Sort and assign X, Y, and Z maximum normals. (For macros)

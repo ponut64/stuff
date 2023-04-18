@@ -373,24 +373,24 @@ Bool shadowStruck = false;
 	// "Get world-space point position"
 	//////////////////////////////////////////////////////////////
 _lineTable moverCFs = {
-	.xp0[X] = mover->Xplus[X] + mover->pos[X] - mover->velocity[X],
-	.xp0[Y] = mover->Xplus[Y] + mover->pos[Y] - mover->velocity[Y],
-	.xp0[Z] = mover->Xplus[Z] + mover->pos[Z] - mover->velocity[Z],
-	.xp1[X] = mover->Xneg[X] + mover->pos[X] + mover->velocity[X],
-	.xp1[Y] = mover->Xneg[Y] + mover->pos[Y] + mover->velocity[Y],
-	.xp1[Z] = mover->Xneg[Z] + mover->pos[Z] + mover->velocity[Z],
-	.yp0[X] = mover->Yplus[X] + mover->pos[X] - mover->velocity[X],
-	.yp0[Y] = mover->Yplus[Y] + mover->pos[Y] - mover->velocity[Y],
-	.yp0[Z] = mover->Yplus[Z] + mover->pos[Z] - mover->velocity[Z],
-	.yp1[X] = mover->Yneg[X] + mover->pos[X] + mover->velocity[X],
-	.yp1[Y] = mover->Yneg[Y] + mover->pos[Y] + mover->velocity[Y],
-	.yp1[Z] = mover->Yneg[Z] + mover->pos[Z] + mover->velocity[Z],
-	.zp0[X] = mover->Zplus[X] + mover->pos[X] - mover->velocity[X],
-	.zp0[Y] = mover->Zplus[Y] + mover->pos[Y] - mover->velocity[Y],
-	.zp0[Z] = mover->Zplus[Z] + mover->pos[Z] - mover->velocity[Z],
-	.zp1[X] = mover->Zneg[X] + mover->pos[X] + mover->velocity[X],
-	.zp1[Y] = mover->Zneg[Y] + mover->pos[Y] + mover->velocity[Y],
-	.zp1[Z] = mover->Zneg[Z] + mover->pos[Z] + mover->velocity[Z]
+	.xp0[X] = mover->Xplus[X] 	+ mover->pos[X],// - mover->velocity[X],
+	.xp0[Y] = mover->Xplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
+	.xp0[Z] = mover->Xplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
+	.xp1[X] = mover->Xneg[X] 	+ mover->pos[X],// + mover->velocity[X],
+	.xp1[Y] = mover->Xneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
+	.xp1[Z] = mover->Xneg[Z] 	+ mover->pos[Z],// + mover->velocity[Z],
+	.yp0[X] = mover->Yplus[X] 	+ mover->pos[X],// - mover->velocity[X],
+	.yp0[Y] = mover->Yplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
+	.yp0[Z] = mover->Yplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
+	.yp1[X] = mover->Yneg[X] 	+ mover->pos[X],// + mover->velocity[X],
+	.yp1[Y] = mover->Yneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
+	.yp1[Z] = mover->Yneg[Z] 	+ mover->pos[Z],// + mover->velocity[Z],
+	.zp0[X] = mover->Zplus[X] 	+ mover->pos[X],// - mover->velocity[X],
+	.zp0[Y] = mover->Zplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
+	.zp0[Z] = mover->Zplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
+	.zp1[X] = mover->Zneg[X] 	+ mover->pos[X],// + mover->velocity[X],
+	.zp1[Y] = mover->Zneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
+	.zp1[Z] = mover->Zneg[Z] 	+ mover->pos[Z]// + mover->velocity[Z]
 }; 
 
 POINT plane_points[4];

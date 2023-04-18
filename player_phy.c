@@ -308,17 +308,17 @@ void	player_phys_affect(void)
 			you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
 			//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
 		}
-		if(you.hitObject || you.hitBox)
-		{
+		//if(you.hitObject || you.hitBox)
+		//{
 			//Because your velocity is added to the floor position in this case, subtract it.
-			you.pos[X] = (you.floorPos[X]) - you.velocity[X];
-			you.pos[Y] = (you.floorPos[Y]) - you.velocity[Y];
-			you.pos[Z] = (you.floorPos[Z]) - you.velocity[Z];
-		} else {
+		//	you.pos[X] = (you.floorPos[X]) - you.velocity[X];
+		//	you.pos[Y] = (you.floorPos[Y]) - you.velocity[Y];
+		//	you.pos[Z] = (you.floorPos[Z]) - you.velocity[Z];
+	//	} else {
 			you.pos[X] = (you.floorPos[X]);
 			you.pos[Y] = (you.floorPos[Y]);
 			you.pos[Z] = (you.floorPos[Z]);
-		}
+	//	}
 	} else {
 		you.velocity[Y] -= fxm((GRAVITY), frmul);
 	}
@@ -509,6 +509,7 @@ void	player_phys_affect(void)
 				you.hitBox = false;
 				you.hitSurface = false;
 				you.hitWall = false;
+				you.aboveObject = false;
 		if(pl_RBB.status[0] == 'A'){
 		finalize_alignment(bound_box_starter.modified_box);
 		}
@@ -531,6 +532,44 @@ void	player_phys_affect(void)
 		//For now, there's all sorts of weird one-off exception rules that have to happen like this.
 		you.climbing = false;
 		you.ladder = false;
+/* 
+
+_lineTable moverCFs = {
+	.xp0[X] = pl_RBB.Xplus[X] 	- pl_RBB.pos[X],
+	.xp0[Y] = pl_RBB.Xplus[Y] 	- pl_RBB.pos[Y],
+	.xp0[Z] = pl_RBB.Xplus[Z] 	- pl_RBB.pos[Z],
+	.xp1[X] = pl_RBB.Xneg[X] 	- pl_RBB.pos[X],
+	.xp1[Y] = pl_RBB.Xneg[Y] 	- pl_RBB.pos[Y],
+	.xp1[Z] = pl_RBB.Xneg[Z] 	- pl_RBB.pos[Z],
+	.yp0[X] = pl_RBB.Yplus[X] 	- pl_RBB.pos[X],
+	.yp0[Y] = pl_RBB.Yplus[Y] 	- pl_RBB.pos[Y],
+	.yp0[Z] = pl_RBB.Yplus[Z] 	- pl_RBB.pos[Z],
+	.yp1[X] = pl_RBB.Yneg[X] 	- pl_RBB.pos[X],
+	.yp1[Y] = pl_RBB.Yneg[Y] 	- pl_RBB.pos[Y],
+	.yp1[Z] = pl_RBB.Yneg[Z] 	- pl_RBB.pos[Z],
+	.zp0[X] = pl_RBB.Zplus[X] 	- pl_RBB.pos[X],
+	.zp0[Y] = pl_RBB.Zplus[Y] 	- pl_RBB.pos[Y],
+	.zp0[Z] = pl_RBB.Zplus[Z] 	- pl_RBB.pos[Z],
+	.zp1[X] = pl_RBB.Zneg[X] 	- pl_RBB.pos[X],
+	.zp1[Y] = pl_RBB.Zneg[Y] 	- pl_RBB.pos[Y],
+	.zp1[Z] = pl_RBB.Zneg[Z] 	- pl_RBB.pos[Z]
+}; 
+		short dirZP[3] = {pl_RBB.UVZ[X]>>3,	  pl_RBB.UVZ[Y]>>3, 	 pl_RBB.UVZ[Z]>>3};
+		short dirZN[3] = {pl_RBB.UVNZ[X]>>3, pl_RBB.UVNZ[Y]>>3, 	pl_RBB.UVNZ[Z]>>3};
+		short dirXP[3] = {pl_RBB.UVX[X]>>3,	  pl_RBB.UVX[Y]>>3, 	 pl_RBB.UVX[Z]>>3};
+		short dirXN[3] = {pl_RBB.UVNX[X]>>3, pl_RBB.UVNX[Y]>>3,		pl_RBB.UVNX[Z]>>3};
+		short dirYP[3] = {pl_RBB.UVY[X]>>3,	  pl_RBB.UVY[Y]>>3, 	 pl_RBB.UVY[Z]>>3};
+		short dirYN[3] = {pl_RBB.UVNY[X]>>3, pl_RBB.UVNY[Y]>>3,		pl_RBB.UVNY[Z]>>3};
+		add_to_sprite_list(you.wpos, dirXP,   16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.xp0, dirXP, 16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.xp1, dirXN, 16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(you.wpos, dirYP,   19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.yp0, dirYP, 19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.yp1, dirYN, 19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(you.wpos, dirZP,   17	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.zp0, dirZP, 17	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.zp1, dirZN, 17	+ (0 * 64), 0, 'L', 0, 1500);
+ */
 
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;
@@ -623,7 +662,8 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID
 	pl_RBB.collisionID = BOXID_MAP;
 } else {
 	//Find Floor on Map, if not above an object
-			if(you.aboveObject != true){
+			if(you.aboveObject != true)
+			{
 	len_A = unfix_length(you.pos, nyNearTriCF1);
 	len_B = unfix_length(you.pos, nyNearTriCF2);
 		if(len_A < len_B)
@@ -632,6 +672,10 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID
 		} else {
 		line_hit_plane_here(you.pos, below_player, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, you.shadowPos);
 		}
+		
+			//slPrintFX(you.shadowPos[X], slLocate(9, 7));
+			//slPrintFX(you.shadowPos[Y], slLocate(19, 7));
+			//slPrintFX(you.shadowPos[Z], slLocate(29, 7));
 			}
 	//
 	you.hitMap = false;

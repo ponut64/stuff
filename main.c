@@ -305,6 +305,7 @@ int	main(void)
 	dpinit();
 	init_render_area(90 * 182);
 	initPhys();
+	init_box_handling();
 	anim_defs();
 	init_heightmap();
 	//Sound Driver
