@@ -163,23 +163,25 @@ Slide Hop is to have three "things to do". These aren't just the primary things 
 a. Passing gates for discovery - done.
 b. Silent timer after discovery - done.
 c. cleaing gates by timer - done.
-d. enabling speed gate - not done, maybe not needed
+d. option for minimum speed track or gate - not done
 e. allow rings in gate series - not tested
 f. represent gate progress in menu - done
-g. gate guide - not done
+g. gate guide - done
 h. gates show up on minimap - done
 i. gate ring model - not done
 j. gate post model - not done
+maybe make an object which contains the track manager
 
 2 - Seven Rings
 a. Item types - done
 b. 7 Rings with 7 unique item types - done
 c. rings show up on minimap - done
 d. represent ring progress in menu - done
-e. 7 rings models - not done
+e. 7 rings models - done enough
 f. 7 rings sound effects - not done
 g. timed lap 2 with rings - not done, maybe not needed
 h. manager for items, manager for 7 ring items - done.
+maybe make a build-object which contains the item manager for the rings
 
 3 - CTF
 
@@ -192,7 +194,7 @@ f. carrying flag - done
 g. time limit with flag - done
 h. delivering flag - done
 i. represent flag progress in menu - done
-j. on-screen guide - this is the one thing where a screen marker for where the flag is *might* be appreciated.
+j. on-screen guide - done
 
 4 - other things
 a. particle effect system ?
@@ -1188,6 +1190,11 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 				{
 					someLDATA->more_data |= (1<<((item_type>>4)-1));
 				}
+			}
+			if(manager_type == MANAGER_7RINGS)
+			{
+				//Make the rings spin
+				someITEMdata->rot[Y] += 182;
 			}
 			
 			if(manager_type == MANAGER_CTF && item_type == ITEM_TYPE_FLAG)

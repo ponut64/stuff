@@ -299,13 +299,13 @@ Bool hitY = false;
 Bool hitXZ = false;
 Bool shadowStruck = false;
 
-	discard_vector[X] = (mesh_position[X] - mover->pos[X]);
-	discard_vector[Y] = (mesh_position[Y] - mover->pos[Y]);
-	discard_vector[Z] = (mesh_position[Z] - mover->pos[Z]);
+	discard_vector[X] = JO_ABS(mesh_position[X] + mover->pos[X]);
+	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->pos[Y]);
+	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->pos[Z]);
 	//If the player is farther away from the object than twice its radius, cease the test.
-	if(discard_vector[X] > (ent->radius[X]<<1) &&
-	discard_vector[Y] > (ent->radius[Y]<<1) &&
-	discard_vector[Z] > (ent->radius[Z]<<1)) return;
+	if(discard_vector[X] > (ent->radius[X]<<17) ||
+	discard_vector[Y] > (ent->radius[Y]<<17) ||
+	discard_vector[Z] > (ent->radius[Z]<<17)) return;
 	
 	/**
 	This test can only be performed on un-rotated meshes.
@@ -572,17 +572,18 @@ for(int i = 0; i < total_planes; i++)
 	}
 
 	//////////////////////////////////////////////////////////////
-	// Shadow Posititon
+	// Shadow Position
+	// Just uses the Y line off the player.
 	//////////////////////////////////////////////////////////////
-	if((!shadowStruck || !hitY) && (lineEnds[Y][Y] < you.pos[Y]))
+ 	if((!shadowStruck || !hitY) && (lineEnds[Y][Y] < you.pos[Y]))
 	{	
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis))
+		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis) >= 0)
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis))
+			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis) >= 0)
 			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis))
+				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis) >= 0)
 				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis))
+					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis) >= 0)
 					{
 						shadowStruck = true;
 						you.aboveObject = true;

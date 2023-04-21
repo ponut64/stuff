@@ -1,71 +1,71 @@
 
 
 _sobject FirstRing = {
-	.entity_ID = 9,
+	.entity_ID = 1,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x10,
 	.light_bright = 0
 };
 
 _sobject SecondRing = {
-	.entity_ID = 9,
+	.entity_ID = 2,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x20,
 	.light_bright = 0
 };
 
 _sobject ThirdRing = {
-	.entity_ID = 9,
+	.entity_ID = 3,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x30,
 	.light_bright = 0
 };
 
 _sobject FourthRing = {
-	.entity_ID = 9,
+	.entity_ID = 4,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x40,
 	.light_bright = 0
 };
 
 _sobject FifthRing = {
-	.entity_ID = 9,
+	.entity_ID = 5,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x50,
 	.light_bright = 0
 };
 
 _sobject SixthRing = {
-	.entity_ID = 9,
+	.entity_ID = 6,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x60,
 	.light_bright = 0
 };
 
 _sobject SeventhRing = {
-	.entity_ID = 9,
+	.entity_ID = 7,
 	.clone_ID = 1,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
+	.radius[X] = 15,
+	.radius[Y] = 15,
+	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x70,
 	.light_bright = 0
 };

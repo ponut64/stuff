@@ -361,7 +361,7 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 
 }
 
-void	pl_physics_handler(_boundBox * stator, _boundBox * mover, POINT hitPt, short hitFace, short faceIndex, short obj_type_data)
+void	pl_physics_handler(_boundBox * mover, POINT hitPt, short faceIndex, short obj_type_data)
 {
 	/*
 	
@@ -507,8 +507,6 @@ static POINT centerDif = {0, 0, 0};
 static POINT lineEnds[9];
 
 static Bool lineChecks[9];
-
-static int hitFace;
 		
 static FIXED bigDif = 0;
 
@@ -626,7 +624,7 @@ boxPointField[7][Z] = (stator->Xneg[Z] +  stator->Yplus[Z] + stator->Zplus[Z]	+ 
 						{
 							if(edge_wind_test(boxPolyField[i][3], boxPolyField[i][0], lineEnds[u], boxDisField[i]) > 0)
 							{
-								pl_physics_handler(stator, mover, lineEnds[u], boxDisField[i], i, obj_type_data);
+								pl_physics_handler(mover, lineEnds[u], i, obj_type_data);
 								mover->collisionID = stator->boxID;
 								stator->collisionID = mover->boxID;
 								you.hitBox = true;

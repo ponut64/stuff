@@ -200,6 +200,14 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING1.GVP",		HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING2.GVP",		HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING3.GVP",		HWRAM_ldptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING4.GVP",		HWRAM_ldptr, &entities[4], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING5.GVP",		HWRAM_ldptr, &entities[5], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING6.GVP",		HWRAM_ldptr, &entities[6], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING7.GVP",		HWRAM_ldptr, &entities[7], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		HWRAM_ldptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		HWRAM_ldptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	
