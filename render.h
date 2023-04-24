@@ -96,11 +96,12 @@ Render data flags:
 typedef struct {
 	int lifetime;		// Time (in fixed-point seconds) to allow the sprite to persist.
 	POINT pos; 			//World-space position for billboard scaled sprites, screenspace top-left coordinate otherwise
-	short span[XYZ]; 		//Screenspace X/Y span, if a billboard. 3D XYZ size of lines.
+	short span[XYZ];	//Screenspace X/Y span, if a billboard. 3D XYZ size of lines.
 	short texno;		//Texture table number to use OR color code (depends on draw type)
+	short colorBank;	//Color bank to use
 	short useClip;		//To clip by system, in user, or outside of user.
 	unsigned char mesh;	//Boolean. 1 enables mesh effect drawing.
-	char type; 			//"B" for billboard, "S" for normal sprite.
+	char type; 			//"B" for billboard, "U" for unscaled billboard, "S" for normal sprite.
 } _sprite; //22 bytes each
 
 //////////////////////////////////
@@ -195,11 +196,12 @@ extern int sprAsciiWidth;
 //subrender.c
 void	plane_rendering_with_subdivision(entity_t * ent);
 //2drender.c
-void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned char mesh, char type, short useClip, int lifetime);
+short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, unsigned char mesh, char type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border);
 void	ssh2BillboardScaledSprite(_sprite * spr);
 void	ssh2Line(_sprite * spr);
+void	ssh2NormalSprite(_sprite * spr);
 void	drawAxis(POINT size);
 void	draw_normal_sprite(int xPos, int yPos, unsigned short texno, unsigned short colrBank);
 void	spr_print(int xPos, int yPos, char * data);

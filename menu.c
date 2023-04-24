@@ -13,11 +13,14 @@
 #include "player_phy.h"
 #include "physobjet.h"
 #include "bounder.h"
+#include "minimap.h"
 
 #include "menu.h"
 
 int viewInfoTxt = 1;
 int baseRingMenuTexno = 0;
+
+_hudEvent hudEvents[HUD_EVENT_TYPES];
 
 void	start_menu(void)
 {
@@ -209,6 +212,145 @@ void	start_menu(void)
 	}
 	//spr_sprintf(244, 44,
 	
+}
+
+void	iterate_sprite_to_position(_sprite * spr, int step, int * endPos)
+{
+	if(spr->lifetime > 0)
+	{
+		int difX = spr->pos[X] - endPos[X];
+		int difY = spr->pos[Y] - endPos[Y];
+		int difZ = spr->pos[Z] - endPos[Z];
+		
+		if(difX < 0 && difX < (-step))
+		{
+			spr->pos[X] += step;
+		} else if(difX > 0 && difX > step)
+		{
+			spr->pos[X] -= step;
+		}
+		
+		if(difY < 0 && difY < (-step))
+		{
+			spr->pos[Y] += step;
+		} else if(difY > 0 && difY > step)
+		{
+			spr->pos[Y] -= step;
+		}
+		
+		if(difZ < 0 && difZ < (-step))
+		{
+			spr->pos[Z] += step;
+		} else if(difZ > 0 && difZ > step)
+		{
+			spr->pos[Z] -= step;
+		}
+	}
+	
+}
+	
+void	start_hud_event(short eventNum)
+{
+	_hudEvent * event = &hudEvents[eventNum];
+	if(event->status == HUD_EVENT_CLOSE)
+	{
+		short tsp = add_to_sprite_list(event->startPos, NULL, event->texno, event->colorBank, 0, 'S', 0, event->spriteTime);
+		if(tsp != -1)
+		{
+			event->spr = &sprWorkList[tsp];
+			event->status = HUD_EVENT_RUN;
+		} else {
+			event->status = HUD_EVENT_CLOSE;
+		}
+	}
+	
+}
+
+void	init_hud_events(void)
+{
+	_hudEvent * event;
+	event = &hudEvents[RING1_EVENT];
+	
+	event->startPos[X] = 0;
+	event->startPos[Y] = 175;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 175;
+	event->eventTime = 0;
+	event->spriteTime = 1<<16;
+	event->screenStep = 10;
+	
+	event->texno = 4;
+	event->colorBank = 0;
+	
+	event = &hudEvents[RING2_EVENT];
+	
+	event->startPos[X] = 0;
+	event->startPos[Y] = 175;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 175;
+	event->eventTime = 0;
+	event->spriteTime = 1<<16;
+	event->screenStep = 10;
+		
+	event->texno = 6;
+	event->colorBank = 2<<6;
+	
+	
+}
+
+void	hud_menu(void)
+{
+	init_hud_events();
+	//HUD Menu
+	//Host of drawing on-screen sprite events, etc
+	
+	//List of events I want:
+	// -> Flag open
+	// -> Flag taken
+	// -> Flag returned
+	// -> x/7 Ring Collected
+	// -> Gate Discovered
+	// -> All Gates Discovered
+	// -> Gate Timer Start
+	// -> Gate Timer Reset
+	// -> Gate Win
+	// Thusly Needs a sprite type whose position:
+	// 1. Can be tracked
+	// 2. Can be changed frame-to-frame by the game
+	// Probably need to create a linked list system for sprite types
+	// However, in absence of such arbitration already existing...
+	// What these will do is draw a sprite or series of sprites from (entry point) to (exit point)
+	// But, when sprite reaches the (exit point), another thing is supposed to happen
+	// e.g. play a sound or draw other sprites, which have their own lifetime.
+	// It is desired to use the existing sprWorkList system for it I just need to keep track of the entries I'm using.
+	// The sprite list will return the drawn entry. Because of that I can manage this.
+	
+	for(int i = 0; i < HUD_EVENT_TYPES; i++)
+	{
+		if(hudEvents[i].status == HUD_EVENT_CLOSE)
+		{
+			continue;
+		} else if(hudEvents[i].status == HUD_EVENT_START)
+		{
+			start_hud_event(i);
+		} else if(hudEvents[i].status == HUD_EVENT_RUN || hudEvents[i].status == HUD_EVENT_DONE)
+		{
+			iterate_sprite_to_position(hudEvents[i].spr, hudEvents[i].screenStep, hudEvents[i].endPos);
+			if(hudEvents[i].spr->lifetime < 0)
+			{
+				hudEvents[i].status = HUD_EVENT_CLOSE;
+			}
+			if(hudEvents[i].spr->lifetime < hudEvents[i].eventTime && hudEvents[i].status == HUD_EVENT_RUN)
+			{
+				pcm_play(hudEvents[i].soundNum, hudEvents[i].volume, PCM_PROTECTED);
+				hudEvents[i].status = HUD_EVENT_DONE;
+			}
+		}	
+	}
+	
+	
+	draw_minimap();
+	update_mmap_1pass();
 }
 
 

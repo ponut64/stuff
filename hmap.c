@@ -1123,7 +1123,5 @@ void	hmap_cluster(void)
 {
 	
 	chg_map(&maps[0]);
-	draw_minimap();
-	update_mmap_1pass();
 	
 }

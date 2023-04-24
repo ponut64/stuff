@@ -9,7 +9,7 @@
 #include "ldata.h"
 #include "hmap.h"
 #include "object_col.h"
-
+#include "menu.h"
 #include "physobjet.h"
 #include "minimap.h"
 #include "object_definitions.c"
@@ -148,6 +148,34 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	}
 }
 
+void	post_ldata_init_building_object_search(void)
+{
+	
+	for(int i = 0; i < objNEW; i++)
+	{
+		if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD 
+		&& !(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED)
+		&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+		{
+			/////////////////////////////////////////////////////
+			// This object is a building. 
+			// If this building has not yet been checked for items registered to it,
+			// check the building payload list to see if there are any items assigned to its entity ID.
+			// If there are any, register them in the declared object list.
+			// After that, flag this building object's "more data" with something to say
+			// its items have already been registered.
+			/////////////////////////////////////////////////////
+			for(int b = 0; b < total_building_payload; b++)
+			{
+				declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
+			}
+			//nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
+						
+			dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
+		}
+	}
+}
+
 //
 // It might be time to add a console / event-viewer to report goings-on of the game in text.
 // Reason: One way to implement subtitles.
@@ -170,7 +198,6 @@ g. gate guide - done
 h. gates show up on minimap - done
 i. gate ring model - not done
 j. gate post model - not done
-maybe make an object which contains the track manager
 
 2 - Seven Rings
 a. Item types - done
@@ -181,7 +208,6 @@ e. 7 rings models - done enough
 f. 7 rings sound effects - not done
 g. timed lap 2 with rings - not done, maybe not needed
 h. manager for items, manager for 7 ring items - done.
-maybe make a build-object which contains the item manager for the rings
 
 3 - CTF
 
@@ -201,6 +227,8 @@ a. particle effect system ?
 b. destruction of entity into particles ?
 c. shrink effect on entity ?
 d. i am absolutely going to have to figure out texture cutting (in addition to the current tiling system)
+e. pop-up when collecting a ring ?
+f. 3D pad support + 3D pad menu?
 
 **/
 
@@ -329,15 +357,15 @@ void	object_control_loop(int ppos[XY])
 							
 					make2AxisBox(&bound_box_starter);
 					RBBs[objUP].boxID = i;
-						////////////////////////////////////////////////////
-						//Set the box status. This branch of the logic dictates the box is:
-						// 1. Render-able
-						// 2. Collidable
-						// 3. May or may not emit light
-						////////////////////////////////////////////////////
-						RBBs[objUP].status[0] = 'R';
-						RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
-						RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
+					////////////////////////////////////////////////////
+					//Set the box status. This branch of the logic dictates the box is:
+					// 1. Render-able
+					// 2. Collidable
+					// 3. May or may not emit light
+					////////////////////////////////////////////////////
+					RBBs[objUP].status[0] = 'R';
+					RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
+					RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
@@ -346,7 +374,7 @@ void	object_control_loop(int ppos[XY])
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
 					objUP++; 
-					} else if(entities[dWorldObjects[i].type.entity_ID].type == MODEL_TYPE_BUILDING)
+				} else if(entities[dWorldObjects[i].type.entity_ID].type == MODEL_TYPE_BUILDING)
 				{
 					
 						////////////////////////////////////////////////////
@@ -372,33 +400,14 @@ void	object_control_loop(int ppos[XY])
 					make2AxisBox(&bound_box_starter);
 					RBBs[objUP].boxID = i;
 					
-					/////////////////////////////////////////////////////
-					// This object is a building. 
-					// If this building has not yet been checked for items registered to it,
-					// check the building payload list to see if there are any items assigned to its entity ID.
-					// If there are any, register them in the declared object list.
-					// After that, flag this building object's "more data" with something to say
-					// its items have already been registered.
-					/////////////////////////////////////////////////////
-					if(!(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED) &&
-						entities[dWorldObjects[i].type.entity_ID].file_done == true)
-					{
-						for(int b = 0; b < total_building_payload; b++)
-						{
-							declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
-						}
-						//nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
-						
-						dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
-					}
-						////////////////////////////////////////////////////
-						//Set the box status. 
-						//There isn't really a bound box for buildings.
-						//They only need to be rendered, and in a special way, too.
-						////////////////////////////////////////////////////
-						RBBs[objUP].status[0] = 'R';
-						RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
-						RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
+					////////////////////////////////////////////////////
+					//Set the box status. 
+					//There isn't really a bound box for buildings.
+					//They only need to be rendered, and in a special way, too.
+					////////////////////////////////////////////////////
+					RBBs[objUP].status[0] = 'R';
+					RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
+					RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
@@ -413,7 +422,7 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
 			{
-				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING && dWorldObjects[i].type.light_bright != 0)
+				if(dWorldObjects[i].type.light_bright != 0)
 				{
 				////////////////////////////////////////////////////
 				//If a non-building light-emitting object is in this larger range, add its light data to the light list.
@@ -846,6 +855,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0xB3E0);
 		pcm_play(snd_ring1, PCM_SEMI, 6);
 		you.points += 2;
+		start_hud_event(RING1_EVENT);
 	}
 	if(type == ITEM_TYPE_RING2)
 	{
@@ -853,6 +863,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0xE7E0);
 		pcm_play(snd_ring2, PCM_SEMI, 6);
 		you.points += 4;
+		start_hud_event(RING2_EVENT);
 	}
 	if(type == ITEM_TYPE_RING3)
 	{
@@ -998,7 +1009,7 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 							someLDATA->pix[X]++;
 						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
 						{
-							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 						}
 
 						someLDATA->more_data &= TRACK_NO_CHECK;
@@ -1053,7 +1064,7 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 							}
 						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
 						{
-							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 						}
 						someLDATA->more_data &= TRACK_NO_CHECK;
 						someLDATA->more_data |= (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER);
@@ -1310,7 +1321,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
-			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
 			if(someLDATA->dist < 0)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;

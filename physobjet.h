@@ -379,6 +379,7 @@ _declaredObject * get_first_in_object_list(unsigned short object_type_specificat
 void	fill_obj_list(void);
 
 void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data);
+void	post_ldata_init_building_object_search(void);
 
 void	declarations(void);
 

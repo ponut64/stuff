@@ -348,12 +348,12 @@ _sobject GoToLevel0 = {
 	.ext_dat = LDATA | LEVEL_CHNG | 0x80
 };
 
-_sobject GoToLevel1 = {
-	.entity_ID = 1,
-	.radius[X] = 25,
-	.radius[Y] = 25,
-	.radius[Z] = 25,
-	.ext_dat = LDATA | LEVEL_CHNG | 0x80
+_sobject StartStand = {
+	.entity_ID = 51,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD
 };
 
 _sobject SampleItemManager = {
@@ -492,6 +492,7 @@ void	fill_obj_list(void)
 	objList[34] = &Build23;
 	objList[35] = &Build24;
 	
+	objList[51] = &StartStand;
 	objList[52] = &CrushBlock;
 	objList[53] = &FlagStand;
 	objList[54] = &GoalStand;

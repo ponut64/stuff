@@ -2,10 +2,49 @@
 #ifndef __MENU_H__
 # define __MENU_H__
 
+#define HUD_EVENT_TYPES (32)
+#define HUD_EVENT_START (1)
+#define HUD_EVENT_RUN	(2)
+#define HUD_EVENT_DONE	(3)
+#define HUD_EVENT_CLOSE	(0)
+
+#define RING1_EVENT		(1)
+#define RING2_EVENT		(2)
+#define RING3_EVENT		(3)
+#define RING4_EVENT		(4)
+#define RING5_EVENT		(5)
+#define	RING6_EVENT		(6)
+#define RING7_EVENT		(7)
+	// HUD Event
+	// What do I need it to do?
+	// 1. Spawn sprite
+	// 2. Move sprite from (start pos) to (end pos)
+	// 3. Possibly strobe the sprite (mesh on/off or sprite on/off)
+	// 4. Play sound at (time) or (end)	--------	(i need a way to arbitrate this to either ADX Stream or from-ram)
+	// 5. Possibly do other things after that??? but not needed right now.
+typedef struct {
+	int startPos[3];
+	int endPos[3];
+	int eventTime;
+	int spriteTime;
+	int screenStep;
+	short status;
+	short soundType;
+	short soundNum;
+	short volume;
+	short strobe;
+	short texno;
+	short colorBank;
+	_sprite * spr;
+} _hudEvent;
+
 extern int viewInfoTxt;
 extern int baseRingMenuTexno;
+extern _hudEvent hudEvents[HUD_EVENT_TYPES];
 
 void	start_menu(void);
+void	start_hud_event(short eventNum);
+void	hud_menu(void);
 
 
 #endif

@@ -149,7 +149,7 @@ void	pl_step_snd(void){
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					add_to_sprite_list(hf_pos, spr_span /*Span*/, 3 /*texno*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
+					add_to_sprite_list(hf_pos, spr_span /*Span*/, 3 /*texno*/, 2<<6 /*colorbank*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
 				}
 				} else {
 					hoofSetBools[h] = false;
@@ -560,15 +560,15 @@ _lineTable moverCFs = {
 		short dirXN[3] = {pl_RBB.UVNX[X]>>3, pl_RBB.UVNX[Y]>>3,		pl_RBB.UVNX[Z]>>3};
 		short dirYP[3] = {pl_RBB.UVY[X]>>3,	  pl_RBB.UVY[Y]>>3, 	 pl_RBB.UVY[Z]>>3};
 		short dirYN[3] = {pl_RBB.UVNY[X]>>3, pl_RBB.UVNY[Y]>>3,		pl_RBB.UVNY[Z]>>3};
-		add_to_sprite_list(you.wpos, dirXP,   16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.xp0, dirXP, 16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.xp1, dirXN, 16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(you.wpos, dirYP,   19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.yp0, dirYP, 19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.yp1, dirYN, 19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(you.wpos, dirZP,   17	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.zp0, dirZP, 17	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.zp1, dirZN, 17	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(you.wpos, dirXP, 0,   16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.xp0, dirXP, 0, 16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.xp1, dirXN, 0, 16	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(you.wpos, dirYP, 0,   19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.yp0, dirYP, 0, 19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.yp1, dirYN, 0, 19	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.zp0, dirZP, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
+		add_to_sprite_list(moverCFs.zp1, dirZN, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
  */
 
 	pl_RBB.boxID = BOXID_PLAYER;

@@ -18,11 +18,11 @@ int baseAsciiTexno = 0;
 int sprAsciiWidth = 0;
 int sprAsciiHeight = 0;
 
-void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned char mesh, char type, short useClip, int lifetime)
+short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, unsigned char mesh, char type, short useClip, int lifetime)
 {
-	int used_sprite = 64;
+	short used_sprite = -1;
 	//Find an unused sprite list entry
-	for(int i = 0; i < MAX_SPRITES; i++)
+	for(short i = 0; i < MAX_SPRITES; i++)
 	{
 		if(sprWorkList[i].type == 'N')
 		{
@@ -30,7 +30,7 @@ void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned ch
 			break;
 		}
 	}
-	if(used_sprite == 64) return;
+	if(used_sprite == -1) return used_sprite;
 	
 	sprWorkList[used_sprite].lifetime = lifetime;
 	sprWorkList[used_sprite].pos[X] = position[X];
@@ -40,9 +40,11 @@ void	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned ch
 	sprWorkList[used_sprite].span[Y] = span[Y];
 	sprWorkList[used_sprite].span[Z] = span[Z];
 	sprWorkList[used_sprite].texno = texno;
+	sprWorkList[used_sprite].colorBank = colorBank;
 	sprWorkList[used_sprite].mesh = mesh;
 	sprWorkList[used_sprite].type = type;
 	sprWorkList[used_sprite].useClip = useClip;
+	return used_sprite;
 }
 
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
@@ -179,7 +181,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 			
 			ssh2SetCommand(pntA, 0, pntC, 0,
 			1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
-			pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
+			pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
 		} else if(spr->type == 'U')
 		{
 			//If the vertice is off-screen, return. Note does not stop if too far away.
@@ -190,7 +192,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 			
 			ssh2SetCommand(pntA, 0, 0, 0,
 			0 /*Normal Sprite*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
-			pcoTexDefs[spr->texno].SRCA, 2<<6, pcoTexDefs[spr->texno].SIZE, 0, 1<<16);
+			pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, 1<<16);
 		}
 
 }
@@ -275,8 +277,20 @@ void	ssh2Line(_sprite * spr)
 		
         ssh2SetCommand(ssh2VertArea[0].pnt, ssh2VertArea[0].pnt, ssh2VertArea[1].pnt, ssh2VertArea[1].pnt,
 		5 /*Polyline Setting*/, 0x8C0 | usrClp/*manual specifies 0xC0 for polyline, DO NOT CHANGE BITS 7-6*/,
-		0 /*SRCA*/, spr->texno /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, 3<<16 /*Z*/);
+		0 /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, 3<<16 /*Z*/);
 }
+
+void	ssh2NormalSprite(_sprite * spr)
+{
+	
+	int ptv[XY] = {spr->pos[X] - TV_HALF_WIDTH, spr->pos[Y] - TV_HALF_HEIGHT};
+	ssh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 | (spr->mesh<<8) /*COMMAND MODES*/, 
+				pcoTexDefs[spr->texno].SRCA /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/,
+				pcoTexDefs[spr->texno].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
+				);
+	
+}
+
 
 	//(This function is safe to run on either master or slave)
 void	drawAxis(POINT size)

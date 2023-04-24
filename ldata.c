@@ -22,8 +22,10 @@ void	declarations(void)
 /* level00 ?*/
 //Will replace.
 
-declare_object_at_cell((0 / 40) + 1, -40, (0 / 40), 61 /*start location*/, 0, 0, 0, 0);
-
+//The start stand contains the track data as well.
+//So before declaring the start stand, change the track data parameters to as desired.
+//It also contains the item manager for 7rings. No need to declare separately.
+declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0);
 
 declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);
 declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0);
@@ -34,7 +36,6 @@ objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 2);
 declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0);
 declare_object_at_cell((140 / 40) + 1, -69, -(260 / 40), 18 /*post00*/, 0, 0, 0, 0);
 
-declare_object_at_cell(0, 0, 0, 60 /*track dat*/, 0, 0, 0, 0);
 
 declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 0);
 declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 0);
@@ -43,9 +44,6 @@ declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 0);
 declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 0);
 declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 0);
 declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 0);
-dWorldObjects[objNEW-1].type.ext_dat |= (1<<4); //set item type 1
-
-declare_object_at_cell(0, 0, 0, 59 /*item mngr*/, 0, 0, 0, 0);
 
 declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
 
@@ -554,6 +552,7 @@ void	level_data_basic(void)
 	declarations();
 	ldata_ready = true;
 
+	post_ldata_init_building_object_search();
 	
 		//////////////////////////////////
 		//
@@ -574,8 +573,6 @@ void	level_data_basic(void)
 			dWorldObjects[i].type.ext_dat |= 0x8000;
 		}
 	}
-
-	
 }
 
 

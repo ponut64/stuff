@@ -320,9 +320,9 @@ aMtx[Z][Z] = -plane_matrix[Z][Z];
 // drawposF[Y] = (plane_matrix[Z][Y]>>2); 
 // drawposF[Z] = (plane_matrix[Z][Z]>>2); 
 
-// add_to_sprite_list(drawposC, drawposE, colr1, 0, 'L', 0, 2184);
-// add_to_sprite_list(drawposC, drawposF, colr2, 0, 'L', 0, 2184);
-// add_to_sprite_list(drawposC, drawposA, colr3, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposE, 0, colr1, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposF, 0, colr2, 0, 'L', 0, 2184);
+// add_to_sprite_list(drawposC, drawposA, 0, colr3, 0, 'L', 0, 2184);
 
 
 }

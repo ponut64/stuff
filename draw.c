@@ -294,6 +294,9 @@ void	obj_draw_queue(void)
 			} else if(sprWorkList[s].type == 'L')
 			{
 				ssh2Line(&sprWorkList[s]);
+			} else if(sprWorkList[s].type == 'S')
+			{
+				ssh2NormalSprite(&sprWorkList[s]);
 			}
 		} else {
 			//Mark expired sprites as unused.
@@ -431,6 +434,7 @@ void	master_draw(void)
 		player_phys_affect();
 		player_collision_test_loop();
 		collide_with_heightmap(&pl_RBB);
+		hud_menu();
 		//
 	} else if(you.inMenu)
 	{
