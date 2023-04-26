@@ -391,7 +391,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	**/
 
 	int max_z = 0;
-	int min_z = 0;
+	//int min_z = 0;
 	
 	int max_subdivisions = 0;
 	int specific_texture = 0;
@@ -487,8 +487,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
 			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
-	min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	//min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+	//		JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	///////////////////////////////////////////
 	// Just a side note:
 	// Doing subdivision in screen-space **does not work**.

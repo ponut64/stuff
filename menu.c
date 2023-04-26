@@ -2,11 +2,13 @@
 //This file compiled separately.
 
 #include <SL_DEF.H>
+#include <SEGA_GFS.H>
 #include <SGL.H>
 
 #include "def.h"
 #include "mymath.h"
 #include "pcmsys.h"
+#include "pcmstm.h"
 #include "input.h"
 #include "control.h"
 #include "render.h"
@@ -254,7 +256,14 @@ void	start_hud_event(short eventNum)
 	_hudEvent * event = &hudEvents[eventNum];
 	if(event->status == HUD_EVENT_CLOSE)
 	{
-		short tsp = add_to_sprite_list(event->startPos, NULL, event->texno, event->colorBank, 0, 'S', 0, event->spriteTime);
+		char type = 'S';
+		if(event->strobe_type != EVENT_NO_STROBE) type = event->strobe_type;
+		
+		short prx[3] = {0, 0, 0};
+		
+		prx[Y] = event->strobe_interval;
+		
+		short tsp = add_to_sprite_list(event->startPos, prx, event->texno, event->colorBank, 0, type, 0, event->spriteTime);
 		if(tsp != -1)
 		{
 			event->spr = &sprWorkList[tsp];
@@ -269,38 +278,70 @@ void	start_hud_event(short eventNum)
 void	init_hud_events(void)
 {
 	_hudEvent * event;
+	event = &hudEvents[RINGS_ALL_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 40536; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = ADX_STREAM;
+	event->soundNum = stm_orchit0;
+	event->volume = 6;
+	
+	event->texno = 5;
+	event->colorBank = 1<<6;
+	
 	event = &hudEvents[RING1_EVENT];
 	
 	event->startPos[X] = 0;
 	event->startPos[Y] = 175;
 	event->endPos[X] = 176;
-	event->endPos[Y] = 175;
+	event->endPos[Y] = 150;
 	event->eventTime = 0;
 	event->spriteTime = 1<<16;
-	event->screenStep = 10;
+	event->screenStep = 15;
 	
-	event->texno = 4;
-	event->colorBank = 0;
+	event->strobe_type = EVENT_STROBE_MESH;
+	event->strobe_interval = 4000;
+	
+	// event->soundNum = snd_khit;
+	// event->volume = 4;
+	
+	event->texno = baseRingMenuTexno;
+	event->colorBank = 1<<6;
 	
 	event = &hudEvents[RING2_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+1;
 	
-	event->startPos[X] = 0;
-	event->startPos[Y] = 175;
-	event->endPos[X] = 176;
-	event->endPos[Y] = 175;
-	event->eventTime = 0;
-	event->spriteTime = 1<<16;
-	event->screenStep = 10;
-		
-	event->texno = 6;
-	event->colorBank = 2<<6;
+	event = &hudEvents[RING3_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+2;
+
+	event = &hudEvents[RING4_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+3;
+
+	event = &hudEvents[RING5_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+4;
 	
+	event = &hudEvents[RING6_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+5;
+	
+	event = &hudEvents[RING7_EVENT];
+	*event = hudEvents[RING1_EVENT];
+	event->texno = baseRingMenuTexno+6;
 	
 }
 
 void	hud_menu(void)
 {
-	init_hud_events();
 	//HUD Menu
 	//Host of drawing on-screen sprite events, etc
 	
@@ -314,17 +355,6 @@ void	hud_menu(void)
 	// -> Gate Timer Start
 	// -> Gate Timer Reset
 	// -> Gate Win
-	// Thusly Needs a sprite type whose position:
-	// 1. Can be tracked
-	// 2. Can be changed frame-to-frame by the game
-	// Probably need to create a linked list system for sprite types
-	// However, in absence of such arbitration already existing...
-	// What these will do is draw a sprite or series of sprites from (entry point) to (exit point)
-	// But, when sprite reaches the (exit point), another thing is supposed to happen
-	// e.g. play a sound or draw other sprites, which have their own lifetime.
-	// It is desired to use the existing sprWorkList system for it I just need to keep track of the entries I'm using.
-	// The sprite list will return the drawn entry. Because of that I can manage this.
-	
 	for(int i = 0; i < HUD_EVENT_TYPES; i++)
 	{
 		if(hudEvents[i].status == HUD_EVENT_CLOSE)
@@ -336,14 +366,26 @@ void	hud_menu(void)
 		} else if(hudEvents[i].status == HUD_EVENT_RUN || hudEvents[i].status == HUD_EVENT_DONE)
 		{
 			iterate_sprite_to_position(hudEvents[i].spr, hudEvents[i].screenStep, hudEvents[i].endPos);
+			
+			if(hudEvents[i].spr->lifetime < hudEvents[i].eventTime && hudEvents[i].status == HUD_EVENT_RUN)
+			{
+				//Sound to play on event time
+				if(hudEvents[i].soundType == ADX_STREAM)
+				{
+					start_adx_stream(stmsnd[hudEvents[i].soundNum], hudEvents[i].volume);
+				} else {
+					pcm_play(hudEvents[i].soundNum, PCM_PROTECTED, hudEvents[i].volume);
+				}
+				hudEvents[i].status = HUD_EVENT_DONE;
+			}
 			if(hudEvents[i].spr->lifetime < 0)
 			{
 				hudEvents[i].status = HUD_EVENT_CLOSE;
-			}
-			if(hudEvents[i].spr->lifetime < hudEvents[i].eventTime && hudEvents[i].status == HUD_EVENT_RUN)
+			} else if(hudEvents[i].spr->extra == 1 && hudEvents[i].volume != 0)
 			{
-				pcm_play(hudEvents[i].soundNum, hudEvents[i].volume, PCM_PROTECTED);
-				hudEvents[i].status = HUD_EVENT_DONE;
+				//Sound to play on strobe
+				pcm_play(hudEvents[i].soundNum, PCM_PROTECTED, hudEvents[i].volume);
+				hudEvents[i].spr->extra = 0;
 			}
 		}	
 	}

@@ -96,13 +96,21 @@ Render data flags:
 typedef struct {
 	int lifetime;		// Time (in fixed-point seconds) to allow the sprite to persist.
 	POINT pos; 			//World-space position for billboard scaled sprites, screenspace top-left coordinate otherwise
-	short span[XYZ];	//Screenspace X/Y span, if a billboard. 3D XYZ size of lines.
+	short span[XYZ];	//Screenspace X/Y span, if a billboard. 3D XYZ size of lines. Other uses apply.
 	short texno;		//Texture table number to use OR color code (depends on draw type)
 	short colorBank;	//Color bank to use
 	short useClip;		//To clip by system, in user, or outside of user.
+	unsigned short extra;	//Operation-specific extra data.
 	unsigned char mesh;	//Boolean. 1 enables mesh effect drawing.
 	char type; 			//"B" for billboard, "U" for unscaled billboard, "S" for normal sprite.
-} _sprite; //22 bytes each
+} _sprite; //28 bytes each
+#define SPRITE_TYPE_BILLBOARD	('B')
+#define SPRITE_TYPE_UNSCALED_BILLBOARD	('U')
+#define SPRITE_TYPE_LINE	('L')
+#define SPRITE_TYPE_NORMAL	('S')
+#define SPRITE_MESH_STROBE	('M')
+#define SPRITE_FLASH_STROBE	('F')
+#define SPRITE_BLINK_STROBE	('O')
 
 //////////////////////////////////
 // Post-transformed vertice data struct

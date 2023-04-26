@@ -10,8 +10,10 @@
 #include "hmap.h"
 #include "object_col.h"
 #include "menu.h"
-#include "physobjet.h"
 #include "minimap.h"
+#include "particle.h"
+
+#include "physobjet.h"
 #include "object_definitions.c"
 
 
@@ -223,12 +225,16 @@ i. represent flag progress in menu - done
 j. on-screen guide - done
 
 4 - other things
-a. particle effect system ?
-b. destruction of entity into particles ?
-c. shrink effect on entity ?
+a. particle effect system ? - kind of important
+	1. collision for particles will be a challenge. a solved one, but a challenge
+	2. particles need multiple types: no gravity, gravity, collision, no collision, etc
+	3. particles are otherwise just billboard sprites
+b. destruction of entity into particles ? - kind of important
+c. shrink effect on entity ? - less but still kind of important
 d. i am absolutely going to have to figure out texture cutting (in addition to the current tiling system)
-e. pop-up when collecting a ring ?
-f. 3D pad support + 3D pad menu?
+e. HUD event system is done
+f. 3D pad support + 3D pad menu? - pretty important, but low priority
+g. streaming image system ? - for memes.. -- non-essential, would rather test levels
 
 **/
 
@@ -316,7 +322,7 @@ void	object_control_loop(int ppos[XY])
 							//////////////////////////////////////////
 							dWorldObjects[i].type.ext_dat |= OBJPOP;
 							//pcm_play(snd_win, PCM_PROTECTED, 5);
-							start_adx_stream((Sint8*)"WIN.ADX", 5);
+							start_adx_stream(stmsnd[stm_win], 5);
 							map_chg = false;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 							///////////////////////////////////////////
@@ -871,6 +877,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0xCC0C);
 		pcm_play(snd_ring3, PCM_SEMI, 6);
 		you.points += 8;
+		start_hud_event(RING3_EVENT);
 	}
 	if(type == ITEM_TYPE_RING4)
 	{
@@ -878,6 +885,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0x819F);
 		pcm_play(snd_ring4, PCM_SEMI, 6);
 		you.points += 16;
+		start_hud_event(RING4_EVENT);
 	}
 	if(type == ITEM_TYPE_RING5)
 	{
@@ -885,6 +893,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0xFFEC);
 		pcm_play(snd_ring5, PCM_SEMI, 6);
 		you.points += 32;
+		start_hud_event(RING5_EVENT);
 	}
 	if(type == ITEM_TYPE_RING6)
 	{
@@ -892,6 +901,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0x83F3);
 		pcm_play(snd_ring6, PCM_SEMI, 6);
 		you.points += 64;
+		start_hud_event(RING6_EVENT);
 	}
 	if(type == ITEM_TYPE_RING7)
 	{
@@ -899,6 +909,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		add_position_to_minimap(item->pix[X], item->pix[Y], 0x801F);
 		pcm_play(snd_ring7, PCM_SEMI, 6);
 		you.points += 128;
+		start_hud_event(RING7_EVENT);
 	}
 	if(type == ITEM_TYPE_FLAG)
 	{
@@ -1136,7 +1147,7 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->type.ext_dat |= TRACK_COMPLETE;	//Set track as complete
 			you.points += 10 * someLDATA->pix[X];
 			//pcm_play(snd_win, PCM_PROTECTED, 5);
-			start_adx_stream((Sint8*)"WIN.ADX", 5);
+			start_adx_stream(stmsnd[stm_win], 5);
 			slPrint("                           ", slLocate(0, 6));
 			slPrint("                           ", slLocate(0, 7));
 		}
@@ -1252,7 +1263,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someITEMdata->rot[Z] = someLDATA->rot[Z];
 					someITEMdata->more_data = 0;
 					//pcm_play(snd_freturn, PCM_PROTECTED, 6);
-					start_adx_stream((Sint8*)"FRETURN.ADX", 5);
+					start_adx_stream(stmsnd[stm_freturn], 5);
 				}
 			}
 		
@@ -1299,7 +1310,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
 			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
-			pcm_play(snd_alarm, PCM_PROTECTED, 6);
+			//pcm_play(snd_alarm, PCM_PROTECTED, 6);
+			start_hud_event(RINGS_ALL_EVENT);
 		}
 	} else if(manager_type == MANAGER_CTF)
 	{
@@ -1317,7 +1329,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
-			start_adx_stream((Sint8*)"WIN.ADX", 5);
+			start_adx_stream(stmsnd[stm_win], 5);
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{

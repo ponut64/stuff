@@ -92,7 +92,7 @@ if(pos[Z] >= 0){
 	cell->verts[0][Y] = (vert3pix < main_map_total_pix && (JO_ABS(cellX3off)-1 < (main_map_x_pix>>1))) ? -main_map[vert3pix]<<(MAP_V_SCALE) : -(127<<(MAP_V_SCALE));	
 }
 
-void	divide_cell_return_cfnorms(_pquad quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2)
+void	divide_cell_return_cfnorms(_pquad * quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2)
 {
 
 	/*
@@ -113,17 +113,17 @@ static VECTOR crosstri1 = {0, 0, 0};
 static VECTOR normaltri1 = {0, 0, 0};
 static POINT tri1CF = {0, 0, 0};
 
-tri1p1[X] = (quad.verts[0][X]);
-tri1p1[Y] = (quad.verts[0][Y]);
-tri1p1[Z] = (quad.verts[0][Z]);
-
-tri1p2[X] = (quad.verts[1][X]);
-tri1p2[Y] = (quad.verts[1][Y]);
-tri1p2[Z] = (quad.verts[1][Z]);
-
-tri1p3[X] = (quad.verts[2][X]);
-tri1p3[Y] = (quad.verts[2][Y]);
-tri1p3[Z] = (quad.verts[2][Z]);
+tri1p1[X] = (quad->verts[0][X]);
+tri1p1[Y] = (quad->verts[0][Y]);
+tri1p1[Z] = (quad->verts[0][Z]);
+				 
+tri1p2[X] = (quad->verts[1][X]);
+tri1p2[Y] = (quad->verts[1][Y]);
+tri1p2[Z] = (quad->verts[1][Z]);
+				 
+tri1p3[X] = (quad->verts[2][X]);
+tri1p3[Y] = (quad->verts[2][Y]);
+tri1p3[Z] = (quad->verts[2][Z]);
 
 tri1CF[X] = fxm(FIXED_ONE_THIRD,tri1p1[X] + tri1p2[X] + tri1p3[X]);
 tri1CF[Y] = fxm(FIXED_ONE_THIRD,tri1p1[Y] + tri1p2[Y] + tri1p3[Y]);
@@ -165,17 +165,17 @@ static VECTOR normaltri2 = {0, 0, 0};
 static POINT tri2CF = {0, 0, 0};
 
 
-tri2p1[X] = (quad.verts[0][X]);
-tri2p1[Y] = (quad.verts[0][Y]);
-tri2p1[Z] = (quad.verts[0][Z]);
-
-tri2p2[X] = (quad.verts[3][X]);
-tri2p2[Y] = (quad.verts[3][Y]);
-tri2p2[Z] = (quad.verts[3][Z]);
-
-tri2p3[X] = (quad.verts[2][X]);
-tri2p3[Y] = (quad.verts[2][Y]);
-tri2p3[Z] = (quad.verts[2][Z]);
+tri2p1[X] = (quad->verts[0][X]);
+tri2p1[Y] = (quad->verts[0][Y]);
+tri2p1[Z] = (quad->verts[0][Z]);
+				 
+tri2p2[X] = (quad->verts[3][X]);
+tri2p2[Y] = (quad->verts[3][Y]);
+tri2p2[Z] = (quad->verts[3][Z]);
+				 
+tri2p3[X] = (quad->verts[2][X]);
+tri2p3[Y] = (quad->verts[2][Y]);
+tri2p3[Z] = (quad->verts[2][Z]);
 
 tri2CF[X] = fxm(FIXED_ONE_THIRD,tri2p1[X] + tri2p2[X] + tri2p3[X]);
 tri2CF[Y] = fxm(FIXED_ONE_THIRD,tri2p1[Y] + tri2p2[Y] + tri2p3[Y]);
@@ -207,31 +207,22 @@ norm2[Y] = normaltri2[Y];
 norm2[Z] = normaltri2[Z];
 
 //------------------------------------------------------------------------------------------------------
-
-// static POINT zerop = {0, 0, 0};
-// stuff2(zerop, cf1);
-// stuff2(zerop, cf2);
-
-// stuff2(quad.verts[0], zerop);
-// stuff2(quad.verts[1], zerop);
-// stuff2(quad.verts[2], zerop);
-// stuff2(quad.verts[3], zerop);
 	
-	// slPrintFX(quad.verts[0][X], slLocate(0, 11));
-	// slPrintFX(quad.verts[0][Y], slLocate(0, 12));
-	// slPrintFX(quad.verts[0][Z], slLocate(0, 13));
-
-	// slPrintFX(quad.verts[1][X], slLocate(12, 11));
-	// slPrintFX(quad.verts[1][Y], slLocate(12, 12));
-	// slPrintFX(quad.verts[1][Z], slLocate(12, 13));
-
-	// slPrintFX(quad.verts[3][X], slLocate(0, 15));
-	// slPrintFX(quad.verts[3][Y], slLocate(0, 16));
-	// slPrintFX(quad.verts[3][Z], slLocate(0, 17));
-
-	// slPrintFX(quad.verts[2][X], slLocate(12, 15));
-	// slPrintFX(quad.verts[2][Y], slLocate(12, 16));
-	// slPrintFX(quad.verts[2][Z], slLocate(12, 17));
+	// slPrintFX(quad->verts[0][X], slLocate(0, 11));
+	// slPrintFX(quad->verts[0][Y], slLocate(0, 12));
+	// slPrintFX(quad->verts[0][Z], slLocate(0, 13));
+					 
+	// slPrintFX(quad->verts[1][X], slLocate(12, 11));
+	// slPrintFX(quad->verts[1][Y], slLocate(12, 12));
+	// slPrintFX(quad->verts[1][Z], slLocate(12, 13));
+					 
+	// slPrintFX(quad->verts[3][X], slLocate(0, 15));
+	// slPrintFX(quad->verts[3][Y], slLocate(0, 16));
+	// slPrintFX(quad->verts[3][Z], slLocate(0, 17));
+					 
+	// slPrintFX(quad->verts[2][X], slLocate(12, 15));
+	// slPrintFX(quad->verts[2][Y], slLocate(12, 16));
+	// slPrintFX(quad->verts[2][Z], slLocate(12, 17));
 
 }
 

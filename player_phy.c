@@ -10,13 +10,13 @@
 #include "draw.h"
 #include "mymath.h"
 #include "hmap.h"
+#include "particle.h"
 
 #include "player_phy.h"
 
 #define PLR_FWD_SPD (32768)
 #define PLR_RVS_SPD (32768)
 #define PLR_STRF_SPD (32768)
-#define GRAVITY (6553)
 
 POINT alwaysLow = {0, -(1<<16), 0};
 POINT alwaysHigh = {0, (1<<16), 0};
@@ -87,6 +87,7 @@ void pl_jump(void){
 			you.velocity[Y] -= fxm(196608, you.floorNorm[Y]);
 			you.velocity[Z] -= fxm(196608, you.floorNorm[Z]);
 		pcm_play(snd_bstep, PCM_SEMI, 7);
+
 }
 
 void pl_jet(void){
@@ -95,6 +96,17 @@ void pl_jet(void){
 			//I guess a micro-jump?
 			//It helps release you from the surface when jetting.
 			you.velocity[Y] += fxm(GRAVITY<<1, frmul)<<2;
+			
+		particle_starter.spr->pos[X] = -you.pos[X];
+		particle_starter.spr->pos[Y] = -you.pos[Y];
+		particle_starter.spr->pos[Z] = -you.pos[Z];
+		particle_starter.spr->lifetime = 2<<16;
+		particle_starter.spr->span[X] = 5;
+		particle_starter.spr->span[Y] = 5;
+		particle_starter.spr->texno = 5;
+		particle_starter.velocity[Y] = -(5<<16);
+		particle_starter.type = PARTICLE_TYPE_NORMAL;
+		spawn_particle(&particle_starter);
 		}
 	
 		you.hitSurface = false;
@@ -109,6 +121,7 @@ void pl_jet(void){
 			you.velocity[Y] += fxm(GRAVITY, frmul); 
 			}
 		pcm_play(snd_bwee, PCM_PROTECTED, 7);
+		
 }
 
 
@@ -615,7 +628,7 @@ generate_cell_from_position(realCFs.yp1, &nySmp);
 // stuff2(nySmp.verts[3], 0);
 //
 
-divide_cell_return_cfnorms(nySmp, nyNearTriCF1, nyTriNorm1, nyNearTriCF2, nyTriNorm2);
+divide_cell_return_cfnorms(&nySmp, nyNearTriCF1, nyTriNorm1, nyNearTriCF2, nyTriNorm2);
 
 FIXED ny_Dist1 =  slSquartFX(fxm(nySmp.verts[1][X] + realCFs.yp1[X], nySmp.verts[1][X] + realCFs.yp1[X]) + fxm(nySmp.verts[1][Z] + realCFs.yp1[Z], nySmp.verts[1][Z] + realCFs.yp1[Z]));
 FIXED ny_Dist2 =  slSquartFX(fxm(nySmp.verts[3][X] + realCFs.yp1[X], nySmp.verts[3][X] + realCFs.yp1[X]) + fxm(nySmp.verts[3][Z] + realCFs.yp1[Z], nySmp.verts[3][Z] + realCFs.yp1[Z]));
@@ -624,7 +637,8 @@ nyToTri1 = realpt_to_plane(realCFs.yp1, nyTriNorm1, nyNearTriCF1);
 nyToTri2 = realpt_to_plane(realCFs.yp1, nyTriNorm2, nyNearTriCF2);
 //Collision detection is using heightmap data
 
-if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false)){
+if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
+{
 	you.hitMap = true;
 	you.hitSurface = true;
 	
@@ -642,7 +656,8 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID
 	you.shadowPos[Z] = lowPoint[Z];
 	
 	pl_RBB.collisionID = BOXID_MAP;
-} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false)){
+} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
+{
 	you.hitMap = true;
 	you.hitSurface = true;
 	

@@ -84,6 +84,8 @@
 #define N_Yn (3)
 #define N_Zp (4)
 #define N_Zn (5)
+
+#define GRAVITY (6553)
 ///////////////////////////////////
 // Game logic timing data
 ///////////////////////////////////
@@ -117,6 +119,10 @@ extern int snd_ring4;
 extern int snd_ring5;
 extern int snd_ring6;
 extern int snd_ring7;
+extern Sint8 * stmsnd[64];
+extern int stm_win;
+extern int stm_freturn;
+extern int stm_orchit0;
 //////////////////////////////////////////////////////////////////////////////
 extern int flagIconTexno;
 

@@ -101,6 +101,10 @@ int game_set_res = TV_320x240;
  int snd_ring5;
  int snd_ring6;
  int snd_ring7;
+ Sint8 * stmsnd[64];
+ int stm_win = 0;
+ int stm_freturn = 1;
+ int stm_orchit0 = 2;
 //////////////////////////////////////////////////////////////////////////////
 int flagIconTexno = 0;
 //////////////////////////////////////////////////////////////////////////////
@@ -139,6 +143,7 @@ void	dpinit(void)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
+
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
@@ -152,6 +157,9 @@ void	load_test(void)
 	////////////////////////////////////////////////
 //	snd_win = load_adx((Sint8*)"WIN.ADX");
 //	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
+	stmsnd[stm_win] = (Sint8*)"WIN.ADX";
+	stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
+	stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
@@ -295,6 +303,7 @@ void	attributions(void)
 
 	slPrint("Sound Driver by Ponut64", slLocate(3, 21));
 	
+	
 	load_test();
 	
 	nbg_clear_text();
@@ -331,6 +340,7 @@ int	main(void)
 	
 	//load_test();
 	attributions();
+	init_hud_events();
 	
 	set_camera();
 	reset_player();

@@ -53,7 +53,7 @@ void	update_hmap(MATRIX msMatrix);
 void	hmap_cluster(void);
 //from hmap_col.c
 void	generate_cell_from_position(POINT pos, _pquad * cell);
-void	divide_cell_return_cfnorms(_pquad quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2);
+void	divide_cell_return_cfnorms(_pquad * quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2);
 
 #endif
 

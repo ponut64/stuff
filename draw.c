@@ -16,6 +16,7 @@
 #include "collision.h"
 #include "pcmstm.h"
 #include "menu.h"
+#include "particle.h"
 //
 #include "dspm.h"
 //
@@ -283,18 +284,19 @@ void	obj_draw_queue(void)
 	}
 	
 
-	for(int s = 0; s < 64; s++)
+	for(int s = 0; s < MAX_SPRITES; s++)
 	{
 		if(sprWorkList[s].lifetime >= 0)
 		{
 			sprWorkList[s].lifetime -= delta_time;
-			if(sprWorkList[s].type == 'B' || sprWorkList[s].type == 'U')
+			if(sprWorkList[s].type == SPRITE_TYPE_BILLBOARD || sprWorkList[s].type == SPRITE_TYPE_UNSCALED_BILLBOARD)
 			{
 				ssh2BillboardScaledSprite(&sprWorkList[s]);
-			} else if(sprWorkList[s].type == 'L')
+			} else if(sprWorkList[s].type == SPRITE_TYPE_LINE)
 			{
 				ssh2Line(&sprWorkList[s]);
-			} else if(sprWorkList[s].type == 'S')
+			} else if(sprWorkList[s].type == SPRITE_TYPE_NORMAL || sprWorkList[s].type == SPRITE_MESH_STROBE
+			|| sprWorkList[s].type == SPRITE_FLASH_STROBE || sprWorkList[s].type == SPRITE_BLINK_STROBE)
 			{
 				ssh2NormalSprite(&sprWorkList[s]);
 			}
@@ -430,6 +432,7 @@ void	master_draw(void)
 	run_dsp();
 	
 		//No Touch Order -- Affects animations/mechanics
+		operate_particles();
 		controls();
 		player_phys_affect();
 		player_collision_test_loop();

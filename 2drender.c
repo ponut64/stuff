@@ -169,9 +169,9 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 		int spanY;
 		
 		
-		if(spr->type == 'B')
+		if(spr->type == SPRITE_TYPE_BILLBOARD)
 		{
-			ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this (?)
+			//ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this (?)
 			//If the vertice is off-screen or too far away, return.
 			if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
 			spanX = (spr->span[X] * inverseZ)>>16;
@@ -182,7 +182,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 			ssh2SetCommand(pntA, 0, pntC, 0,
 			1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
 			pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
-		} else if(spr->type == 'U')
+		} else if(spr->type == SPRITE_TYPE_UNSCALED_BILLBOARD)
 		{
 			//If the vertice is off-screen, return. Note does not stop if too far away.
 			if(ssh2VertArea[0].clipFlag) return;
@@ -282,13 +282,46 @@ void	ssh2Line(_sprite * spr)
 
 void	ssh2NormalSprite(_sprite * spr)
 {
-	
 	int ptv[XY] = {spr->pos[X] - TV_HALF_WIDTH, spr->pos[Y] - TV_HALF_HEIGHT};
-	ssh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 | (spr->mesh<<8) /*COMMAND MODES*/, 
-				pcoTexDefs[spr->texno].SRCA /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/,
-				pcoTexDefs[spr->texno].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
-				);
+	//Let sprite type allow mesh strobing, bank strobing, or on/off strobing.
+	//Let span[X] determine strobe status (strobe on, strobe off) 0 or 1.
+	//Let span[Y] determine strobe interval, in sub-second unit times.
+	//Let span[Z] hold a rolling timer (from 0 to 1 seconds) for the strobe.
 	
+	//To be modified by blink strobes
+	unsigned short used_size = pcoTexDefs[spr->texno].SIZE;
+	//To be modified by flash strobes
+	unsigned short used_colrbnk = spr->colorBank;
+	
+	if(spr->type == SPRITE_MESH_STROBE || spr->type == SPRITE_FLASH_STROBE || spr->type == SPRITE_BLINK_STROBE)
+	{
+		unsigned short * tlimit = (unsigned short *)&spr->span[Y];
+		unsigned short * tcur = (unsigned short *)&spr->span[Z];
+		if(*tcur > *tlimit)
+		{
+			*tcur = 0;
+			spr->span[X] = (spr->span[X]) ? 0 : 1;
+			spr->extra += 1;
+		}
+		*tcur += delta_time;
+		
+		if(spr->type == SPRITE_BLINK_STROBE)
+		{
+			used_size = (spr->span[X]) ? 0 : used_size;
+		} else if(spr->type == SPRITE_MESH_STROBE)
+		{
+			spr->mesh = (spr->span[X]) ? 0 : 1;
+		} else if(spr->type == SPRITE_FLASH_STROBE)
+		{
+			used_colrbnk |= (spr->span[X]) ? 0x8000 : 0;
+		}
+	}
+	
+	ssh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 | (spr->mesh<<8) /*COMMAND MODES*/, 
+				pcoTexDefs[spr->texno].SRCA /*SRCA*/, used_colrbnk /*COLOR BANK CODE*/,
+				used_size /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
+				);
+
 }
 
 

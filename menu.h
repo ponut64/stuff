@@ -7,6 +7,10 @@
 #define HUD_EVENT_RUN	(2)
 #define HUD_EVENT_DONE	(3)
 #define HUD_EVENT_CLOSE	(0)
+#define EVENT_NO_STROBE		(0)
+#define EVENT_STROBE_MESH	('M')
+#define EVENT_STROBE_FLASH	('F')
+#define EVENT_STROBE_BLINK	('O')
 
 #define RING1_EVENT		(1)
 #define RING2_EVENT		(2)
@@ -15,6 +19,7 @@
 #define RING5_EVENT		(5)
 #define	RING6_EVENT		(6)
 #define RING7_EVENT		(7)
+#define RINGS_ALL_EVENT	(0)
 	// HUD Event
 	// What do I need it to do?
 	// 1. Spawn sprite
@@ -32,7 +37,8 @@ typedef struct {
 	short soundType;
 	short soundNum;
 	short volume;
-	short strobe;
+	short strobe_type;
+	unsigned short strobe_interval; //Note: Being a short, it rolls over before 1 second (65535). Use ~62,000 as 1s.
 	short texno;
 	short colorBank;
 	_sprite * spr;
@@ -43,6 +49,7 @@ extern int baseRingMenuTexno;
 extern _hudEvent hudEvents[HUD_EVENT_TYPES];
 
 void	start_menu(void);
+void	init_hud_events(void);
 void	start_hud_event(short eventNum);
 void	hud_menu(void);
 
