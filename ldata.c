@@ -25,6 +25,9 @@ void	declarations(void)
 //The start stand contains the track data as well.
 //So before declaring the start stand, change the track data parameters to as desired.
 //It also contains the item manager for 7rings. No need to declare separately.
+
+declare_object_at_cell(-(0 / 40) + 1, -15, (380 / 40), 9 /*kyob*/, 15, 0, 0, 0);
+
 declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0);
 
 declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);

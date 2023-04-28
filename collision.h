@@ -15,7 +15,10 @@ typedef struct {
 	FIXED zp1[XYZ];
 } _lineTable;
 
+extern int boxDisField[6];
+
 void	init_box_handling(void);
+int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
 void	finalize_alignment(_boundBox * fmtx);

@@ -257,6 +257,106 @@ void	make2AxisBox(_object_arguments * source_data)
 	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
+	
+}
+
+void	finalize_collision_proxy(_boundBox * box)
+{
+	
+/*
+			Y-		  Z+
+		3-----------2
+	  /	|		   /|
+	0---+--------1  |
+X-	|	|	     |	|	X+
+	|	7--------+--6
+	| / 		 |/
+	4------------5 
+	Z-		Y+
+	Verts
+	0 = X- Y- Z-
+	1 = X+ Y- Z-
+	2 = X+ Y- Z+
+	3 = X- Y- Z+
+	4 = X- Y+ Z-
+	5 = X+ Y+ Z-
+	6 = X+ Y+ Z+
+	7 = X- Y+ Z+
+	Polygons:
+	0: 3 - 2 - 1 - 0, normal Y-
+	1: 0 - 1 - 5 - 4, normal Z-
+	2: 0 - 4 - 7 - 3, normal X-
+	3: 4 - 5 - 6 - 7, normal Y+
+	4: 3 - 7 - 6 - 2, normal Z+
+	5: 1 - 2 - 6 - 5, normal X+
+
+*/
+	
+	box->nmtbl[0] = box->UVNY;
+	box->nmtbl[1] = box->UVNZ;
+	box->nmtbl[2] = box->UVNX;
+	box->nmtbl[3] = box->UVY;
+	box->nmtbl[4] = box->UVZ;
+	box->nmtbl[5] = box->UVX;
+	box->cftbl[0] = box->Yneg;
+	box->cftbl[1] = box->Zneg;
+	box->cftbl[2] = box->Xneg;
+	box->cftbl[3] = box->Yplus;
+	box->cftbl[4] = box->Zplus;
+	box->cftbl[5] = box->Xplus;
+	
+	box->pntbl[0][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zneg[X]		+ box->pos[X]);
+	box->pntbl[0][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zneg[Y]		+ box->pos[Y]);
+	box->pntbl[0][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zneg[Z]		+ box->pos[Z]);
+	box->pntbl[1][X] = (box->Xplus[X] + box->Yneg[X] + box->Zneg[X]		+ box->pos[X]);
+	box->pntbl[1][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zneg[Y]		+ box->pos[Y]);
+	box->pntbl[1][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zneg[Z]		+ box->pos[Z]);
+	box->pntbl[2][X] = (box->Xplus[X] + box->Yneg[X] + box->Zplus[X]	+ box->pos[X]);
+	box->pntbl[2][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zplus[Y]	+ box->pos[Y]);
+	box->pntbl[2][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zplus[Z]	+ box->pos[Z]);
+	box->pntbl[3][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zplus[X]	+ box->pos[X]);
+	box->pntbl[3][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zplus[Y]	+ box->pos[Y]);
+	box->pntbl[3][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zplus[Z]	+ box->pos[Z]);
+	box->pntbl[4][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zneg[X]	+ box->pos[X]);
+	box->pntbl[4][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zneg[Y]	+ box->pos[Y]);
+	box->pntbl[4][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zneg[Z]	+ box->pos[Z]);
+	box->pntbl[5][X] = (box->Xplus[X] + box->Yplus[X] + box->Zneg[X]	+ box->pos[X]);
+	box->pntbl[5][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zneg[Y]	+ box->pos[Y]);
+	box->pntbl[5][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zneg[Z]	+ box->pos[Z]);
+	box->pntbl[6][X] = (box->Xplus[X] + box->Yplus[X] + box->Zplus[X]	+ box->pos[X]);
+	box->pntbl[6][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zplus[Y]	+ box->pos[Y]);
+	box->pntbl[6][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zplus[Z]	+ box->pos[Z]);
+	box->pntbl[7][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zplus[X]	+ box->pos[X]);
+	box->pntbl[7][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zplus[Y]	+ box->pos[Y]);
+	box->pntbl[7][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zplus[Z]	+ box->pos[Z]);
+	
+	box->pltbl[0][0] = box->pntbl[3];	
+	box->pltbl[0][1] = box->pntbl[2];
+	box->pltbl[0][2] = box->pntbl[1];
+	box->pltbl[0][3] = box->pntbl[0];
+	box->pltbl[1][0] = box->pntbl[0];	
+	box->pltbl[1][1] = box->pntbl[1];
+	box->pltbl[1][2] = box->pntbl[5];
+	box->pltbl[1][3] = box->pntbl[4];
+	box->pltbl[2][0] = box->pntbl[0];	
+	box->pltbl[2][1] = box->pntbl[4];
+	box->pltbl[2][2] = box->pntbl[7];
+	box->pltbl[2][3] = box->pntbl[3];
+	box->pltbl[3][0] = box->pntbl[4];	
+	box->pltbl[3][1] = box->pntbl[5];
+	box->pltbl[3][2] = box->pntbl[6];
+	box->pltbl[3][3] = box->pntbl[7];
+	box->pltbl[4][0] = box->pntbl[3];	
+	box->pltbl[4][1] = box->pntbl[7];
+	box->pltbl[4][2] = box->pntbl[6];
+	box->pltbl[4][3] = box->pntbl[2];
+	box->pltbl[5][0] = box->pntbl[1];	
+	box->pltbl[5][1] = box->pntbl[2];
+	box->pltbl[5][2] = box->pntbl[6];
+	box->pltbl[5][3] = box->pntbl[5];
+	
+	box->status[3] = 'B';
+	
 }
 
 void	flush_boxes(int start)
@@ -275,6 +375,7 @@ void	flush_boxes(int start)
 		RBBs[i].status[0] = 'N';
 		RBBs[i].status[1] = 'N';
 		RBBs[i].status[2] = 'N';
+		RBBs[i].status[3] = 'N';
 	}
 ////////////////////////////////////////////////////
 	

@@ -45,9 +45,14 @@ typedef struct {
 	FIXED brad[XYZ];
 	//The box' rotation (expressed as ANGLE type data)
 	ANGLE	boxRot[XYZ];
+	//Expanded polygon/pointer data
+	int pntbl[8][3];
+	int * pltbl[6][4];
+	int * nmtbl[6];
+	int * cftbl[6];
 	//Three separate flags to tell the engine if the box is populated, and ready to ..
-	// [0] == 'R', render, [1] == 'C', collide, [2] == 'L', light.
-	char status[3];
+	// [0] == 'R', render, [1] == 'C', collide, [2] == 'L', light, [3] == 'B', collision box proxy ready.
+	char status[4];
 	//ID# for collision. Usually throws the object # collided with. -1 signals no collision.
 	short collisionID;
 	//ID#. Used to verify the box object #. -1 signals the box is void.
@@ -79,6 +84,7 @@ extern _boundBox pl_RBB;
 
 void	makeBoundBox(_object_arguments * source_data);
 void	make2AxisBox(_object_arguments * source_data);
+void	finalize_collision_proxy(_boundBox * box);
 void	initPhys(void);
 void	flush_boxes(int start);
 

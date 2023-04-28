@@ -104,7 +104,7 @@ void pl_jet(void){
 		particle_starter.spr->span[X] = 5;
 		particle_starter.spr->span[Y] = 5;
 		particle_starter.spr->texno = 5;
-		particle_starter.velocity[Y] = -(5<<16);
+		particle_starter.velocity[Y] = -(1<<16);
 		particle_starter.type = PARTICLE_TYPE_NORMAL;
 		spawn_particle(&particle_starter);
 		}

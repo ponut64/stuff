@@ -335,8 +335,10 @@ void	shadow_draw(void)
 		}
 }
 
-
-void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
+ //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
+ //Be aware the location of this function is important:
+ //The player's position/rotation cannot change from between when it runs and when the matrix is used.
+void	prep_map_mtx(void)
 {
 	slInitMatrix();
 	set_camera();
@@ -355,7 +357,6 @@ void	prep_map_mtx(void) //Uses SGL to prepare the matrix for the map, so it does
 void	object_draw(void)
 {
 	computeLight();
-	prep_map_mtx();
 	slPushMatrix();
 	{	
 	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
@@ -389,26 +390,9 @@ void	object_draw(void)
 	
 }
 
-void	map_draw(void){	
-
-	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
-	update_hmap(hmap_mtx);
-
-}
-
-void	master_draw(void)
+void	map_draw_prep(void)
 {
-	if(!you.inMenu)
-	{
-	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
-	slCashPurge();
-	flush_boxes(0);
-	light_control_loop(); //lit
-	object_control_loop(you.dispPos);
-
-	hmap_cluster();
-	map_draw();
-	
+	//Loads the DSP pepperbox
 	you.prevCellPos[X] = you.cellPos[X];
 	you.prevCellPos[Y] = you.cellPos[Y];
 	you.prevDispPos[X] = you.dispPos[X];
@@ -430,6 +414,31 @@ void	master_draw(void)
 	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.velocity[Z]);
 	
 	run_dsp();
+	
+}
+
+void	map_draw(void)
+{	
+
+	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
+	update_hmap(hmap_mtx);
+
+}
+
+void	master_draw(void)
+{
+	
+	if(!you.inMenu)
+	{
+	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
+	slCashPurge();
+	flush_boxes(0);
+	light_control_loop(); //lit
+	object_control_loop(you.dispPos);
+
+	hmap_cluster();
+	map_draw();
+	map_draw_prep();
 	
 		//No Touch Order -- Affects animations/mechanics
 		operate_particles();

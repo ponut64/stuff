@@ -267,6 +267,7 @@ void	load_test(void)
 void	game_frame(void)
 {
 	slCashPurge();
+	prep_map_mtx();
 	//ABC+Start Exit Condition
 	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
 	{

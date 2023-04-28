@@ -9,7 +9,7 @@
 
 typedef struct {
 	_sprite * spr;
-	int lastPos[XYZ];
+	int prevPos[XYZ];
 	int velocity[XYZ];
 	int lifetime;
 	unsigned short luma; //Light emission value
@@ -21,6 +21,7 @@ extern _sprite		pentry;
 extern _particle	particle_starter;
 extern _particle	particles[MAX_SPRITES];
 
+void	particle_collision_handler(_particle * part, int * normal);
 void	spawn_particle(_particle * part);
 void	operate_particles(void);
 

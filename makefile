@@ -7,9 +7,9 @@
 #JO_GLOBAL_MEMORY_SIZE_FOR_MALLOC = 65536
 
 
-SRCS=main.c gamespeed.c render.c 2drender.c subrender.c input.c ldata.c draw.c pcmsys.c mymath.c \
-collision.c pcmstm.c bounder.c player_phy.c hmap.c minimap.c tga.c hmap_col.c \
-control.c vdp2.c physobjet.c particle.c dspm.c mloader.c object_col.c menu.c
+SRCS=main.c gamespeed.c render.c 2drender.c subrender.c dspm.c hmap.c draw.c \
+input.c ldata.c pcmsys.c mymath.c collision.c pcmstm.c bounder.c player_phy.c minimap.c \
+tga.c hmap_col.c control.c vdp2.c physobjet.c mloader.c object_col.c menu.c particle.c
 JO_ENGINE_SRC_DIR=../../jo_engine
 COMPILER_DIR=../../Compiler
 include $(COMPILER_DIR)/COMMON/blank_sgl_makefile

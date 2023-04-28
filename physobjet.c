@@ -934,17 +934,6 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 		
 	}
 	
-	/*
-	Still think i need a new LDATA type of ITEM_MANAGER.
-	
-	For the flag mechanic, the next essential part of programming is a "Latch to Player" function.
-	I may want to create a dummy object that is the player which has the player's position,
-	and then say "Latch to object". So this object'll always have that position, once latch is enabled.
-	And also rotation.
-	Maybe a good idea, so I can latch an object to any other object too... which, not needed, but might be useful.
-	
-	*/
-	
 }
 
 

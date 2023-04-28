@@ -28,6 +28,7 @@ void	set_camera(void);
 void	master_draw_stats(void);
 void	object_draw(void);
 void	prep_map_mtx(void);
+void	map_draw_prep(void);
 void	master_draw(void);
 
 
