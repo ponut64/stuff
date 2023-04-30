@@ -6,6 +6,7 @@
 #define PARTICLE_TYPE_NOGRAV	(2)	//Gravity-disabled, collision-enabled
 #define PARTICLE_TYPE_GHOST		(3)	//Gravity-disabled, collision-disabled
 #define PARTICLE_TYPE_NOCOL		(4) //Gravity-enabled, collision-disabled
+#define PARTICLE_HIT			(0x8000) //Bitflag to set when particle has hit something
 
 typedef struct {
 	_sprite * spr;

@@ -96,17 +96,6 @@ void pl_jet(void){
 			//I guess a micro-jump?
 			//It helps release you from the surface when jetting.
 			you.velocity[Y] += fxm(GRAVITY<<1, frmul)<<2;
-			
-		particle_starter.spr->pos[X] = -you.pos[X];
-		particle_starter.spr->pos[Y] = -you.pos[Y];
-		particle_starter.spr->pos[Z] = -you.pos[Z];
-		particle_starter.spr->lifetime = 2<<16;
-		particle_starter.spr->span[X] = 5;
-		particle_starter.spr->span[Y] = 5;
-		particle_starter.spr->texno = 5;
-		particle_starter.velocity[Y] = -(1<<16);
-		particle_starter.type = PARTICLE_TYPE_NORMAL;
-		spawn_particle(&particle_starter);
 		}
 	
 		you.hitSurface = false;
@@ -244,6 +233,27 @@ void	player_phys_affect(void)
 		// nbg_sprintf(1, 9, "hitWall: (%i)", you.hitWall);
 		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
+	
+	static int part_timer = 3<<16;
+	
+	if(part_timer < 0)
+	{
+		particle_starter.spr->pos[X] = -you.pos[X];
+		particle_starter.spr->pos[Y] = -you.pos[Y];
+		particle_starter.spr->pos[Z] = -you.pos[Z];
+		particle_starter.spr->lifetime = 3<<16;
+		particle_starter.spr->span[X] = 5;
+		particle_starter.spr->span[Y] = 5;
+		particle_starter.spr->texno = 5;
+		particle_starter.velocity[X] = pl_RBB.UVNZ[X]<<1;
+		particle_starter.velocity[Y] = pl_RBB.UVNZ[Y]<<1;
+		particle_starter.velocity[Z] = pl_RBB.UVNZ[Z]<<1;
+		particle_starter.type = PARTICLE_TYPE_NORMAL;
+		spawn_particle(&particle_starter);
+		
+		part_timer = 3<<16;
+	}
+	part_timer -= delta_time;
 	
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];
