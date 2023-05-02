@@ -274,10 +274,10 @@ void	ssh2Line(_sprite * spr)
 		
 		//If the vertice is off-screen or too far away, return.
 		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
-		
+		int used_z = (spr->type == SPRITE_TYPE_3DLINE) ? ssh2VertArea[0].pnt[Z] : 1<<16;
         ssh2SetCommand(ssh2VertArea[0].pnt, ssh2VertArea[0].pnt, ssh2VertArea[1].pnt, ssh2VertArea[1].pnt,
 		5 /*Polyline Setting*/, 0x8C0 | usrClp/*manual specifies 0xC0 for polyline, DO NOT CHANGE BITS 7-6*/,
-		0 /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, 3<<16 /*Z*/);
+		0 /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, used_z /*Z*/);
 }
 
 void	ssh2NormalSprite(_sprite * spr)

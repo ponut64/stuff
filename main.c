@@ -297,6 +297,7 @@ void	attributions(void)
 	slPrint("Contributions:", slLocate(3, 6));
 	slPrint("XL2 - Essential knowledge & tools", slLocate(3, 7));
 	slPrint("dannyduarte - fixed workarea.c", slLocate(3, 8));
+	slPrint("ReyeMe - for his czechnology", slLocate(3, 9));
 	slPrint("Emerald Nova - fixed-point timer", slLocate(3, 11));
 	slPrint("fafling - actually read VDP2 manual", slLocate(3, 13));
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));

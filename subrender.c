@@ -29,20 +29,24 @@
 
 	*/
 	#define SUBDIVIDE_W		(1)
-	#define SUBDIVIDE_H		(4)
-	#define SUBDIVIDE_HV	(5)
+	#define SUBDIVIDE_H		(2)
+	#define SUBDIVIDE_HV	(3)
+	
+	short		rule_to_texture[4] = {0, 1, 4, 5};
 
 	#define TEXTS_GENERATED_PER_TEXTURE_LOADED (16)
 	#define SUBDIVISION_NEAR_PLANE (15<<16)
+	#define SUBDIVISION_SCALE (50)
 
 		POINT	subdivided_points[512];
 		short	subdivided_polygons[512][4]; //4 Vertex IDs of the subdivided_points
 		short	used_textures[512];
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
-		char	subdivision_rules[4]	= {'N', 'N', 'N', 'N'};
+		short	subdivision_rules[4]	= {0, 0, 0, 0};
 		short	texture_rules[4]		= {16, 16, 16, 16};
 		int		z_rules[4]				= {200<<16, 150<<16, 100<<16, 50<<16};
+
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
 
@@ -504,20 +508,12 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	// Check: Find the polygon's scale and thus subdivision scale.
 	// We find the true perimeter of the polygon.
 	//////////////////////////////////////////////////////////////
-		int len01 = unfix_length(pl_pts[0], pl_pts[1]);
-		int len12 = unfix_length(pl_pts[1], pl_pts[2]);
-		int len23 = unfix_length(pl_pts[2], pl_pts[3]);
-		int len30 = unfix_length(pl_pts[3], pl_pts[0]);
-		int perimeter = len01 + len12 + len23 + len30;
-
-		int len_w = JO_MAX(len01, len23);//(len01 + len23)>>1; 
-		int len_h = JO_MAX(len12, len30);//(len12 + len30)>>1;
-
-		// nbg_sprintf(1, 6, "len12(%i)", len12);
-		// nbg_sprintf(1, 7, "sx(%i)", unfix12[X]);
-		// nbg_sprintf(1, 8, "sy(%i)", unfix12[Y]);
+		subdivision_rules[0] = mesh->attbl[i].plane_information & 0x3;
+		subdivision_rules[1] = (mesh->attbl[i].plane_information>>2) & 0x3;
+		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
+		subdivision_rules[3] = (mesh->attbl[i].plane_information>>6) & 0x3;
 		
-		if(perimeter <= 100 || perimeter >= 1200)
+		if(!subdivision_rules[0] || subdivision_rules[3])
 		{
 			//In this case the polygon is too small or too large.
 			//Large polygons will be excepted by making it look obviously wrong.
@@ -526,50 +522,29 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		} else {
 			///////////////////////////////////////////
 			// Resolve the maximum # of subdivisions.
+			// The subdivision rules were pre-calculated by the converter tool.
 			///////////////////////////////////////////
-			max_subdivisions = 0;
-			// The idea is that the resulting polygons should be more than 25x25 but less than 50x50.
-			subdivision_rules[0] = 0;
-			subdivision_rules[1] = 0;
-			subdivision_rules[2] = 0;
-			subdivision_rules[3] = 0;
-			// nbg_sprintf(1, 7, "lw(%i)", len_w);
-			// nbg_sprintf(1, 8, "lh(%i)", len_h);
-			if(len_w >= 50)
-			{
-				subdivision_rules[0] = SUBDIVIDE_W;
-				max_subdivisions += 1;
-			}
-			if(len_w >= 100)
-			{
-				subdivision_rules[1] = SUBDIVIDE_W;
-				max_subdivisions += 1;
-			}
-			if(len_w >= 200)
-			{
-				subdivision_rules[2] = SUBDIVIDE_W;
-				max_subdivisions += 1;
-			}
-			
-			if(len_h >= 50)
-			{
-				subdivision_rules[0] = (subdivision_rules[0] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
-				max_subdivisions += (max_subdivisions < 3) ? 1 : 0;
-			}
-			if(len_h >= 100)
-			{
-				subdivision_rules[1] = (subdivision_rules[1] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
-				max_subdivisions += (max_subdivisions < 3) ? 1 : 0;
-			}
-			if(len_w >= 200)
-			{
-				subdivision_rules[2] = (subdivision_rules[2] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
-				max_subdivisions += (max_subdivisions < 3) ? 1 : 0;
-			}
-			
-			texture_rules[0] = 16 - (subdivision_rules[0] + subdivision_rules[1] + subdivision_rules[2]);
-			texture_rules[1] = texture_rules[0] + subdivision_rules[0];
-			texture_rules[2] = texture_rules[1] + subdivision_rules[1];
+			/*
+			I also want to test a "first-divide" rule:
+			Polygons are set to have a texture scale related to the polygon scale.
+			In this, the textures have a fixed size, making for a maximum polygon size.
+			When polygons exceed that size, I want to be able to set a "first subdivision".
+			This first subdivision can only be used for polygons exceeding the maximum size once.
+			This first subdivision will always be applied when a polygon is of a size to need it.
+			The polygons from the first subdivision will always use a texture at its greatest size.
+			The system then calculates the subdivisions from the size of polygons made by that first subdivision.
+			*/
+
+			max_subdivisions = (subdivision_rules[0]) ? 1 : 0;
+			max_subdivisions += (subdivision_rules[1]) ? 1 : 0;
+			max_subdivisions += (subdivision_rules[2]) ? 1 : 0;
+
+			short rule_0 = rule_to_texture[subdivision_rules[0]];
+			short rule_1 = rule_to_texture[subdivision_rules[1]];
+			short rule_2 = rule_to_texture[subdivision_rules[2]];
+			texture_rules[0] = 16 - (rule_0 + rule_1 + rule_2);
+			texture_rules[1] = texture_rules[0] + rule_0;
+			texture_rules[2] = texture_rules[1] + rule_1;
 			
 			// texture_rules[0] = 16;
 			// texture_rules[1] = 16;

@@ -555,7 +555,7 @@ void	player_phys_affect(void)
 		//For now, there's all sorts of weird one-off exception rules that have to happen like this.
 		you.climbing = false;
 		you.ladder = false;
-/* 
+
 
 _lineTable moverCFs = {
 	.xp0[X] = pl_RBB.Xplus[X] 	- pl_RBB.pos[X],
@@ -592,7 +592,7 @@ _lineTable moverCFs = {
 		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 'L', 0, 1500);
 		add_to_sprite_list(moverCFs.zp0, dirZP, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
 		add_to_sprite_list(moverCFs.zp1, dirZN, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
- */
+ 
 
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;

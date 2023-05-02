@@ -15,7 +15,17 @@
 
 #include "particle.h"
 
-//I guess I need a particle type list to start with too, don't I?
+
+/*
+
+Particle Sys To-do List:
+
+a. Add line particles (velocity is direction/size of line)
+b. Add creation of lines by type from list
+c. Move ground puff from walking to a particle
+d. Some work on particle collision so it doesn't catch itself colliding on things behind other things
+
+*/
 
 _sprite		pentry; 
 _particle	particle_starter = {
@@ -85,7 +95,6 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 
 	if(bigDif > (bigRadius + (20<<16))) return false;
 	
-	
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
 		//First, back-facing.
@@ -144,7 +153,9 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		int segPt[XYZ] = {part->spr->pos[X] + (plnm[X] * part->spr->span[X]),
 		part->spr->pos[Y] + (plnm[Y] * part->spr->span[X]),
 		part->spr->pos[Z] + (plnm[Z] * part->spr->span[X])};
-		
+		//Yes, the line method is truly better than dot product tests.
+		//Though part of how it's better is that the collision check can include velocity (in the line segment).
+		//You do that so you can catch things before they just casually phase through by virtue of going fast.
 		int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384, hitPt);
 
 		if(hitLine)
@@ -326,35 +337,27 @@ void	operate_particles(void)
 			continue;
 		}
 		
+		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOGRAV)
+		{
+				pHit = particle_collide_heightmap(&particles[i]);
+				for(int u = 0; u < MAX_PHYS_PROXY; u++)
+				{
+					unsigned short edata = dWorldObjects[activeObjects[u]].type.ext_dat;
+					unsigned short boxtype = edata & (0xF000);
+					if(RBBs[u].status[1] != 'C') continue;
+					if(entities[dWorldObjects[activeObjects[u]].type.entity_ID].type == MODEL_TYPE_BUILDING)
+					{
+						pHit |= particle_collide_polygon(&entities[dWorldObjects[activeObjects[u]].type.entity_ID], RBBs[u].pos, &particles[i]);
+					} else if(boxtype == (OBJECT | OBJPOP) || boxtype == (GATE_P | OBJPOP))
+					{
+						pHit |= particle_collide_object(&particles[i], &RBBs[u]);
+					}
+				}
+		}
+		
 		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOCOL)
 		{
 			particles[i].velocity[Y] += fxm(GRAVITY, frmul);
-			pHit = particle_collide_heightmap(&particles[i]);
-			
-			for(int u = 0; u < MAX_PHYS_PROXY; u++)
-			{
-				unsigned short edata = dWorldObjects[activeObjects[u]].type.ext_dat;
-				unsigned short boxtype = edata & (0xF000);
-				if(RBBs[u].status[1] != 'C') continue;
-				//if(boxtype == (OBJECT | OBJPOP))
-				//{
-					//pHit |= particle_collide_object(&particles[i], &RBBs[u]);
-					pHit |= particle_collide_polygon(&entities[dWorldObjects[activeObjects[u]].type.entity_ID], RBBs[u].pos, &particles[i]);
-
-					// slPrintFX(RBBs[u].cftbl[1][X], slLocate(9,  8));
-					// slPrintFX(RBBs[u].cftbl[1][Y], slLocate(19, 8));
-					// slPrintFX(RBBs[u].cftbl[1][Z], slLocate(29, 8));
-					
-					// slPrintFX(RBBs[u].cftbl[2][X], slLocate(9,  9));
-					// slPrintFX(RBBs[u].cftbl[2][Y], slLocate(19, 9));
-					// slPrintFX(RBBs[u].cftbl[2][Z], slLocate(29, 9));
-					
-					// slPrintFX(RBBs[u].cftbl[3][X], slLocate(9,  10));
-					// slPrintFX(RBBs[u].cftbl[3][Y], slLocate(19, 10));
-					// slPrintFX(RBBs[u].cftbl[3][Z], slLocate(29, 10));
-					
-				//}
-			}
 		}
 		
 		if(pHit == false)

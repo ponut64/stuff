@@ -41,11 +41,20 @@ Portal information:
 Polygon ID of the next portal. 
 If it is 255, this polygon is not a portal.
 If it is 254, this is the last portal.
+
+Plane information:
+Information about the scale and subdivision rules of the plane.
+0-1: First subdivision rule
+2-3: Second subdivision rule
+4-5: Third subdivision rule
+5-6: Fourth subdivision rule, if applicable
+7-8: Plane texture scaling type (tiled 1xy, coordinate y tile x, coordinate x tile y, full coordinates)
 */
 
 typedef struct {
 	unsigned short render_data_flags;
-	unsigned short portal_information;
+	unsigned char plane_information;
+	unsigned char portal_information;
 	unsigned char first_sector;
 	unsigned char second_sector;
 	unsigned short texno;

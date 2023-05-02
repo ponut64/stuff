@@ -104,9 +104,10 @@ typedef struct {
 	unsigned char mesh;	//Boolean. 1 enables mesh effect drawing.
 	char type; 			//"B" for billboard, "U" for unscaled billboard, "S" for normal sprite.
 } _sprite; //28 bytes each
-#define SPRITE_TYPE_BILLBOARD	('B')
-#define SPRITE_TYPE_UNSCALED_BILLBOARD	('U')
-#define SPRITE_TYPE_LINE	('L')
+#define SPRITE_TYPE_BILLBOARD			('B')
+#define SPRITE_TYPE_UNSCALED_BILLBOARD	('b')
+#define SPRITE_TYPE_3DLINE				('L')
+#define SPRITE_TYPE_UNSORTED_LINE		('l')
 #define SPRITE_TYPE_NORMAL	('S')
 #define SPRITE_MESH_STROBE	('M')
 #define SPRITE_FLASH_STROBE	('F')

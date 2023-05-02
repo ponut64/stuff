@@ -1009,7 +1009,7 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 							someLDATA->pix[X]++;
 						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
 						{
-							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 						}
 
 						someLDATA->more_data &= TRACK_NO_CHECK;
@@ -1064,7 +1064,7 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 							}
 						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
 						{
-							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 						}
 						someLDATA->more_data &= TRACK_NO_CHECK;
 						someLDATA->more_data |= (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER);
@@ -1322,7 +1322,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
-			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, 'U', 0 /*no clip*/, 3000);
+			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 			if(someLDATA->dist < 0)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;

@@ -292,7 +292,7 @@ void	obj_draw_queue(void)
 			if(sprWorkList[s].type == SPRITE_TYPE_BILLBOARD || sprWorkList[s].type == SPRITE_TYPE_UNSCALED_BILLBOARD)
 			{
 				ssh2BillboardScaledSprite(&sprWorkList[s]);
-			} else if(sprWorkList[s].type == SPRITE_TYPE_LINE)
+			} else if(sprWorkList[s].type == SPRITE_TYPE_3DLINE || sprWorkList[s].type == SPRITE_TYPE_UNSORTED_LINE)
 			{
 				ssh2Line(&sprWorkList[s]);
 			} else if(sprWorkList[s].type == SPRITE_TYPE_NORMAL || sprWorkList[s].type == SPRITE_MESH_STROBE
