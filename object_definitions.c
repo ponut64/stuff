@@ -9,7 +9,8 @@ _sobject FirstRing = {
 	.ext_dat = ITEM | 0x10,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject SecondRing = {
@@ -21,7 +22,8 @@ _sobject SecondRing = {
 	.ext_dat = ITEM | 0x20,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject ThirdRing = {
@@ -33,7 +35,8 @@ _sobject ThirdRing = {
 	.ext_dat = ITEM | 0x30,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject FourthRing = {
@@ -45,7 +48,8 @@ _sobject FourthRing = {
 	.ext_dat = ITEM | 0x40,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject FifthRing = {
@@ -57,7 +61,8 @@ _sobject FifthRing = {
 	.ext_dat = ITEM | 0x50,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject SixthRing = {
@@ -69,7 +74,8 @@ _sobject SixthRing = {
 	.ext_dat = ITEM | 0x60,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject SeventhRing = {
@@ -81,7 +87,8 @@ _sobject SeventhRing = {
 	.ext_dat = ITEM | 0x70,
 	.light_bright = 0,
 	.light_y_offset = 0,
-	.effectTimeLimit = 64,
+	.effect = 1,
+	.effectTimeLimit = 8192,
 };
 
 _sobject Titem = {
@@ -434,7 +441,9 @@ _sobject FlagShield = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT | FORCEFIELD_REMOTE
+	.ext_dat = OBJECT | FORCEFIELD_REMOTE,
+	.effect = 0,
+	.effectTimeLimit = 8192 
 };
 
 _sobject FlagStandItem = {

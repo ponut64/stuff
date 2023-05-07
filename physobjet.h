@@ -345,8 +345,9 @@ typedef struct {
 	unsigned short ext_dat;
 	unsigned short light_bright;
 	unsigned short light_y_offset;
-	unsigned short effectTimeLimit;	//Receives time limit (in seconds) <<8
-	unsigned short effectTimeCount; //Receives time count (in seconds) >>8
+	unsigned short effect;
+	int effectTimeLimit;
+	int effectTimeCount;
 } _sobject;
 
 typedef struct {
@@ -361,7 +362,6 @@ typedef struct {
 	ANGLE	rot[XYZ];
 	_sobject type;
 	int		dist; 
-	int		shrink;
 	unsigned short	more_data;
 	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
 } _declaredObject;

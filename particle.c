@@ -96,20 +96,67 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		partVelocity[Y] = fxm(getRandom(), intensity);
 		partVelocity[Z] = fxm(getRandom(), intensity);
 		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity);
-		int newTime = fxm(getRandom(), spr_type->lifetime>>1) + (spr_type->lifetime>>1);
+		int newTime = (fxm(getRandom(), spr_type->lifetime) + spr_type->lifetime)>>1;
 		part->lifetime = newTime;
 		part->spr->lifetime = newTime;
 		if(radius > 65535)
 		{
+		int final_radius = (radius + fxm(radius, getRandom()))>>1;
 		accurate_normalize(part->velocity, part->dirUV);
-		part->spr->pos[X] += fxm(part->dirUV[X], radius);
-		part->spr->pos[Y] += fxm(part->dirUV[Y], radius);
-		part->spr->pos[Z] += fxm(part->dirUV[Z], radius);
+		part->spr->pos[X] += fxm(part->dirUV[X], final_radius);
+		part->spr->pos[Y] += fxm(part->dirUV[Y], final_radius);
+		part->spr->pos[Z] += fxm(part->dirUV[Z], final_radius);
 		}
 	}
 }
 
-
+// Mostly particle effect processor, but also arbitrates other effects e.g. scale
+void	object_effects(int obj_index, int box_index)
+{
+	//If no effect is selected, return.
+	static _declaredObject * obj;
+	static _boundBox * box;
+	obj = &dWorldObjects[obj_index];
+	box = &RBBs[box_index];
+	switch(obj->type.effect)
+	{
+		case(EFFECT_NONE):
+			return;
+			break;
+		case(EFFECT_SPARKLE):
+			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
+			{
+			emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, obj->pos, 12<<16, 8192, 2);
+			obj->type.effectTimeCount = 0;
+			}
+			obj->type.effectTimeCount += delta_time;
+			return;
+			break;
+		case(EFFECT_SHRINK):
+			if(obj->type.effectTimeCount <= obj->type.effectTimeLimit)
+			{
+				obj->type.effectTimeCount += delta_time;
+				int timeScale = fxdiv(1<<16, obj->type.effectTimeLimit);
+				int shrinkAmt = (1<<16) - fxm(timeScale, obj->type.effectTimeCount);
+				set_box_scale(box, shrinkAmt, shrinkAmt, shrinkAmt);
+			} else {
+				set_box_scale(box, 1, 1, 1);
+			}
+			return;
+			break;
+		case(EFFECT_GROW):
+			if(obj->type.effectTimeCount <= obj->type.effectTimeLimit)
+			{
+				obj->type.effectTimeCount += delta_time;
+				int timeScale = fxdiv(1<<16, obj->type.effectTimeLimit);
+				int shrinkAmt = fxm(timeScale, obj->type.effectTimeCount);
+				set_box_scale(box, shrinkAmt, shrinkAmt, shrinkAmt);
+			}
+			return;
+			break;
+	}
+	
+}
 
 void	particle_collision_handler(_particle * part, int * normal)
 {

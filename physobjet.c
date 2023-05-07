@@ -224,12 +224,15 @@ h. delivering flag - done
 i. represent flag progress in menu - done
 j. on-screen guide - done
 
+might be time to fuck off and start finishing level prototypes
+this is enough programming, there's a lot of potential for a game here
+a lot of work to be done yet for sure, buuuut i should keep on target
+
 4 - other things
 a. particle effect system ? - done
 b. destruction of entity into particles ? - OH YEAH THAT'S FUN!
-c. shrink effect on entity ? - Okay, I can do it. It's in.
-	The problem is it isn't abstracted all that well.
-	Ah well, we're okay.
+c. shrink effect on entity ? - Abstracted nicely
+ca. animated textures - simple thing, visual priority makes it low
 d. i am absolutely going to have to figure out texture cutting (in addition to the current tiling system)
 e. HUD event system is done
 f. 3D pad support + 3D pad menu? - pretty important, but low priority
@@ -371,7 +374,10 @@ void	object_control_loop(int ppos[XY])
 					RBBs[objUP].status[0] = 'R';
 					RBBs[objUP].status[1] = ((dWorldObjects[i].type.ext_dat & ETYPE) == GHOST) ? 'N' : 'C';
 					RBBs[objUP].status[2] = (dWorldObjects[i].type.light_bright != 0) ? 'L' : 'N';
-					if(dWorldObjects[i].shrink != 0) set_box_scale(&RBBs[objUP], dWorldObjects[i].shrink, dWorldObjects[i].shrink, dWorldObjects[i].shrink);
+					////////////////////////////////////////////////////
+					//	Effect Processor
+					////////////////////////////////////////////////////
+					object_effects(i, objUP);
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
@@ -965,9 +971,10 @@ void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stato
 	unsigned short otype = GET_OBJECT_TYPE(someOBJECTdata->type.ext_dat);
 	if(otype == FORCEFIELD_TOUCH && !(someOBJECTdata->type.ext_dat & FF_TIMER_STARTED))
 	{
-		someOBJECTdata->dist += 16384; //Add to the timer.
+		someOBJECTdata->dist += someOBJECTdata->type.effectTimeLimit; //Add to the timer.
+		someOBJECTdata->type.effect = EFFECT_SHRINK;
+		someOBJECTdata->type.effectTimeCount = 0;
 		someOBJECTdata->type.ext_dat |= FF_TIMER_STARTED;
-		someOBJECTdata->shrink = 1<<16; //Set a shrink value (just an effect)
 		pcm_play(snd_ffield1, PCM_PROTECTED, 6);
 	} else if(otype == CRUSH_BLOCK_SLOW)
 	{
@@ -1204,17 +1211,10 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someLDATA->more_data |= (1<<((item_type>>4)-1));
 				}
 			}
-			if(manager_type == MANAGER_7RINGS && !(*edata & ITEM_COLLECTED))
+			if(manager_type == MANAGER_7RINGS && !(*edata & ITEM_COLLECTED) && *edata & OBJPOP)
 			{
 				//Make the rings spin
 				someITEMdata->rot[Y] += 182;
-				//Add to time
-				someITEMdata->type.effectTimeCount += fxm(delta_time, getRandom())>>8;
-				if(someITEMdata->type.effectTimeCount > someITEMdata->type.effectTimeLimit)
-				{
-				emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, someITEMdata->pos, 12<<16, 8192, 2);
-				someITEMdata->type.effectTimeCount = 0;
-				}
 			}
 			
 			if(manager_type == MANAGER_CTF && item_type == ITEM_TYPE_FLAG)
@@ -1360,39 +1360,36 @@ void	manage_object_data(void)
 		{
 			if(*edata & FF_TIMER_STARTED)
 			{
-				if(someOBJECTdata->shrink > 0)
-				{
-					someOBJECTdata->shrink -= delta_time<<2;
-				}
 				if(someOBJECTdata->dist < 0)
 				{
+					someOBJECTdata->type.effectTimeCount = 0;
 					*edata &= OBJECT_RESET;
 					*edata |= OBJECT_DISABLED;
 					*edata |= FF_RESET_STARTED;
+					someOBJECTdata->type.effect = EFFECT_NONE;
 					someOBJECTdata->dist += 2<<16;
 				}
 				someOBJECTdata->dist -= delta_time;
-			}
-			if(*edata & FF_RESET_STARTED)
+			} else if(*edata & FF_RESET_STARTED)
 			{
 				if(someOBJECTdata->dist < 0)
 				{
+					someOBJECTdata->type.effectTimeCount = 0;
 					*edata &= OBJECT_RESET;
 					*edata |= FF_RESET_FINISH;
-					someOBJECTdata->dist = 16384;
+					someOBJECTdata->dist = someOBJECTdata->type.effectTimeLimit;
+					someOBJECTdata->type.effect = EFFECT_GROW;
 					pcm_play(snd_ffield2, PCM_PROTECTED, 6);
-					someOBJECTdata->shrink = 1;
 				}
 				someOBJECTdata->dist -= delta_time;
-			}
-			if(*edata & FF_RESET_FINISH)
+			} else if(*edata & FF_RESET_FINISH)
 			{
-				someOBJECTdata->shrink += delta_time<<2;
 				if(someOBJECTdata->dist < 0)
 				{
+					someOBJECTdata->type.effectTimeCount = 0;
 					*edata &= OBJECT_RESET;
 					someOBJECTdata->dist = 0;
-					someOBJECTdata->shrink = 0;
+					someOBJECTdata->type.effect = EFFECT_NONE;
 				}
 				someOBJECTdata->dist -= delta_time;
 			}

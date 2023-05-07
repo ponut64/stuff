@@ -8,6 +8,11 @@
 #define PARTICLE_TYPE_NOCOL		(4) //Gravity-enabled, collision-disabled
 #define PARTICLE_HIT			(0x8000) //Bitflag to set when particle has hit something
 
+#define	EFFECT_NONE				(0)
+#define EFFECT_SPARKLE			(1)
+#define EFFECT_SHRINK			(2)
+#define EFFECT_GROW				(3)
+
 typedef struct {
 	_sprite * spr;
 	int prevPos[XYZ];
@@ -28,6 +33,7 @@ extern _particle	particles[MAX_SPRITES];
 
 _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity);
 void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int radius, int intensity, int count);
+void		object_effects(int obj_index, int box_index);
 void		particle_collision_handler(_particle * part, int * normal);
 void		operate_particles(void);
 
