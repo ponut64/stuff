@@ -12,18 +12,23 @@ typedef struct {
 	_sprite * spr;
 	int prevPos[XYZ];
 	int velocity[XYZ];
+	int dirUV[XYZ];
+	int spd;
 	int lifetime;
-	unsigned short luma; //Light emission value
+	unsigned short luma; //Light emission value (unused)
 	unsigned short type;
 	unsigned short extra; //Type-specific data
 } _particle;
 
-extern _sprite		pentry; 
+extern _sprite		TestSpr; 
+extern _sprite		SmallPuff;
+extern _sprite		GlowPuff;
 extern _particle	particle_starter;
 extern _particle	particles[MAX_SPRITES];
 
-void	particle_collision_handler(_particle * part, int * normal);
-void	spawn_particle(_particle * part);
-void	operate_particles(void);
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity);
+void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int radius, int intensity, int count);
+void		particle_collision_handler(_particle * part, int * normal);
+void		operate_particles(void);
 
 #endif

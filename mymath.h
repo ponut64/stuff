@@ -13,11 +13,15 @@
 	
 # define JO_IS_ODD(A)	((A) & 1)
 
+int			getRandom(void);
+void		maintRand(void);
+
 FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(FIXED * ptA, FIXED * ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);
 
 FIXED		approximate_distance(FIXED * p0, FIXED * p1);
+FIXED		fxisqrt(FIXED input);
 
 int		unfix_length(FIXED Max[XYZ], FIXED Min[XYZ]);
 void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);

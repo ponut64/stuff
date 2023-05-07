@@ -18,38 +18,98 @@
 
 /*
 
-Particle Sys To-do List:
-
-a. Add line particles (velocity is direction/size of line)
-b. Add creation of lines by type from list
-c. Move ground puff from walking to a particle
-d. Some work on particle collision so it doesn't catch itself colliding on things behind other things
+Particle Sys To-Do is done, for now.
 
 */
 
-_sprite		pentry; 
-_particle	particle_starter = {
-	.spr = &pentry
-	};
+_sprite		TestSpr = {
+	.lifetime = 3<<16,
+	.span[X] = 5,
+	.span[Y] = 5,
+	.span[Z] = 5,
+	.texno = 5,
+	.colorBank = 0,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 1,
+	.type = SPRITE_TYPE_BILLBOARD
+}; 
+
+_sprite		SmallPuff = {
+	.lifetime = 1<<16,
+	.span[X] = 1,
+	.span[Y] = 1,
+	.span[Z] = 1,
+	.texno = 3,
+	.colorBank = 2,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 1,
+	.type = SPRITE_TYPE_BILLBOARD
+}; 
+
+_sprite		GlowPuff = {
+	.lifetime = 8192,
+	.span[X] = 1,
+	.span[Y] = 1,
+	.span[Z] = 1,
+	.texno = 4,
+	.colorBank = 1,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 1,
+	.type = SPRITE_TYPE_BILLBOARD
+}; 
+
+
 _particle	particles[MAX_SPRITES];
 
-void	spawn_particle(_particle * part)
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity)
 {
 	
 	//Particles are co-related with the sprite system, since they draw with the sprite list.
 	//Because of this, whether a particle spawns or not is determined first by whether there's a free sprite entry.
-	short spr_entry = add_to_sprite_list(part->spr->pos, part->spr->span, part->spr->texno, part->spr->colorBank,
-	part->spr->mesh, 'B', part->spr->useClip, part->spr->lifetime);
+	short spr_entry = add_to_sprite_list(pos, spr_type->span, spr_type->texno, spr_type->colorBank,
+	spr_type->mesh, spr_type->type, spr_type->useClip, spr_type->lifetime);
 	
-	if(spr_entry == -1) return;
+	if(spr_entry == -1) return &particles[MAX_SPRITES-1];
 	
-	particles[spr_entry] = *part;
 	particles[spr_entry].spr = &sprWorkList[spr_entry];
-	particles[spr_entry].lifetime = part->spr->lifetime;
-	particles[spr_entry].prevPos[X] = part->spr->pos[X] + part->velocity[X];
-	particles[spr_entry].prevPos[Y] = part->spr->pos[Y] + part->velocity[Y];
-	particles[spr_entry].prevPos[Z] = part->spr->pos[Z] + part->velocity[Z];
+	particles[spr_entry].lifetime = spr_type->lifetime;
+	particles[spr_entry].type = p_type;
+	particles[spr_entry].velocity[X] = velocity[X];
+	particles[spr_entry].velocity[Y] = velocity[Y];
+	particles[spr_entry].velocity[Z] = velocity[Z];
+	particles[spr_entry].prevPos[X] = spr_type->pos[X];
+	particles[spr_entry].prevPos[Y] = spr_type->pos[Y];
+	particles[spr_entry].prevPos[Z] = spr_type->pos[Z];
+	return &particles[spr_entry];
 }
+
+//Emits particles of a type with random velocities/directions from a radius
+void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int radius, int intensity, int count)
+{
+	for(int i = 0; i < count; i++)
+	{
+		int partVelocity[XYZ];
+		partVelocity[X] = fxm(getRandom(), intensity);
+		partVelocity[Y] = fxm(getRandom(), intensity);
+		partVelocity[Z] = fxm(getRandom(), intensity);
+		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity);
+		int newTime = fxm(getRandom(), spr_type->lifetime>>1) + (spr_type->lifetime>>1);
+		part->lifetime = newTime;
+		part->spr->lifetime = newTime;
+		if(radius > 65535)
+		{
+		accurate_normalize(part->velocity, part->dirUV);
+		part->spr->pos[X] += fxm(part->dirUV[X], radius);
+		part->spr->pos[Y] += fxm(part->dirUV[Y], radius);
+		part->spr->pos[Z] += fxm(part->dirUV[Z], radius);
+		}
+	}
+}
+
+
 
 void	particle_collision_handler(_particle * part, int * normal)
 {
@@ -59,10 +119,14 @@ void	particle_collision_handler(_particle * part, int * normal)
 	part->velocity[X] += fxm(normal[X], deflectionFactor + REBOUND_ELASTICITY);// - (normal[X]>>4);
 	part->velocity[Y] += fxm(normal[Y], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Y]>>4);
 	part->velocity[Z] += fxm(normal[Z], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Z]>>4);
+	//Small push to secure surface release
+	part->spr->pos[X] += normal[X]>>4;
+	part->spr->pos[Y] += normal[Y]>>4;
+	part->spr->pos[Z] += normal[Z]>>4;
 	
-	part->spr->pos[X] = part->prevPos[X];
-	part->spr->pos[Y] = part->prevPos[Y];
-	part->spr->pos[Z] = part->prevPos[Z];
+	//part->spr->pos[X] = part->prevPos[X];
+	//part->spr->pos[Y] = part->prevPos[Y];
+	//part->spr->pos[Z] = part->prevPos[Z];
 	
 }
 
@@ -95,6 +159,13 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 
 	if(bigDif > (bigRadius + (20<<16))) return false;
 	
+	int usedSpan;
+	if(part->spr->type != SPRITE_TYPE_3DLINE || part->spr->type != SPRITE_TYPE_3DLINE)
+	{
+		usedSpan = part->spr->span[X];
+	} else {
+		usedSpan = 5;
+	}
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
 		//First, back-facing.
@@ -150,13 +221,13 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		plane_center[Y] >>=2;
 		plane_center[Z] >>=2;
 		
-		int segPt[XYZ] = {part->spr->pos[X] + (plnm[X] * part->spr->span[X]),
-		part->spr->pos[Y] + (plnm[Y] * part->spr->span[X]),
-		part->spr->pos[Z] + (plnm[Z] * part->spr->span[X])};
+		int segPt[XYZ] = {part->spr->pos[X] - (part->dirUV[X] * usedSpan),
+		part->spr->pos[Y] - (part->dirUV[Y] * usedSpan),
+		part->spr->pos[Z] - (part->dirUV[Z] * usedSpan)};
 		//Yes, the line method is truly better than dot product tests.
 		//Though part of how it's better is that the collision check can include velocity (in the line segment).
 		//You do that so you can catch things before they just casually phase through by virtue of going fast.
-		int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384, hitPt);
+		int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384 + (part->spd<<3), hitPt);
 
 		if(hitLine)
 		{
@@ -213,6 +284,15 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
 	}
 	
 	static int hitPt[XYZ];
+	
+	
+	int usedSpan;
+	if(part->spr->type != SPRITE_TYPE_3DLINE || part->spr->type != SPRITE_TYPE_3DLINE)
+	{
+		usedSpan = part->spr->span[X];
+	} else {
+		usedSpan = 5;
+	}
 	/*
 	Collision Logic Lesson
 	In case someone 20 years from now, After The Bombs Fall decides to read this code for some silly reason...
@@ -237,11 +317,11 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
    		//Backfacing Faces
 		if(fxdot(centerDif, obj->nmtbl[i]) > 0) continue;
 		
-		int segPt[XYZ] = {part->spr->pos[X] + (obj->nmtbl[i][X] * part->spr->span[X]),
-		part->spr->pos[Y] + (obj->nmtbl[i][Y] * part->spr->span[X]),
-		part->spr->pos[Z] + (obj->nmtbl[i][Z] * part->spr->span[X])};
+		int segPt[XYZ] = {part->spr->pos[X] - (part->dirUV[X] * usedSpan),
+		part->spr->pos[Y] - (part->dirUV[Y] * usedSpan),
+		part->spr->pos[Z] - (part->dirUV[Z] * usedSpan)};
 		
-		int hitLine = line_hit_plane_here(part->spr->pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384, hitPt);
+		int hitLine = line_hit_plane_here(part->spr->pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384 + (part->spd<<3), hitPt);
 
 		if(hitLine)
 		{
@@ -339,6 +419,9 @@ void	operate_particles(void)
 		
 		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOGRAV)
 		{
+				//Used for collisions
+				normalize(particles[i].velocity, particles[i].dirUV);
+				particles[i].spd = fxisqrt(fxdot(particles[i].velocity, particles[i].velocity));
 				pHit = particle_collide_heightmap(&particles[i]);
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)
 				{
@@ -353,6 +436,22 @@ void	operate_particles(void)
 						pHit |= particle_collide_object(&particles[i], &RBBs[u]);
 					}
 				}
+				
+				if(particles[i].spr->type == SPRITE_TYPE_3DLINE)
+				{
+					particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
+					particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;
+					particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
+				}
+				
+		} else if(particles[i].spr->type == SPRITE_TYPE_3DLINE)
+		{
+			//Exception: If it's a line, we still need this data to display it.
+			normalize(particles[i].velocity, particles[i].dirUV);
+			//Set the data
+			particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
+			particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;
+			particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
 		}
 		
 		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOCOL)

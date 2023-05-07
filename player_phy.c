@@ -133,7 +133,7 @@ void	pl_step_snd(void){
 	//int printPos = 0;
 	int hf_vert[4] = {6, 28, 57, 102};
 	POINT hf_pos;
-	short spr_span[3] = {1,1,1};
+	int partVelocity[XYZ] = {0, -1024, 0};
 
 		if(you.hitSurface == true){
 			for(int h = 0; h < 4; h++)
@@ -151,7 +151,7 @@ void	pl_step_snd(void){
 					hf_pos[X] = hf_pos[X] - you.pos[X];
 					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
 					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					add_to_sprite_list(hf_pos, spr_span /*Span*/, 3 /*texno*/, 2<<6 /*colorbank*/, 1 /*mesh Bool*/, 'B', 0 /*no clip*/, 1<<16);
+					spawn_particle(&SmallPuff, PARTICLE_TYPE_GHOST, hf_pos, partVelocity);
 				}
 				} else {
 					hoofSetBools[h] = false;
@@ -234,26 +234,16 @@ void	player_phys_affect(void)
 		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
 	
-	static int part_timer = 3<<16;
-	
-	if(part_timer < 0)
-	{
-		particle_starter.spr->pos[X] = -you.pos[X];
-		particle_starter.spr->pos[Y] = -you.pos[Y];
-		particle_starter.spr->pos[Z] = -you.pos[Z];
-		particle_starter.spr->lifetime = 3<<16;
-		particle_starter.spr->span[X] = 5;
-		particle_starter.spr->span[Y] = 5;
-		particle_starter.spr->texno = 5;
-		particle_starter.velocity[X] = pl_RBB.UVNZ[X]<<1;
-		particle_starter.velocity[Y] = pl_RBB.UVNZ[Y]<<1;
-		particle_starter.velocity[Z] = pl_RBB.UVNZ[Z]<<1;
-		particle_starter.type = PARTICLE_TYPE_NORMAL;
-		spawn_particle(&particle_starter);
+	// static int part_timer = 3<<16;
+	// int partVel[XYZ] = {pl_RBB.UVNZ[X]<<1, pl_RBB.UVNZ[Y]<<1, pl_RBB.UVNZ[Z]<<1};
+	// if(part_timer < 0)
+	// {
+
+		// spawn_particle(&TestSpr, PARTICLE_TYPE_NORMAL, you.wpos, partVel);
 		
-		part_timer = 3<<16;
-	}
-	part_timer -= delta_time;
+		// part_timer = 3<<16;
+	// }
+	// part_timer -= delta_time;
 	
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];
@@ -556,7 +546,7 @@ void	player_phys_affect(void)
 		you.climbing = false;
 		you.ladder = false;
 
-
+/*
 _lineTable moverCFs = {
 	.xp0[X] = pl_RBB.Xplus[X] 	- pl_RBB.pos[X],
 	.xp0[Y] = pl_RBB.Xplus[Y] 	- pl_RBB.pos[Y],
@@ -583,16 +573,16 @@ _lineTable moverCFs = {
 		short dirXN[3] = {pl_RBB.UVNX[X]>>3, pl_RBB.UVNX[Y]>>3,		pl_RBB.UVNX[Z]>>3};
 		short dirYP[3] = {pl_RBB.UVY[X]>>3,	  pl_RBB.UVY[Y]>>3, 	 pl_RBB.UVY[Z]>>3};
 		short dirYN[3] = {pl_RBB.UVNY[X]>>3, pl_RBB.UVNY[Y]>>3,		pl_RBB.UVNY[Z]>>3};
-		add_to_sprite_list(you.wpos, dirXP, 0,   16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.xp0, dirXP, 0, 16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.xp1, dirXN, 0, 16	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(you.wpos, dirYP, 0,   19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.yp0, dirYP, 0, 19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.yp1, dirYN, 0, 19	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.zp0, dirZP, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
-		add_to_sprite_list(moverCFs.zp1, dirZN, 0, 17	+ (0 * 64), 0, 'L', 0, 1500);
- 
+		add_to_sprite_list(you.wpos, dirXP, 0,   16	+ (0 * 64), 0, 		'l', 0, 1500);
+		add_to_sprite_list(moverCFs.xp0, dirXP, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(moverCFs.xp1, dirXN, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.wpos, dirYP, 0,   19	+ (0 * 64), 0, 		'l', 0, 1500);
+		add_to_sprite_list(moverCFs.yp0, dirYP, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(moverCFs.yp1, dirYN, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 		'l', 0, 1500);
+		add_to_sprite_list(moverCFs.zp0, dirZP, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(moverCFs.zp1, dirZN, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
+ */
 
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;

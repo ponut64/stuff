@@ -359,6 +359,32 @@ X-	|	|	     |	|	X+
 	
 }
 
+void	set_box_scale(_boundBox * box, int sx, int sy, int sz)
+{
+	box->status[4] = 'S';
+	box->renderScale[X] = sx;
+	box->renderScale[Y] = sy;
+	box->renderScale[Z] = sz;
+	//To scale a box, multiply through the matrix values (UVX,UVY,UVZ).
+	//Scaling a box is only valid for part of one frame. Be aware of that.
+}
+
+void	apply_box_scale(_boundBox * box)
+{
+	//A scaled box is not valid for collision.
+	//It could be made valid, but I don't want to.
+	box->status[1] = 'N';
+	box->UVX[X] = fxm(box->UVX[X], box->renderScale[X]);
+	box->UVX[Y] = fxm(box->UVX[Y], box->renderScale[Y]);
+	box->UVX[Z] = fxm(box->UVX[Z], box->renderScale[Z]);
+	box->UVY[X] = fxm(box->UVY[X], box->renderScale[X]);
+	box->UVY[Y] = fxm(box->UVY[Y], box->renderScale[Y]);
+	box->UVY[Z] = fxm(box->UVY[Z], box->renderScale[Z]);
+	box->UVZ[X] = fxm(box->UVZ[X], box->renderScale[X]);
+	box->UVZ[Y] = fxm(box->UVZ[Y], box->renderScale[Y]);
+	box->UVZ[Z] = fxm(box->UVZ[Z], box->renderScale[Z]);
+}
+
 void	flush_boxes(int start)
 {
 	
@@ -376,6 +402,7 @@ void	flush_boxes(int start)
 		RBBs[i].status[1] = 'N';
 		RBBs[i].status[2] = 'N';
 		RBBs[i].status[3] = 'N';
+		RBBs[i].status[4] = 'N';
 	}
 ////////////////////////////////////////////////////
 	
@@ -389,6 +416,8 @@ void	initPhys(void){
 		RBBs[x].status[0] = 'N';
 		RBBs[x].status[1] = 'N';
 		RBBs[x].status[2] = 'N';
+		RBBs[x].status[3] = 'N';
+		RBBs[x].status[4] = 'N';
 		RBBs[x].velocity[X] = 0;
 		RBBs[x].velocity[Y] = 0;
 		RBBs[x].velocity[Z] = 0;

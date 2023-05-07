@@ -63,7 +63,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	new_rule = subdivision_rules[total_divisions];
 
 	used_textures[overwritten_polygon] = texture_rules[total_divisions];
-	if(num_divisions == 0)
+	if(num_divisions == 0 || subdivision_rules[total_divisions] == 0)
 	{
 		return;
 	}
@@ -397,7 +397,6 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	int max_z = 0;
 	//int min_z = 0;
 	
-	int max_subdivisions = 0;
 	int specific_texture = 0;
 	
 	////////////////////////////////////////////////////
@@ -501,7 +500,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	
 	if(flags & GV_FLAG_NDIV)
 	{ 
-		max_subdivisions = 0;
 		used_textures[0] = 0;
 	} else {
 	//////////////////////////////////////////////////////////////
@@ -518,10 +516,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			//In this case the polygon is too small or too large.
 			//Large polygons will be excepted by making it look obviously wrong.
 			used_textures[0] = 0;
-			max_subdivisions = 0;
 		} else {
 			///////////////////////////////////////////
-			// Resolve the maximum # of subdivisions.
 			// The subdivision rules were pre-calculated by the converter tool.
 			///////////////////////////////////////////
 			/*
@@ -534,26 +530,21 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			The polygons from the first subdivision will always use a texture at its greatest size.
 			The system then calculates the subdivisions from the size of polygons made by that first subdivision.
 			*/
-
-			max_subdivisions = (subdivision_rules[0]) ? 1 : 0;
-			max_subdivisions += (subdivision_rules[1]) ? 1 : 0;
-			max_subdivisions += (subdivision_rules[2]) ? 1 : 0;
-
+			// texture_rules[0] = 16;
+			// texture_rules[1] = 16;
+			// texture_rules[2] = 16;
+			// texture_rules[3] = 16;
 			short rule_0 = rule_to_texture[subdivision_rules[0]];
 			short rule_1 = rule_to_texture[subdivision_rules[1]];
 			short rule_2 = rule_to_texture[subdivision_rules[2]];
 			texture_rules[0] = 16 - (rule_0 + rule_1 + rule_2);
 			texture_rules[1] = texture_rules[0] + rule_0;
 			texture_rules[2] = texture_rules[1] + rule_1;
-			
-			// texture_rules[0] = 16;
-			// texture_rules[1] = 16;
-			// texture_rules[2] = 16;
-			// texture_rules[3] = 16;
-			subdivide_plane(sub_vert_cnt, 0, max_subdivisions, 0);
+
+			subdivide_plane(sub_vert_cnt, 0, 3, 0);
 			///////////////////////////////////////////
 			//
-			// Screenspace Transform of Vertices
+			// Screenspace Transform of SUBDIVIDED Vertices
 			// v = subdivided point index
 			// testing_planes[i] = plane data index
 			//
@@ -694,8 +685,68 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 }
 
 
+/*
 
+//Saved for posterity, to demonstrate how the subdvision rules are determined.
+void	TEMP_process_mesh_for_subdivision_rules(GVPLY * mesh)
+{
+	
+	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	{
+		int * pl_pt0 = mesh->pntbl[mesh->pltbl[i].Vertices[0]];
+		int * pl_pt1 = mesh->pntbl[mesh->pltbl[i].Vertices[1]];
+		int * pl_pt2 = mesh->pntbl[mesh->pltbl[i].Vertices[2]];
+		int * pl_pt3 = mesh->pntbl[mesh->pltbl[i].Vertices[3]];
+								
+		int len01 = unfix_length(pl_pt0, pl_pt1);
+		int len12 = unfix_length(pl_pt1, pl_pt2);
+		int len23 = unfix_length(pl_pt2, pl_pt3);
+		int len30 = unfix_length(pl_pt3, pl_pt0);
+		int perimeter = len01 + len12 + len23 + len30;
 
+		int len_w = JO_MAX(len01, len23);//(len01 + len23)>>1; 
+		int len_h = JO_MAX(len12, len30);//(len12 + len30)>>1;
+	
+		subdivision_rules[0] = 0;
+		subdivision_rules[1] = 0;
+		subdivision_rules[2] = 0;
+		subdivision_rules[3] = (perimeter > 1200) ? 1 : 0;
+	
+			if(len_w >= SUBDIVISION_SCALE)
+			{
+				subdivision_rules[0] = SUBDIVIDE_W;
+			}
+			if(len_w >= SUBDIVISION_SCALE<<1)
+			{
+				subdivision_rules[1] = SUBDIVIDE_W;
+			}
+			if(len_w >= SUBDIVISION_SCALE<<2)
+			{
+				subdivision_rules[2] = SUBDIVIDE_W;
+			}
+			
+			if(len_h >= SUBDIVISION_SCALE)
+			{
+				subdivision_rules[0] = (subdivision_rules[0] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+			}
+			if(len_h >= SUBDIVISION_SCALE<<1)
+			{
+				subdivision_rules[1] = (subdivision_rules[1] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+			}
+			if(len_w >= SUBDIVISION_SCALE<<2)
+			{
+				subdivision_rules[2] = (subdivision_rules[2] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+			}
+			unsigned char subrules = subdivision_rules[0];
+			subrules |= subdivision_rules[1]<<2;
+			subrules |= subdivision_rules[2]<<4;
+			subrules |= subdivision_rules[3]<<6;
+			mesh->attbl[i].plane_information = subrules;
+	}	
+	
+}
+		
+*/
 
 
 

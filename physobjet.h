@@ -85,6 +85,7 @@ bitflag orientation for OBJECT:
 #define OBJECT_RESET		(0x7FF0)
 #define FF_TIMER_STARTED	(0x2)
 #define FF_RESET_STARTED	(0x4)
+#define FF_RESET_FINISH		(0x8)
 
 /*
 ///////////////////////////////////////////////////////////////
@@ -344,6 +345,8 @@ typedef struct {
 	unsigned short ext_dat;
 	unsigned short light_bright;
 	unsigned short light_y_offset;
+	unsigned short effectTimeLimit;	//Receives time limit (in seconds) <<8
+	unsigned short effectTimeCount; //Receives time count (in seconds) >>8
 } _sobject;
 
 typedef struct {
@@ -358,6 +361,7 @@ typedef struct {
 	ANGLE	rot[XYZ];
 	_sobject type;
 	int		dist; 
+	int		shrink;
 	unsigned short	more_data;
 	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
 } _declaredObject;

@@ -7,7 +7,9 @@ _sobject FirstRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x10,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject SecondRing = {
@@ -17,7 +19,9 @@ _sobject SecondRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x20,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject ThirdRing = {
@@ -27,7 +31,9 @@ _sobject ThirdRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x30,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject FourthRing = {
@@ -37,7 +43,9 @@ _sobject FourthRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x40,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject FifthRing = {
@@ -47,7 +55,9 @@ _sobject FifthRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x50,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject SixthRing = {
@@ -57,7 +67,9 @@ _sobject SixthRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x60,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject SeventhRing = {
@@ -67,7 +79,9 @@ _sobject SeventhRing = {
 	.radius[Y] = 15,
 	.radius[Z] = 15,
 	.ext_dat = ITEM | 0x70,
-	.light_bright = 0
+	.light_bright = 0,
+	.light_y_offset = 0,
+	.effectTimeLimit = 64,
 };
 
 _sobject Titem = {

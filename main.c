@@ -19,6 +19,7 @@ I am sorry for the pain you had to go through.
 //Outstanding code contributions from XL2 
 //
 
+#include "mymath.h"
 #include "render.h"
 #include "collision.h"
 #include "control.h"
@@ -275,6 +276,7 @@ void	game_frame(void)
 	}
 	
 	update_gamespeed();
+	maintRand();
 	master_draw_stats();
 	frame_render_prep();
 	master_draw(); 

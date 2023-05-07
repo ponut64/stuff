@@ -266,7 +266,7 @@ void	obj_draw_queue(void)
 		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
 		//Assuming the rest of the game code made sense up to this point. Else the game's gonna crash here.
 		if(RBBs[i].status[0] != 'R') continue;
-		
+		if(RBBs[i].status[4] == 'S') apply_box_scale(&RBBs[i]);
 		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & ETYPE);
 		
 	slPushMatrix();
@@ -277,6 +277,7 @@ void	obj_draw_queue(void)
 		{ 
 			plane_rendering_with_subdivision(&entities[objDRAW[i]]);
 		} else {
+			
 			ssh2DrawModel(&entities[objDRAW[i]]);
 		}
 	slPopMatrix();
@@ -427,7 +428,6 @@ void	map_draw(void)
 
 void	master_draw(void)
 {
-	
 	if(!you.inMenu)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP

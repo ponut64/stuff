@@ -3,19 +3,43 @@
 
 #include "mymath.h"
 
-/*
-	Deflection
-	//d - 2 * DotProduct(d,n) * n
-	d = direction vector
-	n = normal vector
-*/
-
 #define MATH_TOLERANCE (16384)
+#define RAND_TBL_SIZE	(64)
 
 	static int realNormal[XYZ] = {0, 0, 0};
 	static int realpt[XYZ] = {0, 0, 0};
 	static FIXED pFNn[XYZ] = {0, 0, 0};
+	
+	static short randIter;
+	static short randRollover;
+	static int randTbl[RAND_TBL_SIZE] = {
+	-3948 * 16, -476 * 16, -3297 * 16, -3255 * 16, -2217 * 16, -290 * 16, 10 * 16, -3198 * 16, 3730 * 16, -2235 * 16, -2106 * 16, -3604 * 16, 1372 * 16, 2450 * 16,
+	984 * 16, -2254 * 16, -990 * 16, -1360 * 16, -1841 * 16, 2003 * 16, -513 * 16, 801 * 16, -3412 * 16, -3463 * 16, -2715 * 16, -2985 * 16, 3003 * 16, -3055 * 16,
+	-1005 * 16, -3517 * 16, 1375 * 16, -1066 * 16, -1551 * 16, 8 * 16, -32 * 16, -787 * 16, -131 * 16, 686 * 16, 148 * 16, -2938 * 16, -215 * 16, 978 * 16, -2598 * 16,
+	939 * 16, -662 * 16, -3899 * 16, -2104 * 16, 3830 * 16, -260 * 16, 2401 * 16, -4075 * 16, 1066 * 16, -1932 * 16, 3211 * 16,
+	-3116 * 16, 2520 * 16, -1138 * 16, -2549 * 16, -3340 * 16, -1012 * 16, -1816 * 16, 3993 * 16, 1358 * 16, -3556 * 16
+	};
 
+//Returns a random value between fixed point +1 and fixed point -1
+inline int 		getRandom(void)
+{
+	randIter = (randIter >= RAND_TBL_SIZE) ? 0 : randIter+1;
+	return randTbl[randIter];
+}
+
+//Maintenance function for getRandom
+//I just tried a bunch of shit and this turned out to be what works
+//The goal is to keep rollovers of the random table to be unique on a per-frame basis
+//This fails, but it fails less than 50% of the time, so it looks convincing.
+inline void		maintRand(void)
+{
+	if(randRollover > randIter)
+	{
+		randIter = randRollover & (RAND_TBL_SIZE-1);
+		randRollover = randIter;
+	}
+	randRollover += 1;
+}
 
 inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
 {
