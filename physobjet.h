@@ -381,8 +381,8 @@ _declaredObject * step_linked_object_list(_declaredObject * previous_entry);
 _declaredObject * get_first_in_object_list(unsigned short object_type_specification);
 
 void	fill_obj_list(void);
-
-void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data);
+void	purge_object_list(void);
+void	declare_object_at_cell(short pixX, short height, short pixY, short type, ANGLE xrot, ANGLE yrot, ANGLE zrot, unsigned short more_data, unsigned short eeOrData);
 void	post_ldata_init_building_object_search(void);
 
 void	declarations(void);

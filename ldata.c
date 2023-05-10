@@ -1,6 +1,7 @@
 //ldata.c
 //this file is compiled separately
 #include <sl_def.h>
+#include <SEGA_GFS.H>
 #include "def.h"
 #include "bounder.h"
 #include "physobjet.h"
@@ -8,9 +9,14 @@
 #include "render.h"
 #include "player_phy.h"
 #include "tga.h"
+#include "pcmsys.h"
+#include "pcmstm.h"
 
 #include "ldata.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
 
 
 
@@ -28,30 +34,28 @@ void	declarations(void)
 
 //declare_object_at_cell(-(0 / 40) + 1, -15, (100 / 40), 16 /*kyob*/, 0, 0, 0, 0);
 
-declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0);
+declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 
-declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0);
-objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 1);
-declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0);
-objList[18]->ext_dat = SET_GATE_POST_LINK(objList[18]->ext_dat, 2);
-declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0);
-declare_object_at_cell((140 / 40) + 1, -69, -(260 / 40), 18 /*post00*/, 0, 0, 0, 0);
+declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+declare_object_at_cell((140 / 40) + 1, -69, -(260 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
 
-declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 0);
-declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 0);
-declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 0);
-declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 0);
-declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 0);
-declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 0);
-declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 0);
+declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
 
-declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0);
+declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 
-declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0);
+declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 
-declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0);
+declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
 
 //declare_object_at_cell((220 / 40) + 1, -280, (-1060 / 40), 15 /*ADX sound trigger*/, 40, 40, 40, 7 | (7<<8) /* sound num & vol */);
 
@@ -466,92 +470,92 @@ declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0,
 
 }
 
-
-void	process_tga_as_ldata(void * source_data)
+void	process_binary_ldata(void * source_data)
 {
+	purge_object_list();
+	unsigned short * aptr;
+	char * cptr = (char *)source_data;
 	
-	unsigned char * readByte = (unsigned char *)source_data;
+	//Alright, I really did not want to do this in fixed-order-processing.
+	//However, it's just so much less efficient to do it any other way.
+	//I would've thought just searching a chunk of RAM for a string was simple, but no, there's no single function.
 	
-	unsigned char id_field_size = readByte[0];
-	unsigned char col_map_type = readByte[1]; 
-	unsigned char data_type = readByte[2];	
-	
-	unsigned char xSizeLoBits = readByte[12];
-	unsigned char xSizeHiBits = readByte[13];
-	unsigned char ySizeLoBits = readByte[14];
-	unsigned char ySizeHiBits = readByte[15];
-	unsigned short xSize = xSizeLoBits | (xSizeHiBits<<8);
-	unsigned short ySize = ySizeLoBits | (ySizeHiBits<<8);
-	unsigned char byteFormat = readByte[16];
-	
-	if(col_map_type != 0){
-		nbg_sprintf(0, 0, "(REJECTED NON-RGB TGA)");
-		return;
-	}
-	
-	if(data_type != 2) {
-		nbg_sprintf(0, 0, "(REJECTED RLE TGA)");
-		return;
-	}
-	//Color Map Specification Data is ignored.
-	
-	//X / Y origin data is ignored.
-	
-	if(byteFormat != 24){
-		nbg_sprintf(0, 0, "(TGA NOT 24BPP)");
-		return; //File Typing Demands 24 bpp.
-	}
-	
-	
-//I want to make a command line executable that can parse an image file into these declarations.
-//Conceptual: 24bit RGB TGA
-//Bits 0-4: Object type
-//Bits 5-8: (Vertical offset)
-//Bits 9-11: Rotation sign bits
-//Bits 12-15: (x rotation)<<8 [degrees]
-//Bits 16-19: (y rotation)<<12
-//Bits 20-23: (z rotation)<<16
-//Object types: 32 max
-//Height increments: 4[<<16] | 60[<<16] max, unsigned
-//Rotational increments: 16 degrees / 240 max, signed [via sign bits]
-	
-	unsigned int imdat = id_field_size + 18;
-	//int totalPix = xSize * ySize;
-	//int yspot;
-	
-	//	nbg_sprintf(0, 0, "(%i)", totalPix);
-	
-	objNEW = 0;
-	for(int k = 0; k < 8; k++)
+	//////////////////////////////////
+	//Get the music names out of the file
+	//////////////////////////////////
+	for(int l = 0; l < 3; l++)
 	{
-		link_starts[k] = -1; //Re-set link starts to no links conidition
-	} 
-	
-		for(int i = 0; i < ySize; i++)
+		for(int i = 0; i < 12; i++)
 		{
-		//nbg_sprintf(0, 0, "(DECL)"); //Debug ONLY
-			//yspot = i * ySize;
-			for(int k = 0; k < xSize; k++)
+			if(*cptr != ' ')
 			{
-		//If the pixel is all high (white), dont use it.
-		if(readByte[imdat] != 0xFF && readByte[imdat+1] != 0xFF && readByte[imdat+2] != 0xFF) 
-		{
-			//Item location x y z, item type, item rotation x y z.
-	declare_object_at_cell(k-(xSize>>1), -((readByte[imdat] & 0xE0) | ((readByte[imdat+1] & 1)<<8)), i-(ySize>>1), readByte[imdat] & 0x1F, 
-	(readByte[imdat+1] & 2) ? -(readByte[imdat+1] & 0xF0) : (readByte[imdat+1] & 0xF0),
-	(readByte[imdat+1] & 4) ? -(readByte[imdat+2] & 0xF)<<4 : (readByte[imdat+2] & 0xF)<<4,
-	(readByte[imdat+1] & 8) ? -(readByte[imdat+2] & 0xF0) : (readByte[imdat+2] & 0xF0), 0);
-		}
-			imdat += 3;
+				stg_mus[l][i] = *cptr++;
+			} else {
+				stg_mus[l][i] = 0; //NUL character / string terminator
+				cptr++;
 			}
 		}
+	}
+	
+	//////////////////////////////////
+	//Prepare to load the object list
+	//////////////////////////////////
+	aptr = (unsigned short *)(cptr + 8);
+	unsigned short objct = *aptr++;
+	//nbg_sprintf(1, 10, "oct(%i)", objct);
+	unsigned short args[9];
+	
+	//////////////////////////////////
+	// Load the object list
+	// Nine arguments to function, two bytes per argument, 18 bytes at a time.
+	//////////////////////////////////
+	for(int i = 0; i < objct; i++)
+	{
+		args[0] = *aptr++;
+		args[1] = *aptr++;
+		args[2] = *aptr++;
+		args[3] = *aptr++;
+		args[4] = *aptr++;
+		args[5] = *aptr++;
+		args[6] = *aptr++;
+		args[7] = *aptr++;
+		args[8] = *aptr++;
+		declare_object_at_cell(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+	}
+	//////////////////////////////////
+	// Start the level's idle music (first entered music)
+	//////////////////////////////////
+	start_pcm_stream(&stg_mus[0][0], 3);
+	stm.times_to_loop = 255;
+}
 
+void	testing_level_data(Sint8 * filename, void * destination)
+{
+	
+	GfsHn gfs_tga;
+	Sint32 sector_count;
+	Sint32 file_size;
+	
+	Sint32 local_name = GFS_NameToId(filename);
+
+//Open GFS
+	gfs_tga = GFS_Open((Sint32)local_name);
+//Get sectors
+	GFS_GetFileSize(gfs_tga, NULL, &sector_count, NULL);
+	GFS_GetFileInfo(gfs_tga, NULL, NULL, &file_size, NULL);
+	
+	GFS_Close(gfs_tga);
+	
+	GFS_Load(local_name, 0, (Uint32 *)destination, file_size);
+	
+	process_binary_ldata(destination);
+	
 }
 
 void	level_data_basic(void)
 {
-	
-	declarations();
+
+	//declarations();
 	ldata_ready = true;
 
 	post_ldata_init_building_object_search();

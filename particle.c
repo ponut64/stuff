@@ -467,7 +467,7 @@ void	operate_particles(void)
 		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOGRAV)
 		{
 				//Used for collisions
-				normalize(particles[i].velocity, particles[i].dirUV);
+				accurate_normalize(particles[i].velocity, particles[i].dirUV);
 				particles[i].spd = fxisqrt(fxdot(particles[i].velocity, particles[i].velocity));
 				pHit = particle_collide_heightmap(&particles[i]);
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)

@@ -67,7 +67,12 @@ void	align_object_to_object(int index1, int index2)
 	if((dWorldObjects[index1].type.ext_dat & ETYPE) == GATE_P) dWorldObjects[index1].more_data |= GATE_POST_ALIGNED;
 }
 
-void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGLE xrot, ANGLE yrot, ANGLE zrot, short more_data)
+void	purge_object_list(void)
+{
+	objNEW = 0;
+}
+
+void	declare_object_at_cell(short pixX, short height, short pixY, short type, ANGLE xrot, ANGLE yrot, ANGLE zrot, unsigned short more_data, unsigned short eeOrData)
 {
 		if(objNEW < MAX_WOBJS)
 		{
@@ -77,6 +82,7 @@ void	declare_object_at_cell(short pixX, short height, short pixY, int type, ANGL
 	dWorldObjects[objNEW].pix[X] = -(pixX);
 	dWorldObjects[objNEW].pix[Y] = -(pixY);
 	dWorldObjects[objNEW].type = *objList[type];
+	dWorldObjects[objNEW].type.ext_dat |= eeOrData;
 	dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
 	dWorldObjects[objNEW].rot[Y] = (yrot * 182);
 	dWorldObjects[objNEW].rot[Z] = (zrot * 182);
@@ -237,13 +243,20 @@ d. i am absolutely going to have to figure out texture cutting (in addition to t
 e. HUD event system is done
 f. 3D pad support + 3D pad menu? - pretty important, but low priority
 g. streaming image system ? - for memes.. -- non-essential, would rather test levels
+h. Level binary loading
+	A. List of objects is currently loaded from a file on CD.
+	B. Music file names are also loaded from this file.
+	2. What assets are in this level (?)
+	3. Object type list for the level (?)
+	5. Any other level-specific parameters (palette change, sun's brightness, sun angle, etc)
+i. Improved palette management - allowing each level to change the palette
+j. Improved asset management - allowing each level to load assets specific to it
+k. Music visualizer
+	Whether ADX stream or PCM stream.
+	In either case, just return some data unique to the frame, relative to the music being played.
+l. Change music depending on what is going on
 
 **/
-
-//I'm not sure if this whole system is ideal.
-//But if I really do end up limited to 256 objects, really.. honestly... it should be okay, it's not logically intensive, and not intense on the bus either.
-// Yet for collectibles, on these big maps, is that enough?
-// .. Yeah. Yeah, it probably is. Even if it's 512.
 
 void	object_control_loop(int ppos[XY])
 {	

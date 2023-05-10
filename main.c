@@ -106,6 +106,7 @@ int game_set_res = TV_320x240;
  int stm_win = 0;
  int stm_freturn = 1;
  int stm_orchit0 = 2;
+ Sint8 stg_mus[4][12];
 //////////////////////////////////////////////////////////////////////////////
 int flagIconTexno = 0;
 //////////////////////////////////////////////////////////////////////////////
@@ -155,9 +156,8 @@ void	load_test(void)
 	// REMINDER: All file names must comply with the 8.3 standard.
 	// File extensions can be no longer than 3 letters.
 	// File names can be no longer than 8 letters.
+	// The total length is thusly 12 characters (as there is a period).
 	////////////////////////////////////////////////
-//	snd_win = load_adx((Sint8*)"WIN.ADX");
-//	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
 	stmsnd[stm_win] = (Sint8*)"WIN.ADX";
 	stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
 	stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
@@ -257,9 +257,6 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 
-	start_pcm_stream((Sint8*)"TRSC202.MUS", 3);
-	stm.times_to_loop = 255;
-
 	p64MapRequest(0);
 	//
 	
@@ -307,6 +304,7 @@ void	attributions(void)
 
 	slPrint("Sound Driver by Ponut64", slLocate(3, 21));
 	
+	//testing_level_data((Sint8*)"LIST0.REM", (void*)dirty_buf);
 	
 	load_test();
 	

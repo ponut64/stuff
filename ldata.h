@@ -4,7 +4,8 @@
 
 extern Bool ldata_ready;
 
-void	process_tga_as_ldata(void * source_data);
+void	process_binary_ldata(void * source_data);
+void	testing_level_data(Sint8 * filename, void * destination);
 void	level_data_basic(void);
 
 #endif

@@ -185,20 +185,20 @@ void	p64MapRequest(short levelNo)
 	maps[0].totalPix = 0;
 
 					
- 	// ldat_name[0] = 'L';
-	// ldat_name[1] = 'E';
-	// ldat_name[2] = 'V';
-	// ldat_name[3] = 'E';
-	// ldat_name[4] = 'L';
-	// ldat_name[5] = the_number[0];
-	// ldat_name[6] = the_number[1];
-	// ldat_name[7] = '.';
-	// ldat_name[8] = 'T';
-	// ldat_name[9] = 'G';
-	// ldat_name[10] = 'A';
+ 	ldat_name[0] = 'L';
+	ldat_name[1] = 'E';
+	ldat_name[2] = 'V';
+	ldat_name[3] = 'E';
+	ldat_name[4] = 'L';
+	ldat_name[5] = the_number[0];
+	ldat_name[6] = the_number[1];
+	ldat_name[7] = '.';
+	ldat_name[8] = 'L';
+	ldat_name[9] = 'D';
+	ldat_name[10] = 'S';
 	
-	//new_file_request(ldat_name, dirty_buf, process_tga_as_ldata);
 	new_file_request(pgm_name, dirty_buf, map_parser);
+	new_file_request(ldat_name, dirty_buf, process_binary_ldata);
 
 }
 
