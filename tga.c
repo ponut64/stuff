@@ -191,10 +191,14 @@ void	add_texture_to_vram(int width, int height)
 	numTex++;
 }
 
-int		new_dithered_texture(int texno_a, int texno_b)
+int		new_dithered_texture(int texno_a, int texno_b, short replaced_texture)
 {
 	//Core concept: Create a new texture, same size as the both textures which also need to be the same size,
 	// with every odd pixel from texture A, and every even pixel from texture B.
+	//
+	// If "replaced_texture" is not zero, it will replace that texture #, instead of making a new one.
+	// If is zero, it will create a new texture.
+	//
 	
 		unsigned char * a_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texno_a].SRCA<<3)));
 		unsigned char * b_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texno_b].SRCA<<3)));
@@ -206,11 +210,17 @@ int		new_dithered_texture(int texno_a, int texno_b)
 		int base_y = (pcoTexDefs[texno_a].SIZE & 0xFF);
 		int total_bytes_of_original_texture = base_x * base_y;
 	
-		unsigned char * texture_start = curVRAMptr;
+		unsigned char * texture_start;
+		if(replaced_texture == 0)
+		{
+		texture_start = curVRAMptr;
 		pcoTexDefs[numTex].SIZE = pcoTexDefs[texno_a].SIZE;
 		pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); 
+		curVRAMptr += total_bytes_of_original_texture;
 		numTex++;
-	
+		} else {
+		texture_start = (unsigned char *)(VDP1_VRAM + (pcoTexDefs[replaced_texture].SRCA<<3));
+		}
 		//This is the 50/50 dithering algorithm.
 		//Because all textures will have an even number of pixels per line,
 		//we need to switch which pixel receives data from which source texture each line.
@@ -232,12 +242,13 @@ int		new_dithered_texture(int texno_a, int texno_b)
 		}
 	
 		//End
-		curVRAMptr += total_bytes_of_original_texture;
 		return numTex-1;
 }
 
-void	make_4way_combined_textures(int start_texture_number, int end_texture_number)
+void	make_4way_combined_textures(int start_texture_number, int end_texture_number, short replacement_start)
 {
+	// If replacement_start is non-zero, texture replacement will start at that number.
+	// If replacement is zero, new textures will be made instead.
 	for(int t = start_texture_number; t < end_texture_number; t++)
 	{
 		unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[t].SRCA<<3)));
@@ -247,10 +258,18 @@ void	make_4way_combined_textures(int start_texture_number, int end_texture_numbe
 		int total_bytes_of_original_texture = base_x * base_y;
 		int readPoint = 0;
 		int write_point = 0;
-		unsigned char * texture_start = curVRAMptr;
+		unsigned char * texture_start;
+		if(replacement_start == 0)
+		{
+		texture_start = curVRAMptr;
 		pcoTexDefs[numTex].SIZE = pcoTexDefs[t].SIZE;
 		pcoTexDefs[numTex].SRCA = MAP_TO_VRAM((int)curVRAMptr); 
+		curVRAMptr += total_bytes_of_original_texture;
 		numTex++;
+		} else {
+		texture_start = (unsigned char *)(VDP1_VRAM + (pcoTexDefs[replacement_start].SRCA<<3));
+		replacement_start++;
+		}
 		//CORE CONCEPT: Get a copy of the texture, written in (base_x>>1) and (base_y>>1) size.
 		//This copy is a downscale.
 		//Then copy that to this texture, four times.
@@ -285,7 +304,7 @@ void	make_4way_combined_textures(int start_texture_number, int end_texture_numbe
 				}
 			}
 		}
-		curVRAMptr += total_bytes_of_original_texture;
+		
 	}
 }
 
@@ -444,14 +463,14 @@ Bool read_pco_in_memory(void * file_start)
 	unsigned char col_map_type = readByte[1]; 
 	
 	if(col_map_type != 1){
-		slPrint("(REJECTED RGB PCO)", slLocate(0,0));
+		slPrint("(REJECTED RGB TGA)", slLocate(0,0));
 		return 0;
 	}
 	
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 1) {
-		slPrint("(REJECTED RLE PCO)", slLocate(0,0));
+		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
 		return 0;
 	}
 	
@@ -460,7 +479,7 @@ Bool read_pco_in_memory(void * file_start)
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
-		slPrint("(REJECTED >8B PCO)", slLocate(0,0));
+		slPrint("(REJECTED >8B TGA)", slLocate(0,0));
 		return 0;
 	}
 	
@@ -483,14 +502,14 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 	unsigned char col_map_type = readByte[1]; 
 	
 	if(col_map_type != 1){
-		slPrint("(REJECTED RGB PCO)", slLocate(0,0));
+		slPrint("(REJECTED RGB TGA)", slLocate(0,0));
 		return 0;
 	}
 	
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 1) {
-		slPrint("(REJECTED RLE PCO)", slLocate(0,0));
+		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
 		return 0;
 	}
 	
@@ -498,7 +517,7 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
-		slPrint("(REJECTED >8B PCO)", slLocate(0,0));
+		slPrint("(REJECTED >8B TGA)", slLocate(0,0));
 		return 0;
 	}
 	
@@ -521,6 +540,68 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 	return Twidth;
 }
 
+
+void	ReplaceTextureTable(void * file_start, int tex_height, int first_replaced_texno)
+{
+	
+	unsigned char * readByte = (unsigned char *)file_start;
+	unsigned char id_field_size = readByte[0];
+	unsigned char col_map_type = readByte[1]; 
+
+	if(col_map_type != 1){
+		slPrint("(REJECTED RGB TGA)", slLocate(0,0));
+		return;
+	}
+	
+	unsigned char data_type = readByte[2];
+	
+	if(data_type != 1) {
+		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
+		return;
+	}
+	
+	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	unsigned char bpp = readByte[16];
+	
+	if(bpp != 8) {
+		slPrint("(REJECTED >8B TGA)", slLocate(0,0));
+		return;
+	}
+	unsigned char imdat = id_field_size + col_map_size + 18;
+	
+	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
+	
+	short Twidth = readByte[12] | readByte[13]<<8;				//Plan: Width objectively defines the texture width
+	short Theight = readByte[14] | readByte[15]<<8;			//Height is just the total height of the texture table, in scanlines
+	short totText = (tex_height != 0) ? Theight / tex_height : Theight / Twidth;	//To get total # of textures, divide the height by the height of each texture
+	short numPix = (tex_height != 0) ? Twidth * tex_height : Twidth * Twidth;		//To produce each texture jump the img addr ahead by the numPix of each tex
+	short rdTexHeight = (tex_height != 0) ? tex_height : Twidth; //If tex height input is 0, just assume its the same as the width
+	
+	///////////////////////////
+	// Filtering:
+	// If tex height and width are not the same as the texture we are replacing, stop.
+	// But first, retrieve the information about what we are replacing.
+	///////////////////////////
+	unsigned char * writeAddress = (unsigned char *)(VDP1_VRAM + (pcoTexDefs[first_replaced_texno].SRCA<<3));
+	short originalX = (pcoTexDefs[first_replaced_texno].SIZE>>8)<<3;
+	short originalY = pcoTexDefs[first_replaced_texno].SIZE & 0xFF;
+	
+	if(originalX != Twidth || rdTexHeight != originalY) return;
+	/////////////////////////
+	// **Replacing** textures in VRAM.
+	// This needs a slightly different way of doing things.
+	// In fact, all we need to do is move the new data over.
+	// We don't want to change anything in the texture table.
+	/////////////////////////
+	for(int i = 0; i < totText; i++)
+	{
+		slDMACopy((void*)GLOBAL_img_addr, (void*)writeAddress, numPix);
+		GLOBAL_img_addr += numPix;
+		writeAddress += numPix;
+	}
+	
+}
+
 Bool WRAP_NewPalette(Sint8 * filename, void * file_start)
 {
 	get_file_in_memory(filename, (void*)file_start);
@@ -541,4 +622,11 @@ int WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height)
 	get_file_in_memory(filename, file_start);
 	
 	return read_tex_table_in_memory(file_start, tex_height);
+}
+
+void	WRAP_ReplaceTable(Sint8 * filename, void * file_start, int tex_height, int first_replaced_texno)
+{
+	get_file_in_memory(filename, file_start);
+	
+	ReplaceTextureTable(file_start, tex_height, first_replaced_texno);	
 }

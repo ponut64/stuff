@@ -18,6 +18,8 @@ typedef struct {
 
 //# of textures in the map table, before combined textures are made
 extern int map_tex_amt; 
+//The texture # after the end of the original, unmodified textures
+extern int map_end_of_original_textures;
 //The last texture # of the map's combined textures
 extern int map_last_combined_texno;
 //The last texture # of the map's dithered non-combined textures
@@ -47,7 +49,7 @@ void	p64MapRequest(short levelNo);
 void	read_pgm_header(_heightmap * map);
 void	process_map_for_normals(void);
 
-void	make_dithered_textures_for_map(void);
+void	make_dithered_textures_for_map(short regenerate);
 
 void	update_hmap(MATRIX msMatrix);
 void	hmap_cluster(void);

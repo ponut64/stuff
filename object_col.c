@@ -16,6 +16,9 @@
 // Purpose:
 // Generate a pre-rotated permutation of a mesh for use in building-type rendering / collision.
 // Efficient? No. Totally necessary? No. But easier to do this, than reconfigure those other code paths.
+//
+// 100% forgot that I need to rollback some pointers here every time I load a level to make sure I don't overrun.
+// Well, it's more than pointers. Control data also needs to be rolled back.
 void generate_rotated_entity_for_object(short declared_object_entry)
 {
 	///////////////////////////////////////////////////////
@@ -139,12 +142,17 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	//... Evil function. Evil!! But I love it, so we keep it.
 	make2AxisBox(&bound_box_starter);
 	
+	POINT tRadius = {0, 0, 0};
+	
 	//Data copying with rotation
 	for(int i = 0; i < numPt; i++)
 	{
 		newMesh->pntbl[i][X] = fxdot(oldMesh->pntbl[i], temp_box.UVX);
 		newMesh->pntbl[i][Y] = fxdot(oldMesh->pntbl[i], temp_box.UVY);
 		newMesh->pntbl[i][Z] = fxdot(oldMesh->pntbl[i], temp_box.UVZ);
+		tRadius[X] = (JO_ABS(newMesh->pntbl[i][X]) > tRadius[X]) ? JO_ABS(newMesh->pntbl[i][X]) : tRadius[X];
+		tRadius[Y] = (JO_ABS(newMesh->pntbl[i][Y]) > tRadius[Y]) ? JO_ABS(newMesh->pntbl[i][Y]) : tRadius[Y];
+		tRadius[Z] = (JO_ABS(newMesh->pntbl[i][Z]) > tRadius[Z]) ? JO_ABS(newMesh->pntbl[i][Z]) : tRadius[Z];
 	}
 	
 	for(int i = 0; i < numPly; i++)
@@ -158,14 +166,11 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
 		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
 	}
-	POINT tRadius = {(entities[new_entity_ID].radius[X] + 80)<<16,
-	(entities[new_entity_ID].radius[Y])<<16,
-	(entities[new_entity_ID].radius[Z] + 80)<<16};
+
 	//Transformer the radius.
-	int bigRadius = JO_MAX(JO_ABS((fxdot(tRadius, temp_box.UVZ)>>16)), JO_ABS((fxdot(tRadius, temp_box.UVX)>>16)));
-	entities[new_entity_ID].radius[X] = bigRadius;
-	entities[new_entity_ID].radius[Y] = JO_ABS((fxdot(tRadius, temp_box.UVY)>>16));
-	entities[new_entity_ID].radius[Z] = bigRadius;
+	entities[new_entity_ID].radius[X] = tRadius[X]>>16;
+	entities[new_entity_ID].radius[Y] = tRadius[Y]>>16;
+	entities[new_entity_ID].radius[Z] = tRadius[Z]>>16;
 
 	//Done!
 	
@@ -200,8 +205,8 @@ static unsigned char backfaced[128];
 static unsigned short last_hit_floor = 0;
 static entity_t * last_floor_entity = 0;
 short total_planes = 0;
-POINT discard_vector = {0, 0, 0};
-POINT plane_center = {0, 0, 0};
+static POINT discard_vector = {0, 0, 0};
+static POINT plane_center = {0, 0, 0};
 Bool hitY = false;
 Bool hitXZ = false;
 Bool shadowStruck = false;
@@ -209,6 +214,7 @@ Bool shadowStruck = false;
 	discard_vector[X] = JO_ABS(mesh_position[X] + mover->pos[X]);
 	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->pos[Y]);
 	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->pos[Z]);
+
 	//If the player is farther away from the object than twice its radius, cease the test.
 	if(discard_vector[X] > (ent->radius[X]<<17) ||
 	discard_vector[Y] > (ent->radius[Y]<<17) ||

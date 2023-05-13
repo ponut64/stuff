@@ -135,6 +135,14 @@ typedef struct {
 //////////////////////////////////
 // Palette Coded (Indexed Color) texture definition
 //////////////////////////////////
+/*
+SIZE parameter:
+CMDSIZE of VDP1 Command Table
+15		14		13		12		11		10		9		8		7		6		5		4		3		2		1		0
+N		N	|				Texture width / 8				||						Texture height						|
+13-8: Texture width (in << 3 units)
+7-0: Texture height (in integer units)
+*/
 typedef struct{
 	unsigned short SIZE; //VDP1 Size Word
 	unsigned short SRCA; //VDP1 Source Address Word (MAP_TO_VRAM)

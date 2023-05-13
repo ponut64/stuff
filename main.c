@@ -188,8 +188,9 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
 	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
-	//Next up: TGA file system handler?
-	int map_tex_start = numTex;
+	/////////////////////////////////////
+	// Floor / heightmap textures
+	/////////////////////////////////////
 	map_texture_table_numbers[0] = numTex;
 	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
 	map_texture_table_numbers[1] = numTex;
@@ -200,10 +201,15 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
 	map_texture_table_numbers[4] = numTex;
 	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
-	map_tex_amt = (numTex - map_tex_start);
-	make_4way_combined_textures(map_tex_start, numTex);
+	map_end_of_original_textures = numTex;
+	map_tex_amt = (numTex - map_texture_table_numbers[0]);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
 	map_last_combined_texno = numTex;
-	make_dithered_textures_for_map();
+	make_dithered_textures_for_map(0);
+
+/* 	WRAP_ReplaceTable((Sint8*)"DIRTEST.TGA", (void*)dirty_buf, 0, map_texture_table_numbers[2]); 
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_dithered_textures_for_map(1); */
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
@@ -257,7 +263,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 
-	p64MapRequest(0);
+	p64MapRequest(4);
 	//
 	
 }

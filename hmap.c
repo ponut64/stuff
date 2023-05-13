@@ -35,6 +35,7 @@ int main_map_strata[4] = {40, 70, 100, 170};
 int map_texture_table_numbers[5];
 int map_tex_amt = 35;
 int map_last_combined_texno = 0;
+int map_end_of_original_textures = 0;
 _heightmap maps[4];
 Bool map_update_complete;
 Bool * sysBool;
@@ -297,7 +298,7 @@ int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	short crossing_small_dither_texno[4][7];
 	short crossing_combined_dither_texno[4][7];
 
-void	make_dithered_textures_for_map(void)
+void	make_dithered_textures_for_map(short regenerate)
 {
 	
 	/*
@@ -332,29 +333,57 @@ void	make_dithered_textures_for_map(void)
 		7 - > 2/5
 		8 - > 3/6
 		*/
-		angular_small_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1);
-		angular_small_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2);
-		angular_small_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3);
-		angular_small_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4);
-		angular_small_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5);
-		angular_small_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6);
-		angular_small_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4);
-		angular_small_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5);
-		angular_small_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6);
+		if(!regenerate)
+		{
+		nbg_sprintf(1, 1, "DITHERING...");
+		angular_small_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1		, 0);
+		angular_small_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2		, 0);
+		angular_small_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3		, 0);
+		angular_small_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4		, 0);
+		angular_small_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5		, 0);
+		angular_small_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6		, 0);
+		angular_small_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4	, 0);
+		angular_small_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5	, 0);
+		angular_small_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6	, 0);
+		} else {
+		nbg_sprintf(1, 1, "REGEN.....");
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1		, angular_small_dither_texno[rt][0]);
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2		, angular_small_dither_texno[rt][1]);
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3		, angular_small_dither_texno[rt][2]);
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4		, angular_small_dither_texno[rt][3]);
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5		, angular_small_dither_texno[rt][4]);
+		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6		, angular_small_dither_texno[rt][5]);
+		new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4	, angular_small_dither_texno[rt][6]);
+		new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5	, angular_small_dither_texno[rt][7]);
+		new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6	, angular_small_dither_texno[rt][8]);
+		}
 	}
 	
 
 	for(int rt = 0; rt < 5; rt++)
 	{
-		angular_combined_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+1);
-		angular_combined_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+2);
-		angular_combined_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+3);
-		angular_combined_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+4);
-		angular_combined_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+5);
-		angular_combined_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+6);
-		angular_combined_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4);
-		angular_combined_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5);
-		angular_combined_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6);
+		if(!regenerate)
+		{
+		angular_combined_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+1, 0);
+		angular_combined_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+2, 0);
+		angular_combined_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+3, 0);
+		angular_combined_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+4, 0);
+		angular_combined_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+5, 0);
+		angular_combined_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+6, 0);
+		angular_combined_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4, 0);
+		angular_combined_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5, 0);
+		angular_combined_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6, 0);
+		} else {
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+1, angular_combined_dither_texno[rt][0]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+2, angular_combined_dither_texno[rt][1]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+3, angular_combined_dither_texno[rt][2]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+4, angular_combined_dither_texno[rt][3]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+5, angular_combined_dither_texno[rt][4]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+6, angular_combined_dither_texno[rt][5]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4, angular_combined_dither_texno[rt][6]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5, angular_combined_dither_texno[rt][7]);
+		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6, angular_combined_dither_texno[rt][8]);
+		}
 	}
 	
 		starting_combined_crossing_texno = numTex;
@@ -363,7 +392,12 @@ void	make_dithered_textures_for_map(void)
 	{
 		for(int p = 0; p < 7; p++)
 		{
-			crossing_small_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p);
+			if(!regenerate)
+			{
+			crossing_small_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p, 0);
+			} else {
+			new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p, crossing_small_dither_texno[t][p]);
+			}
 		}
 	}
 	
@@ -373,7 +407,12 @@ void	make_dithered_textures_for_map(void)
 	{
 		for(int p = 0; p < 7; p++)
 		{
-			crossing_combined_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt);
+			if(!regenerate)
+			{
+			crossing_combined_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt, 0);
+			} else {
+			new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt, crossing_combined_dither_texno[t][p]);
+			}
 		}
 	}
 	

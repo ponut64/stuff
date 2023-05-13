@@ -671,19 +671,19 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//	0 - 1 // B - D
 	//	3 - 2 // A - C
 	fenceA[X] = -dWorldObjects[obj_id1].pos[X];
-	fenceA[Y] = -dWorldObjects[obj_id1].pos[Y];
+	fenceA[Y] = -dWorldObjects[obj_id1].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
 	fenceA[Z] = -dWorldObjects[obj_id1].pos[Z];
 	
 	fenceB[X] = fenceA[X];
-	fenceB[Y] = fenceA[Y] - (dWorldObjects[obj_id1].type.radius[Y]<<16);
+	fenceB[Y] = fenceA[Y] - (dWorldObjects[obj_id1].type.radius[Y]<<17);
 	fenceB[Z] = fenceA[Z];
 	
 	fenceC[X] = -dWorldObjects[obj_id2].pos[X];
-	fenceC[Y] = -dWorldObjects[obj_id2].pos[Y];
+	fenceC[Y] = -dWorldObjects[obj_id2].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
 	fenceC[Z] = -dWorldObjects[obj_id2].pos[Z];
 	
 	fenceD[X] = fenceC[X];
-	fenceD[Y] = fenceC[Y] - (dWorldObjects[obj_id2].type.radius[Y]<<16);
+	fenceD[Y] = fenceC[Y] - (dWorldObjects[obj_id2].type.radius[Y]<<17);
 	fenceD[Z] = fenceC[Z];
 
 	//Makes a vector from point 3 to point 1.
