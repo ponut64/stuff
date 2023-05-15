@@ -46,12 +46,9 @@ I am sorry for the pain you had to go through.
 // Game data //
 //Be very careful with uninitialized pointers. [In other words, INITIALIZE POINTERS!]
 // SGL Work Area is using the last 200KB of High Work RAM. The game binary is using about 200KB.
-// Jo Engine is using at least 100KB. 
-// My heightmap polygon model is using about 32KB.
-// And then there's just some... "raff" being used, here or there.
-// Let's say then your game code can use about 400KB of HWRAM.
 unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
 void * HWRAM_ldptr;
+void * HWRAM_hldptr;
 //
 
 //
@@ -262,7 +259,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-
+	HWRAM_hldptr = HWRAM_ldptr;
+	
 	p64MapRequest(4);
 	//
 	

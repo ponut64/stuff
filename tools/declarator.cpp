@@ -97,8 +97,8 @@ void	create_objects(int levelNo)
 		
 		declare_object_at_cell(-(900 / 40) + 1, -248, -(460 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(-(620 / 40) + 1, -248, (260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((340 / 40) + 1, -288, (660 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((1060 / 40) + 1, -297, (620 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((340 / 40) + 1, -288, (660 / 40), 10 /*platf00*/, 0, 45, 0, 0, 0);
+		declare_object_at_cell((1060 / 40) + 1, -297, (620 / 40), 10 /*platf00*/, 0, 45, 0, 0, 0);
 		
 		declare_object_at_cell(-(260 / 40) + 1, -368, (1100 / 40), 12 /*greece01*/, 0, 90, 0, 0, 0);
 		declare_object_at_cell(-(260 / 40) + 1, -368, (860 / 40), 13 /*greece02*/, 0, 270, 0, 0, 0);

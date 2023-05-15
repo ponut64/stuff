@@ -24,6 +24,7 @@ digital_pad pad1 = {.pressed = 0xFFFF,
 					.change = 0,
 					.toggle = 0xFFFF};
 
+//(Put this in vblank)
 void	operate_digital_pad1(void)
 {
 	pad1.pressed = oregs[6] | (oregs[4]<<8); //Holds current frame data

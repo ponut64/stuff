@@ -12,14 +12,48 @@
 
 #define MATH_TOLERANCE (16384)
 
+//Purpose:
+// Between loading levels, this function is ran to re-set the RAM pointer for rotated buildings.
+// It is also ran to re-set the control data for said entities.
+void	purge_rotated_entities(void)
+{
+	///////////////////////////////////////////////////////
+	// Re-set data pointer
+	///////////////////////////////////////////////////////
+	HWRAM_ldptr = HWRAM_hldptr;
+	///////////////////////////////////////////////////////
+	// Purge control data of entities which weren't loaded from CD
+	///////////////////////////////////////////////////////
+	for(int i = 0; i < MAX_MODELS; i++)
+	{
+		if(!entities[i].was_loaded_from_CD)
+		{
+			//(Bit aggressive)
+			entities[i].size = 0;
+			entities[i].file_done = 0;
+			entities[i].was_loaded_from_CD = 0;
+			entities[i].base_texture = 0;
+			entities[i].useClip = 0;
+			entities[i].radius[X] = 0;
+			entities[i].radius[Y] = 0;
+			entities[i].radius[Z] = 0;
+			entities[i].numTexture = 0;
+			entities[i].first_portal = 0;
+			entities[i].sortType = 0;
+			entities[i].type = 0;
+			entities[i].nbMeshes = 0;
+			entities[i].nbFrames = 0;
+			entities[i].pol = NULL;
+			entities[i].prematrix = NULL;
+		}
+	}
+	
+}
 
 // Purpose:
 // Generate a pre-rotated permutation of a mesh for use in building-type rendering / collision.
 // Efficient? No. Totally necessary? No. But easier to do this, than reconfigure those other code paths.
-//
-// 100% forgot that I need to rollback some pointers here every time I load a level to make sure I don't overrun.
-// Well, it's more than pointers. Control data also needs to be rolled back.
-void generate_rotated_entity_for_object(short declared_object_entry)
+void	generate_rotated_entity_for_object(short declared_object_entry)
 {
 	///////////////////////////////////////////////////////
 	/*
@@ -171,7 +205,8 @@ void generate_rotated_entity_for_object(short declared_object_entry)
 	entities[new_entity_ID].radius[X] = tRadius[X]>>16;
 	entities[new_entity_ID].radius[Y] = tRadius[Y]>>16;
 	entities[new_entity_ID].radius[Z] = tRadius[Z]>>16;
-
+	//Make sure to tell the system that this entity was **NOT** loaded from the CD; it was generated.
+	entities[new_entity_ID].was_loaded_from_CD = false;
 	//Done!
 	
 	// nbg_sprintf(2, 6, "ox(%i)", entities[this_entity_ID].radius[X]);

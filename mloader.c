@@ -259,6 +259,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		}
 	
 	model->file_done = true;
+	model->was_loaded_from_CD = true;
 	
 	//Alignment
 	volatile unsigned int aligning_address = (volatile unsigned int)workAddress;

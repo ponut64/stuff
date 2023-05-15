@@ -200,6 +200,7 @@ extern POINT alwaysLow;
 extern short * division_table;
 //extern short * sine_table;
 extern void * HWRAM_ldptr;
+extern void * HWRAM_hldptr;
 //System
 extern unsigned char * dirty_buf;
 extern void * currentAddress;

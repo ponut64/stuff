@@ -70,11 +70,12 @@ typedef struct {
 
 typedef struct
 {
-	Bool file_done;
 	unsigned int size;
+	short file_done;
+	short was_loaded_from_CD;
 	short base_texture;
-	unsigned short radius[XYZ];
 	short useClip;		//To clip by system, in user, or outside of user.
+	unsigned short radius[XYZ];
 	unsigned char numTexture;
 	unsigned char first_portal;
 	char sortType;

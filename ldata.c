@@ -9,6 +9,7 @@
 #include "render.h"
 #include "player_phy.h"
 #include "tga.h"
+#include "object_col.h"
 #include "pcmsys.h"
 #include "pcmstm.h"
 
@@ -29,6 +30,7 @@ void	declarations(void)
 
 void	process_binary_ldata(void * source_data)
 {
+	purge_rotated_entities();
 	purge_object_list();
 	unsigned short * aptr;
 	char * cptr = (char *)source_data;
@@ -84,6 +86,7 @@ void	process_binary_ldata(void * source_data)
 	//////////////////////////////////
 	start_pcm_stream(&stg_mus[0][0], 3);
 	stm.times_to_loop = 255;
+	
 }
 
 void	testing_level_data(Sint8 * filename, void * destination)
