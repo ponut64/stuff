@@ -291,21 +291,21 @@ Bool shadowStruck = false;
 	// slPrint("Dot product:", slLocate(1, 13));
 	// slPrintFX(normal_discard, slLocate(2, 14));
 			
+
+		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		{
 		/////////
 		// Dual-plane handling
 		/////////
-		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
-		{
 			testing_planes[total_planes] = dst_poly;
 			backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
 			total_planes++;
 			continue;
-		}
+		} else if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		{
 		/////////
 		// Single-plane handling
-		/////////
-		if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
-		{
+		///////// 
 			testing_planes[total_planes] = dst_poly;
 			backfaced[total_planes] = 0;
 			total_planes++;
@@ -341,6 +341,27 @@ _lineTable moverCFs = {
 	.zp1[Z] = mover->Zneg[Z] 	+ mover->pos[Z]// + mover->velocity[Z]
 }; 
 
+	moverCFs.xp0[X] += fxm(mover->UVX[X],  JO_ABS(mover->velocity[X]));
+	moverCFs.xp0[Y] += fxm(mover->UVX[Y],  JO_ABS(mover->velocity[Y]));
+	moverCFs.xp0[Z] += fxm(mover->UVX[Z],  JO_ABS(mover->velocity[Z]));
+	moverCFs.xp1[X] += fxm(mover->UVNX[X], JO_ABS(mover->velocity[X]));
+	moverCFs.xp1[Y] += fxm(mover->UVNX[Y], JO_ABS(mover->velocity[Y]));
+	moverCFs.xp1[Z] += fxm(mover->UVNX[Z], JO_ABS(mover->velocity[Z]));
+
+	moverCFs.yp0[X] += fxm(mover->UVY[X],  JO_ABS(mover->velocity[X]));
+	moverCFs.yp0[Y] += fxm(mover->UVY[Y],  JO_ABS(mover->velocity[Y]));
+	moverCFs.yp0[Z] += fxm(mover->UVY[Z],  JO_ABS(mover->velocity[Z]));
+	moverCFs.yp1[X] += fxm(mover->UVNY[X], JO_ABS(mover->velocity[X]));
+	moverCFs.yp1[Y] += fxm(mover->UVNY[Y], JO_ABS(mover->velocity[Y]));
+	moverCFs.yp1[Z] += fxm(mover->UVNY[Z], JO_ABS(mover->velocity[Z]));
+
+	moverCFs.zp0[X] += fxm(mover->UVZ[X],  JO_ABS(mover->velocity[X]));
+	moverCFs.zp0[Y] += fxm(mover->UVZ[Y],  JO_ABS(mover->velocity[Y]));
+	moverCFs.zp0[Z] += fxm(mover->UVZ[Z],  JO_ABS(mover->velocity[Z]));
+	moverCFs.zp1[X] += fxm(mover->UVNZ[X], JO_ABS(mover->velocity[X]));
+	moverCFs.zp1[Y] += fxm(mover->UVNZ[Y], JO_ABS(mover->velocity[Y]));
+	moverCFs.zp1[Z] += fxm(mover->UVNZ[Z], JO_ABS(mover->velocity[Z]));
+
 POINT plane_points[4];
 VECTOR used_normal;
 int dominant_axis = N_Yp;
@@ -356,6 +377,7 @@ POINT lineEnds[3];
 //////////////////////////////////////////////////////////////
 // nbg_sprintf(1, 7, "(%x)", last_floor_entity);
 // nbg_sprintf(1, 8, "(%x)", ent);
+//__builtin_expect((unsigned int)last_floor_entity == (unsigned int)ent, (unsigned int)NULL);
 if(you.hitSurface && last_floor_entity == ent)
 {
 	//slPrint("Testing Old Floor", slLocate(2, 6));
@@ -504,13 +526,13 @@ for(int i = 0; i < total_planes; i++)
 	// so we want to continue checking after the first positive collision check of Y to see if we hit a wall or not.
 	// Conversely, if we have hit a wall, it's possible we're hitting the floor on a different plane too.
 	//////////////////////////////////////////////////////////////
-	if(!hitY)
+	if(__builtin_expect(!hitY, 0))
 	{
 	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 1<<16, lineEnds[Y]);
 	} else {
 	lineChecks[Y] = false;
 	}
-	if(!hitXZ)
+	if(__builtin_expect (!hitXZ, 0))
 	{
 	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, 32768, lineEnds[Z]);
 	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, 32768, lineEnds[X]);	

@@ -1,6 +1,8 @@
 #ifndef __HMAP_H__
 # define __HMAP_H__
 
+#define HMAP_SUBDIVISION_LEVEL (100<<16)
+
 typedef struct{
 	POINT verts[4];
 } _pquad;

@@ -63,7 +63,7 @@ void	align_object_to_object(int index1, int index2)
 	int posDif[XYZ] = {((dWorldObjects[index1].pix[X] - dWorldObjects[index2].pix[X]) * CELL_SIZE)>>8, 0,
 					((dWorldObjects[index1].pix[Y] - dWorldObjects[index2].pix[Y]) * CELL_SIZE)>>8};
 	accurate_normalize(posDif, posDif);
-	dWorldObjects[index1].rot[Y] = slAtan(posDif[Z], posDif[X]);
+	dWorldObjects[index1].rot[Y] = slAtan(posDif[Z], posDif[X]) + (180 * 182);
 	if((dWorldObjects[index1].type.ext_dat & ETYPE) == GATE_P) dWorldObjects[index1].more_data |= GATE_POST_ALIGNED;
 }
 
@@ -491,6 +491,10 @@ void	object_control_loop(int ppos[XY])
 					////////////////////////////////////////////////////
 					activeObjects[objUP] = 256;
 					dWorldObjects[i].type.ext_dat &= UNPOP; //Axe bit 15 but keep all other data.
+					////////////////////////////////////////////////////
+					//If the declared object had a collision-approved type, re-set some collision parameters.
+					////////////////////////////////////////////////////
+					dWorldObjects[i].dist = 0;
 				}
 			////////////////////////////////////////////////////
 			//Object control loop end stub
@@ -647,8 +651,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// Otherwise, flag the posts has having been checked this frame, then continue.
 	//////////////////
 	if(obj_id1 == obj_id2) return;
-	if(dWorldObjects[obj_id1].pix[X] <= dWorldObjects[obj_id2].pix[X]) return;
-	if(dWorldObjects[obj_id1].pix[Y] <= dWorldObjects[obj_id2].pix[Y]) return;
+	if((dWorldObjects[obj_id1].pix[X] - dWorldObjects[obj_id2].pix[X]) < 0) return;
 	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
 	//Flag as checked this frame
 	dWorldObjects[obj_id1].type.ext_dat |= GATE_POST_CHECKED; 

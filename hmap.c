@@ -1114,8 +1114,8 @@ void	update_hmap(MATRIX msMatrix)
 // Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
 // I think that's the only way this makes sense.
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
-		if(ptv[0]->pnt[Z] < (100<<16) || ptv[1]->pnt[Z] < (100<<16)
-		|| ptv[2]->pnt[Z] < (100<<16) || ptv[3]->pnt[Z] < (100<<16))
+		if(ptv[0]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[1]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL)
+		|| ptv[2]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[3]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL))
 		{	
 		texno += (dither & 0x8000) ? starting_small_crossing_texno : 0;
 		subbed_polys++;

@@ -567,6 +567,28 @@ _lineTable moverCFs = {
 	.zp1[Y] = pl_RBB.Zneg[Y] 	- pl_RBB.pos[Y],
 	.zp1[Z] = pl_RBB.Zneg[Z] 	- pl_RBB.pos[Z]
 }; 
+
+	moverCFs.xp0[X] += fxm(pl_RBB.UVX[X],  JO_ABS(you.velocity[X]));
+	moverCFs.xp0[Y] += fxm(pl_RBB.UVX[Y],  JO_ABS(you.velocity[Y]));
+	moverCFs.xp0[Z] += fxm(pl_RBB.UVX[Z],  JO_ABS(you.velocity[Z]));
+	moverCFs.xp1[X] += fxm(pl_RBB.UVNX[X], JO_ABS(you.velocity[X]));
+	moverCFs.xp1[Y] += fxm(pl_RBB.UVNX[Y], JO_ABS(you.velocity[Y]));
+	moverCFs.xp1[Z] += fxm(pl_RBB.UVNX[Z], JO_ABS(you.velocity[Z]));
+	
+	moverCFs.yp0[X] += fxm(pl_RBB.UVY[X],  JO_ABS(you.velocity[X]));
+	moverCFs.yp0[Y] += fxm(pl_RBB.UVY[Y],  JO_ABS(you.velocity[Y]));
+	moverCFs.yp0[Z] += fxm(pl_RBB.UVY[Z],  JO_ABS(you.velocity[Z]));
+	moverCFs.yp1[X] += fxm(pl_RBB.UVNY[X], JO_ABS(you.velocity[X]));
+	moverCFs.yp1[Y] += fxm(pl_RBB.UVNY[Y], JO_ABS(you.velocity[Y]));
+	moverCFs.yp1[Z] += fxm(pl_RBB.UVNY[Z], JO_ABS(you.velocity[Z]));
+	
+	moverCFs.zp0[X] += fxm(pl_RBB.UVZ[X],  JO_ABS(you.velocity[X]));
+	moverCFs.zp0[Y] += fxm(pl_RBB.UVZ[Y],  JO_ABS(you.velocity[Y]));
+	moverCFs.zp0[Z] += fxm(pl_RBB.UVZ[Z],  JO_ABS(you.velocity[Z]));
+	moverCFs.zp1[X] += fxm(pl_RBB.UVNZ[X], JO_ABS(you.velocity[X]));
+	moverCFs.zp1[Y] += fxm(pl_RBB.UVNZ[Y], JO_ABS(you.velocity[Y]));
+	moverCFs.zp1[Z] += fxm(pl_RBB.UVNZ[Z], JO_ABS(you.velocity[Z]));
+
 		short dirZP[3] = {pl_RBB.UVZ[X]>>3,	  pl_RBB.UVZ[Y]>>3, 	 pl_RBB.UVZ[Z]>>3};
 		short dirZN[3] = {pl_RBB.UVNZ[X]>>3, pl_RBB.UVNZ[Y]>>3, 	pl_RBB.UVNZ[Z]>>3};
 		short dirXP[3] = {pl_RBB.UVX[X]>>3,	  pl_RBB.UVX[Y]>>3, 	 pl_RBB.UVX[Z]>>3};

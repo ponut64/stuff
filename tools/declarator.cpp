@@ -68,11 +68,11 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(340 / 40) + 1, -69, (300 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(220 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		declare_object_at_cell(-(220 / 40) + 1, -69, (240 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(140 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
 		declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
 		declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
-		declare_object_at_cell((140 / 40) + 1, -69, -(260 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		declare_object_at_cell((140 / 40) + 1, -69, -(220 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
 		
 		declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 		declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -83,22 +83,53 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
 		
 		declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
-		
 		declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
 	} else if(levelNo == 1)
 	{
+		// Pizza Tower - Bite the Crust
+		// Perhaps only two music themes per level:
+		// 1. Discovery
+		// 2. Track Discovered, and you've started it; this track will play until the track is finished.
+		// When done, will go back to "Discovery" track.
+		// Will trigger one loop of "Speed" theme when flag is taken.
+		// Pizza Tower - Tubular Trash Zone
 		music1 = "TRSC202.MUS";
 		music2 = "TAPLE.MUS";
 		music3 = "LONKR.MUS";
 		
-		declare_object_at_cell(-(180 / 40) + 1, -120, -(660 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(180 / 40) + 1, -120, -(620 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+
+		declare_object_at_cell((540 / 40) + 1, -320, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
+		declare_object_at_cell((540 / 40) + 1, -320, -(20 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(1020 / 40) + 1, -320, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		declare_object_at_cell(-(1020 / 40) + 1, -320, -(20 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		declare_object_at_cell(-(1420 / 40) + 1, -368, (1180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		declare_object_at_cell(-(1420 / 40) + 1, -368, (1020 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		declare_object_at_cell((340 / 40) + 1, -437, (1260 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);
+		declare_object_at_cell((340 / 40) + 1, -437, (1100 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);
+		declare_object_at_cell((2020 / 40) + 1, -444, (580 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
+		declare_object_at_cell((1860 / 40) + 1, -444, (580 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
+		declare_object_at_cell((1580 / 40) + 1, -434, -(940 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
+		declare_object_at_cell((1740 / 40) + 1, -434, -(940 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
 		
-		declare_object_at_cell(-(900 / 40) + 1, -248, -(460 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((2140 / 40) + 1, -510, -(1420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+		declare_object_at_cell((660 / 40) + 1, -256, -(860 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+		declare_object_at_cell((1020 / 40) + 1, -112, -(100 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+		declare_object_at_cell((700 / 40) + 1, -320, (660 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+		declare_object_at_cell(-(260 / 40) + 1, -450, (1340 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+		declare_object_at_cell(-(900 / 40) + 1, -203, -(100 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+		declare_object_at_cell(-(1380 / 40) + 1, -269, -(220 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+		
+		declare_object_at_cell(-(1820 / 40) + 1, -275, (940 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((580 / 40) + 1, -450, -(1260 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+		
+		declare_object_at_cell(-(900 / 40) + 1, -248, -(380 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(-(620 / 40) + 1, -248, (260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell((340 / 40) + 1, -288, (660 / 40), 10 /*platf00*/, 0, 45, 0, 0, 0);
 		declare_object_at_cell((1060 / 40) + 1, -297, (620 / 40), 10 /*platf00*/, 0, 45, 0, 0, 0);
+		declare_object_at_cell((1660 / 40) + 1, -316, -(820 / 40), 10 /*platf00*/, 0, 45, 0, 0, 0);
 		
 		declare_object_at_cell(-(260 / 40) + 1, -368, (1100 / 40), 12 /*greece01*/, 0, 90, 0, 0, 0);
 		declare_object_at_cell(-(260 / 40) + 1, -368, (860 / 40), 13 /*greece02*/, 0, 270, 0, 0, 0);

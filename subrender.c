@@ -45,7 +45,8 @@
 		short	sub_vert_cnt = 0;
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
 		short	texture_rules[4]		= {16, 16, 16, 16};
-		int		z_rules[4]				= {200<<16, 150<<16, 100<<16, 50<<16};
+		// **really** trying to squeeze off VDP1 here; these can't be higher, really.
+		int		z_rules[4]				= {150<<16, 100<<16, 75<<16, 50<<16};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
