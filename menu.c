@@ -204,7 +204,7 @@ void	start_menu(void)
 				spr_sprintf(100, 212, "Flag Taken!");
 			} else if(someLDATA->type.ext_dat & CTF_FLAG_OPEN)
 			{
-				spr_sprintf(100, 212, "Flag is open! At:x%i,y%i", someLDATA->pix[X], someLDATA->pix[Y]);
+				spr_sprintf(100, 212, "Flag is open!");
 			} else {
 				spr_sprintf(100, 212, "Flag stand is shielded!");
 			}

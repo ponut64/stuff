@@ -261,7 +261,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
-	p64MapRequest(1);
+	p64MapRequest(3);
 	//
 	
 }

@@ -37,6 +37,11 @@
 	#define TEXTS_GENERATED_PER_TEXTURE_LOADED (16)
 	#define SUBDIVISION_NEAR_PLANE (15<<16)
 	#define SUBDIVISION_SCALE (50)
+	
+	// What I know from other heightmap engines is that a CPU-efficient way to improve rendering speed
+	// is by the addition of "occlusion planes" - in other words, polygons on the other side of the plane,
+	// when viewed through the plane, are discarded.
+	// That is effectively an anti-portal...
 
 		POINT	subdivided_points[512];
 		short	subdivided_polygons[512][4]; //4 Vertex IDs of the subdivided_points

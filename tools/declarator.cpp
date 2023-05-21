@@ -196,11 +196,51 @@ void	create_objects(int levelNo)
 		declare_object_at_cell(-(900 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 180, 0, 0, 0);
 	} else if(levelNo == 2)
 	{
+		// Red Vox - Choking on the Spite, good action theme.
+		// Red Vox - There's a Place, also good action theme.
 		music1 = "TRSC202.MUS";
 		music2 = "TAPLE.MUS";
 		music3 = "LONKR.MUS";
+		
+	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+	declare_object_at_cell((500 / 40) + 1, -368, -(2500 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+	declare_object_at_cell(-(1460 / 40) + 1, -281, -(3020 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+	declare_object_at_cell(-(340 / 40) + 1, -260, -(300 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+	declare_object_at_cell(-(1180 / 40) + 1, -340, (1500 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+	declare_object_at_cell((100 / 40) + 1, -358, (2180 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+	declare_object_at_cell((1260 / 40) + 1, -318, (860 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+	
+	declare_object_at_cell(-(300 / 40) + 1, -243, (3020 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(1540 / 40) + 1, -138, -(3500 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+	
+		declare_object_at_cell((780 / 40) + 1, -313, -(2340 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
+		declare_object_at_cell((900 / 40) + 1, -317, -(2340 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		
+		declare_object_at_cell((420 / 40) + 1, -335, -(420 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);		
+		declare_object_at_cell((540 / 40) + 1, -335, -(420 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		
+		declare_object_at_cell((1440 / 40) + 1, -181, (1580 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);		
+		declare_object_at_cell((1200 / 40) + 1, -135, (1580 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		
+		declare_object_at_cell(-(300 / 40) + 1, -220, (3220 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);		
+		declare_object_at_cell(-(300 / 40) + 1, -220, (3460 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);
+		
+		declare_object_at_cell(-(1740 / 40) + 1, -285, (2380 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);		
+		declare_object_at_cell(-(1500 / 40) + 1, -285, (2380 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
+		
+		declare_object_at_cell(-(380 / 40) + 1, -243, (340 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);		
+		declare_object_at_cell(-(740 / 40) + 1, -243, (340 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
+		
+		declare_object_at_cell(-(660 / 40) + 1, -121, -(1380 / 40), 18 /*post00*/, 0, 0, 0, 0, 6<<4);		
+		declare_object_at_cell(-(1060 / 40) + 1, -133, -(1380 / 40), 18 /*post00*/, 0, 0, 0, 0, 6<<4);
+		
+		declare_object_at_cell((420 / 40) + 1, -117, -(3280 / 40), 18 /*post00*/, 0, 0, 0, 0, 7<<4);		
+		declare_object_at_cell((420 / 40) + 1, -117, -(3520 / 40), 18 /*post00*/, 0, 0, 0, 0, 7<<4);
 
-	declare_object_at_cell((1180 / 40) + 1, -400, -(3140 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((1540 / 40) + 1, -185, -(2060 / 40), 18 /*post00*/, 0, 0, 0, 0, 8<<4);		
+		declare_object_at_cell((1780 / 40) + 1, -185, -(2060 / 40), 18 /*post00*/, 0, 0, 0, 0, 8<<4);
+
+	declare_object_at_cell((60 / 40) + 1, -328, (380 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell((1660 / 40) + 1, -159, -(980 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((1060 / 40) + 1, -251, -(2780 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
@@ -258,8 +298,32 @@ void	create_objects(int levelNo)
 		music1 = "TRSC202.MUS";
 		music2 = "TAPLE.MUS";
 		music3 = "LONKR.MUS";
+		
 
-	declare_object_at_cell((1060 / 40) + 1, -420, (220 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((1060 / 40) + 1, -172, (820 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+	
+	declare_object_at_cell((1020 / 40) + 1, -260, -(420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+	declare_object_at_cell((1180 / 40) + 1, -214, (1260 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+	declare_object_at_cell((540 / 40) + 1, -333, -(1380 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+	declare_object_at_cell(-(180 / 40) + 1, -195, (60 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+	declare_object_at_cell(-(700 / 40) + 1, -160, (540 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+	declare_object_at_cell(-(940 / 40) + 1, -25, -(620 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+	declare_object_at_cell(-(700 / 40) + 1, -399, -(1220 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+	
+	declare_object_at_cell((1380 / 40) + 1, -508, (260 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(1060 / 40) + 1, -35, (1060 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+	
+	declare_object_at_cell((20 / 40) + 1, -353, -(980 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
+	declare_object_at_cell((20 / 40) + 1, -365, -(1260 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+	
+	declare_object_at_cell((940 / 40) + 1, -465, (100 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);		
+	declare_object_at_cell((1140 / 40) + 1, -465, (100 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+	
+	declare_object_at_cell(-(60 / 40) + 1, -382, (980 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);		
+	declare_object_at_cell(-(220 / 40) + 1, -382, (1140 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+	
+	declare_object_at_cell(-(1180 / 40) + 1, -266, -(900 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);		
+	declare_object_at_cell(-(1340 / 40) + 1, -266, -(1060 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);
 	
 	declare_object_at_cell((1020 / 40) + 1, -297, -(420 / 40), 25 /*float01*/, -15, 0, 0, 0, 0);
 	
@@ -270,6 +334,7 @@ void	create_objects(int levelNo)
 	declare_object_at_cell(-(1020 / 40) + 1, -181, (220 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((1020 / 40) + 1, -243, -(660 / 40), 10 /*platf00*/, -15, 0, 0, 0, 0);
 	declare_object_at_cell((1020 / 40) + 1, -326, -(140 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((260 / 40) + 1, -348, (940 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell((540 / 40) + 1, -345, -(1140 / 40), 16 /*overhang*/, 0, 0, 0, 0, 0);
 	
