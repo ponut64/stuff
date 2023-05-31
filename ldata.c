@@ -63,7 +63,15 @@ void	process_binary_ldata(void * source_data)
 	unsigned short objct = *aptr++;
 	//nbg_sprintf(1, 10, "oct(%i)", objct);
 	unsigned short args[9];
-	
+	//////////////////////////////////
+	//	IMPORTANT:
+	//	The level data is controlled by a variety of linked lists.
+	//	These lists terminate with -1. They must start at -1 or else it will crash.
+	//////////////////////////////////
+	for(int i = 0; i < 8; i++)
+	{
+		link_starts[i] = -1;
+	}
 	//////////////////////////////////
 	// Load the object list
 	// Nine arguments to function, two bytes per argument, 18 bytes at a time.
@@ -86,6 +94,8 @@ void	process_binary_ldata(void * source_data)
 	//////////////////////////////////
 	start_pcm_stream(&stg_mus[0][0], 3);
 	stm.times_to_loop = 255;
+	
+	level_data_basic();
 	
 }
 
@@ -139,6 +149,7 @@ void	level_data_basic(void)
 			dWorldObjects[i].type.ext_dat |= 0x8000;
 		}
 	}
+
 }
 
 

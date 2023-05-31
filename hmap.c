@@ -147,8 +147,6 @@ void	map_parser(void * data)
 			buf_map[i] = *((Uint8*)maps[0].dstAddress + i);
 		}
 		
-		level_data_basic();
-		
 	// nbg_sprintf(8, 20, "(%i)", maps[0].totalPix);
 	// nbg_sprintf(15, 20, "(%i)", maps[0].Xval);
 	// nbg_sprintf(20, 20, "(%i)", maps[0].Yval);
@@ -198,8 +196,9 @@ void	p64MapRequest(short levelNo)
 	ldat_name[9] = 'D';
 	ldat_name[10] = 'S';
 	
-	new_file_request(pgm_name, dirty_buf, map_parser);
 	new_file_request(ldat_name, dirty_buf, process_binary_ldata);
+	new_file_request(pgm_name, dirty_buf, map_parser);
+	ldata_ready = false;
 
 }
 

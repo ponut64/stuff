@@ -19,6 +19,7 @@
 
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 _buildingObject * BuildingPayload;
+_declaredObject emptyObject;
 
 unsigned short objNEW = 0; //objNEW is the total number of declared objects
 unsigned short objDRAW[MAX_WOBJS]; //objDRAW is a list of the delcared objects that will be drawn
@@ -69,6 +70,10 @@ void	align_object_to_object(int index1, int index2)
 
 void	purge_object_list(void)
 {
+	for(int i = 0; i < objNEW; i++)
+	{
+		dWorldObjects[i] = emptyObject;
+	}
 	objNEW = 0;
 }
 
@@ -196,43 +201,30 @@ Okey, what's next in the gameplay pipe?
 Slide Hop is to have three "things to do". These aren't just the primary things to do, they are it. These' the things.
 
 1 - Gates
-a. Passing gates for discovery - done.
-b. Silent timer after discovery - done.
-c. cleaing gates by timer - done.
 d. option for minimum speed track or gate - not done
 e. allow rings in gate series - not tested
-f. represent gate progress in menu - done
-g. gate guide - done
-h. gates show up on minimap - done
-i. gate ring model - not done
-j. gate post model - not done
 
 2 - Seven Rings
-a. Item types - done
-b. 7 Rings with 7 unique item types - done
-c. rings show up on minimap - done
-d. represent ring progress in menu - done
-e. 7 rings models - done enough
-f. 7 rings sound effects - not done
 g. timed lap 2 with rings - not done, maybe not needed
-h. manager for items, manager for 7 ring items - done.
 
 3 - CTF
+a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
-a. flag stand - test model OK
-b. flag stand shield - test model OK
-c. goal stand - test model OK
-d. jump on goal stand to unshield - done
-e. flag - test model OK
-f. carrying flag - done
-g. time limit with flag - done
-h. delivering flag - done
-i. represent flag progress in menu - done
-j. on-screen guide - done
-
-might be time to fuck off and start finishing level prototypes
-this is enough programming, there's a lot of potential for a game here
-a lot of work to be done yet for sure, buuuut i should keep on target
+Immediate next steps:
+a. level select (start menu) - Check. I think it works now.
+b. differentiating assets for each level
+	1. allow levels to define which floor textures to use
+	2. enable the music types
+c. timer changes
+	1. the timer will count up, not down
+	2. the timer counting up is temporary; it is for testing and gaging completion times of the tracks
+	3. add a menu option to cancel the timer/reset track
+d. portal...
+	I've been dreading it and putting it off, but before SAGE, I absolutely need a first-step portal implementation.
+	It is *specifically* for the heightmap under a floor.
+	This is not a CPU optimization. It is a VDP1 optimization; overdraw is too high in this scenario.
+	Because I have a narrow problem case, I think I can fix it with a narrow solution.
+	But, of course, it's less urgent than actually testing the game.
 
 4 - other things
 a. particle effect system ? - done
@@ -501,8 +493,8 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 		}
 		
-	// nbg_sprintf(12, 5, "objUP:(%i)", objUP);
-	// nbg_sprintf(12, 6, "objNW:(%i)", objNEW);
+	// nbg_sprintf(12, 6, "objUP:(%i)", objUP);
+	// nbg_sprintf(12, 7, "objNW:(%i)", objNEW);
 	////////////////////////////////////////////////////
 	//Object control function end stub
 	////////////////////////////////////////////////////
@@ -606,7 +598,7 @@ void	add_to_track_timer(int index, int index2)
 			dWorldObjects[index2].more_data |= GATE_DISCOVERED;
 			add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0x83E0);
 		}
-		pcm_play(snd_khit, PCM_PROTECTED, 5);
+		start_hud_event(GATE_DISCOVERY_EVENT);
 		you.points += 1;
 		return;
 	}
@@ -1172,7 +1164,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->dist -= delta_time;
 			if(someLDATA->dist < 0 && someLDATA->pix[Y] != 0)
 			{
-				pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
+				//pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
+				start_hud_event(TRACK_DISCOVERED_EVENT);
 				someLDATA->type.ext_dat |= TRACK_DISCOVERED;
 				someLDATA->pix[X] = 0;
 				someLDATA->dist = 0;

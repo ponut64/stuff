@@ -16,51 +16,43 @@
 #include "physobjet.h"
 #include "bounder.h"
 #include "minimap.h"
+#include "hmap.h"
 
 #include "menu.h"
 
 int viewInfoTxt = 1;
 int baseRingMenuTexno = 0;
+int menuLayer = 0;
 
 _hudEvent hudEvents[HUD_EVENT_TYPES];
 
-void	start_menu(void)
+void	debug_menu_layer(__basic_menu * mnu)
 {
-
-	static __basic_menu mnu;
 	
 	static short dPreview = 0;
 	
-	mnu.topLeft[X] = 120;
-	mnu.topLeft[Y] = 40;
-	mnu.scale[X] = 120;
-	mnu.scale[Y] = 24;
-	mnu.option_grid[X] = 1;
-	mnu.option_grid[Y] = 5;
-	mnu.num_option = 5;
-	mnu.backColor = 79;
-	mnu.optionColor = 5;
-	char * option_list[] = {"Return to Game", "Return to Start", "Next Object", "Prev Object", "Tgl Info Txt"};
-	mnu.option_text = option_list;
-	
-	if(is_key_struck(DIGI_RIGHT))	mnu.selection++;
-	if(is_key_struck(DIGI_LEFT))	mnu.selection--;
-	if(is_key_struck(DIGI_DOWN))	mnu.selection+= (mnu.option_grid[X]);
-	if(is_key_struck(DIGI_UP))		mnu.selection-= (mnu.option_grid[X]);
-	if(is_key_struck(DIGI_RIGHT) | is_key_struck(DIGI_LEFT)
-	| is_key_struck(DIGI_DOWN) | is_key_struck(DIGI_UP)) pcm_play(snd_button2, PCM_SEMI, 6);
+	mnu->topLeft[X] = 120;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 120;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 5;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"Return to Game", "<- Back", "Next Object", "Prev Object", "Tgl Info Txt"};
+	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
 	{
 		pcm_play(snd_button, PCM_SEMI, 6);
-		switch(mnu.selection)
+		switch(mnu->selection)
 		{
 			case(0):
 			you.inMenu = false;
 			break;
 			case(1):
-			reset_player();
-			you.inMenu = false;
+			menuLayer = HUD_LAYER_START;
 			break;
 			case(2):
 			dPreview++;
@@ -111,6 +103,123 @@ void	start_menu(void)
 	spr_sprintf(100,	96 + (60),		"Hit:(%i)", rdbox->collisionID);
 	}
 	
+}
+
+void	start_menu_layer(__basic_menu * mnu)
+{
+	mnu->topLeft[X] = 120;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 120;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 5;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"Return to Game", "Return to Start", "Cancel Timer", "Level Select", "Debug Menu"};
+	mnu->option_text = option_list;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			you.inMenu = false;
+			break;
+			case(1):
+			reset_player();
+			you.inMenu = false;
+			break;
+			case(2):
+			//Nothing...
+			break;
+			case(3):
+			menuLayer = HUD_LAYER_LEVEL;
+			break;
+			case(4):
+			menuLayer = HUD_LAYER_DEBUG;
+			break; 
+			default:
+			break;
+		}
+	}
+	
+}
+
+void	levelselect_menu_layer(__basic_menu * mnu)
+{
+	
+	mnu->topLeft[X] = 120;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 120;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 5;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"Return to Game", "<- Back", "Next Level", "Prev Level", "Go to level!"};
+	mnu->option_text = option_list;
+	
+	static int levelSelect = 0;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			you.inMenu = false;
+			break;
+			case(1):
+			menuLayer = HUD_LAYER_START;
+			break;
+			case(2):
+			levelSelect++;
+			break;
+			case(3):
+			levelSelect--;
+			break;
+			case(4):
+			p64MapRequest(levelSelect);
+			you.inMenu = false;
+			default:
+			break;
+		}
+	}
+	
+	levelSelect = (levelSelect < 0) ? 0 : levelSelect;
+	
+	levelSelect = (levelSelect > NUM_LEVELS) ? NUM_LEVELS : levelSelect;
+	
+	//Some stuff about the level, but for now:
+	nbg_sprintf(2, 10, "Level:(%i)", levelSelect);
+	
+}
+
+void	start_menu(void)
+{
+
+	static __basic_menu mnu;
+	
+	if(is_key_struck(DIGI_RIGHT))	mnu.selection++;
+	if(is_key_struck(DIGI_LEFT))	mnu.selection--;
+	if(is_key_struck(DIGI_DOWN))	mnu.selection+= (mnu.option_grid[X]);
+	if(is_key_struck(DIGI_UP))		mnu.selection-= (mnu.option_grid[X]);
+	if(is_key_struck(DIGI_RIGHT) | is_key_struck(DIGI_LEFT)
+	| is_key_struck(DIGI_DOWN) | is_key_struck(DIGI_UP)) pcm_play(snd_button2, PCM_SEMI, 6);
+	
+		if(menuLayer == HUD_LAYER_START)
+		{
+			start_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_DEBUG)
+		{
+			debug_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_LEVEL)
+		{
+			levelselect_menu_layer(&mnu);
+		}
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;
 	fuckinghatesynchingkeysvblankbullshit_timer++;
 	if(is_key_release(DIGI_START) && fuckinghatesynchingkeysvblankbullshit_timer > 30)
@@ -337,6 +446,40 @@ void	init_hud_events(void)
 	event = &hudEvents[RING7_EVENT];
 	*event = hudEvents[RING1_EVENT];
 	event->texno = baseRingMenuTexno+6;
+	
+	event = &hudEvents[GATE_DISCOVERY_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_khit;
+	event->volume = 6;
+	
+	event->texno = 6;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[TRACK_DISCOVERED_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_cronch;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
 	
 }
 

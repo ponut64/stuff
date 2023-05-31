@@ -250,6 +250,11 @@ void	start_adx_stream(Sint8 * filename, short volume)
 	adx_stream.file.setup_requested = true;
 	adx_stream.volume = volume;
 	//idk this is stupid shouldn't have to do it but for now i do
+	//Why:
+	//Before data is copied over, a valid ADX header is copied to this location.
+	//When there's already a valid header here, the driver will decompress it into the playback buffer.
+	//That's a problem if it's old data, from the wrong ADX stream.
+	//So we have to purge it. We shouldn't have to; the data is copied here before the stream is commanded to play... but we do.
 	unsigned short * writedummy = (unsigned short *)adx_stream.back_buffer[0];
 	for(int i = 0; i < m68k_com->pcmCtrl[adx_stream.pcm_number].bytes_per_blank; i++)
 	{
@@ -418,10 +423,10 @@ void		pcm_stream_host(void(*game_code)(void))
 	
 		if(buf.setup_requested)
 		{
-				//game_code();
 			/////////////
-					//slPrint("--SETM--", slLocate(16,2));
-					file_system_status_reporting = REPORT_SETTING_UP_PCMSTM;
+			//slPrint("--SETM--", slLocate(16,2));
+			file_system_status_reporting = REPORT_SETTING_UP_PCMSTM;
+			//game_code();
 			buf.file_handle = GFS_Open(buf.file_id);
 			/*
 				In testing, it has been found that these lines are _strictly necessary_ for this to work.
@@ -472,7 +477,6 @@ void		pcm_stream_host(void(*game_code)(void))
 			&& (!adx_stream.file.requested || (adx_stream.back_buffer_filled[0] || adx_stream.back_buffer_filled[1])) )
 			{
 			//This branch is for no file system activity. Nothing is being presently accessed or requested to be set up.
-				game_code();
 					file_system_status_reporting = REPORT_IDLE;
 					//slPrint("--PLAY--", slLocate(16,2));
 					// nbg_sprintf(16, 6, "bufrq(%i)", buf.needs_buffer_filled);
@@ -512,6 +516,7 @@ void		pcm_stream_host(void(*game_code)(void))
 					file.transfer_lock = false;
 				}
 				/////////////
+				game_code();
 				slSynch();
 			} else if(file.requested && file.sectors_read_so_far < file.total_sectors)
 			{
@@ -519,7 +524,6 @@ void		pcm_stream_host(void(*game_code)(void))
 			GFS_NwFread(file.handle, file_transfer_sector,
 			file.destination + (file.sectors_read_so_far * 2048), file_transfer_size);
 				do{
-					game_code();
 						file_system_status_reporting = REPORT_LOADING_FILE;
 						//slPrint("--FILE--", slLocate(16,2));
 						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
@@ -533,6 +537,7 @@ void		pcm_stream_host(void(*game_code)(void))
 						// nbg_sprintf(2, 12, "fsize(%i)", file.total_sectors);
 						// nbg_sprintf(16, 12, "fnsct(%i)", file.total_bytes);
 					////////////
+					game_code();
 					slSynch();
 					GFS_NwExecOne(file.handle);
 					GFS_NwGetStat(file.handle, &gfs_svr_status, &byte_dummy);
@@ -543,10 +548,10 @@ void		pcm_stream_host(void(*game_code)(void))
 			{
 			//This branch is for when the file transfer is complete. It also triggers the data handling function.
 			//The file handler function is a function pointer, not a direct reference, so user can change it when file type changes.
-				//game_code();
+				
 			/////////////////
 				file_system_status_reporting = REPORT_CLOSING_FILE;
-				
+				//game_code();
 				finish_file_request();
 				file.requested = false;
 				GFS_Close(file.handle);
@@ -555,10 +560,10 @@ void		pcm_stream_host(void(*game_code)(void))
 			{
 			//This branch is for when a file is requested, but the file system parameters for that file are not yet set.
 			//The parameters are set and other important parameters are re-set here, too.
-				//game_code();
+				
 			//////////////////
 				file_system_status_reporting = REPORT_SETTING_UP_FILE;
-				
+				//game_code();
 				file.handle = GFS_Open(file.id);
 				GFS_SetReadPara(file.handle, (64 * 1024));
 				GFS_SetTransPara(file.handle, file_transfer_sector);
@@ -579,7 +584,6 @@ void		pcm_stream_host(void(*game_code)(void))
 			GFS_NwFread(adx_stream.file.handle, file_transfer_sector,
 			adx_stream.back_buffer[0], file_transfer_size);
 				do{
-					game_code();
 						file_system_status_reporting = REPORT_LOADING_ADX;
 						//slPrint("--iADX--", slLocate(16,2));
 						// nbg_sprintf(2, 6, "bytes(%i)", byte_dummy);
@@ -593,6 +597,7 @@ void		pcm_stream_host(void(*game_code)(void))
 						// nbg_sprintf(2, 12, "asize(%i)", adx_stream.file.total_bytes);
 						// nbg_sprintf(16, 12, "ansct(%i)", adx_stream.file.total_sectors);
 					////////////
+					game_code();
 					slSynch();
 					GFS_NwExecOne(adx_stream.file.handle);
 					GFS_NwGetStat(adx_stream.file.handle, &gfs_svr_status, &byte_dummy);
@@ -614,10 +619,10 @@ void		pcm_stream_host(void(*game_code)(void))
 			{
 				////////////////////////
 				//End handling ADX file. The driver should know when to properly stop playback.
-			//	game_code();
+			
 				////////////////////////
 				file_system_status_reporting = REPORT_CLOSING_FILE;
-				
+				//	game_code();
 				adx_stream.file.requested = false;
 				adx_stream.file.transfer_lock = false;
 				adx_stream.file.setup_requested = false;
@@ -633,10 +638,10 @@ void		pcm_stream_host(void(*game_code)(void))
 			//	This branch is for when an ADX file is requested, but the file system parameters for it are not yet set.
 			//	This broadly sets up the file system to stream the ADX. It also prepares the driver for the sound.
 			//
-			//	game_code();
+			
 			////////////////////////////
 				file_system_status_reporting = REPORT_SETTING_UP_ADX;
-				
+				//	game_code();
 				adx_stream.file.handle = GFS_Open(adx_stream.file.id);
 				GFS_SetReadPara(adx_stream.file.handle, (64 * 1024));
 				GFS_SetTransPara(adx_stream.file.handle, file_transfer_sector);
@@ -664,7 +669,7 @@ void		pcm_stream_host(void(*game_code)(void))
 			buf.segment_locations[buf.active_buf_segment] + (buf.steps_of_new_data_in_buffer * buf.transfer_bytes), buf.transfer_bytes);
 			buf.steps_of_new_data_in_buffer++;
 			do{
-				game_code();
+				
 					file_system_status_reporting = REPORT_LOADING_PCM;
 					//slPrint("--MUSI--", slLocate(16,2));
 					// nbg_sprintf(2, 5, "steps(%i)", buf.steps_of_new_data_in_buffer);
@@ -684,6 +689,7 @@ void		pcm_stream_host(void(*game_code)(void))
 					// nbg_sprintf(16, 8, "buf0t(%i)", buf.segment_refresh_timings[0]);
 					// nbg_sprintf(16, 9, "buf1t(%i)", buf.segment_refresh_timings[1]);
 					// nbg_sprintf(16, 10, "buf2t(%i)", buf.segment_refresh_timings[2]);
+				game_code();
 				slSynch();
 					if(buf.steps_of_new_data_in_buffer > buf.segment_transfer_time)
 					{

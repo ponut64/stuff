@@ -2,6 +2,10 @@
 #ifndef __MENU_H__
 # define __MENU_H__
 
+#define HUD_LAYER_START	(0)
+#define HUD_LAYER_DEBUG	(1)
+#define HUD_LAYER_LEVEL	(2)
+
 #define HUD_EVENT_TYPES (32)
 #define HUD_EVENT_START (1)
 #define HUD_EVENT_RUN	(2)
@@ -12,14 +16,17 @@
 #define EVENT_STROBE_FLASH	('F')
 #define EVENT_STROBE_BLINK	('O')
 
-#define RING1_EVENT		(1)
-#define RING2_EVENT		(2)
-#define RING3_EVENT		(3)
-#define RING4_EVENT		(4)
-#define RING5_EVENT		(5)
-#define	RING6_EVENT		(6)
-#define RING7_EVENT		(7)
-#define RINGS_ALL_EVENT	(0)
+#define RING1_EVENT				(1)
+#define RING2_EVENT				(2)
+#define RING3_EVENT				(3)
+#define RING4_EVENT				(4)
+#define RING5_EVENT				(5)
+#define	RING6_EVENT				(6)
+#define RING7_EVENT				(7)
+#define RINGS_ALL_EVENT			(0)
+#define GATE_DISCOVERY_EVENT	(8)
+#define TRACK_DISCOVERED_EVENT	(9)
+//More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?
 	// 1. Spawn sprite
