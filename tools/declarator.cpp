@@ -63,7 +63,7 @@ void	create_objects(int levelNo)
 	if(levelNo == 0)
 	{
 		music1 = "TRSC202.MUS";
-		music2 = "BLANK.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "DRONK.MUS";
 		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
@@ -96,7 +96,7 @@ void	create_objects(int levelNo)
 		// Will trigger one loop of "Speed" theme when flag is taken.
 		// Pizza Tower - Tubular Trash Zone
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		
 		declare_object_at_cell(-(180 / 40) + 1, -120, -(620 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
@@ -199,7 +199,7 @@ void	create_objects(int levelNo)
 		// Red Vox - Choking on the Spite, good action theme.
 		// Red Vox - There's a Place, also good action theme.
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		
 	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
@@ -297,7 +297,7 @@ void	create_objects(int levelNo)
 	{
 		// Teeth Dust in the Strongcold
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		
 
@@ -355,7 +355,7 @@ void	create_objects(int levelNo)
 		// Straightaway Runner
 		// Move it Boi - pizza tower
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 
 	declare_object_at_cell((460 / 40) + 1, -350, -(5060 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
@@ -433,7 +433,7 @@ void	create_objects(int levelNo)
 		
 	//Despite the level's size, this is one of the harder ones.
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 
 	declare_object_at_cell(-(280 / 40) + 1, -97, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
@@ -501,7 +501,7 @@ void	create_objects(int levelNo)
 // South -> North -> West -> East -> South (Ramp) -> West (Tunnel) -> North (Hill) -> East (NE Goal Corner)
 // This level's gonna be HARD.
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 
 	declare_object_at_cell(-(380 / 40) + 1, -276, -(1620 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
@@ -599,7 +599,7 @@ void	create_objects(int levelNo)
 	{
 		// MGMT Siberian Breaks ~7:40 "i hope i die before i get sold" nice
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		
 	declare_object_at_cell((20 / 40) + 1, -215, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
@@ -695,7 +695,7 @@ void	create_objects(int levelNo)
 	//i think this level might be the "pain song" level tbh
 	//i should add teleporters and shit... after july i guess
 		music1 = "TRSC202.MUS";
-		music2 = "TAPLE.MUS";
+		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		
 	declare_object_at_cell(-(1580 / 40) + 1, -454, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);

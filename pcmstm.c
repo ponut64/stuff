@@ -76,10 +76,26 @@ Note, unless the game code is operating within the "pcm_stream_host" function, t
 */
 void	start_pcm_stream(Sint8 * filename, int volume)
 {
-		if(buf.operating || buf.setup_requested) return;
+
 	buf.file_id = GFS_NameToId(filename);
 	buf.setup_requested = true;
 	stm.volume = volume;
+	//If a stream is already playing, re-start it with the new file-name.
+	if(buf.operating || buf.setup_requested)
+	{
+		stm.stopping = true;
+		stm.restarting = true;
+	}
+}
+
+//Note: You really can't change the pitch of these; messes with it too much.
+void	change_pcm_stream_param(char volume, char pan)
+{
+		pcm_parameter_change(stm.pcm_num, volume, pan);
+}
+void	change_adx_stream_param(char volume, char pan)
+{
+		pcm_parameter_change(adx_stream.pcm_number, volume, pan);
 }
 
 // Will stop a PCM stream.

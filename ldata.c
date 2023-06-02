@@ -2,6 +2,8 @@
 //this file is compiled separately
 #include <sl_def.h>
 #include <SEGA_GFS.H>
+#include "pcmsys.h"
+#include "pcmstm.h"
 #include "def.h"
 #include "bounder.h"
 #include "physobjet.h"
@@ -10,8 +12,7 @@
 #include "player_phy.h"
 #include "tga.h"
 #include "object_col.h"
-#include "pcmsys.h"
-#include "pcmstm.h"
+#include "sound.h"
 
 #include "ldata.h"
 
@@ -92,7 +93,7 @@ void	process_binary_ldata(void * source_data)
 	//////////////////////////////////
 	// Start the level's idle music (first entered music)
 	//////////////////////////////////
-	start_pcm_stream(&stg_mus[0][0], 3);
+	set_music_track = 0;
 	stm.times_to_loop = 255;
 	
 	level_data_basic();

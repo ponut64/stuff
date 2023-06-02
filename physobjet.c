@@ -12,6 +12,7 @@
 #include "menu.h"
 #include "minimap.h"
 #include "particle.h"
+#include "sound.h"
 
 #include "physobjet.h"
 #include "object_definitions.c"
@@ -214,7 +215,7 @@ Immediate next steps:
 a. level select (start menu) - Check. I think it works now.
 b. differentiating assets for each level
 	1. allow levels to define which floor textures to use
-	2. enable the music types
+	2 & 3: music stuff is okay now, really quite the mess though
 c. timer changes
 	1. the timer will count up, not down
 	2. the timer counting up is temporary; it is for testing and gaging completion times of the tracks
@@ -625,7 +626,9 @@ void	add_to_track_timer(int index, int index2)
 				dWorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
 				dWorldObjects[trackedLDATA].more_data &= TRACK_NO_GUIDE;
 				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER)<<4;
-				pcm_play(snd_button, PCM_PROTECTED, 5);
+				
+				//pcm_play(snd_button, PCM_PROTECTED, 5);
+				start_hud_event(GATE_PASSED_EVENT);
 				break;
 			}
 		}//PAST TRACK DATA
@@ -1123,13 +1126,16 @@ void	manage_track_data(_declaredObject * someLDATA)
 		{
 			someLDATA->dist -= delta_time;
 			slPrintFX(someLDATA->dist, slLocate(0, 7));
+			set_music_track = 1;
+			stm.times_to_loop = 2;
 				if(someLDATA->dist < 0) //If timer expired...
 				{
 					someLDATA->type.ext_dat &= TRACK_INACTIVE;
 					someLDATA->type.ext_dat |= TRACK_RESET; //Reset tracks; timer expired
 					someLDATA->dist = 0;
+					start_hud_event(TRACK_FAILED_EVENT);
 					//Sound stuff
-					pcm_play(snd_alarm, PCM_PROTECTED, 5);
+					//pcm_play(snd_alarm, PCM_PROTECTED, 5);
 					//Clear screen in this zone
 			slPrint("                           ", slLocate(0, 6));
 			slPrint("                           ", slLocate(0, 7));
@@ -1153,7 +1159,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->type.ext_dat |= TRACK_COMPLETE;	//Set track as complete
 			you.points += 10 * someLDATA->pix[X];
 			//pcm_play(snd_win, PCM_PROTECTED, 5);
-			start_adx_stream(stmsnd[stm_win], 5);
+			//start_adx_stream(stmsnd[stm_win], 5);
+			start_hud_event(TRACK_WIN_EVENT);
 			slPrint("                           ", slLocate(0, 6));
 			slPrint("                           ", slLocate(0, 7));
 		}
@@ -1164,7 +1171,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->dist -= delta_time;
 			if(someLDATA->dist < 0 && someLDATA->pix[Y] != 0)
 			{
-				//pcm_play(snd_cronch, PCM_PROTECTED, 5); //Sound
+				set_music_track = 1;
+				stm.times_to_loop = 2;
 				start_hud_event(TRACK_DISCOVERED_EVENT);
 				someLDATA->type.ext_dat |= TRACK_DISCOVERED;
 				someLDATA->pix[X] = 0;
@@ -1175,7 +1183,10 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->dist = 2<<16; //Set track discovery timer
 		}
 	}
-
+	
+	////////////////////
+	// Object-in-track Management
+	////////////////////
 	_declaredObject * someOBJECTdata = get_first_in_object_list(OBJECT);
 	while(someOBJECTdata != &dWorldObjects[objNEW] && someLDATA->type.ext_dat & TRACK_RESET)
 	{
@@ -1251,7 +1262,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					//Start a timer. The clone ID of the CTF manager is used as the seconds count.
 					someLDATA->dist += someLDATA->type.clone_ID<<16;
 					someLDATA->type.ext_dat |= CTF_FLAG_TAKEN;
-					pcm_play(snd_ftake, PCM_PROTECTED, 5);
+					//pcm_play(snd_ftake, PCM_PROTECTED, 5);
+					start_hud_event(FLAG_TAKEN_EVENT);
 				}
 			}
 			
@@ -1270,7 +1282,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someITEMdata->rot[Z] = someLDATA->rot[Z];
 					someITEMdata->more_data = 0;
 					//pcm_play(snd_freturn, PCM_PROTECTED, 6);
-					start_adx_stream(stmsnd[stm_freturn], 5);
+					//start_adx_stream(stmsnd[stm_freturn], 5);
+					start_hud_event(FLAG_RETURNED_EVENT);
 				}
 			}
 		
@@ -1330,13 +1343,15 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			if(someLDATA->more_data < someLDATA->type.radius[X])
 			{
 			someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
-			pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+			//pcm_play(snd_ffield1, PCM_PROTECTED, 6);
+			start_hud_event(FLAG_OPEN_EVENT);
 			}
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
-			start_adx_stream(stmsnd[stm_win], 5);
+			//start_adx_stream(stmsnd[stm_win], 5);
+			start_hud_event(FLAG_CAPTURED_EVENT);
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
@@ -1346,6 +1361,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
 			}
+			set_music_track = 1;
+			stm.times_to_loop = 2;
 			someLDATA->dist -= delta_time;
 		}
 	}

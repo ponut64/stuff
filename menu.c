@@ -17,6 +17,7 @@
 #include "bounder.h"
 #include "minimap.h"
 #include "hmap.h"
+#include "sound.h"
 
 #include "menu.h"
 
@@ -480,6 +481,127 @@ void	init_hud_events(void)
 	
 	event->texno = 7;
 	event->colorBank = 1<<6;
+	
+	event = &hudEvents[GATE_PASSED_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_button;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[TRACK_FAILED_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_alarm;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[TRACK_WIN_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = ADX_STREAM;
+	event->soundNum = stm_win;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[FLAG_TAKEN_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_ftake;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[FLAG_RETURNED_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = ADX_STREAM;
+	event->soundNum = stm_freturn;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[FLAG_CAPTURED_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = ADX_STREAM;
+	event->soundNum = stm_win;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[FLAG_OPEN_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_ffield1;
+	event->volume = 6;
+	
+	event->texno = 7;
+	event->colorBank = 1<<6;
+	
+	
 	
 }
 

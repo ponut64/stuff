@@ -26,6 +26,14 @@
 #define RINGS_ALL_EVENT			(0)
 #define GATE_DISCOVERY_EVENT	(8)
 #define TRACK_DISCOVERED_EVENT	(9)
+#define GATE_PASSED_EVENT		(10)
+#define TRACK_FAILED_EVENT		(11)
+#define TRACK_WIN_EVENT			(12)
+
+#define FLAG_TAKEN_EVENT		(13)
+#define FLAG_CAPTURED_EVENT		(14)
+#define FLAG_RETURNED_EVENT		(15)
+#define FLAG_OPEN_EVENT			(16)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

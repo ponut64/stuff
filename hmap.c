@@ -16,6 +16,7 @@
 #include "vdp2.h"
 #include "minimap.h"
 #include "mymath.h"
+#include "sound.h"
 //
 #include "dspm.h"
 //
@@ -160,6 +161,9 @@ void	map_parser(void * data)
 void	p64MapRequest(short levelNo)
 {
 	char the_number[3] = {'0', '0', '0'};
+	//Why three?
+	//Strings need a terminating character.
+	//String "99" is actually binary #'9','9',0 (literal zero).
 	int num_char = sprintf(the_number, "%i", levelNo);
 	if(num_char == 1)
 	{
@@ -196,6 +200,7 @@ void	p64MapRequest(short levelNo)
 	ldat_name[9] = 'D';
 	ldat_name[10] = 'S';
 	
+	set_music_track = NO_STAGE_MUSIC; //Clear stage music, preparing to change music of course.
 	new_file_request(ldat_name, dirty_buf, process_binary_ldata);
 	new_file_request(pgm_name, dirty_buf, map_parser);
 	ldata_ready = false;

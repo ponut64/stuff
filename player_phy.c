@@ -11,6 +11,7 @@
 #include "mymath.h"
 #include "hmap.h"
 #include "particle.h"
+#include "sound.h"
 
 #include "player_phy.h"
 

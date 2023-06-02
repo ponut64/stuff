@@ -161,6 +161,8 @@ void	start_adx_stream(Sint8 * filename, short volume);
 
 void	pcm_stream_init(int bitrate, int bit_depth);
 void	start_pcm_stream(Sint8 * filename, int volume);
+void	change_pcm_stream_param(char volume, char pan);
+void	change_adx_stream_param(char volume, char pan);
 void	stop_adx_stream(void);
 void	stop_pcm_stream(void);
 void	pcm_stream_host(void(*game_code)(void));

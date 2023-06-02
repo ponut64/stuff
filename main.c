@@ -37,6 +37,7 @@ I am sorry for the pain you had to go through.
 #include "player_phy.h"
 #include "gamespeed.h"
 #include "menu.h"
+#include "sound.h"
 //
 #include "lwram.c"
 //
@@ -70,40 +71,7 @@ volatile Uint32 * scuimask = (Uint32*)0x25FE00A0;
 volatile Uint32 * scudmareg =  (Uint32*)0x25FE007C;
 
 int game_set_res = TV_320x240;
-//////////////////////////////////////////////////////////////////////////////
-//Sound Numbers
-//////////////////////////////////////////////////////////////////////////////
- int snd_dash;
- int snd_lstep;
- int snd_wind;
- int snd_bstep;
- int snd_click;
- int snd_button;
- int snd_cronch;
- int snd_alarm;
- int snd_win;
- int snd_freturn;
- int snd_ftake;
- int snd_bwee;
- int snd_smack;
- int snd_khit;
- int snd_clack;
- int snd_close;
- int snd_button2;
- int snd_ffield1;
- int snd_ffield2;
- int snd_ring1;
- int snd_ring2;
- int snd_ring3;
- int snd_ring4;
- int snd_ring5;
- int snd_ring6;
- int snd_ring7;
- Sint8 * stmsnd[64];
- int stm_win = 0;
- int stm_freturn = 1;
- int stm_orchit0 = 2;
- Sint8 stg_mus[4][12];
+
 //////////////////////////////////////////////////////////////////////////////
 int flagIconTexno = 0;
 //////////////////////////////////////////////////////////////////////////////
@@ -281,6 +249,7 @@ void	game_frame(void)
 	master_draw_stats();
 	frame_render_prep();
 	master_draw(); 
+	operate_stage_music();
 	reset_pad(&pad1);
 }
 
