@@ -53,6 +53,7 @@
 ///////////////////////////////////
 extern int delta_time;
 extern int time_in_seconds;
+extern int bad_frames;
 //////////////////////////////////////////////////////////////////////////////
 extern int flagIconTexno;
 
@@ -91,7 +92,11 @@ typedef struct {
 	Bool ladder;
 	Bool wasClimbing;
 	Bool inMenu;
+	Bool cancelTimers;
 	int sanics;
+	int avg_sanics;
+	int sanic_samples;
+	int end_average;
 	
 	short power;
 	short maxPower;

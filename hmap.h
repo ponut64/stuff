@@ -42,6 +42,9 @@ extern Uint8 * buf_map;
 extern char * normTbl;
 //Notice: Map Tex contains a 10-bit texture number, and two extra bits of flip data.
 extern unsigned short * mapTex;
+// The texture file names which are to be, or currently are, loaded from CD to use as textures for the heightmap.
+extern char map_tex_tbl_names[5][12];
+extern char old_tex_tbl_names[5][12];
 
 void	init_heightmap(void);
 void	chg_map(_heightmap * tmap);

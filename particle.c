@@ -192,7 +192,6 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 	static int discard_vector[XYZ];
 	static int plane_center[XYZ];
 	static int plane_points[4][XYZ];
-	static int unorm[XYZ];
 	static int hitPt[XYZ];
 	static int dominant_axis = N_Yp;
 	discard_vector[X] = ent_pos[X] - part->spr->pos[X];
@@ -219,8 +218,8 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		//First we have to match the vector spaces for the particle and for the mesh.
 		//Then we have to get to the vector space of a particular polygon.
 		//After that point, we can use a dot-product to check on which side of the polygon we are.
-		int * plpt = mesh->pntbl[mesh->pltbl[i].Vertices[0]];
-		int * plnm = mesh->pltbl[i].norm;
+		int * plpt = mesh->pntbl[mesh->pltbl[i].vertices[0]];
+		int * plnm = mesh->nmtbl[i];
 		discard_vector[X] = (plpt[X] + ent_pos[X]) - part->spr->pos[X];
 		discard_vector[Y] = (plpt[Y] + ent_pos[Y]) - part->spr->pos[Y];
 		discard_vector[Z] = (plpt[Z] + ent_pos[Z]) - part->spr->pos[Z];
@@ -230,21 +229,9 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		//2. The current tested normal is facing away
 		if(fxdot(discard_vector, plnm) < 0) continue;
 		//////////////////////////////////////////////////////////////
-		// Grab the absolute normal used for finding the dominant axis
+		// Grab the dominant axis
 		//////////////////////////////////////////////////////////////
-		unorm[X] = JO_ABS(plnm[X]);
-		unorm[Y] = JO_ABS(plnm[Y]);
-		unorm[Z] = JO_ABS(plnm[Z]);
-		int max_axis = JO_MAX(JO_MAX((unorm[X]), (unorm[Y])), (unorm[Z]));
-		dominant_axis = ((unorm[X]) == max_axis) ? N_Xp : dominant_axis;
-		dominant_axis = ((unorm[Y]) == max_axis) ? N_Yp : dominant_axis;
-		dominant_axis = ((unorm[Z]) == max_axis) ? N_Zp : dominant_axis;
-		//////////////////////////////////////////////////////////////
-		// Check the sign of the normal's dominant axis for the chirality check
-		//////////////////////////////////////////////////////////////
-		if(dominant_axis == N_Xp && plnm[X] < 0) dominant_axis = N_Xn;
-		if(dominant_axis == N_Yp && plnm[Y] < 0) dominant_axis = N_Yn;
-		if(dominant_axis == N_Zp && plnm[Z] < 0) dominant_axis = N_Zn;
+		dominant_axis = mesh->maxtbl[i];
 		//////////////////////////////////////////////////////////////
 		// Add the position of the mesh to the position of its points
 		// PDATA vector space is inverted, so we negate them
@@ -255,9 +242,9 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		plane_center[Z] = 0;
 		for(int u = 0; u < 4; u++)
 		{
-		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][X] + ent_pos[X] ); 
-		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Y] + ent_pos[Y] ); 
-		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Z] + ent_pos[Z] );
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][X] + ent_pos[X] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Y] + ent_pos[Y] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Z] + ent_pos[Z] );
 		//Add to the plane's center
 		plane_center[X] += plane_points[u][X];
 		plane_center[Y] += plane_points[u][Y];

@@ -623,10 +623,10 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
-		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
-		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
-		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
-		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
+		ptv[0] = &ssh2VertArea[model->pltbl[i].vertices[0]];
+		ptv[1] = &ssh2VertArea[model->pltbl[i].vertices[1]];
+		ptv[2] = &ssh2VertArea[model->pltbl[i].vertices[2]];
+		ptv[3] = &ssh2VertArea[model->pltbl[i].vertices[3]];
 		flags = model->attbl[i].render_data_flags;
 		flip = GET_FLIP_DATA(flags);
 		zDepthTgt = GET_SORT_DATA(flags);
@@ -664,18 +664,26 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
 		//Lighting
-		luma = fxm(-(fxdot(model->pltbl[i].norm, lightAngle) + 32768), bright);
+		luma = fxm(-(fxdot(model->nmtbl[i], lightAngle) + 32768), bright);
 		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
-		luma += fxdot(model->pltbl[i].norm, ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		luma += fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
+		//Shift the color bank code to the appropriate bits
+		colorBank<<=6;
+		//Added later: In case of a polyline (or really, any untextured command),
+		// the color for the draw command is defined by the draw command's "texno" or texture number data.
+		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
+		// So here, we insert it into the correct place in the command table to be the drawn color.
+		unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : model->attbl[i].texno;
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		
         ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
 		transPolys[0] += model->nbPolygon;
 
@@ -768,10 +776,10 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
-		ptv[0] = &msh2VertArea[model->pltbl[i].Vertices[0]];
-		ptv[1] = &msh2VertArea[model->pltbl[i].Vertices[1]];
-		ptv[2] = &msh2VertArea[model->pltbl[i].Vertices[2]];
-		ptv[3] = &msh2VertArea[model->pltbl[i].Vertices[3]];
+		ptv[0] = &msh2VertArea[model->pltbl[i].vertices[0]];
+		ptv[1] = &msh2VertArea[model->pltbl[i].vertices[1]];
+		ptv[2] = &msh2VertArea[model->pltbl[i].vertices[2]];
+		ptv[3] = &msh2VertArea[model->pltbl[i].vertices[3]];
 		flags = model->attbl[i].render_data_flags;
 		flip = GET_FLIP_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
@@ -795,15 +803,23 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
 		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->pltbl[i].norm, lightSrc);
+		luma = fxdot(model->nmtbl[i], lightSrc);
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
+		//Shift the color bank code to the appropriate bits
+		colorBank<<=6;
+		//Added later: In case of a polyline (or really, any untextured command),
+		// the color for the draw command is defined by the draw command's "texno" or texture number data.
+		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
+		// So here, we insert it into the correct place in the command table to be the drawn color.
+		unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : model->attbl[i].texno;
 
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 
@@ -976,10 +992,10 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
     {
-		ptv[0] = &ssh2VertArea[model->pltbl[i].Vertices[0]];
-		ptv[1] = &ssh2VertArea[model->pltbl[i].Vertices[1]];
-		ptv[2] = &ssh2VertArea[model->pltbl[i].Vertices[2]];
-		ptv[3] = &ssh2VertArea[model->pltbl[i].Vertices[3]];
+		ptv[0] = &ssh2VertArea[model->pltbl[i].vertices[0]];
+		ptv[1] = &ssh2VertArea[model->pltbl[i].vertices[1]];
+		ptv[2] = &ssh2VertArea[model->pltbl[i].vertices[2]];
+		ptv[3] = &ssh2VertArea[model->pltbl[i].vertices[3]];
 		flags = model->attbl[i].render_data_flags;
 		flip = GET_FLIP_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
@@ -1013,12 +1029,20 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		luma += fxdot(tNorm, ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
+		//Shift the color bank code to the appropriate bits
+		colorBank<<=6;
+		//Added later: In case of a polyline (or really, any untextured command),
+		// the color for the draw command is defined by the draw command's "texno" or texture number data.
+		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
+		// So here, we insert it into the correct place in the command table to be the drawn color.
+		unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : model->attbl[i].texno;
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
         ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-		VDP1_BASE_CMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank<<6, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 		

@@ -123,6 +123,7 @@ void	load_test(void)
 	// File names can be no longer than 8 letters.
 	// The total length is thusly 12 characters (as there is a period).
 	////////////////////////////////////////////////
+	nbg_sprintf(0,0, "Loading sounds...");
 	stmsnd[stm_win] = (Sint8*)"WIN.ADX";
 	stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
 	stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
@@ -153,28 +154,6 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
 	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
-	/////////////////////////////////////
-	// Floor / heightmap textures
-	/////////////////////////////////////
-	map_texture_table_numbers[0] = numTex;
-	WRAP_NewTable((Sint8*)"DIR0.TGA", (void*)dirty_buf, 0);
-	map_texture_table_numbers[1] = numTex;
-	WRAP_NewTable((Sint8*)"DIR1.TGA", (void*)dirty_buf, 0);
-	map_texture_table_numbers[2] = numTex;
-	WRAP_NewTable((Sint8*)"DIR2.TGA", (void*)dirty_buf, 0);
-	map_texture_table_numbers[3] = numTex;
-	WRAP_NewTable((Sint8*)"DIR3.TGA", (void*)dirty_buf, 0);
-	map_texture_table_numbers[4] = numTex;
-	WRAP_NewTable((Sint8*)"DIR4.TGA", (void*)dirty_buf, 0);
-	map_end_of_original_textures = numTex;
-	map_tex_amt = (numTex - map_texture_table_numbers[0]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
-	map_last_combined_texno = numTex;
-	make_dithered_textures_for_map(0);
-
-/* 	WRAP_ReplaceTable((Sint8*)"DIRTEST.TGA", (void*)dirty_buf, 0, map_texture_table_numbers[2]); 
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures-1, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); */
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
@@ -224,10 +203,30 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
+	
+	/////////////////////////////////////
+	// Floor / heightmap textures
+	/////////////////////////////////////
+	map_texture_table_numbers[0] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[0], (void*)dirty_buf, 0);
+	map_texture_table_numbers[1] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[1], (void*)dirty_buf, 0);
+	map_texture_table_numbers[2] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[2], (void*)dirty_buf, 0);
+	map_texture_table_numbers[3] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[3], (void*)dirty_buf, 0);
+	map_texture_table_numbers[4] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[4], (void*)dirty_buf, 0);
+	map_end_of_original_textures = numTex;
+	map_tex_amt = (numTex - map_texture_table_numbers[0]);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
+	map_last_combined_texno = numTex;
+	make_dithered_textures_for_map(0);
 	
 	p64MapRequest(0);
 	//

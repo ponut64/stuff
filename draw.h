@@ -7,7 +7,9 @@
 #define VIEW_OFFSET_Z (-22 * 65536)
 
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
-extern POLYGON polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
+extern _quad polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
+extern POINT normal_0[1];
+extern unsigned char major_axis_0[4];
 extern gvAtr attribute_0[1];
 extern GVPLY polymap[];
 extern FIXED hmap_matrix_pos[XYZ];

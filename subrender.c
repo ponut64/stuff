@@ -51,7 +51,7 @@
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
 		short	texture_rules[4]		= {16, 16, 16, 16};
 		// **really** trying to squeeze off VDP1 here; these can't be higher, really.
-		int		z_rules[4]				= {150<<16, 100<<16, 75<<16, 50<<16};
+		int		z_rules[4]				= {500<<16, 100<<16, 75<<16, 50<<16};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
@@ -434,9 +434,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//////////////////////////////////////////////////////////////
 	// Load the points
 	//////////////////////////////////////////////////////////////
-		pl_pts[u][X] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][X]);
-		pl_pts[u][Y] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Y]);
-		pl_pts[u][Z] = (mesh->pntbl[mesh->pltbl[i].Vertices[u]][Z]);
+		pl_pts[u][X] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][X]);
+		pl_pts[u][Y] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Y]);
+		pl_pts[u][Z] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Z]);
 	//////////////////////////////////////////////////////////////
 	// Matrix transformation of the plane's points
 	// Note: Does not yet transform to screenspace, clip by screen or portal, or push out to near plane.
@@ -515,7 +515,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		subdivision_rules[0] = mesh->attbl[i].plane_information & 0x3;
 		subdivision_rules[1] = (mesh->attbl[i].plane_information>>2) & 0x3;
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
-		subdivision_rules[3] = (mesh->attbl[i].plane_information>>6) & 0x3;
+		subdivision_rules[3] = 0;
 		
 		if(!subdivision_rules[0] || subdivision_rules[3])
 		{
@@ -583,7 +583,10 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
+
+	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
+
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
@@ -596,17 +599,23 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
-		// Uses weighted max
+		// Floors use max
+		// Walls use center
 		///////////////////////////////////////////
-		//	if(JO_ABS(mesh->pltbl[i].norm[Y]) < 16384)
-		//	{
-		// zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
-		//	} else {
-		 zDepthTgt = (JO_MAX(
-		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
-		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
-		//	}
+			if(mesh->maxtbl[i] != N_Yn)
+			{
+		zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		// zDepthTgt = JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+					// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+			} else {
+		// zDepthTgt = (JO_MAX(
+		// JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+		// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
+		// ((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
+		zDepthTgt = JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+					JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+			}
+
 			if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
 		///////////////////////////////////////////
 		// Use a combined texture, if the subdivision system stated one should be used.
@@ -666,9 +675,17 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			}
 		//	if(luma > 0) break; // Early exit
 		}
+
 		luma = (luma < 0) ? 0 : luma; 
-		luma += fxdot(mesh->pltbl[i].norm, active_lights[0].ambient_light) + active_lights[0].min_bright; 
+		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light) + active_lights[0].min_bright; 
 		determine_colorbank(&colorBank, &luma);
+		//Shift the color bank code to the appropriate bits
+		colorBank<<=6;
+		//Added later: In case of a polyline (or really, any untextured command),
+		// the color for the draw command is defined by the draw command's "texno" or texture number data.
+		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
+		// So here, we insert it into the correct place in the command table to be the drawn color.
+		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : mesh->attbl[i].texno;
 /* 		//Use transformed normal as shade determinant
 		colorBank = (luma >= 98294) ? 0 : 1;
 		colorBank = (luma < 49152) ? 2 : colorBank;
@@ -676,10 +693,11 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
  */			
 
+
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 					ptv[2]->pnt, ptv[3]->pnt,
-		VDP1_BASE_CMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
-		pcoTexDefs[specific_texture].SRCA, colorBank<<6, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
+		usedCMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
+		pcoTexDefs[specific_texture].SRCA, colorBank, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}
     transVerts[0] += sub_vert_cnt;
 	transPolys[0] += sub_poly_cnt;
@@ -699,10 +717,10 @@ void	TEMP_process_mesh_for_subdivision_rules(GVPLY * mesh)
 	
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
-		int * pl_pt0 = mesh->pntbl[mesh->pltbl[i].Vertices[0]];
-		int * pl_pt1 = mesh->pntbl[mesh->pltbl[i].Vertices[1]];
-		int * pl_pt2 = mesh->pntbl[mesh->pltbl[i].Vertices[2]];
-		int * pl_pt3 = mesh->pntbl[mesh->pltbl[i].Vertices[3]];
+		int * pl_pt0 = mesh->pntbl[mesh->pltbl[i].vertices[0]];
+		int * pl_pt1 = mesh->pntbl[mesh->pltbl[i].vertices[1]];
+		int * pl_pt2 = mesh->pntbl[mesh->pltbl[i].vertices[2]];
+		int * pl_pt3 = mesh->pntbl[mesh->pltbl[i].vertices[3]];
 								
 		int len01 = unfix_length(pl_pt0, pl_pt1);
 		int len12 = unfix_length(pl_pt1, pl_pt2);

@@ -214,18 +214,23 @@ a. (optional) mode for CTF wherein it is time + speed; time spent under a minimu
 Immediate next steps:
 a. level select (start menu) - Check. I think it works now.
 b. differentiating assets for each level
-	1. allow levels to define which floor textures to use
+	1. need to allow levels to define which floor textures to use  			!!!
 	2 & 3: music stuff is okay now, really quite the mess though
 c. timer changes
-	1. the timer will count up, not down
-	2. the timer counting up is temporary; it is for testing and gaging completion times of the tracks
-	3. add a menu option to cancel the timer/reset track
-d. portal...
+	1. timer changes - counts up now, good for July testing build
+	2. reset track from menu option - done
+d. additional gate guidance													
+	1. creates an object that represents the span of a gate when discovered
+	2. draws that object as polylines, works better with vdp1's raster rate
+e. portal...
 	I've been dreading it and putting it off, but before SAGE, I absolutely need a first-step portal implementation.
 	It is *specifically* for the heightmap under a floor.
 	This is not a CPU optimization. It is a VDP1 optimization; overdraw is too high in this scenario.
 	Because I have a narrow problem case, I think I can fix it with a narrow solution.
 	But, of course, it's less urgent than actually testing the game.
+f. recall
+	recall is implemented: you can set a recall point on surface and teleport back to it at any time.
+blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
 a. particle effect system ? - done
@@ -583,12 +588,15 @@ void	light_control_loop(void)
 }
 
 //I hate this function.
-void	add_to_track_timer(int index, int index2) 
+void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int * fD) 
 {
 	
 	short trackedLDATA = link_starts[LDATA>>12];
 	short ldata_track = 0;
 	short object_track = 0;
+
+	static short brutal_angle = 0;
+	static short color_rollover = 0;
 
 	if(!(dWorldObjects[index].more_data & GATE_DISCOVERED))
 	{
@@ -598,6 +606,34 @@ void	add_to_track_timer(int index, int index2)
 		{
 			dWorldObjects[index2].more_data |= GATE_DISCOVERED;
 			add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0x83E0);
+			
+			//Add an object specific to this gate, to represent the wall between the two posts
+			declare_object_at_cell(((fD[X])>>16) / CELL_SIZE_INT,
+			-fD[Y]>>16, //Coordinate Systems Madness
+			((fD[Z])>>16) / CELL_SIZE_INT, 50 /*gate plane*/, brutal_angle, 0, 0, 0, 0); 
+			GVPLY * modpol = entities[dWorldObjects[objNEW-1].type.entity_ID].pol;
+			int cntr[3];
+			cntr[X] = fA[X];// + fC[X])>>1;
+			cntr[Y] = fA[Y];// + fD[Y])>>1;
+			cntr[Z] = fA[Z];// + fC[Z])>>1;
+			modpol->pntbl[0][X] = (fA[X] - cntr[X]);
+			modpol->pntbl[0][Y] = (fA[Y] - cntr[Y]);
+			modpol->pntbl[0][Z] = (fA[Z] - cntr[Z]);
+			modpol->pntbl[1][X] = (fB[X] - cntr[X]);
+			modpol->pntbl[1][Y] = (fB[Y] - cntr[Y]);
+			modpol->pntbl[1][Z] = (fB[Z] - cntr[Z]);
+			modpol->pntbl[2][X] = (fC[X] - cntr[X]);
+			modpol->pntbl[2][Y] = (fC[Y] - cntr[Y]);
+			modpol->pntbl[2][Z] = (fC[Z] - cntr[Z]);
+			modpol->pntbl[3][X] = (fD[X] - cntr[X]);
+			modpol->pntbl[3][Y] = (fD[Y] - cntr[Y]);
+			modpol->pntbl[3][Z] = (fD[Z] - cntr[Z]);
+			modpol->attbl[0].render_data_flags |= GV_FLAG_POLYLINE;
+			modpol->attbl[0].texno = 7 + color_rollover;
+			brutal_angle++;
+			color_rollover = (color_rollover > 11) ? 0 : color_rollover+1;
+			///////////////////////////////////////////////////////////////////////////////////
+			
 		}
 		start_hud_event(GATE_DISCOVERY_EVENT);
 		you.points += 1;
@@ -623,7 +659,20 @@ void	add_to_track_timer(int index, int index2)
 					dWorldObjects[index2].type.ext_dat |= GATE_PASSED;
 					add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0xFC00);
 				}
-				dWorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
+				//
+				// Temporary / Testing Change:
+				// light_y_offset is normally the LDATA member which specifies the time added when gates are passed for a track.
+				// To gage the time that I will need to set here, this is being removed for the July 2023 build.
+				// Instead, for this build, the timer will count up.
+				//
+				//WorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
+				
+				//For getting average speed over the track
+				if(!(dWorldObjects[trackedLDATA].type.ext_dat & TRACK_ACTIVE))
+				{
+					you.sanic_samples = 0;
+				}
+				
 				dWorldObjects[trackedLDATA].more_data &= TRACK_NO_GUIDE;
 				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER)<<4;
 				
@@ -730,7 +779,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 					tDist = realpt_to_plane(you.pos, used_normal, fenceA);
 					if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
 					{
-						add_to_track_timer(obj_id1, obj_id2);
+						add_to_track_timer(obj_id1, obj_id2, fenceA, fenceB, fenceC, fenceD);
 						//spr_sprintf(150,112, "bip");
 					}
 				}
@@ -856,7 +905,7 @@ void	test_gate_ring(int index, _boundBox * tgt)
 		if( fxm(tDist, dWorldObjects[activeObjects[index]].dist) < 1 && tRelDist < largeRadius)
 		{	//If the sign of tDist varies from the sign of old object dist, and we are within the radius...
 			//we've passed the plane of the gate's span, and are close enough to have done so within it.
-		add_to_track_timer(activeObjects[index], -1);
+		add_to_track_timer(activeObjects[index], -1, NULL, NULL, NULL, NULL);
 		dWorldObjects[activeObjects[index]].type.ext_dat |= GATE_PASSED; //Flag gate as passed.
 		}
 	
@@ -1124,11 +1173,17 @@ void	manage_track_data(_declaredObject * someLDATA)
 		//Timer run & check
 		if((someLDATA->type.ext_dat & TRACK_ACTIVE))
 		{
-			someLDATA->dist -= delta_time;
+			//
+			// Temporary: For the July 2023 build, the timer will count up, instead of down.
+			// For following releases, the tracks will have ratings, depending on how good your time is.
+			// In those cases, there is an objective fail time.
+			//
+			//someLDATA->dist -= delta_time;
+			someLDATA->dist += delta_time;
 			slPrintFX(someLDATA->dist, slLocate(0, 7));
 			set_music_track = 1;
 			stm.times_to_loop = 2;
-				if(someLDATA->dist < 0) //If timer expired...
+				if(someLDATA->dist < 0 || you.cancelTimers) //If timer expired, or request cancel on timers...
 				{
 					someLDATA->type.ext_dat &= TRACK_INACTIVE;
 					someLDATA->type.ext_dat |= TRACK_RESET; //Reset tracks; timer expired
@@ -1161,6 +1216,8 @@ void	manage_track_data(_declaredObject * someLDATA)
 			//pcm_play(snd_win, PCM_PROTECTED, 5);
 			//start_adx_stream(stmsnd[stm_win], 5);
 			start_hud_event(TRACK_WIN_EVENT);
+			//For displaying average speed on track
+			you.end_average = you.avg_sanics;
 			slPrint("                           ", slLocate(0, 6));
 			slPrint("                           ", slLocate(0, 7));
 		}
@@ -1264,6 +1321,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someLDATA->type.ext_dat |= CTF_FLAG_TAKEN;
 					//pcm_play(snd_ftake, PCM_PROTECTED, 5);
 					start_hud_event(FLAG_TAKEN_EVENT);
+					//For getting average speed
+					you.sanic_samples = 0;
 				}
 			}
 			
@@ -1352,18 +1411,25 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
 			//start_adx_stream(stmsnd[stm_win], 5);
 			start_hud_event(FLAG_CAPTURED_EVENT);
+			//For displaying average speed
+			you.end_average = you.avg_sanics;
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
 			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
-			if(someLDATA->dist < 0)
+			if(someLDATA->dist < 0 || you.cancelTimers)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
 			}
 			set_music_track = 1;
 			stm.times_to_loop = 2;
-			someLDATA->dist -= delta_time;
+			//
+			// Temporary: For the July 2023 build, the timer will count up, instead of down.
+			// In following builds, the flag system may work entirely differently.
+			//
+			//someLDATA->dist -= delta_time;
+			someLDATA->dist += delta_time;
 		}
 	}
 	
@@ -1470,6 +1536,10 @@ void	ldata_manager(void)
 	}//while LDATA end
 			
 	manage_object_data();
+	
+	//User-option to cancel timers. After set true, has to be set false somewhere.
+	//So we set it false here, after all of its actions of consequence have taken place.
+	you.cancelTimers = false;
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
 	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);
 			

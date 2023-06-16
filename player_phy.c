@@ -73,6 +73,8 @@ void reset_player(void)
 	you.id = 0;
 	you.power = 0;
 	you.maxPower = 4;
+	you.avg_sanics = 0;
+	you.sanic_samples = 0;
 }
 
 
@@ -245,6 +247,11 @@ void	player_phys_affect(void)
 		// part_timer = 3<<16;
 	// }
 	// part_timer -= delta_time;
+	
+	you.sanic_samples++;
+	int inversion = fxdiv(1<<16, you.sanic_samples<<16);
+	you.avg_sanics -= fxm(you.avg_sanics, inversion);
+	you.avg_sanics += fxm(you.sanics, inversion);
 	
 	//Derive three angles from two inputs.
 	you.viewRot[X] += you.rotState[Y];

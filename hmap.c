@@ -42,6 +42,21 @@ Bool map_update_complete;
 Bool * sysBool;
 Bool map_chg = true;
 
+char map_tex_tbl_names[5][12] = {
+	{'D','I','R','0','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','1','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','2','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','3','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','4','.','T','G','A', 0, 0, 0, 0}
+};
+
+char old_tex_tbl_names[5][12] = {
+	{'D','I','R','0','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','1','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','2','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','3','.','T','G','A', 0, 0, 0, 0},
+	{'D','I','R','4','.','T','G','A', 0, 0, 0, 0}
+};
 
 //Only works at start of program
 void 	init_heightmap(void)
@@ -50,6 +65,7 @@ void 	init_heightmap(void)
 0 - 1
 3 - 2
 */
+
 	sysBool = (Bool *)(((unsigned int)&map_update_complete)|UNCACHE);
 }
 
@@ -350,7 +366,7 @@ void	make_dithered_textures_for_map(short regenerate)
 		angular_small_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5	, 0);
 		angular_small_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6	, 0);
 		} else {
-		nbg_sprintf(1, 1, "REGEN.....");
+		//nbg_sprintf(1, 1, "REGEN.....");
 		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1		, angular_small_dither_texno[rt][0]);
 		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2		, angular_small_dither_texno[rt][1]);
 		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3		, angular_small_dither_texno[rt][2]);
@@ -737,11 +753,11 @@ int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 			{
 		//Get distance to the polygon approximate center (v0 + v2) - map_pos - light_pos (+ because the map is moved inverse) 
 		POINT light_proxima = {
-		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][X] + model->pntbl[model->pltbl[polynumber].Vertices[2]][X])>>1)
+		(( ( (model->pntbl[model->pltbl[polynumber].vertices[0]][X] + model->pntbl[model->pltbl[polynumber].vertices[2]][X])>>1)
 		+ wldPos[X]) + lightSrc->pos[X])>>16,
-		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Y] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Y])>>1)
+		(( ( (model->pntbl[model->pltbl[polynumber].vertices[0]][Y] + model->pntbl[model->pltbl[polynumber].vertices[2]][Y])>>1)
 		+ wldPos[Y]) + lightSrc->pos[Y])>>16,
-		(( ( (model->pntbl[model->pltbl[polynumber].Vertices[0]][Z] + model->pntbl[model->pltbl[polynumber].Vertices[2]][Z])>>1)
+		(( ( (model->pntbl[model->pltbl[polynumber].vertices[0]][Z] + model->pntbl[model->pltbl[polynumber].vertices[2]][Z])>>1)
 		+ wldPos[Z]) + lightSrc->pos[Z])>>16
 		};
 		// Get inverse distance (some extrapolation of 1/sqrt(d) 
@@ -781,8 +797,8 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	unsigned short pclp = 0;
 	for(int u = 0; u < 4; u++)
 	{
-		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].Vertices[u]][0];
-		umpt[u] = &polymap->pntbl[polymap->pltbl[*dst_poly].Vertices[u]][0];
+		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[u]][0];
+		umpt[u] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[u]][0];
 	}
 	/*
 	0A			1A | 0B			1B
@@ -808,13 +824,13 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	
 	
 	//Initial State
-	new_polygons[0][0] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[0]];
+	new_polygons[0][0] = &msh2VertArea[polymap->pltbl[*dst_poly].vertices[0]];
 	
-	new_polygons[1][1] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[1]];
+	new_polygons[1][1] = &msh2VertArea[polymap->pltbl[*dst_poly].vertices[1]];
 	
-	new_polygons[2][2] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[2]];
+	new_polygons[2][2] = &msh2VertArea[polymap->pltbl[*dst_poly].vertices[2]];
 	
-	new_polygons[3][3] = &msh2VertArea[polymap->pltbl[*dst_poly].Vertices[3]];
+	new_polygons[3][3] = &msh2VertArea[polymap->pltbl[*dst_poly].vertices[3]];
 	// Center
 	// 
 	new_vertices[0][X] = (pnts[0][X] + pnts[1][X] + 
@@ -856,6 +872,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	for(int w = 0; w < 5; w++)
 	{
 		int inverseZ = fxdiv(scrn_dist, new_vertices[w][Z]);
+
         //Transform to screen-space
         scrnsub[w].pnt[X] = fxm(new_vertices[w][X], inverseZ)>>SCR_SCALE_X;
         scrnsub[w].pnt[Y] = fxm(new_vertices[w][Y], inverseZ)>>SCR_SCALE_Y;
@@ -879,6 +896,10 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 		used_flip = *flip;
 //Pre-clipping Function
 		preclipping(ptv, &used_flip, &pclp);
+		
+		//Z position:
+		//Weighted max, even further max than normal. Oddly needed to be weighted even further out.
+		int zDepthTgt = (JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]), JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + *depth)>>1;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Lighting 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -914,7 +935,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
                      VDP1_BASE_CMDCTRL | (used_flip), ( VDP1_BASE_PMODE ) | pclp, //Reads used_flip value
-                     pcoTexDefs[*texno].SRCA, colorBank<<6, pcoTexDefs[*texno].SIZE, 0, *depth);
+                     pcoTexDefs[*texno].SRCA, colorBank<<6, pcoTexDefs[*texno].SIZE, 0, zDepthTgt);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	}
 	transPolys[0] += 4;
@@ -1088,10 +1109,10 @@ void	update_hmap(MATRIX msMatrix)
 		dither = mapTex[x_pix_sample - y_pix_sample] & (1<<15);
 		dither = (dither == 0) ? mapTex[x_pix_sample - y_pix_sample] & (1<<14) : dither;
 		
-		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[0]];
-		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[1]];
-		ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[2]];
-		ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].Vertices[3]];
+		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[0]];
+		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[1]];
+		ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[2]];
+		ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[3]];
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Backface & Screenspace Culling Section
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1106,9 +1127,13 @@ void	update_hmap(MATRIX msMatrix)
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
 		//Sorting target. Uses max.
-		 int zDepthTgt = JO_MAX(
+		 // int zDepthTgt = JO_MAX(
+		// JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+		// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		int zDepthTgt = (JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
+		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
 		if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }

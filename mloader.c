@@ -6,6 +6,7 @@
 #include "render.h"
 #include "bounder.h"
 #include "physobjet.h"
+#include "mymath.h"
 
 #include "mloader.h"
 
@@ -46,8 +47,8 @@ void * loadTextures(void * workAddress, entity_t * model)
 	unsigned char tHeight = 0;
 	unsigned char tWidth = 0;
 	unsigned int tSize = 0;
-	// jo_printf(0, 14, "(%i)", model->numTexture);
-	// jo_printf(0, 15, "(%i)", debug_addr[0]);
+	//nbg_sprintf(0, 14, "(%i)", model->numTexture);
+	// nbg_sprintf(0, 15, "(%i)", debug_addr[0]);
 	for(int j = 0; j < model->numTexture+1; j++)
 	{
 		readByte+=2;	//Skip over a boundary short word, 0xF7F7
@@ -102,7 +103,8 @@ void * loadAnimations(void * startAddress, entity_t * model, modelData_t * model
 
 }
 
-void * loadPDATA(void * startAddress, entity_t * model)
+//i hope xl2 never looks at this weird mutant mess i've made
+void * loadGVPLY(void * startAddress, entity_t * model)
 {
     void * workAddress = startAddress;
 
@@ -110,11 +112,17 @@ void * loadPDATA(void * startAddress, entity_t * model)
         workAddress=(void*)(workAddress + sizeof(GVPLY));
         model->pol->pntbl = (POINT*)workAddress;
         workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol->nbPoint));
-        model->pol->pltbl = (POLYGON*)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(POLYGON) * model->pol->nbPolygon));
+        model->pol->pltbl = (_quad*)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(_quad) * model->pol->nbPolygon));
+		model->pol->nmtbl = (POINT*)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol->nbPolygon));
+		model->pol->maxtbl = (unsigned char *)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(unsigned char) * model->pol->nbPolygon));
+		//Padding: This has to be at least 2-bytes aligned.
+		//So in case there were an odd number of polygons, another byte is written to align it.
+		workAddress += (model->pol->nbPolygon & 1) ? 1 : 0;
         model->pol->attbl = (gvAtr*)workAddress;
         workAddress=(void*)(workAddress + (sizeof(gvAtr) * model->pol->nbPolygon));
-   
 
     return workAddress;
 }
@@ -123,7 +131,8 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 {
 	nbg_sprintf(2, 2, "%s", filename);
 	modelData_t * model_header;
-	void * workAddress = startAddress;
+	void * workAddress = align_4(startAddress);
+
 	model->type = modelType;
 	GfsHn gfs_mdat;
 	Sint32 sector_count;
@@ -149,15 +158,15 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 
 	model->first_portal = (unsigned char)model_header->first_portal;
 
-	//ADDED
-    model->nbMeshes = model_header->TOTAL_MESH;
+	//Needed to load/play animations correctly
 	model->nbFrames = model_header->nbFrames;
 	
-	Sint32 bytesOff = (sizeof(modelData_t)); 
-	workAddress = (workAddress + bytesOff); //Add the texture size and the binary meta data size to the work address to reach the PDATA
+	Sint32 bytesOff = (sizeof(modelData_t));
+//Add the texture size and the binary meta data size to the work address to reach the model data	
+	workAddress = (workAddress + bytesOff); 
 	
 	model->size = (unsigned int)workAddress;
-	workAddress = loadPDATA((workAddress), model);
+	workAddress = loadGVPLY((workAddress), model);
 	model->size = (unsigned int)workAddress - model->size;
 
 	int baseTex = numTex; //numTex is a tga.c directive
@@ -222,15 +231,15 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 			//Some way to find what entity # we're working with right now
 			BuildingPayload[total_building_payload].root_entity = (unsigned short)(model - entities);
 			total_building_payload++;
-		// jo_printf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
-		// jo_printf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);
-		// jo_printf(1, 15+q, "x(%i)", BuildingPayload[q].pos[X]);
-		// jo_printf(13, 15+q, "y(%i)", BuildingPayload[q].pos[Y]);
-		// jo_printf(26, 15+q, "z(%i)", BuildingPayload[q].pos[Z]);
+		// nbg_sprintf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
+		// nbg_sprintf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);
+		// nbg_sprintf(1, 15+q, "x(%i)", BuildingPayload[q].pos[X]);
+		// nbg_sprintf(13, 15+q, "y(%i)", BuildingPayload[q].pos[Y]);
+		// nbg_sprintf(26, 15+q, "z(%i)", BuildingPayload[q].pos[Z]);
 		}
 		
-		// jo_printf(1, 11, "uitem(%i)", *total_items);
-		// jo_printf(1, 13, "amnti(%i)", *unique_items);
+		// nbg_sprintf(1, 11, "uitem(%i)", *total_items);
+		// nbg_sprintf(1, 13, "amnti(%i)", *unique_items);
 	} 
 
 	
@@ -262,12 +271,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	model->was_loaded_from_CD = true;
 	
 	//Alignment
-	volatile unsigned int aligning_address = (volatile unsigned int)workAddress;
-	aligning_address += 4;
-	aligning_address &= 0xFFFFFFFC;
-	workAddress = (void*)aligning_address;
-	
-	return workAddress;
+	return align_4(workAddress);
 }
 
 void	init_entity_list(void)

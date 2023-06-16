@@ -22,6 +22,7 @@
 int oldtime = 0;
 int time_in_seconds = 0;
 int delta_time = 0;
+int bad_frames = 0;
 
 //Clock speed from framerate based on resolution register and NSTC vs PAL
 float         time_get_clockspeed(void)
@@ -56,7 +57,7 @@ void	update_gamespeed(void)
 	
  	static int lastTimes[66];
 	static int time_selector = 0;
-	static int bad_frames = 0;
+
 	
 	lastTimes[time_selector] = frmrt;
 	//If the frame-time is too fast or too slow, mark it as a bad frame.

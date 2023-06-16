@@ -36,8 +36,9 @@
 // Base PMOD: Bit 12 is HSS
 #define VDP1_BASE_PMODE (0x1490)
 // CMDCTRL = Select Distorted Sprite
-#define VDP1_BASE_CMDCTRL (2)
-#define VDP1_PRECLIPPING_DISABLE (2048)
+#define VDP1_BASE_CMDCTRL			(0x2)
+#define VDP1_POLYLINE_CMDCTRL		(0x5)
+#define VDP1_PRECLIPPING_DISABLE 	(2048)
 //VDP1 perf limit depends on how many pixels it's drawing.
 //User Clipping Settings
 #define SYS_CLIPPING (0)
@@ -69,13 +70,14 @@ Render data flags:
 	
 	Byte 1 of render_data_flags:
 	|	0		|	1		|	2		|	3		|	4	-	5 	|	6	-	7 |		
-	  Dual-plane	Mesh		-			MSB On		Tex. flip	  Sorting rule
+	  Dual-plane	Mesh	 Polyline		MSB On		Tex. flip	  Sorting rule
 	Byte 2 of render_data_flags:
 	|	8		|	9		|	10		|	11		|	12	-	13 	|	14	-	15 |		
 	Subdivision	  Collision		Ladder	Climbable			 
 */
 	#define GV_FLAG_SINGLE		(0x1) // Zero, dual-plane. One, single-plane.
 	#define GV_FLAG_MESH		(0x2) // Zero, no mesh. One, mesh.
+	#define GV_FLAG_POLYLINE	(0x4) // Zero, normal polygon. One, draws with polyline. Could be somewhere else.
 	#define GV_FLAG_DARK		(0x8) // Zero, normal light. One, MSB is enabled, making the polygon dark.
 	#define GV_FLAG_NDIV		(0x100) // Zero, polygon can subdivide (in supported objects). One, no subdivision.
 	#define GV_FLAG_PHYS		(0x200) // Zero, physical plane (in supported objects). One, no collision with plane.

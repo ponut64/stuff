@@ -130,7 +130,7 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	
 	*/
 	/////////////////////////////////////////////////////
-	
+
 	//Set type, and copy entity parameters.
 	object->type.entity_ID = new_entity_ID;
 	entities[new_entity_ID] = entities[this_entity_ID];
@@ -145,13 +145,28 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	newMesh->attbl = oldMesh->attbl;
 	newMesh->nbPoint = oldMesh->nbPoint;
 	newMesh->nbPolygon = oldMesh->nbPolygon;
+	newMesh->pltbl = oldMesh->pltbl;
 	//
+	HWRAM_ldptr = align_4(HWRAM_ldptr);
+	
 	HWRAM_ldptr += sizeof(GVPLY);
-	//Set a new memory address for the pntbl & pltbl.
+	//Set a new memory address for the pntbl, nmtbl, and maxtbl.
 	newMesh->pntbl = (POINT *)HWRAM_ldptr;
 	HWRAM_ldptr += sizeof(POINT) * oldMesh->nbPoint;
-	newMesh->pltbl = (POLYGON *)HWRAM_ldptr;
-	HWRAM_ldptr += sizeof(POLYGON) * oldMesh->nbPolygon;
+
+	newMesh->nmtbl = (POINT *)HWRAM_ldptr;
+	HWRAM_ldptr += sizeof(POINT) * oldMesh->nbPolygon;
+
+	newMesh->maxtbl = (unsigned char *)HWRAM_ldptr;
+	HWRAM_ldptr += sizeof(unsigned char) * oldMesh->nbPolygon;
+	
+	HWRAM_ldptr = align_4(HWRAM_ldptr);
+
+	// nbg_sprintf(0, 8 + declared_object_entry,  "(%x)", newMesh->pntbl);
+	// nbg_sprintf(10, 8 + declared_object_entry, "(%x)", newMesh->pltbl);
+	// nbg_sprintf(20, 8 + declared_object_entry, "(%x)", newMesh->nmtbl);
+	// nbg_sprintf(30, 8 + declared_object_entry, "(%x)", newMesh->maxtbl);
+	
 	//Get the number of points and polygons.
 	short numPt = oldMesh->nbPoint;
 	short numPly = oldMesh->nbPolygon;
@@ -188,17 +203,36 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 		tRadius[Y] = (JO_ABS(newMesh->pntbl[i][Y]) > tRadius[Y]) ? JO_ABS(newMesh->pntbl[i][Y]) : tRadius[Y];
 		tRadius[Z] = (JO_ABS(newMesh->pntbl[i][Z]) > tRadius[Z]) ? JO_ABS(newMesh->pntbl[i][Z]) : tRadius[Z];
 	}
-	
+		POINT used_normal;
+		unsigned char dominant_axis = 0;
 	for(int i = 0; i < numPly; i++)
 	{
-		newMesh->pltbl[i].Vertices[0] = oldMesh->pltbl[i].Vertices[0];
-		newMesh->pltbl[i].Vertices[1] = oldMesh->pltbl[i].Vertices[1];
-		newMesh->pltbl[i].Vertices[2] = oldMesh->pltbl[i].Vertices[2];
-		newMesh->pltbl[i].Vertices[3] = oldMesh->pltbl[i].Vertices[3];
+		newMesh->nmtbl[i][X] = fxdot(oldMesh->nmtbl[i], temp_box.UVX);
+		newMesh->nmtbl[i][Y] = fxdot(oldMesh->nmtbl[i], temp_box.UVY);
+		newMesh->nmtbl[i][Z] = fxdot(oldMesh->nmtbl[i], temp_box.UVZ);
 		
-		newMesh->pltbl[i].norm[X] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVX);
-		newMesh->pltbl[i].norm[Y] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVY);
-		newMesh->pltbl[i].norm[Z] = fxdot(oldMesh->pltbl[i].norm, temp_box.UVZ);
+		//////////////////////////////////////////////////////////////
+		// Grab the absolute normal used for finding the dominant axis
+		//////////////////////////////////////////////////////////////
+		used_normal[X] = JO_ABS(newMesh->nmtbl[i][X]);
+		used_normal[Y] = JO_ABS(newMesh->nmtbl[i][Y]);
+		used_normal[Z] = JO_ABS(newMesh->nmtbl[i][Z]);
+		FIXED max_axis = JO_MAX(JO_MAX((used_normal[X]), (used_normal[Y])), (used_normal[Z]));
+		dominant_axis = ((used_normal[X]) == max_axis) ? N_Xp : dominant_axis;
+		dominant_axis = ((used_normal[Y]) == max_axis) ? N_Yp : dominant_axis;
+		dominant_axis = ((used_normal[Z]) == max_axis) ? N_Zp : dominant_axis;
+		//////////////////////////////////////////////////////////////
+		// Check the sign.
+		//////////////////////////////////////////////////////////////
+		used_normal[X] = (newMesh->nmtbl[i][X]);
+		used_normal[Y] = (newMesh->nmtbl[i][Y]);
+		used_normal[Z] = (newMesh->nmtbl[i][Z]);
+	
+		if(dominant_axis == N_Xp && used_normal[X] < 0) dominant_axis = N_Xn;
+		if(dominant_axis == N_Yp && used_normal[Y] < 0) dominant_axis = N_Yn;
+		if(dominant_axis == N_Zp && used_normal[Z] < 0) dominant_axis = N_Zn;
+		
+		newMesh->maxtbl[i] = dominant_axis;
 	}
 
 	//Transformer the radius.
@@ -275,14 +309,14 @@ Bool shadowStruck = false;
 	//////////////////////////////////////////////////////////////
 	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
 	{
-		discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][X])
+		discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][X])
 		- mover->prevPos[X] - mesh_position[X];
-		discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Y])
+		discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Y])
 		- mover->prevPos[Y] - mesh_position[Y];
-		discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].Vertices[0]][Z])
+		discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Z])
 		- mover->prevPos[Z] - mesh_position[Z];
 
-		int normal_discard = fxdot(discard_vector, mesh->pltbl[dst_poly].norm);
+		int normal_discard = fxdot(discard_vector, mesh->nmtbl[dst_poly]);
 				
 	// slPrint("Discard vector:", slLocate(1, 9));
 	// slPrintFX(discard_vector[X], slLocate(2, 10));
@@ -387,9 +421,9 @@ if(you.hitSurface && last_floor_entity == ent)
 	plane_center[Z] = 0;
 	for(int u = 0; u < 4; u++)
 	{
-	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][X]) - mesh_position[X];
-	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][Y]) - mesh_position[Y];
-	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].Vertices[u]][Z]) - mesh_position[Z];
+	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][X]) - mesh_position[X];
+	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][Y]) - mesh_position[Y];
+	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][Z]) - mesh_position[Z];
 	//Add to the plane's center
 	plane_center[X] += plane_points[u][X];
 	plane_center[Y] += plane_points[u][Y];
@@ -400,12 +434,18 @@ if(you.hitSurface && last_floor_entity == ent)
 	plane_center[Y] >>=2;
 	plane_center[Z] >>=2;
 	//////////////////////////////////////////////////////////////
-	// Grab the normal used for point-to-plane projection
-	// This also retains the sign, which we use to check if the axis is + or -.
-	//////////////////////////////////////////////////////////////
-	used_normal[X] = (mesh->pltbl[last_hit_floor].norm[X]);
-	used_normal[Y] = (mesh->pltbl[last_hit_floor].norm[Y]);
-	used_normal[Z] = (mesh->pltbl[last_hit_floor].norm[Z]);
+	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
+	if(backfaced[last_hit_floor])
+	{
+		used_normal[X] = -mesh->nmtbl[last_hit_floor][X];
+		used_normal[Y] = -mesh->nmtbl[last_hit_floor][Y];
+		used_normal[Z] = -mesh->nmtbl[last_hit_floor][Z];
+	} else {
+		used_normal[X] = mesh->nmtbl[last_hit_floor][X];
+		used_normal[Y] = mesh->nmtbl[last_hit_floor][Y];
+		used_normal[Z] = mesh->nmtbl[last_hit_floor][Z];
+	}
+	dominant_axis = mesh->maxtbl[last_hit_floor];
 	//////////////////////////////////////////////////////////////
 	// Project the lines to the plane
 	// We are only testing the Y axis right now, because we are specifically testing something previously determined to be a floor.
@@ -423,13 +463,13 @@ if(you.hitSurface && last_floor_entity == ent)
 	//////////////////////////////////////////////////////////////
 	if(lineChecks[Y])
 	{
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], N_Yn) >= 0)
+		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis) >= 0)
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], N_Yn) >= 0)
+			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis) >= 0)
 			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], N_Yn) >= 0)
+				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis) >= 0)
 				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], N_Yn) >= 0)
+					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis) >= 0)
 					{
 						you.floorNorm[X] = used_normal[X]; 
 						you.floorNorm[Y] = used_normal[Y];
@@ -484,9 +524,9 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	for(int u = 0; u < 4; u++)
 	{
-	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][X]) - mesh_position[X];
-	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][Y]) - mesh_position[Y];
-	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].Vertices[u]][Z]) - mesh_position[Z];
+	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][X]) - mesh_position[X];
+	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][Y]) - mesh_position[Y];
+	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][Z]) - mesh_position[Z];
 	//Add to the plane's center
 	plane_center[X] += plane_points[u][X];
 	plane_center[Y] += plane_points[u][Y];
@@ -498,26 +538,20 @@ for(int i = 0; i < total_planes; i++)
 	plane_center[Z] >>=2;
 
 	//////////////////////////////////////////////////////////////
-	// Grab the absolute normal used for finding the dominant axis
+	// Grab dominant axis and set normal
 	//////////////////////////////////////////////////////////////
-	used_normal[X] = JO_ABS(mesh->pltbl[testing_planes[i]].norm[X]);
-	used_normal[Y] = JO_ABS(mesh->pltbl[testing_planes[i]].norm[Y]);
-	used_normal[Z] = JO_ABS(mesh->pltbl[testing_planes[i]].norm[Z]);
-	FIXED max_axis = JO_MAX(JO_MAX((used_normal[X]), (used_normal[Y])), (used_normal[Z]));
-	dominant_axis = ((used_normal[X]) == max_axis) ? N_Xp : dominant_axis;
-	dominant_axis = ((used_normal[Y]) == max_axis) ? N_Yp : dominant_axis;
-	dominant_axis = ((used_normal[Z]) == max_axis) ? N_Zp : dominant_axis;
-	//////////////////////////////////////////////////////////////
-	// Grab the normal used for point-to-plane projection
-	// This also retains the sign, which we use to check if the axis is + or -.
-	//////////////////////////////////////////////////////////////
-	used_normal[X] = (mesh->pltbl[testing_planes[i]].norm[X]);
-	used_normal[Y] = (mesh->pltbl[testing_planes[i]].norm[Y]);
-	used_normal[Z] = (mesh->pltbl[testing_planes[i]].norm[Z]);
-
-	if(dominant_axis == N_Xp && used_normal[X] < 0) dominant_axis = N_Xn;
-	if(dominant_axis == N_Yp && used_normal[Y] < 0) dominant_axis = N_Yn;
-	if(dominant_axis == N_Zp && used_normal[Z] < 0) dominant_axis = N_Zn;
+	dominant_axis = mesh->maxtbl[testing_planes[i]];
+	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
+	if(backfaced[i])
+	{
+		used_normal[X] = -mesh->nmtbl[testing_planes[i]][X];
+		used_normal[Y] = -mesh->nmtbl[testing_planes[i]][Y];
+		used_normal[Z] = -mesh->nmtbl[testing_planes[i]][Z];
+	} else {
+		used_normal[X] = mesh->nmtbl[testing_planes[i]][X];
+		used_normal[Y] = mesh->nmtbl[testing_planes[i]][Y];
+		used_normal[Z] = mesh->nmtbl[testing_planes[i]][Z];
+	}
 	//////////////////////////////////////////////////////////////
 	// Project the lines to the plane
 	// Y first, then Z, then X
@@ -571,13 +605,7 @@ for(int i = 0; i < total_planes; i++)
 	// Since we know that, we can start with a winding test comparing the point to the plane.
 	// When we do this, we will discard the major axis of the normal to make it 2D.
 	//////////////////////////////////////////////////////////////
-	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
-	if(backfaced[i])
-	{
-		used_normal[X] = -used_normal[X];
-		used_normal[Y] = -used_normal[Y];
-		used_normal[Z] = -used_normal[Z];
-	}
+
 	//////////////////////////////////////////////////////////////
 	// Line Checks Y
 	//////////////////////////////////////////////////////////////

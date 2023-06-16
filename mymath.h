@@ -49,5 +49,7 @@ FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]);
 Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output);
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY);
 
+void *	align_4(void * ptr);
+
 #endif
 

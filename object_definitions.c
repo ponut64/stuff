@@ -419,6 +419,14 @@ _sobject Empty = {
 	.ext_dat = GHOST
 };
 
+_sobject Gate_Plane = {
+	.entity_ID = 50,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = GHOST
+};
+
 _sobject FlagStand = {
 	.entity_ID = 53,
 	.radius[X] = 0,
@@ -515,6 +523,7 @@ void	fill_obj_list(void)
 	objList[34] = &Build23;
 	objList[35] = &Build24;
 	
+	objList[50] = &Gate_Plane;
 	objList[51] = &StartStand;
 	objList[52] = &CrushBlock;
 	objList[53] = &FlagStand;

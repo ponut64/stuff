@@ -19,6 +19,8 @@
 #include "hmap.h"
 #include "sound.h"
 
+#include <string.h>
+
 #include "menu.h"
 
 int viewInfoTxt = 1;
@@ -73,6 +75,7 @@ void	debug_menu_layer(__basic_menu * mnu)
 	_declaredObject * rdobj = &dWorldObjects[dPreview];
 	if(viewInfoTxt == 1)
 	{
+	spr_sprintf(8,		(-12) + (60),	"Height:(%i)", rdobj->pos[Y]>>16);
 	spr_sprintf(8,		0  + (60),		"Object:(%i)", dPreview);
 	spr_sprintf(8,		12 + (60),		"X:(%i)", rdobj->pix[X]);
 	spr_sprintf(72,		12 + (60),		"Y:(%i)", rdobj->pix[Y]);
@@ -117,7 +120,7 @@ void	start_menu_layer(__basic_menu * mnu)
 	mnu->num_option = 5;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
-	static char * option_list[] = {"Return to Game", "Return to Start", "Cancel Timer", "Level Select", "Debug Menu"};
+	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Cancel Timer", "Level Select", "Debug Menu"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -127,13 +130,21 @@ void	start_menu_layer(__basic_menu * mnu)
 		{
 			case(0):
 			you.inMenu = false;
+			if(you.hitSurface)
+			{
+			you.startPos[X] = you.pos[X];
+			you.startPos[Y] = you.pos[Y];
+			you.startPos[Z] = you.pos[Z];
+			you.cancelTimers = true;
+			}
 			break;
 			case(1):
 			reset_player();
 			you.inMenu = false;
 			break;
 			case(2):
-			//Nothing...
+			you.cancelTimers = true;
+			you.inMenu = false;
 			break;
 			case(3):
 			menuLayer = HUD_LAYER_LEVEL;
@@ -195,7 +206,8 @@ void	levelselect_menu_layer(__basic_menu * mnu)
 	levelSelect = (levelSelect > NUM_LEVELS) ? NUM_LEVELS : levelSelect;
 	
 	//Some stuff about the level, but for now:
-	nbg_sprintf(2, 10, "Level:(%i)", levelSelect);
+	//nbg_sprintf(2, 10, "Level:(%i)", levelSelect);
+	spr_sprintf(16, 120, "Level:(%i)", levelSelect);
 	
 }
 
@@ -203,6 +215,8 @@ void	start_menu(void)
 {
 
 	static __basic_menu mnu;
+	
+	bad_frames = 0; //Reset the bad-frame ct on menu'ing
 	
 	if(is_key_struck(DIGI_RIGHT))	mnu.selection++;
 	if(is_key_struck(DIGI_LEFT))	mnu.selection--;
@@ -257,7 +271,8 @@ void	start_menu(void)
 				spr_sprintf(100, 200, "Gates Discovered:(%i)", someLDATA->pix[X]);
 				}
 			} else {
-				spr_sprintf(100, 200, "Track is Complete!");
+				//spr_sprintf(100, 200, "Track is Complete!");
+				spr_sprintf(100, 200, "Track Time:%i", someLDATA->dist>>16);
 			}
 		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_7RINGS)
 		{
@@ -308,7 +323,8 @@ void	start_menu(void)
 		{
 			if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 			{
-				spr_sprintf(100, 212, "Flag Captured!");
+				//spr_sprintf(100, 212, "Flag Captured!");
+				spr_sprintf(100, 212, "Capture Time:%i", someLDATA->dist>>16);
 			} else if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 			{
 				spr_sprintf(100, 212, "Flag Taken!");
@@ -458,11 +474,13 @@ void	init_hud_events(void)
 	event->spriteTime = 1<<16; //One second
 	event->screenStep = 10;
 	
-	event->soundType = PCM_PROTECTED;
+	event->soundType = PCM_SEMI;
 	event->soundNum = snd_khit;
 	event->volume = 6;
 	
-	event->texno = 6;
+	event->texno = 0;
+	static char gatediscovertxt[] = "Gate discovered!";
+	event->text = &gatediscovertxt[0];
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[TRACK_DISCOVERED_EVENT];
@@ -479,7 +497,9 @@ void	init_hud_events(void)
 	event->soundNum = snd_cronch;
 	event->volume = 6;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char trackdiscoveredtxt[] = "All gates found. Ready to go?";
+	event->text = &trackdiscoveredtxt[0];
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[GATE_PASSED_EVENT];
@@ -496,7 +516,9 @@ void	init_hud_events(void)
 	event->soundNum = snd_button;
 	event->volume = 6;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char gatepasstxt[] = "^^^^^";
+	event->text = &gatepasstxt[0];
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[TRACK_FAILED_EVENT];
@@ -513,7 +535,9 @@ void	init_hud_events(void)
 	event->soundNum = snd_alarm;
 	event->volume = 6;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char trackfailtxt[] = "Track failed...";
+	event->text = &trackfailtxt[0];
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[TRACK_WIN_EVENT];
@@ -522,34 +546,46 @@ void	init_hud_events(void)
 	event->startPos[Y] = 0;
 	event->endPos[X] = 176;
 	event->endPos[Y] = 140;
-	event->eventTime = 1<<16; 
-	event->spriteTime = 1<<16; //One second
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16; //One second
 	event->screenStep = 10;
 	
 	event->soundType = ADX_STREAM;
 	event->soundNum = stm_win;
 	event->volume = 6;
 	
-	event->texno = 7;
-	event->colorBank = 1<<6;
+	event->texno = 0;
+	static char trackwintxt[] = "Track complete! Average Sanics: %i";
+	event->text = &trackwintxt[0];
+	event->printedData = &you.end_average;
 	
+	event->colorBank = 1<<6;
+//////////////////////////////////////////////////
 	event = &hudEvents[FLAG_TAKEN_EVENT];
 	
 	event->startPos[X] = 176;
 	event->startPos[Y] = 0;
 	event->endPos[X] = 176;
 	event->endPos[Y] = 140;
-	event->eventTime = 1<<16; 
-	event->spriteTime = 1<<16; //One second
+	event->eventTime = 2<<16; 
+	event->spriteTime = 2<<16; //One second
 	event->screenStep = 10;
 	
 	event->soundType = PCM_PROTECTED;
 	event->soundNum = snd_ftake;
-	event->volume = 6;
+	event->volume = 5;
 	
-	event->texno = 7;
+	//Alerta: Strobe types won't affect text.
+	//Only sprites.
+	//Should probably fix that.
+	//But also, it's more efficient for the text to be in a single sprite anyway.
+	
+	event->texno = 0;
+	static char flagtakentxt[] = "GO GO GO!!!";
+	event->text = &flagtakentxt[0];
+	
 	event->colorBank = 1<<6;
-	
+/////////////////////////////////////////////////
 	event = &hudEvents[FLAG_RETURNED_EVENT];
 	
 	event->startPos[X] = 176;
@@ -562,9 +598,12 @@ void	init_hud_events(void)
 	
 	event->soundType = ADX_STREAM;
 	event->soundNum = stm_freturn;
-	event->volume = 6;
+	event->volume = 5;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char flagreturntxt[] = "Flag returned!";
+	event->text = &flagreturntxt[0];
+	
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[FLAG_CAPTURED_EVENT];
@@ -573,15 +612,19 @@ void	init_hud_events(void)
 	event->startPos[Y] = 0;
 	event->endPos[X] = 176;
 	event->endPos[Y] = 140;
-	event->eventTime = 1<<16; 
-	event->spriteTime = 1<<16; //One second
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16;
 	event->screenStep = 10;
 	
 	event->soundType = ADX_STREAM;
 	event->soundNum = stm_win;
-	event->volume = 6;
+	event->volume = 5;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char flagwintxt[] = "Flag captured! Average Sanics: %i";
+	event->text = &flagwintxt[0];
+	event->printedData = &you.end_average;
+	
 	event->colorBank = 1<<6;
 	
 	event = &hudEvents[FLAG_OPEN_EVENT];
@@ -596,9 +639,11 @@ void	init_hud_events(void)
 	
 	event->soundType = PCM_PROTECTED;
 	event->soundNum = snd_ffield1;
-	event->volume = 6;
+	event->volume = 5;
 	
-	event->texno = 7;
+	event->texno = 0;
+	static char flagopentxt[] = "Flag stand has opened!";
+	event->text = &flagopentxt[0];
 	event->colorBank = 1<<6;
 	
 	
@@ -631,6 +676,11 @@ void	hud_menu(void)
 		} else if(hudEvents[i].status == HUD_EVENT_RUN || hudEvents[i].status == HUD_EVENT_DONE)
 		{
 			iterate_sprite_to_position(hudEvents[i].spr, hudEvents[i].screenStep, hudEvents[i].endPos);
+			if(hudEvents[i].texno == 0)
+			{
+				int offset = strlen(hudEvents[i].text) * 4;
+				spr_sprintf(hudEvents[i].spr->pos[X] - offset, hudEvents[i].spr->pos[Y], hudEvents[i].text, *hudEvents[i].printedData);
+			}
 			
 			if(hudEvents[i].spr->lifetime < hudEvents[i].eventTime && hudEvents[i].status == HUD_EVENT_RUN)
 			{

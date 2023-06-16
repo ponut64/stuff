@@ -56,6 +56,8 @@ typedef struct {
 	unsigned short strobe_interval; //Note: Being a short, it rolls over before 1 second (65535). Use ~62,000 as 1s.
 	short texno;
 	short colorBank;
+	int * printedData;
+	char * text;
 	_sprite * spr;
 } _hudEvent;
 
