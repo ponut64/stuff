@@ -749,6 +749,12 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	cross[Z] = cross[Z]>>8;
 	
 	normalize(cross, used_normal);
+	//Use cross as the center of the span
+	//Ugly, but it's what I did...
+	cross[X] = (fenceA[X] + fenceB[X] + fenceC[X] + fenceD[X])>>2;
+	cross[Y] = (fenceA[Y] + fenceB[Y] + fenceC[Y] + fenceD[Y])>>2;
+	cross[Z] = (fenceA[Z] + fenceB[Z] + fenceC[Z] + fenceD[Z])>>2;
+
 
 	//////////////////////////////////////////////////////////////
 	// Grab the absolute normal used for finding the dominant axis
@@ -768,15 +774,15 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// Then the final axis is checked with a point-to-plane distance check.
 	// The benefits of this is that the chirality check will exit early a lot of the time.
 	//////////////////////////////////////////////////////////////
- 	if(edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis) < 0)
+ 	if(edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis, 16) < 0)
 	{
-		if(edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis) < 0)
+		if(edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis, 16) < 0)
 		{
-			if(edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis) < 0)
+			if(edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis, 16) < 0)
 			{
-				if(edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis) < 0)
+				if(edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis, 16) < 0)
 				{
-					tDist = realpt_to_plane(you.pos, used_normal, fenceA);
+					tDist = realpt_to_plane(you.pos, used_normal, cross);
 					if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
 					{
 						add_to_track_timer(obj_id1, obj_id2, fenceA, fenceB, fenceC, fenceD);
@@ -1182,7 +1188,7 @@ void	manage_track_data(_declaredObject * someLDATA)
 			someLDATA->dist += delta_time;
 			slPrintFX(someLDATA->dist, slLocate(0, 7));
 			set_music_track = 1;
-			stm.times_to_loop = 2;
+			stm.times_to_loop = 1;
 				if(someLDATA->dist < 0 || you.cancelTimers) //If timer expired, or request cancel on timers...
 				{
 					someLDATA->type.ext_dat &= TRACK_INACTIVE;
@@ -1229,7 +1235,7 @@ void	manage_track_data(_declaredObject * someLDATA)
 			if(someLDATA->dist < 0 && someLDATA->pix[Y] != 0)
 			{
 				set_music_track = 1;
-				stm.times_to_loop = 2;
+				stm.times_to_loop = 1;
 				start_hud_event(TRACK_DISCOVERED_EVENT);
 				someLDATA->type.ext_dat |= TRACK_DISCOVERED;
 				someLDATA->pix[X] = 0;
@@ -1317,7 +1323,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 				if(!(someLDATA->type.ext_dat & CTF_FLAG_TAKEN) && *edata & FLAG_GRABBED)
 				{
 					//Start a timer. The clone ID of the CTF manager is used as the seconds count.
-					someLDATA->dist += someLDATA->type.clone_ID<<16;
+					// Temporary: No time will be added for the July '23 build.
+					//someLDATA->dist += someLDATA->type.clone_ID<<16;
 					someLDATA->type.ext_dat |= CTF_FLAG_TAKEN;
 					//pcm_play(snd_ftake, PCM_PROTECTED, 5);
 					start_hud_event(FLAG_TAKEN_EVENT);
@@ -1413,17 +1420,21 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			start_hud_event(FLAG_CAPTURED_EVENT);
 			//For displaying average speed
 			you.end_average = you.avg_sanics;
+			
+			nbg_sprintf(0, 7, "                    ");
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
 			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
+			slPrintFX(someLDATA->dist, slLocate(0, 7));
 			if(someLDATA->dist < 0 || you.cancelTimers)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
+				nbg_sprintf(0, 7, "                    ");
 			}
 			set_music_track = 1;
-			stm.times_to_loop = 2;
+			stm.times_to_loop = 1;
 			//
 			// Temporary: For the July 2023 build, the timer will count up, instead of down.
 			// In following builds, the flag system may work entirely differently.

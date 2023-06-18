@@ -404,7 +404,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	//int min_z = 0;
 	
 	int specific_texture = 0;
-	
+	int dual_plane = 0;
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
 	////////////////////////////////////////////////////
@@ -481,7 +481,10 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 							* (ssh2VertArea[0].pnt[Y] - ssh2VertArea[2].pnt[Y]);
 		 int cross1 = (ssh2VertArea[1].pnt[Y] - ssh2VertArea[3].pnt[Y])
 							* (ssh2VertArea[0].pnt[X] - ssh2VertArea[2].pnt[X]);
+		dual_plane = 0;
 		if(cross0 >= cross1) continue;
+	} else {
+		dual_plane = 1;
 	}
 	//
 	//////////////////////////////////////////////////////////////
@@ -599,22 +602,16 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
-		// Floors use max
-		// Walls use center
+		// Uses weighted max
+		// It's best to adjust how other things are sorted, rather than this,
+		// because weighted max is the best between transparent floors/ceilings and walls.
 		///////////////////////////////////////////
-			if(mesh->maxtbl[i] != N_Yn)
-			{
-		zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		zDepthTgt = (JO_MAX(
+		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
+		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 		// zDepthTgt = JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 					// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-			} else {
-		// zDepthTgt = (JO_MAX(
-		// JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
-		// ((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
-		zDepthTgt = JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-					JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-			}
 
 			if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
 		///////////////////////////////////////////
@@ -677,7 +674,10 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		}
 
 		luma = (luma < 0) ? 0 : luma; 
-		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light) + active_lights[0].min_bright; 
+		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light);
+		//If the plane is dual-plane, add the absolute luma, instead of the signed luma.
+		luma = (dual_plane) ? JO_ABS(luma) : luma;
+		luma += active_lights[0].min_bright; 
 		determine_colorbank(&colorBank, &luma);
 		//Shift the color bank code to the appropriate bits
 		colorBank<<=6;
@@ -686,13 +686,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
 		// So here, we insert it into the correct place in the command table to be the drawn color.
 		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : mesh->attbl[i].texno;
-/* 		//Use transformed normal as shade determinant
-		colorBank = (luma >= 98294) ? 0 : 1;
-		colorBank = (luma < 49152) ? 2 : colorBank;
-		colorBank = (luma < 32768) ? 3 : colorBank; 
-		colorBank = (luma < 16384) ? 515 : colorBank; //Make really dark? use MSB shadow
- */			
-
 
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
 					ptv[2]->pnt, ptv[3]->pnt,

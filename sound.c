@@ -47,7 +47,7 @@
  int stm_win = 0;
  int stm_freturn = 1;
  int stm_orchit0 = 2;
- Sint8 stg_mus[4][12];
+ Sint8 stg_mus[3][13];
  int playing_stage_music = NO_STAGE_MUSIC;
  int set_music_track = NO_STAGE_MUSIC;
  char music_volume = 3;

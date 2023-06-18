@@ -33,7 +33,7 @@ boxDisField[5] = N_Xp;
 }
 
 
-int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
+int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard, short shift)
 {
 	
 	int left = 0;
@@ -77,43 +77,43 @@ int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard)
 	{
 		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		left = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
-		right = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
+		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		//slPrint("Discard X+", slLocate(2, 5));
 	} else if(discard == N_Zp)
 	{
 		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		left = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
-		right = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
+		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
 		//slPrint("Discard Z+", slLocate(2, 5));
 	} else if(discard == N_Yn)
 	{
 		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X]));
-		left = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
-		right = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
+		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
 		//slPrint("Discard Y+", slLocate(2, 5));
 	} else if(discard == N_Xn)
 	{
 		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
 		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
-		right = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
-		left = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
+		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		//slPrint("Discard X-", slLocate(2, 5));
 	} else if(discard == N_Zn)
 	{
 		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
 		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
-		right = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Y] - plane_p0[Y])>>12);
-		left = ((test_pt[Y] - plane_p0[Y])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
+		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
 		//slPrint("Discard Z-", slLocate(2, 5));
 	} else if(discard == N_Yp)
 	{
 		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
 		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X])); 
-		right = ((test_pt[X] - plane_p0[X])>>12) * ((plane_p1[Z] - plane_p0[Z])>>12);
-		left = ((test_pt[Z] - plane_p0[Z])>>12) * ((plane_p1[X] - plane_p0[X])>>12);
+		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
 		//slPrint("Discard Y-", slLocate(2, 5));
 	}
 	// slPrint("Left:", slLocate(2, 7 + (prntidx * 2)));
@@ -612,13 +612,13 @@ _lineTable moverCFs = {
 		{
 			if(lineChecks[u])
 			{
-				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], lineEnds[u], boxDisField[i]) > 0)
+				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], lineEnds[u], boxDisField[i], 12) > 0)
 				{
-					if(edge_wind_test(stator->pltbl[i][1], stator->pltbl[i][2], lineEnds[u], boxDisField[i]) > 0)
+					if(edge_wind_test(stator->pltbl[i][1], stator->pltbl[i][2], lineEnds[u], boxDisField[i], 12) > 0)
 					{
-						if(edge_wind_test(stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i]) > 0)
+						if(edge_wind_test(stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i], 12) > 0)
 						{
-							if(edge_wind_test(stator->pltbl[i][3], stator->pltbl[i][0], lineEnds[u], boxDisField[i]) > 0)
+							if(edge_wind_test(stator->pltbl[i][3], stator->pltbl[i][0], lineEnds[u], boxDisField[i], 12) > 0)
 							{
 								pl_physics_handler(mover, stator, lineEnds[u], i, obj_type_data);
 								mover->collisionID = stator->boxID;

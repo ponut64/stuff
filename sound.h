@@ -36,7 +36,7 @@ extern Sint8 * stmsnd[64];
 extern int stm_win;
 extern int stm_freturn;
 extern int stm_orchit0;
-extern Sint8 stg_mus[4][12];
+extern Sint8 stg_mus[3][13];
 extern int playing_stage_music;
 extern int set_music_track;
 extern char music_volume;

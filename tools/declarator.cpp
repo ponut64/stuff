@@ -70,7 +70,7 @@ void	create_objects(int levelNo)
 		texNames[1] = "DIR1.TGA";
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIRTEST.TGA";
+		texNames[4] = "DIR4.TGA";
 		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
@@ -105,7 +105,7 @@ void	create_objects(int levelNo)
 		music2 = "TRZONE.MUS";
 		music3 = "LONKR.MUS";
 		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
+		texNames[1] = "DIRTEST.TGA";
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
@@ -213,7 +213,7 @@ void	create_objects(int levelNo)
 		music3 = "LONKR.MUS";
 		texNames[0] = "DIR0.TGA";
 		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
+		texNames[2] = "DIRTEST.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
 	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
@@ -316,7 +316,7 @@ void	create_objects(int levelNo)
 		texNames[0] = "DIR0.TGA";
 		texNames[1] = "DIR1.TGA";
 		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
+		texNames[3] = "DIRTEST.TGA";
 		texNames[4] = "DIR4.TGA";
 	declare_object_at_cell((1060 / 40) + 1, -172, (820 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 	
@@ -378,7 +378,7 @@ void	create_objects(int levelNo)
 		texNames[1] = "DIR1.TGA";
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
+		texNames[4] = "DIRTEST.TGA";
 	declare_object_at_cell((460 / 40) + 1, -350, -(5060 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell(-(500 / 40) + 1, -145, (1100 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);

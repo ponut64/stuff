@@ -33,7 +33,7 @@ void	declarations(void)
 void	replace_table_0(void * source_data)
 {
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[0]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
 	memcpy(&old_tex_tbl_names[0], &map_tex_tbl_names[0], 12);
 	//*old_tex_tbl_names[0] = *map_tex_tbl_names[0];
@@ -42,7 +42,7 @@ void	replace_table_0(void * source_data)
 void	replace_table_1(void * source_data)
 {
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[1]);
-	make_4way_combined_textures(map_texture_table_numbers[1], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
 	memcpy(&old_tex_tbl_names[1], &map_tex_tbl_names[1], 12);
 }
@@ -50,7 +50,7 @@ void	replace_table_1(void * source_data)
 void	replace_table_2(void * source_data)
 {
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[2]);
-	make_4way_combined_textures(map_texture_table_numbers[2], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
 	memcpy(&old_tex_tbl_names[2], &map_tex_tbl_names[2], 12);
 }
@@ -58,7 +58,7 @@ void	replace_table_2(void * source_data)
 void	replace_table_3(void * source_data)
 {
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[3]);
-	make_4way_combined_textures(map_texture_table_numbers[3], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
 	memcpy(&old_tex_tbl_names[3], &map_tex_tbl_names[3], 12);
 }
@@ -66,7 +66,7 @@ void	replace_table_3(void * source_data)
 void	replace_table_4(void * source_data)
 {
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[4]);
-	make_4way_combined_textures(map_texture_table_numbers[4], map_end_of_original_textures-1, map_end_of_original_textures);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
 	memcpy(&old_tex_tbl_names[4], &map_tex_tbl_names[4], 12);
 }
@@ -117,45 +117,35 @@ void	process_binary_ldata(void * source_data)
 		short parity = 0;
 		for(int i = 0; i < 12; i++)
 		{
-			if(*cptr == old_tex_tbl_names[l][i]) parity++;
 			if(*cptr != ' ')
 			{
-				map_tex_tbl_names[l][i] = *cptr++;
+				if(*cptr == old_tex_tbl_names[l][i]) parity++;
+				map_tex_tbl_names[l][i] = *cptr;
 			} else {
 				map_tex_tbl_names[l][i] = 0; //NUL character / string terminator
-				cptr++;
 				if(old_tex_tbl_names[l][i] == 0) parity++;
 			}
+			cptr++;
 		}
 		if(parity != 12)
 		{
-			switch(l)
+			if(l == 0)
 			{
-				//Why do we have to do it like this? Can't we just use arrays, or more function arguments?
-				//The reason we can't is due to the way the pcmstm library is built:
-				//the data handler function cannot have any arguments more than the address of the data.
-				//Another consequence is the location of the data in the first place.
-				//I'd have to load it to 5 unique locations. There's room for that though, not much of an issue.
-				case(0):
-				new_file_request((Sint8*)&map_tex_tbl_names[l][0], dirty_buf, replace_table_0); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0); 
 				//nbg_sprintf(2, 8, "0(%i)", parity);
-				break;
-				case(1):
-				new_file_request((Sint8*)&map_tex_tbl_names[l][0], dirty_buf, replace_table_1); 
-				//nbg_sprintf(2, 9, "1(%i)", parity);
-				break;
-				case(2):
-				new_file_request((Sint8*)&map_tex_tbl_names[l][0], dirty_buf, replace_table_2); 
-				//nbg_sprintf(2, 10, "2(%i)", parity);
-				break;
-				case(3):
-				new_file_request((Sint8*)&map_tex_tbl_names[l][0], dirty_buf, replace_table_3); 
+				//nbg_sprintf(2, 8, "%s", &map_tex_tbl_names[l][0]);
+			} else if(l == 1){
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1); 
+				//nbg_sprintf(2, 9, "%s", &map_tex_tbl_names[l][0]);
+			} else if(l == 2){
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2); 
+				//nbg_sprintf(2, 10, "%s", &map_tex_tbl_names[l][0]);
+			} else if(l == 3){
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3); 
 				//nbg_sprintf(2, 11, "3(%i)", parity);
-				break;
-				case(4):
-				new_file_request((Sint8*)&map_tex_tbl_names[l][0], dirty_buf, replace_table_4); 
+			} else if(l == 4){
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4); 
 				//nbg_sprintf(2, 12, "4(%i)", parity);
-				break;
 			}
 		}
 	}

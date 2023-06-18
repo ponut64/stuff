@@ -463,13 +463,13 @@ if(you.hitSurface && last_floor_entity == ent)
 	//////////////////////////////////////////////////////////////
 	if(lineChecks[Y])
 	{
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis) >= 0)
+		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis) >= 0)
+			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
 			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis) >= 0)
+				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
 				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis) >= 0)
+					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
 					{
 						you.floorNorm[X] = used_normal[X]; 
 						you.floorNorm[Y] = used_normal[Y];
@@ -581,13 +581,13 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
  	if((!shadowStruck || !hitY) && (lineEnds[Y][Y] < you.pos[Y]))
 	{	
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis) >= 0)
+		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis) >= 0)
+			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
 			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis) >= 0)
+				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
 				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis) >= 0)
+					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
 					{
 						shadowStruck = true;
 						you.aboveObject = true;
@@ -615,13 +615,13 @@ for(int i = 0; i < total_planes; i++)
 	{
 		if(lineChecks[Y]){
 			//slPrint("Testing Y", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis) >= 0)
+				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis) >= 0)
+					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis) >= 0)
+						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
 						{
 							if((dominant_axis == N_Yn && !backfaced[i]) || climder)
 							{
@@ -683,13 +683,13 @@ for(int i = 0; i < total_planes; i++)
 	{
 		if(lineChecks[Z]){
 			//slPrint("Testing Z", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Z], dominant_axis) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Z], dominant_axis, 12) >= 0)
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Z], dominant_axis) >= 0)
+				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Z], dominant_axis, 12) >= 0)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Z], dominant_axis) >= 0)
+					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Z], dominant_axis, 12) >= 0)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Z], dominant_axis) >= 0)
+						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Z], dominant_axis, 12) >= 0)
 						{
 							if(climder)
 							{
@@ -742,13 +742,13 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 		if(lineChecks[X]){
 			//slPrint("Testing X", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[X], dominant_axis) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[X], dominant_axis, 12) >= 0)
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[X], dominant_axis) >= 0)
+				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[X], dominant_axis, 12) >= 0)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[X], dominant_axis) >= 0)
+					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[X], dominant_axis, 12) >= 0)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[X], dominant_axis) >= 0)
+						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[X], dominant_axis, 12) >= 0)
 						{
 							if(climder)
 							{
