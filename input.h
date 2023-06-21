@@ -31,7 +31,23 @@ typedef struct {
 	unsigned short toggle;
 } digital_pad;
 
+typedef struct {
+	unsigned char active; //Is analogue input active, or not?
+	unsigned char ax; // Stick X-Axis
+	unsigned char ay; // Stick Y-Axis
+	unsigned char lta; // Left trigger
+	unsigned char rta; // Right trigger
+	unsigned char dax; // Delta X-Axis
+	unsigned char day; // Delta Y-Axis
+	unsigned char ltd; // Left trigger delta
+	unsigned char rtd; // Right trigger delta
+	unsigned char tax; // X-Axis Tolerance 
+	unsigned char tay; // Y-Axis Tolerance
+	unsigned char taz; // Trigger' tolerance
+} analog_ext;
+
 extern digital_pad pad1;
+extern analog_ext apd1;
 
 void	reset_pad(digital_pad * pad);
 int		is_key_pressed(int keyPattern);

@@ -235,6 +235,15 @@ void	load_test(void)
 
 void	game_frame(void)
 {
+	
+	// nbg_sprintf(2, 9, "ax(%i)", apd1.ax);
+	// nbg_sprintf(2, 10, "ay(%i)", apd1.ay);
+	// nbg_sprintf(2, 11, "lt(%i)", apd1.lta);
+	// nbg_sprintf(2, 12, "rt(%i)", apd1.rta);
+	// Okay, shit's crashing on real hardware, but not any emulator.
+	// The cause is my workarea.c
+	// Exactly what in workarea.c, I do not know.
+
 	slCashPurge();
 	prep_map_mtx();
 	//ABC+Start Exit Condition

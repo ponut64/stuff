@@ -49,9 +49,9 @@
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
-		short	texture_rules[4]		= {16, 16, 16, 16};
-		// **really** trying to squeeze off VDP1 here; these can't be higher, really.
-		int		z_rules[4]				= {500<<16, 100<<16, 75<<16, 50<<16};
+		short	texture_rules[4]		= {16, 16, 16, 0};
+		// **really** trying to squeeze the performance here
+		int		z_rules[4]				= {300<<16, 100<<16, 33<<16, 0};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
@@ -60,10 +60,11 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	FIXED * ptv[4];
 	static int max_z;
 	static char new_rule;
-	for(int u = 0; u < 4; u++)
-	{
-		ptv[u] = &subdivided_points[subdivided_polygons[overwritten_polygon][u]][X];
-	}
+
+	ptv[0] = &subdivided_points[subdivided_polygons[overwritten_polygon][0]][X];
+	ptv[1] = &subdivided_points[subdivided_polygons[overwritten_polygon][1]][X];
+	ptv[2] = &subdivided_points[subdivided_polygons[overwritten_polygon][2]][X];
+	ptv[3] = &subdivided_points[subdivided_polygons[overwritten_polygon][3]][X];
 	
 	//if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
 	new_rule = subdivision_rules[total_divisions];
@@ -556,14 +557,19 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			// Screenspace Transform of SUBDIVIDED Vertices
 			// v = subdivided point index
 			// testing_planes[i] = plane data index
-			//
 			///////////////////////////////////////////
+			// Pre-loop: Set near-plane clip for first vertex, then set the division unit to work
+			///////////////////////////////////////////
+			ssh2VertArea[0].pnt[Z] = (subdivided_points[0][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[0][Z] : SUBDIVISION_NEAR_PLANE;
+			SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
 			for(int v = 0; v < sub_vert_cnt; v++)
 			{
-				//Push to near-plane
-				ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
-				//Get 1/z
-				inverseZ = fxdiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
+				//Push to near-plane for NEXT vertex
+				ssh2VertArea[v+1].pnt[Z] = (subdivided_points[v+1][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v+1][Z] : SUBDIVISION_NEAR_PLANE;
+				//Get 1/z for CURRENT vertex
+				inverseZ = *DVDNTL;
+				//Set division for NEXT vertex
+				SetFixDiv(scrn_dist, ssh2VertArea[v+1].pnt[Z]);
 				//Transform to screen-space
 				ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
 				ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;

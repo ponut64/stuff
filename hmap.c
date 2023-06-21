@@ -776,7 +776,7 @@ int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 // Helper data for dynamic polygon subdivision
 ////////////////////////////
 POINT verts_without_inverse_z[LCL_MAP_PIX * LCL_MAP_PIX];
-int new_vertices[5][3];
+int new_vertices[6][3];
 vertex_t * new_polygons[4][4];
 vertex_t scrnsub[5];
 
@@ -869,9 +869,18 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	new_polygons[0][3] = &scrnsub[4];
 	new_polygons[3][0] = &scrnsub[4];
 	
+	//Pre-loop
+	//Start division for first vertex
+	// I've profiled it; doing this before the polygon body appears to... not be any faster, but it's not slower,
+	// and hypothetically, it should be faster. I'll take it.
+	SetFixDiv(scrn_dist, new_vertices[0][Z]);
+	
 	for(int w = 0; w < 5; w++)
 	{
-		int inverseZ = fxdiv(scrn_dist, new_vertices[w][Z]);
+		//Get 1/z
+		int inverseZ = *DVDNTL;
+		//Set next 1/z
+		SetFixDiv(scrn_dist, new_vertices[w+1][Z]);
 
         //Transform to screen-space
         scrnsub[w].pnt[X] = fxm(new_vertices[w][X], inverseZ)>>SCR_SCALE_X;

@@ -24,6 +24,9 @@ int time_in_seconds = 0;
 int delta_time = 0;
 int bad_frames = 0;
 
+int * uncache_oldtime;
+int * uncache_time;
+
 //Clock speed from framerate based on resolution register and NSTC vs PAL
 float         time_get_clockspeed(void)
 {
@@ -36,6 +39,16 @@ float         time_get_clockspeed(void)
 unsigned int  time_get_clock_mode(void)
 {
     return (8 << ((*(volatile unsigned char *)(TCR) & 3) << 1));
+}
+
+	//Returns time within frame in milliseconds
+int		get_time_in_frame(void)
+{
+	*uncache_oldtime = *uncache_time;
+	int curFrc = *(volatile unsigned char *)(FRC_H) << 8 | *(volatile unsigned char *)(FRC_L);
+	int time_add = (time_get_clockspeed() * curFrc * time_get_clock_mode() / 1000) * 65536.0;
+	//time_in_seconds += time_add;
+	return (*uncache_time + time_add) - *uncache_oldtime;
 }
 
 void                                    fixed_point_time(void)
@@ -52,6 +65,12 @@ void                                    fixed_point_time(void)
 //borrowed/given by XL2 -- Frame limiter to 30 FPS. EXTREMELY USEFUL.
 void	update_gamespeed(void)
 {
+	uncache_oldtime = &oldtime;
+	uncache_oldtime = (int*)((unsigned int)uncache_oldtime | UNCACHE);
+	
+	uncache_time = &time_in_seconds;
+	uncache_time = (int*)((unsigned int)uncache_time | UNCACHE);
+	
 	int frmrt = delta_time>>6;
 	fixed_point_time();
 	

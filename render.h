@@ -28,8 +28,8 @@
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
 #define INTERNAL_MAX_POLY 2600 //Slave only 1700
 #define INTERNAL_MAX_VERTS 2800 //Slave only 2800
-#define MAX_SSH2_SENT_POLYS (700) //SpriteBuf size limitation // thanks VBT for fixing sglarea.o for me (?)
-#define MAX_MSH2_SENT_POLYS (600) //SpriteBuf size limitation 
+#define MAX_SSH2_SENT_POLYS (750) //SpriteBuf size limitation 
+#define MAX_MSH2_SENT_POLYS (450) //SpriteBuf size limitation 
 #define MAX_SSH2_ENTITY_VERTICES (500)
 #define MAX_MSH2_ENTITY_VERTICES (500) //This is coming from def.h for hmap.c, but it needs to be at least this much.
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.
@@ -185,9 +185,6 @@ extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;
 
-extern int * DVSR;
-extern int * DVDNTH;
-extern int * DVDNTL;
 extern int scrn_dist;
 extern short vert_clip_x;
 extern short vert_clip_nx;
@@ -197,8 +194,8 @@ extern unsigned short top_left_erase_pt;
 extern unsigned short btm_rite_erase_pt;
 extern int send_draw_stats;
 extern int hi_res_switch;
-extern vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES];
-extern vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES];
+extern vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES+1];
+extern vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES+1];
 extern _sprite	sprWorkList[MAX_SPRITES];
 extern int * ssh2SentPolys;
 extern int * msh2SentPolys;

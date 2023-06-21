@@ -212,24 +212,22 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. level select (start menu) - Check. I think it works now.
-b. differentiating assets for each level
-	1. need to allow levels to define which floor textures to use  			!!!
-	2 & 3: music stuff is okay now, really quite the mess though
-c. timer changes
-	1. timer changes - counts up now, good for July testing build
-	2. reset track from menu option - done
-d. additional gate guidance													
-	1. creates an object that represents the span of a gate when discovered
-	2. draws that object as polylines, works better with vdp1's raster rate
-e. portal...
-	I've been dreading it and putting it off, but before SAGE, I absolutely need a first-step portal implementation.
-	It is *specifically* for the heightmap under a floor.
-	This is not a CPU optimization. It is a VDP1 optimization; overdraw is too high in this scenario.
-	Because I have a narrow problem case, I think I can fix it with a narrow solution.
-	But, of course, it's less urgent than actually testing the game.
-f. recall
-	recall is implemented: you can set a recall point on surface and teleport back to it at any time.
+a. 3D Pad Support -
+	First pass working/done. Playable. Cool.
+	
+b. Performance issues.
+	Level 1 loads up the planes/polygons fairly heavily, and it causes performance issues.
+	Generally, there's just too many planes generating too many vertices.
+	But more importantly, the game doesn't handle 20fps / 50ms gracefully.
+	These issues would be less of a problem if the game could handle them gracefully.
+	Another issue is profiling.
+	I'm pretty sure that the slave SH2 is overloaded, which is causing problems.
+	So I should move some type of rendering back over to the master SH2.
+	The most viable task is the animated model... which is a big task.
+	It would put the MSH2's vertex load pretty high.
+	But I'm not sure. I would love to know how much time each process is taking.
+
+e. not portal - it's not strictly needed yet
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
@@ -1311,9 +1309,9 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someITEMdata->dist = approximate_distance(someLDATA->pos, someITEMdata->pos)>>16;
 					 if(someITEMdata->dist < someLDATA->type.radius[X])
 					 {
-						 *edata |= ITEM_COLLECTED;
-						 someITEMdata->more_data = 0;
-						 someLDATA->type.ext_dat |= CTF_FLAG_CAPTURED;
+						*edata |= ITEM_COLLECTED;
+						someITEMdata->more_data = 0;
+						someLDATA->type.ext_dat |= CTF_FLAG_CAPTURED;
 					 }
 					 if(someLDATA->dist < 0)
 					 {
@@ -1413,25 +1411,15 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			start_hud_event(FLAG_OPEN_EVENT);
 			}
 		}
-		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
-		{
-			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
-			//start_adx_stream(stmsnd[stm_win], 5);
-			start_hud_event(FLAG_CAPTURED_EVENT);
-			//For displaying average speed
-			you.end_average = you.avg_sanics;
-			
-			nbg_sprintf(0, 7, "                    ");
-		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
 			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 			slPrintFX(someLDATA->dist, slLocate(0, 7));
+			//nbg_sprintf(0, 7, "                           ");
 			if(someLDATA->dist < 0 || you.cancelTimers)
 			{
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
-				nbg_sprintf(0, 7, "                    ");
 			}
 			set_music_track = 1;
 			stm.times_to_loop = 1;
@@ -1441,6 +1429,15 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			//
 			//someLDATA->dist -= delta_time;
 			someLDATA->dist += delta_time;
+		}
+		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
+		{
+			nbg_sprintf(0, 7, "                           ");
+			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
+			//start_adx_stream(stmsnd[stm_win], 5);
+			start_hud_event(FLAG_CAPTURED_EVENT);
+			//For displaying average speed
+			you.end_average = you.avg_sanics;
 		}
 	}
 	

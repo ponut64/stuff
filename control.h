@@ -5,6 +5,9 @@
 #ifndef __CONTROL_H__
 #define __CONTROL_H__
 
+#define MAX_SPEED_FACTOR	(300)
+#define STICK_MAX			(122)
+
 extern int spdfactr;
 
 extern int reval;

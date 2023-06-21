@@ -13,12 +13,17 @@
 	
 # define JO_IS_ODD(A)	((A) & 1)
 
+extern volatile int * DVSR;
+extern volatile int * DVDNTH;
+extern volatile int * DVDNTL;
+
 int			getRandom(void);
 void		maintRand(void);
 
 FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(FIXED * ptA, FIXED * ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);
+void		SetFixDiv(FIXED dividend, FIXED divisor);
 
 FIXED		approximate_distance(FIXED * p0, FIXED * p1);
 FIXED		fxisqrt(FIXED input);

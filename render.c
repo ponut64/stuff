@@ -7,14 +7,10 @@
 #include "render.h"
 #include "anorm.h"
 
- int * DVSR = ( int*)0xFFFFFF00;
- int * DVDNTH = ( int*)0xFFFFFF10;
- int * DVDNTL = ( int*)0xFFFFFF14;
-
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
-vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES];
-vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES];
+vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES+1];
+vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES+1];
 animationControl AnimArea[MAX_SIMULTANEOUS_ANIMATED_ENTITIES];
 _sprite sprWorkList[MAX_SPRITES];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
@@ -151,25 +147,6 @@ FIXED	trans_pt_by_component(POINT ptx, FIXED * normal)
 	return transPt;
 }							
 
-//Set data in s for division unit.
-void		SetFixDiv(FIXED dividend, FIXED divisor) //Defined as "dividend / divisor", for fixed points, using division unit
-{
-
-/*
-SH7604 Manual Information:
-
-The 64-bit dividend is set in dividend s H and L (DVDNTH and DVDNTL).
-First set the value in DVDNTH. When a value is written to DVDNTL, the 64-bit ÷ 32-bit operation begins.
-After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTL.
-
-[ME:]These s can only be accessed via pointers. . . because our compiler is not aware of them.
-*/	
-
-DVSR[0] = divisor;
-DVDNTH[0] = (dividend>>16);
-DVDNTL[0] = (dividend<<16);
-	
-}
 
 void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl,
                                 Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr,
@@ -587,28 +564,41 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	unsigned short colorBank;
 	int inverseZ = 0;
  
+	////////////////////////////////////////////////////////////
+	// Pre-loop
+	////////////////////////////////////////////////////////////
+	// ** 1 **
+	// Calculate Z for the FIRST vertex
+	ssh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
+	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	// ** 2 **
+	// Set the division unit to work on the FIRST vertex Z
+	SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
+
     for (unsigned int i = 0; i < model->nbPoint; i++)
     {
-        /**calculate z**/
-        ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
 
-         /**Starts the division**/
-        SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
-
-        /**Calculates X and Y while waiting for screenDist/z **/
+		// ** 1 **
+        /**Calculates X and Y while waiting for screenDist/z for CURRENT vertex **/
         ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
         ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
-		
-        /** Retrieves the result of the division **/
+		// ** 2 **
+        /** Retrieves the result of the division  for CURRENT vertex**/
 		inverseZ = *DVDNTL;
-
-        /**Transform X and Y to screen space**/
+		// ** 3 **
+        /**calculate z for the NEXT vertex**/
+        ssh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
+		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		// ** 4 **
+         /**Starts the division for the NEXT vertex**/
+        SetFixDiv(scrn_dist, ssh2VertArea[i+1].pnt[Z]);
+		// ** 5 **
+        /**Transform X and Y to screen space for CURRENT vertex**/
         ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
-        //Screen Clip Flags for on-off screen decimation
-		//No longer simplified....
+		
+		//For animated models, CPU time is at a premium.
+		//Simplifying the clipping system specifically for animations might be worth.
 		clipping(&ssh2VertArea[i], ent->useClip);
     }
 
@@ -743,26 +733,41 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 	unsigned short colorBank;
 	int inverseZ = 0;
 
+	////////////////////////////////////////////////////////////
+	// Pre-loop
+	////////////////////////////////////////////////////////////
+	// ** 1 **
+	// Calculate Z for the FIRST vertex
+	msh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
+	msh2VertArea[0].pnt[Z] = (msh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	// ** 2 **
+	// Set the division unit to work on the FIRST vertex Z
+	SetFixDiv(scrn_dist, msh2VertArea[0].pnt[Z]);
+
     for (unsigned int i = 0; i < model->nbPoint; i++)
     {
-        /**calculate z**/
-        msh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		msh2VertArea[i].pnt[Z] = (msh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
- 
-         /**Starts the division**/
-        SetFixDiv(scrn_dist, msh2VertArea[i].pnt[Z]);
 
-        /**Calculates X and Y while waiting for screenDist/z **/
+		// ** 1 **
+        /**Calculates X and Y while waiting for screenDist/z for CURRENT vertex **/
         msh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
         msh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
-		
-        /** Retrieves the result of the division **/
+		// ** 2 **
+        /** Retrieves the result of the division  for CURRENT vertex**/
 		inverseZ = *DVDNTL;
-
-        /**Transform X and Y to screen space**/
+		// ** 3 **
+        /**calculate z for the NEXT vertex**/
+        msh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
+		msh2VertArea[i+1].pnt[Z] = (msh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		// ** 4 **
+         /**Starts the division for the NEXT vertex**/
+        SetFixDiv(scrn_dist, msh2VertArea[i+1].pnt[Z]);
+		// ** 5 **
+        /**Transform X and Y to screen space for CURRENT vertex**/
         msh2VertArea[i].pnt[X] = fxm(msh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
         msh2VertArea[i].pnt[Y] = fxm(msh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
+		
+		//For animated models, CPU time is at a premium.
+		//Simplifying the clipping system specifically for animations might be worth.
 		clipping(&msh2VertArea[i], ent->useClip);
     }
 
@@ -940,36 +945,55 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
  }
 
 
-//Animation Data
+	//Animation Data
     volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
 	int inverseZ = 0;
- 
+	////////////////////////////////////////////////////////////
+	// Pre-loop
+	////////////////////////////////////////////////////////////
+	// ** 1 **
+	// Interpolate/decompress the FIRST vertex
+	// Hypothetically, we should do this, but it seems to be fine to use the last frame's vertex 0.
+	// Alternatively, we know that any jump costs us a pipeline dump, but *only* if the code is not in cache.
+	// Thus, a small loop which performs the decompression/interpolation before transformation occurs may be faster.
+	// It might be if it fits in cache. Then again, you still lose 3 cycles to the jump, on pure instruction cost.
+	// ** 2 **
+	// Calculate Z for the FIRST vertex
+	ssh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
+	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	// ** 3 **
+	// Set the division unit to work on the FIRST vertex Z
+	SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
+
     for (unsigned int i = 0; i < model->nbPoint; i++)
     {
-		/**Uncompress the vertices and apply linear interpolation**/
+
+		// ** 1 **
+        /**Calculates X and Y while waiting for screenDist/z for CURRENT vertex **/
+        ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
+        ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
+		// ** 2 **
+		/**Uncompress the NEXT vertex and apply linear interpolation**/
 		#pragma GCC push_options
 		#pragma GCC diagnostic ignored "-Wsequence-point"
 		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
 		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
 		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>4))<<8;
 		#pragma GCC pop_options
-        /**calculate z**/
-        ssh2VertArea[i].pnt[Z] = trans_pt_by_component(model->pntbl[i], m2z);
-		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i].pnt[Z] : NEAR_PLANE_DISTANCE;
- 
-         /**Starts the division**/
-        SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
-
-        /**Calculates X and Y while waiting for screenDist/z **/
-        ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
-        ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
-		
-        /** Retrieves the result of the division **/
+		// ** 3 **
+        /** Retrieves the result of the division  for CURRENT vertex**/
 		inverseZ = *DVDNTL;
-
-        /**Transform X and Y to screen space**/
+		// ** 4 **
+        /**calculate z for the NEXT vertex**/
+        ssh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
+		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		// ** 5 **
+         /**Starts the division for the NEXT vertex**/
+        SetFixDiv(scrn_dist, ssh2VertArea[i+1].pnt[Z]);
+		// ** 6 **
+        /**Transform X and Y to screen space for CURRENT vertex**/
         ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
 		

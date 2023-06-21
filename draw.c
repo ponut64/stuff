@@ -17,6 +17,7 @@
 #include "pcmstm.h"
 #include "menu.h"
 #include "particle.h"
+#include "gamespeed.h"
 //
 #include "dspm.h"
 //
@@ -49,6 +50,9 @@ FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
 int globalColorOffset;
 int glblLightApply = true;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
+
+int player_render_time;
+int objects_render_time;
 
 void	computeLight(void)
 {
@@ -139,6 +143,11 @@ void	master_draw_stats(void)
 
 void	player_draw(void)
 {
+	
+	//Profiling Set-up
+	static int start_time;
+	
+	start_time = get_time_in_frame();
 	slPushMatrix();
 	{
 
@@ -149,7 +158,7 @@ void	player_draw(void)
 		pl_model.prematrix = (FIXED*)&pl_RBB;
 		wings.prematrix = (FIXED*)&pl_RBB;
 		
-//Animation Chains
+			//Animation Chains
 					static int airTimer = 0;
 			if(pl_model.file_done == true)
 			{
@@ -183,18 +192,12 @@ void	player_draw(void)
 						}	
 						//IF NOT SLIDE ENDIF
 					} else if(you.setSlide == true && you.climbing != true){
-						if(is_key_pressed(DIGI_RIGHT))
+						if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182))
 						{
 							ssh2DrawAnimation(&slideRln, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_LEFT))
+						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182))
 						{
 							ssh2DrawAnimation(&slideLln, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_UP))
-						{
-							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_DOWN))
-						{
-							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						} else {
 							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
 						}
@@ -219,15 +222,12 @@ void	player_draw(void)
 							} else {
 								ssh2DrawAnimation(&hop, &pl_model,  false);
 							}
-						} else if(is_key_pressed(DIGI_RIGHT))
+						} else if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182))
 						{
 							ssh2DrawAnimation(&airRight, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_LEFT))
+						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182))
 						{
 							ssh2DrawAnimation(&airLeft, &pl_model,  false);
-						} else if(is_key_pressed(DIGI_DOWN))
-						{
-							ssh2DrawAnimation(&airIdle, &pl_model,  false);
 						} else {
 							ssh2DrawAnimation(&airIdle, &pl_model,  false);
 						}
@@ -255,11 +255,18 @@ void	player_draw(void)
 		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
 		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
 		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
+	
+	player_render_time = get_time_in_frame() - start_time;
 
 }
 
 void	obj_draw_queue(void)
 {
+	
+	//Profiling Set-up
+	static int start_time;
+	
+	start_time = get_time_in_frame();
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -306,6 +313,8 @@ void	obj_draw_queue(void)
 			sprWorkList[s].type = 'N'; 
 		}
 	}
+	
+	objects_render_time = get_time_in_frame() - start_time;
 }
 
 void	shadow_draw(void)
@@ -357,6 +366,7 @@ void	prep_map_mtx(void)
 
 void	object_draw(void)
 {
+	
 	computeLight();
 	slPushMatrix();
 	{	
@@ -428,6 +438,17 @@ void	map_draw(void)
 
 void	master_draw(void)
 {
+	static int time_at_start;
+	static int time_at_dsp;
+	static int time_of_master_draw;
+	static int time_of_object_management;
+	static int time_of_collision;
+	static int time_at_end;
+
+	static int math_time;
+	//
+	time_at_start = get_time_in_frame();
+	//
 	if(!you.inMenu)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
@@ -437,9 +458,15 @@ void	master_draw(void)
 	object_control_loop(you.dispPos);
 
 	hmap_cluster();
+	//
+	time_at_dsp = get_time_in_frame();
+	//
 	map_draw();
 	map_draw_prep();
-	
+	//
+	time_of_master_draw = get_time_in_frame() - time_at_dsp;
+	math_time = get_time_in_frame();
+	//
 		//No Touch Order -- Affects animations/mechanics
 		operate_particles();
 		controls();
@@ -448,10 +475,29 @@ void	master_draw(void)
 		collide_with_heightmap(&pl_RBB);
 		hud_menu();
 		//
+	time_of_object_management = get_time_in_frame() - math_time;
+		//
 	} else if(you.inMenu)
 	{
 		start_menu();
 	}
+	
+	time_at_end = get_time_in_frame();
+	//Debug stuff. Important!
+	slPrintFX(time_at_start, slLocate(6, 7));
+	slPrintFX(time_at_dsp, slLocate(6, 8));
+	slPrintFX(time_of_master_draw, slLocate(6, 9));
+	slPrintFX(time_of_object_management, slLocate(6, 10));
+	slPrintFX(time_at_end, slLocate(6, 11));
+	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 12));
+	if(objects_render_time > 0) slPrintFX(objects_render_time, slLocate(6, 13));
+	nbg_sprintf(2, 7, "Start:");
+	nbg_sprintf(2, 8, "DSP:");
+	nbg_sprintf(2, 9, "Map:");
+	nbg_sprintf(2, 10, "Objs:");
+	nbg_sprintf(2, 11, "End:");
+	nbg_sprintf(2, 12, "Plyr:");
+	nbg_sprintf(2, 13, "Modl:");
 	
 	slSlaveFunc(sort_master_polys, 0);	
 }

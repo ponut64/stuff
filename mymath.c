@@ -10,6 +10,10 @@
 	static int realpt[XYZ] = {0, 0, 0};
 	static FIXED pFNn[XYZ] = {0, 0, 0};
 	
+	volatile int * DVSR = ( int*)0xFFFFFF00;
+	volatile int * DVDNTH = ( int*)0xFFFFFF10;
+	volatile int * DVDNTL = ( int*)0xFFFFFF14;
+	
 	static short randIter;
 	static short randRollover;
 	static int randTbl[RAND_TBL_SIZE] = {
@@ -79,16 +83,34 @@ inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
 
 inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
-	
-	volatile int * DVSR = ( int*)0xFFFFFF00;
-	volatile int * DVDNTH = ( int*)0xFFFFFF10;
-	volatile int * DVDNTL = ( int*)0xFFFFFF14;
 
 	*DVSR = divisor;
 	*DVDNTH = (dividend>>16);
 	*DVDNTL = (dividend<<16);
 	return *DVDNTL;
 }
+
+//Set data in s for division unit.
+ //Defined as "dividend / divisor", for fixed points, using division unit
+inline void		SetFixDiv(FIXED dividend, FIXED divisor)
+{
+
+/*
+SH7604 Manual Information:
+
+The 64-bit dividend is set in dividend s H and L (DVDNTH and DVDNTL).
+First set the value in DVDNTH. When a value is written to DVDNTL, the 64-bit ÷ 32-bit operation begins.
+After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTL.
+
+[ME:]These s can only be accessed via pointers. . . because our compiler is not aware of them.
+*/	
+
+*DVSR = divisor;
+*DVDNTH = (dividend>>16);
+*DVDNTL = (dividend<<16);
+	
+}
+
 
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
