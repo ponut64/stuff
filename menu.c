@@ -22,7 +22,7 @@
 #include <string.h>
 
 #include "menu.h"
-
+extern Sint8 SynchConst; //SGL System Variable
 int viewInfoTxt = 1;
 int baseRingMenuTexno = 0;
 int menuLayer = 0;
@@ -43,7 +43,7 @@ void	debug_menu_layer(__basic_menu * mnu)
 	mnu->num_option = 5;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
-	static char * option_list[] = {"Return to Game", "<- Back", "Next Object", "Prev Object", "Tgl Info Txt"};
+	static char * option_list[] = {"<- Back", "Toggle Frmt", "Next Object", "Prev Object", "Tgl Info Txt"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -52,10 +52,10 @@ void	debug_menu_layer(__basic_menu * mnu)
 		switch(mnu->selection)
 		{
 			case(0):
-			you.inMenu = false;
+			menuLayer = HUD_LAYER_START;
 			break;
 			case(1):
-			menuLayer = HUD_LAYER_START;
+			SynchConst = (SynchConst == 1) ? 2 : (SynchConst == 2) ? 3 : 1;
 			break;
 			case(2):
 			dPreview++;

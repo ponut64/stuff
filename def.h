@@ -54,6 +54,9 @@
 extern int delta_time;
 extern int time_in_seconds;
 extern int bad_frames;
+extern int framerate;
+extern int time_delta_scale; //Will be HIGHER at LOWER FRAME-TIME (higher frame-rate)
+extern int time_fixed_scale; //Will be LOWER at LOWER FRAME-TIME
 //////////////////////////////////////////////////////////////////////////////
 extern int flagIconTexno;
 
@@ -74,6 +77,7 @@ typedef struct {
 	ANGLE viewRot[XYZ];
 	int rotState[XYZ];
 	FIXED velocity[XYZ];
+	int		dV[XYZ]; //Delta velocity (to be timescaled)
 	FIXED gravAccel;
 	FIXED Accel[XYZ];
 	FIXED Force[XYZ];
@@ -137,8 +141,6 @@ extern void * HWRAM_hldptr;
 //System
 extern unsigned char * dirty_buf;
 extern void * currentAddress;
-extern int framerate;
-extern int frmul;
 extern volatile Uint32 * scuireg;
 
 #endif

@@ -25,16 +25,15 @@ Bool usePolyLine = false;
 //	are to be used as arrow key / WADS arrangement for camera movement.
 void controls(void)
 {
-
 	if(is_key_down(DIGI_X)){
-		you.rotState[X] -= 91 * framerate; //Look/turn left
+		you.rotState[X] -= 45 * framerate; //Look/turn left
 	}
 	if(is_key_down(DIGI_B)){
 
-		you.rotState[Y] -= 91 * framerate; //Look down
+		you.rotState[Y] -= 45 * framerate; //Look down
 	}
 	if(is_key_down(DIGI_Z)){
-		you.rotState[X] += 91 * framerate; //Look/turn right
+		you.rotState[X] += 45 * framerate; //Look/turn right
 	}
     if (is_key_down(DIGI_X))
     {
@@ -42,7 +41,7 @@ void controls(void)
     }
 	if (is_key_down(DIGI_Y))
     {
-		you.rotState[Y] += 91 * framerate; //Look up
+		you.rotState[Y] += 45 * framerate; //Look up
     }
 	if(is_key_down(DIGI_Z)){
 
@@ -81,7 +80,7 @@ void controls(void)
 			you.rot2[Y] = (90 * 182);
 			you.dirInp = true;
 		}
-		spdfactr = fxm(MAX_SPEED_FACTOR, frmul);
+		spdfactr = fxm(MAX_SPEED_FACTOR, time_fixed_scale);
 	} else {
 		////////////////////////////////////////////////////////////////////////////////
 		// 3D PAD CONTROLS
@@ -118,7 +117,7 @@ void controls(void)
 		if(prop_max > 4096)
 		{
 		you.dirInp = true;
-		spdfactr = fxm(fxm(prop_max, MAX_SPEED_FACTOR), frmul);
+		spdfactr = fxm(fxm(prop_max, MAX_SPEED_FACTOR), time_fixed_scale);
 		
 		you.rot2[Y] = angle;
 		}

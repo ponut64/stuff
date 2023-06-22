@@ -66,6 +66,9 @@ void reset_player(void)
     you.velocity[X]=0;
     you.velocity[Y]=0;
     you.velocity[Z]=0;
+	you.dV[X]=0;
+	you.dV[Y]=0;
+	you.dV[Z]=0;
     you.Force[X]=0;
     you.Force[Y]=0;
     you.Force[Z]=0;
@@ -79,41 +82,43 @@ void reset_player(void)
 
 
 void pl_jump(void){
-		if(you.velocity[Y] > 0){
-			you.velocity[Y] = -fxm(you.floorNorm[Y], you.velocity[Y]);
-		} else {
-			you.velocity[Y] = 0;
-		}
-		you.hitSurface = false;
-		you.pos[Y] += (GRAVITY);
-			you.velocity[X] -= fxm(196608, you.floorNorm[X]); 
-			you.velocity[Y] -= fxm(196608, you.floorNorm[Y]);
-			you.velocity[Z] -= fxm(196608, you.floorNorm[Z]);
-		pcm_play(snd_bstep, PCM_SEMI, 7);
-
+	// if(you.velocity[Y] > 0){
+		// you.dV[Y] = -fxm(you.floorNorm[Y], you.velocity[Y]);
+	// } else {
+		// you.dV[Y] = 0;
+	// }
+	you.hitSurface = false;
+	//This should not be time-scaled, since it does not increment over multiple frames.
+	you.velocity[X] -= fxm(229376, you.floorNorm[X]); 
+	you.velocity[Y] -= fxm(229376, you.floorNorm[Y]);
+	you.velocity[Z] -= fxm(229376, you.floorNorm[Z]);
+	//Surface release
+	you.pos[Y] += 6553 + (1<<16);
+	pcm_play(snd_bstep, PCM_SEMI, 7);
 }
 
 void pl_jet(void){
-		if(you.hitSurface == true && you.power == you.maxPower)
-		{
-			//I guess a micro-jump?
-			//It helps release you from the surface when jetting.
-			you.velocity[Y] += fxm(GRAVITY<<1, frmul)<<2;
-		}
-	
+	if(you.hitSurface == true && you.power == you.maxPower)
+	{
+		//Surface release
+		you.pos[Y] += 6553 + (1<<16);
 		you.hitSurface = false;
-		you.power -= 1;
-			if(you.dirInp == true)
-			{
-			//Double-up when in jet mode. Same as in-air or sliding velocity addition.
-			you.velocity[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
-			you.velocity[Y] += fxm(GRAVITY, frmul); 
-			you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
-			} else {
-			you.velocity[Y] += fxm(GRAVITY, frmul); 
-			}
-		pcm_play(snd_bwee, PCM_PROTECTED, 7);
+		//Hop
+		//This should not be time-scaled, since it does not increment over multiple frames.
+		you.velocity[Y] += (1<<16) + 32768;
+	}
+
+	if(you.dirInp == true)
+	{
+		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
+		you.dV[Y] += GRAVITY;
+		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
+	} else {
+		you.dV[Y] += GRAVITY + (GRAVITY>>2);
+	}
 		
+	you.power -= 1;
+	pcm_play(snd_bwee, PCM_PROTECTED, 7);
 }
 
 
@@ -225,8 +230,6 @@ void	smart_cam(void)
 	
 }
  
-static const int airFriction = 65400;
- 
 void	player_phys_affect(void)
 {
 	
@@ -236,26 +239,30 @@ void	player_phys_affect(void)
 		// nbg_sprintf(1, 9, "hitWall: (%i)", you.hitWall);
 		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
-	
-	// static int part_timer = 3<<16;
-	// int partVel[XYZ] = {pl_RBB.UVNZ[X]<<1, pl_RBB.UVNZ[Y]<<1, pl_RBB.UVNZ[Z]<<1};
-	// if(part_timer < 0)
-	// {
-
-		// spawn_particle(&TestSpr, PARTICLE_TYPE_NORMAL, you.wpos, partVel);
 		
-		// part_timer = 3<<16;
-	// }
-	// part_timer -= delta_time;
+	//Something fucky going on:
+	//When slide is enabled, touching the ground triggers a really annoying vibration.
 	
+
+	//Delta-V has been time-scaled; it can be reset before we start accumulating it.
+	//Please be aware this should be done after, not before.
+	//I'm doing it here so I can print it somewhere else in code.
+	you.dV[X] = 0;
+	you.dV[Y] = 0;
+	you.dV[Z] = 0;
+	
+	static short firstSurfHit = false;
+	///////////////////////////////////////////////
+	// Sanic capture for measuring speed over time
+	///////////////////////////////////////////////
 	you.sanic_samples++;
 	int inversion = fxdiv(1<<16, you.sanic_samples<<16);
 	you.avg_sanics -= fxm(you.avg_sanics, inversion);
 	you.avg_sanics += fxm(you.sanics, inversion);
 	
-	//Derive three angles from two inputs.
-	you.viewRot[X] += you.rotState[Y];
-	you.viewRot[Y] -= you.rotState[X];
+	//Derive three angles from two inputs. (Has to be time-scaled, because its incremental)
+	you.viewRot[X] += you.rotState[Y] * framerate;
+	you.viewRot[Y] -= you.rotState[X] * framerate;
 	
 	static int slide_control_matrix[9];
 	//The control unit vector is using the player's bound box / matrix parameters.
@@ -281,73 +288,17 @@ void	player_phys_affect(void)
 
 	//F = m * a : This comment means nothing. This math isn't here nor there.
 	//A = F / M :
-	
+	const int airFriction = 655; //1%, Very low friction
 		//There's always air .. unless we go into space, but whatevs, bruh
-		you.velocity[X] = fxm(you.velocity[X], (airFriction));
-		you.velocity[Y] = fxm(you.velocity[Y], (airFriction));
-		you.velocity[Z] = fxm(you.velocity[Z], (airFriction));
+		you.dV[X] -= fxm(you.velocity[X], (airFriction));
+		you.dV[Y] -= fxm(you.velocity[Y], (airFriction));
+		you.dV[Z] -= fxm(you.velocity[Z], (airFriction));
 
-							if(you.hitSurface == true){
-		//Skiing Decisions
-		if(you.setSlide == true){
-			you.surfFriction = 65000;
-		}
-								
-		//Friction decisions
-			you.velocity[X] = fxm(you.velocity[X], (you.surfFriction));
-			you.velocity[Y] = fxm(you.velocity[Y], (you.surfFriction));
-			you.velocity[Z] = fxm(you.velocity[Z], (you.surfFriction));
-
-		if(!you.dirInp)
-		{
-			you.velocity[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.velocity[X] : 0;
-			you.velocity[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.velocity[Y] : 0;
-			you.velocity[Z] = (JO_ABS(you.velocity[Z]) > 6553) ? you.velocity[Z] : 0;
-		}
-							}
-						
-
-	//Surface / gravity decisions
-	static VECTOR gravAcc;
-	if(you.hitSurface == true)
-	{
-		if(you.climbing)
-		{
-			you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
-			you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
-			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
-			you.wasClimbing = true;
-		} else {
-			///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
-			///Also, stiction. You shouldn't ALWAYS slide :)
-			gravAcc[X] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[X]); //Transform gravity by the surface
-			gravAcc[Y] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Y]);
-			gravAcc[Z] = -fxm(fxm((GRAVITY), frmul), you.floorNorm[Z]);
-			you.velocity[X] += (JO_ABS(gravAcc[X]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[X] : 0;
-			you.velocity[Y] += (JO_ABS(gravAcc[Y]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Y] : 0;
-			you.velocity[Z] += (JO_ABS(gravAcc[Z]) >= 16384 || you.setSlide == true || you.sanics >= 65536) ? gravAcc[Z] : 0;
-			you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
-			//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
-		}
-		//if(you.hitObject || you.hitBox)
-		//{
-			//Because your velocity is added to the floor position in this case, subtract it.
-		//	you.pos[X] = (you.floorPos[X]) - you.velocity[X];
-		//	you.pos[Y] = (you.floorPos[Y]) - you.velocity[Y];
-		//	you.pos[Z] = (you.floorPos[Z]) - you.velocity[Z];
-	//	} else {
-			you.pos[X] = (you.floorPos[X]);
-			you.pos[Y] = (you.floorPos[Y]);
-			you.pos[Z] = (you.floorPos[Z]);
-	//	}
-	} else {
-		you.velocity[Y] -= fxm((GRAVITY), frmul);
-	}
-	
 	/////////////////////////////
 	// Jump & Jet Decisions
 	/////////////////////////////
-		if(you.setJump == true){
+		if(you.setJump == true)
+		{
 			pl_jump();
 			you.setJump = false;
 		}
@@ -367,27 +318,27 @@ void	player_phys_affect(void)
 				powerTimer = 0;
 			}
 		}
-
-	//
-		//velocity add by input decisions
-		//Acclimate speed on each axis to your rotation on each axis defined by two-axis input
-		if(you.setSlide != true && you.hitSurface == true)
-		{
-			you.velocity[X] += fxm(you.IPaccel, you.ControlUV[X]);
-			you.velocity[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
-			you.velocity[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
-		} else { 
-		//If sliding or in the air
-		//I don't want this to enable going faster, but I do want it to help you turn.
-		//I also want to increase turning authority at higher speeds.
-		//Also, when you're sliding, you can't go backwards lol
-			you.velocity[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
-			you.velocity[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
-			you.velocity[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
-		}
 		
-	//Wall Collision Decisions
-	
+	////////////////////////////////////////////////////
+	//Input-speed response
+	// I've tested it, and yes: -Y is correct.
+	////////////////////////////////////////////////////
+	if(you.setSlide != true && you.hitSurface == true)
+	{
+		you.dV[X] += fxm(you.IPaccel, you.ControlUV[X]);
+		you.dV[Y] -= fxm(you.IPaccel, you.ControlUV[Y]);
+		you.dV[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
+	} else { 
+	//If sliding or in the air
+	//I don't want this to enable going faster, but I do want it to help you turn?
+	//I also want to increase turning authority at higher speeds?
+		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
+		you.dV[Y] -= fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
+		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
+	}
+	////////////////////////////////////////////////////
+	// Wall collision response
+	////////////////////////////////////////////////////
 	if(you.hitWall == true)
 	{
 			//Push away.
@@ -407,7 +358,7 @@ void	player_phys_affect(void)
 	Most notably, this works even if rebound elasticity is set to zero.
 			*/
 			int deflectionFactor = fxdot(you.velocity, you.wallNorm);
-			
+			//This shouldn't be time-scaled, should it?
 			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
 			you.velocity[Y] -= fxm(you.wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
 			you.velocity[Z] -= fxm(you.wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
@@ -416,20 +367,102 @@ void	player_phys_affect(void)
 			
 			if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
 	} 
+	////////////////////////////////////////////////////
+	//On-surface collision response
+	////////////////////////////////////////////////////
+	static VECTOR gravAcc;
+	if(you.hitSurface == true)
+	{
+		//If normally on surface without modifier, high friction
+		you.surfFriction = (19660); //33%, high friction				
+		//Skiing Decisions
+		if(you.setSlide == true){
+			you.surfFriction = 655; //1%, very low friction (in this case, it's air + ground, 2%)
+		}		
+		//Friction decisions
+			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
+			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
+			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
+		
+		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152))
+		{
+
+			//Bounce and, incidentally, a decent way to discourage you from going up steep slopes.
+			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
+			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
+			//Or scaling the velocity by some half and not-half of the normal.
+			//What we have below is an "impact dot" by the deflection factor.
+			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
+			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
+			FIXED deflectionFactor = fxdot(you.velocity, you.floorNorm);
+			// This is ESSENTIAL for the momentum gameplay to work properly 
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
+			
+			firstSurfHit = true;
+		}
+		
+		if(you.climbing)
+		{
+			you.velocity[X] = fxm(you.IPaccel>>1, pl_RBB.UVZ[X]);
+			you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
+			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
+			you.wasClimbing = true;
+		} else {
+			///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
+			///Also, stiction. You shouldn't ALWAYS slide :)
+			gravAcc[X] = -fxm((GRAVITY), you.floorNorm[X]); //Transform gravity by the surface
+			gravAcc[Y] = -fxm((GRAVITY), you.floorNorm[Y]);
+			gravAcc[Z] = -fxm((GRAVITY), you.floorNorm[Z]);
+			you.dV[X] += gravAcc[X];
+			you.dV[Y] += gravAcc[Y];
+			you.dV[Z] += gravAcc[Z];
+			you.dV[Y] = fxm(you.dV[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
+			you.velocity[Y] = fxm(you.velocity[Y], you.floorNorm[Y]);
+			//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
+		}
+			you.pos[X] = (you.floorPos[X]);
+			you.pos[Y] = (you.floorPos[Y]);
+			you.pos[Z] = (you.floorPos[Z]);
+		
+		//Stiction; low velocities will trap at zero on surface.
+		if(!you.dirInp)
+		{
+			you.velocity[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.velocity[X] : 0;
+			you.velocity[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.velocity[Y] : 0;
+			you.velocity[Z] = (JO_ABS(you.velocity[Z]) > 6553) ? you.velocity[Z] : 0;
+			you.dV[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.dV[X] : 0;
+			you.dV[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.dV[Y] : 0;
+			you.dV[Z] = (JO_ABS(you.velocity[Z]) > 6553) ? you.dV[Z] : 0;
+		}
+		
+	} else {
+		you.dV[Y] -= GRAVITY;
+		firstSurfHit = false;
+	}
 
 	//Ladder/Climb Escape Sequence
 	//At least in one test, this was pretty much perfect!
 	if(!you.climbing && you.wasClimbing)
 	{
-		you.velocity[X] += fxm(you.floorNorm[X], 1<<16);
-        you.velocity[Y] += 32768;
-        you.velocity[Z] += fxm(you.floorNorm[Z], 1<<16);
+		you.dV[X] += fxm(you.floorNorm[X], 1<<16);
+        you.dV[Y] += 32768;
+        you.dV[Z] += fxm(you.floorNorm[Z], 1<<16);
 		you.wasClimbing = false;
 	}
-	//Add your speed to your position (incremental / per-frame)
-	you.pos[X] += fxm(you.velocity[X], frmul);
-	you.pos[Y] += fxm(you.velocity[Y], frmul);
-	you.pos[Z] += fxm(you.velocity[Z], frmul);
+	///////////////////////////////////////////////
+	// Increase the velocity by the velocity change, multiplied by the timescale
+	///////////////////////////////////////////////
+	you.velocity[X] += fxm(you.dV[X], time_fixed_scale);
+	you.velocity[Y] += fxm(you.dV[Y], time_fixed_scale);
+	you.velocity[Z] += fxm(you.dV[Z], time_fixed_scale);
+	///////////////////////////////////////////////
+	// Position change
+	///////////////////////////////////////////////
+	you.pos[X] += fxm(you.velocity[X], time_fixed_scale);
+	you.pos[Y] += fxm(you.velocity[Y], time_fixed_scale);
+	you.pos[Z] += fxm(you.velocity[Z], time_fixed_scale);
 	//Create a true direction vector, independent of control vector
 	static VECTOR tempDif = {0, 0, 0};
 	tempDif[X] = you.pos[X] - you.prevPos[X];
@@ -437,6 +470,7 @@ void	player_phys_affect(void)
 	tempDif[Z] = you.pos[Z] - you.prevPos[Z];
 	normalize(tempDif, you.DirUV);
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
+	you.sanics = fxm((you.sanics>>5), time_delta_scale);
 	//Set prev pos
 	you.prevPos[X] = you.pos[X];
 	you.prevPos[Y] = you.pos[Y];
@@ -456,34 +490,34 @@ void	player_phys_affect(void)
 	if(you.IPaccel >= PLR_FWD_SPD) you.IPaccel = PLR_FWD_SPD;
 	if(you.IPaccel <= -PLR_FWD_SPD) you.IPaccel = -PLR_FWD_SPD;
 	//
-	if(JO_ABS(you.rotState[X]) < 90) you.rotState[X] = 0;
-	if(JO_ABS(you.rotState[Y]) < 90) you.rotState[Y] = 0;
+	if(JO_ABS(you.rotState[X]) < 40) you.rotState[X] = 0;
+	if(JO_ABS(you.rotState[Y]) < 40) you.rotState[Y] = 0;
 	//De-rating
-	if( is_key_up(DIGI_X) && you.rotState[X] < 0) you.rotState[X] += fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//A
-	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//S
-	if( is_key_up(DIGI_Z) && you.rotState[X] > 0) you.rotState[X] -= fxm(frmul, fxm(JO_ABS(you.rotState[X]), 16384));//D
-	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(frmul, fxm(JO_ABS(you.rotState[Y]), 16384));//W
+	if( is_key_up(DIGI_X) && you.rotState[X] < 0) you.rotState[X] += fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[X]), 16384));//A
+	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//S
+	if( is_key_up(DIGI_Z) && you.rotState[X] > 0) you.rotState[X] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[X]), 16384));//D
+	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//W
 	
-	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel = fxm(slDivFX(frmul , 65536), you.IPaccel);
-	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel += spdfactr;
+	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel -= fxm(time_fixed_scale, 1500); 
+	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel = 0;
 
-		if(you.hitSurface != true){
-			FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), frmul);
-			FIXED setZrotDrate = fxm(fxm((6553), JO_ABS(you.rot[Z])), frmul);
-	if(you.rot[X] > 0){
-		you.rot[X] -= setXrotDrate;
-	}
-	if(you.rot[Z] > 0){
-		you.rot[Z] -= setZrotDrate;
-	}
-	if(you.rot[X] < 0){
-		you.rot[X] += setXrotDrate;
-	}
-	if(you.rot[Z] < 0){
-		you.rot[Z] += setZrotDrate;
-	}
-
-		} //OFF SURFACE ROTATION DERATING ENDIF
+	if(you.hitSurface != true)
+	{
+		FIXED setXrotDrate = fxm(fxm((6553), JO_ABS(you.rot[X])), time_fixed_scale);
+		FIXED setZrotDrate = fxm(fxm((6553), JO_ABS(you.rot[Z])), time_fixed_scale);
+		if(you.rot[X] > 0){
+			you.rot[X] -= setXrotDrate;
+		}
+		if(you.rot[Z] > 0){
+			you.rot[Z] -= setZrotDrate;
+		}
+		if(you.rot[X] < 0){
+			you.rot[X] += setXrotDrate;
+		}
+		if(you.rot[Z] < 0){
+			you.rot[Z] += setZrotDrate;
+		}
+	} //OFF SURFACE ROTATION DERATING ENDIF
 		
 	//Moment
 	you.moment[X] = fxm(you.mass, you.velocity[X]);
@@ -624,8 +658,6 @@ _lineTable moverCFs = {
 void	collide_with_heightmap(_boundBox * sbox)
 {
 
-static Bool firstSurfHit = false;
-
 static _lineTable realCFs;
 
 POINT below_player = {you.pos[X], you.pos[Y] - (1<<16), you.pos[Z]};
@@ -725,34 +757,6 @@ if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID
 	//
 	you.hitMap = false;
 }
-
-	if(you.hitSurface == true || you.hitMap == true){
-		
-		you.surfFriction = (45875);
-
-		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152 /*&& you.setSlide != true*/)){
-
-			//Bounce and, incidentally, a decent way to discourage you from going up steep slopes.
-			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
-			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
-			//Or scaling the velocity by some half and not-half of the normal.
-			//What we have below is an "impact dot" by the deflection factor.
-			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
-			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
-			//"0xFFFF" is the elasticity factor. Here, it's just 1.
-			FIXED deflectionFactor = fxdot(you.velocity, you.floorNorm);
-			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
-			
-
-			firstSurfHit = true;
-		}
-		
-	} else {
-		firstSurfHit = false;
-	}
 
 	// nbg_sprintf(0, 11, "(%i)", cellCenterPos[0]);
 	// nbg_sprintf(5, 11, "(%i)", cellCenterPos[1]);	

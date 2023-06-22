@@ -60,8 +60,6 @@ short * division_table;
 //A zero vector to be used when you want zero.
 POINT zPt = {0, 0, 0};
 extern Sint8 SynchConst; //SGL System Variable
-int framerate;
-int frmul;
 
 unsigned char * dirty_buf;
 void * currentAddress;

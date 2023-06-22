@@ -103,10 +103,12 @@ void	master_draw_stats(void)
 	nbg_sprintf(37, 26, "cX(%i)", you.cellPos[X]);
 	nbg_sprintf(37, 27, "cY(%i)", you.cellPos[Y]);    
 	
-	nbg_sprintf(1, 4, "Fuel: (%i)", you.power);
+	nbg_sprintf(1, 4, "Fuel:(%i), Rate:(%i)", you.power, you.IPaccel);
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
 	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
+	
+	
 		} else if(viewInfoTxt == 2)
 		{
 			
@@ -118,13 +120,13 @@ void	master_draw_stats(void)
 			slPrintFX(you.velocity[Y], slLocate(19, 2));
 			slPrintFX(you.velocity[Z], slLocate(29, 2));
 			
-			slPrintFX(you.wallNorm[X], slLocate(9, 3));
-			slPrintFX(you.wallNorm[Y], slLocate(19, 3));
-			slPrintFX(you.wallNorm[Z], slLocate(29, 3));
+			slPrintFX(you.ControlUV[X], slLocate(9, 3));
+			slPrintFX(you.ControlUV[Y], slLocate(19, 3));
+			slPrintFX(you.ControlUV[Z], slLocate(29, 3));
 			
-			slPrintFX(you.floorNorm[X], slLocate(9, 4));
-			slPrintFX(you.floorNorm[Y], slLocate(19, 4));
-			slPrintFX(you.floorNorm[Z], slLocate(29, 4));
+			slPrintFX(you.dV[X], slLocate(9, 4));
+			slPrintFX(you.dV[Y], slLocate(19, 4));
+			slPrintFX(you.dV[Z], slLocate(29, 4));
 			
 			nbg_sprintf(2, 5, "rX:(%i)", you.rot[X]);
 			nbg_sprintf(15, 5, "rY:(%i)", you.rot[Y]);
@@ -442,7 +444,6 @@ void	master_draw(void)
 	static int time_at_dsp;
 	static int time_of_master_draw;
 	static int time_of_object_management;
-	static int time_of_collision;
 	static int time_at_end;
 
 	static int math_time;
@@ -467,19 +468,25 @@ void	master_draw(void)
 	time_of_master_draw = get_time_in_frame() - time_at_dsp;
 	math_time = get_time_in_frame();
 	//
+	operate_particles();
+	hud_menu();
+	slSlaveFunc(sort_master_polys, 0);
+	//
+	
 		//No Touch Order -- Affects animations/mechanics
-		operate_particles();
 		controls();
 		player_phys_affect();
 		player_collision_test_loop();
 		collide_with_heightmap(&pl_RBB);
-		hud_menu();
 		//
 	time_of_object_management = get_time_in_frame() - math_time;
 		//
 	} else if(you.inMenu)
 	{
 		start_menu();
+		//
+		slSlaveFunc(sort_master_polys, 0);
+		//
 	}
 	
 	time_at_end = get_time_in_frame();
@@ -498,7 +505,6 @@ void	master_draw(void)
 	nbg_sprintf(2, 11, "End:");
 	nbg_sprintf(2, 12, "Plyr:");
 	nbg_sprintf(2, 13, "Modl:");
-	
-	slSlaveFunc(sort_master_polys, 0);	
+		
 }
 

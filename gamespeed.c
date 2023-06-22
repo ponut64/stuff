@@ -5,6 +5,8 @@
 #include "def.h"
 #include "render.h"
 #include "vdp2.h"
+#include "mymath.h"
+
 #include "menu.h"
 
 #define GRAPH_X_OFFSET (12)
@@ -23,6 +25,9 @@ int oldtime = 0;
 int time_in_seconds = 0;
 int delta_time = 0;
 int bad_frames = 0;
+int time_delta_scale = 0;
+int time_fixed_scale = 0;
+int framerate = 0;
 
 int * uncache_oldtime;
 int * uncache_time;
@@ -103,12 +108,13 @@ void	update_gamespeed(void)
 	draw_vdp2_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
 		} 
 		//
-		frmul = framerate<<16;
+		time_delta_scale = fxdiv(65536, delta_time);
+		time_fixed_scale = framerate<<16;
 		
 	if(viewInfoTxt == 1)
 	{
 	nbg_sprintf(1, 3, "(%i) Bad Frames)", bad_frames);
-	nbg_sprintf(16, 4, "(%i) fmrt", frmrt);
+	nbg_sprintf(24, 4, "Fmrt:(%i)", frmrt);
 	}
 
 }

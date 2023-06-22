@@ -490,7 +490,7 @@ void	operate_particles(void)
 		
 		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOCOL)
 		{
-			particles[i].velocity[Y] += fxm(GRAVITY, frmul);
+			particles[i].velocity[Y] += fxm(GRAVITY, time_fixed_scale);
 		}
 		
 		if(pHit == false)
@@ -499,9 +499,9 @@ void	operate_particles(void)
 		particles[i].prevPos[Y] = particles[i].spr->pos[Y];
 		particles[i].prevPos[Z] = particles[i].spr->pos[Z];
 		}
-		particles[i].spr->pos[X] += fxm(particles[i].velocity[X], frmul);
-		particles[i].spr->pos[Y] += fxm(particles[i].velocity[Y], frmul);
-		particles[i].spr->pos[Z] += fxm(particles[i].velocity[Z], frmul);
+		particles[i].spr->pos[X] += fxm(particles[i].velocity[X], time_fixed_scale);
+		particles[i].spr->pos[Y] += fxm(particles[i].velocity[Y], time_fixed_scale);
+		particles[i].spr->pos[Z] += fxm(particles[i].velocity[Z], time_fixed_scale);
 		particles[i].lifetime -= delta_time;
 	}
 	
