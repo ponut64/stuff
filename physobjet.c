@@ -216,16 +216,13 @@ a. 3D Pad Support -
 	First pass working/done. Playable. Cool.
 	
 b. Performance issues.
-	Level 1 loads up the planes/polygons fairly heavily, and it causes performance issues.
-	Generally, there's just too many planes generating too many vertices.
-	But more importantly, the game doesn't handle 20fps / 50ms gracefully.
-	These issues would be less of a problem if the game could handle them gracefully.
-	Another issue is profiling.
-	I'm pretty sure that the slave SH2 is overloaded, which is causing problems.
-	So I should move some type of rendering back over to the master SH2.
-	The most viable task is the animated model... which is a big task.
-	It would put the MSH2's vertex load pretty high.
-	But I'm not sure. I would love to know how much time each process is taking.
+	1. I've figured out a way to profile MSH2.
+	I can't really profile SSH2 correctly.
+	2. I've mostly-fixed the frame-rate response, so the game should work at the same speed at 60/30/20 fps.
+	3. Some performance issues may be CPU related.
+	4. Other performance issues may be VDP1 related. I don't know how to profile that right now.
+	
+c. Some gates are not triggering, either properly or at all. This is a problem, and needs to be fixed.
 
 e. not portal - it's not strictly needed yet
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
@@ -693,7 +690,14 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// Otherwise, flag the posts has having been checked this frame, then continue.
 	//////////////////
 	if(obj_id1 == obj_id2) return;
-	if((dWorldObjects[obj_id1].pix[X] - dWorldObjects[obj_id2].pix[X]) < 0) return;
+	//
+	// I want* a way to calculate the chirality of object 1 to object 2. It's an optimization thing.
+	// Domain is not acceptable. >X or <Y alone is not acceptable. Clockwise or anticlockwise is not acceptable.
+	// Then what the hell is the rule?! If it's not CW or CCW, HUH?!
+	//
+	
+	//if(dWorldObjects[obj_id1].pix[X] < dWorldObjects[obj_id2].pix[X]) return;
+	//if(dWorldObjects[obj_id1].pix[Y] < dWorldObjects[obj_id2].pix[Y]) return;
 	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
 	//Flag as checked this frame
 	dWorldObjects[obj_id1].type.ext_dat |= GATE_POST_CHECKED; 
@@ -746,24 +750,25 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	cross[Y] = cross[Y]>>8;
 	cross[Z] = cross[Z]>>8;
 	
-	normalize(cross, used_normal);
-	//Use cross as the center of the span
-	//Ugly, but it's what I did...
-	cross[X] = (fenceA[X] + fenceB[X] + fenceC[X] + fenceD[X])>>2;
-	cross[Y] = (fenceA[Y] + fenceB[Y] + fenceC[Y] + fenceD[Y])>>2;
-	cross[Z] = (fenceA[Z] + fenceB[Z] + fenceC[Z] + fenceD[Z])>>2;
+	accurate_normalize(cross, used_normal);
 
 
 	//////////////////////////////////////////////////////////////
 	// Grab the absolute normal used for finding the dominant axis
 	//////////////////////////////////////////////////////////////
-	fabs_norm[X] = JO_ABS(used_normal[X]);
-	fabs_norm[Y] = JO_ABS(used_normal[Y]);
-	fabs_norm[Z] = JO_ABS(used_normal[Z]);
+	fabs_norm[X] = JO_ABS(cross[X]);
+	fabs_norm[Y] = JO_ABS(cross[Y]);
+	fabs_norm[Z] = JO_ABS(cross[Z]);
 	FIXED max_axis = JO_MAX(JO_MAX((fabs_norm[X]), (fabs_norm[Y])), (fabs_norm[Z]));
 	dominant_axis = ((fabs_norm[X]) == max_axis) ? N_Xp : dominant_axis;
 	dominant_axis = ((fabs_norm[Y]) == max_axis) ? N_Yp : dominant_axis;
 	dominant_axis = ((fabs_norm[Z]) == max_axis) ? N_Zp : dominant_axis;
+	//Use cross as the center of the span
+	//Ugly, but it's what I did...
+	cross[X] = (fenceA[X] + fenceB[X] + fenceC[X] + fenceD[X])>>2;
+	cross[Y] = (fenceA[Y] + fenceB[Y] + fenceC[Y] + fenceD[Y])>>2;
+	cross[Z] = (fenceA[Z] + fenceB[Z] + fenceC[Z] + fenceD[Z])>>2;
+	
 	//	0 - 1 // B - D
 	//	3 - 2 // A - C
 	//////////////////////////////////////////////////////////////
@@ -779,7 +784,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 			if(edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis, 16) < 0)
 			{
 				if(edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis, 16) < 0)
-				{
+				{	
 					tDist = realpt_to_plane(you.pos, used_normal, cross);
 					if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
 					{
@@ -791,15 +796,28 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 		}
 	} 
 	
-	// int ab = edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis);
-	// int bb = edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis);
-	// int cb = edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis);
-	// int db = edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis);
+//	if(obj_id1 > obj_id2)
+//	{
+//	print_from_id(dominant_axis, 1, 8);
+	//slPrintFX(cross[X], slLocate(1, 10));
+	//slPrintFX(cross[Y], slLocate(1, 11));
+	//slPrintFX(cross[Z], slLocate(1, 12));
+//	} else {
+//	print_from_id(dominant_axis, 1, 10);
+	//slPrintFX(cross[X], slLocate(1, 13));
+	//slPrintFX(cross[Y], slLocate(1, 14));
+	//slPrintFX(cross[Z], slLocate(1, 15));
+//	}
+					
+	// int ab = edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis,16);
+	// int bb = edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis,16);
+	// int cb = edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis,16);
+	// int db = edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis,16);
 
-	// nbg_sprintf(0 + (obj_id1 * 6),6, "(%i)", ab>>12);
-	// nbg_sprintf(0 + (obj_id1 * 6),7, "(%i)", bb>>12);
-	// nbg_sprintf(0 + (obj_id1 * 6),8, "(%i)", cb>>12);
-	// nbg_sprintf(0 + (obj_id1 * 6),9, "(%i)", db>>12);
+	// nbg_sprintf(0 + (obj_id1 * 5), 6, "(%i)", ab>>10);
+	// nbg_sprintf(0 + (obj_id1 * 5), 7, "(%i)", bb>>10);
+	// nbg_sprintf(0 + (obj_id1 * 5), 8, "(%i)", cb>>10);
+	// nbg_sprintf(0 + (obj_id1 * 5), 9, "(%i)", db>>10);
 
 	//nbg_sprintf(2,6 + obj_id1, "(%i)", tDist);
 	dWorldObjects[obj_id1].dist = tDist;

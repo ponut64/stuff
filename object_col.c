@@ -374,27 +374,27 @@ _lineTable moverCFs = {
 	.zp1[Y] = mover->Zneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
 	.zp1[Z] = mover->Zneg[Z] 	+ mover->pos[Z]// + mover->velocity[Z]
 }; 
+	// Have to be careful how collisions are checked; they affect where you end up being snapped to.
+	// moverCFs.xp0[X] += fxm(mover->UVX[X],  JO_ABS(mover->velocity[X]));
+	// moverCFs.xp0[Y] += fxm(mover->UVX[Y],  JO_ABS(mover->velocity[Y]));
+	// moverCFs.xp0[Z] += fxm(mover->UVX[Z],  JO_ABS(mover->velocity[Z]));
+	// moverCFs.xp1[X] += fxm(mover->UVNX[X], JO_ABS(mover->velocity[X]));
+	// moverCFs.xp1[Y] += fxm(mover->UVNX[Y], JO_ABS(mover->velocity[Y]));
+	// moverCFs.xp1[Z] += fxm(mover->UVNX[Z], JO_ABS(mover->velocity[Z]));
 
-	moverCFs.xp0[X] += fxm(mover->UVX[X],  JO_ABS(mover->velocity[X]));
-	moverCFs.xp0[Y] += fxm(mover->UVX[Y],  JO_ABS(mover->velocity[Y]));
-	moverCFs.xp0[Z] += fxm(mover->UVX[Z],  JO_ABS(mover->velocity[Z]));
-	moverCFs.xp1[X] += fxm(mover->UVNX[X], JO_ABS(mover->velocity[X]));
-	moverCFs.xp1[Y] += fxm(mover->UVNX[Y], JO_ABS(mover->velocity[Y]));
-	moverCFs.xp1[Z] += fxm(mover->UVNX[Z], JO_ABS(mover->velocity[Z]));
+	// moverCFs.yp0[X] += fxm(mover->UVY[X],  JO_ABS(mover->velocity[X]));
+	// moverCFs.yp0[Y] += fxm(mover->UVY[Y],  JO_ABS(mover->velocity[Y]));
+	// moverCFs.yp0[Z] += fxm(mover->UVY[Z],  JO_ABS(mover->velocity[Z]));
+	// moverCFs.yp1[X] += fxm(mover->UVNY[X], JO_ABS(mover->velocity[X]));
+	// moverCFs.yp1[Y] += fxm(mover->UVNY[Y], JO_ABS(mover->velocity[Y]));
+	// moverCFs.yp1[Z] += fxm(mover->UVNY[Z], JO_ABS(mover->velocity[Z]));
 
-	moverCFs.yp0[X] += fxm(mover->UVY[X],  JO_ABS(mover->velocity[X]));
-	moverCFs.yp0[Y] += fxm(mover->UVY[Y],  JO_ABS(mover->velocity[Y]));
-	moverCFs.yp0[Z] += fxm(mover->UVY[Z],  JO_ABS(mover->velocity[Z]));
-	moverCFs.yp1[X] += fxm(mover->UVNY[X], JO_ABS(mover->velocity[X]));
-	moverCFs.yp1[Y] += fxm(mover->UVNY[Y], JO_ABS(mover->velocity[Y]));
-	moverCFs.yp1[Z] += fxm(mover->UVNY[Z], JO_ABS(mover->velocity[Z]));
-
-	moverCFs.zp0[X] += fxm(mover->UVZ[X],  JO_ABS(mover->velocity[X]));
-	moverCFs.zp0[Y] += fxm(mover->UVZ[Y],  JO_ABS(mover->velocity[Y]));
-	moverCFs.zp0[Z] += fxm(mover->UVZ[Z],  JO_ABS(mover->velocity[Z]));
-	moverCFs.zp1[X] += fxm(mover->UVNZ[X], JO_ABS(mover->velocity[X]));
-	moverCFs.zp1[Y] += fxm(mover->UVNZ[Y], JO_ABS(mover->velocity[Y]));
-	moverCFs.zp1[Z] += fxm(mover->UVNZ[Z], JO_ABS(mover->velocity[Z]));
+	// moverCFs.zp0[X] += fxm(mover->UVZ[X],  JO_ABS(mover->velocity[X]));
+	// moverCFs.zp0[Y] += fxm(mover->UVZ[Y],  JO_ABS(mover->velocity[Y]));
+	// moverCFs.zp0[Z] += fxm(mover->UVZ[Z],  JO_ABS(mover->velocity[Z]));
+	// moverCFs.zp1[X] += fxm(mover->UVNZ[X], JO_ABS(mover->velocity[X]));
+	// moverCFs.zp1[Y] += fxm(mover->UVNZ[Y], JO_ABS(mover->velocity[Y]));
+	// moverCFs.zp1[Z] += fxm(mover->UVNZ[Z], JO_ABS(mover->velocity[Z]));
 
 POINT plane_points[4];
 VECTOR used_normal;

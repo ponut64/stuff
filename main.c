@@ -274,14 +274,16 @@ void	attributions(void)
 	slPrint("Created by Ponut64", slLocate(3, 4));
 	slPrint("Contributions:", slLocate(3, 6));
 	slPrint("XL2 - Essential knowledge & tools", slLocate(3, 7));
-	slPrint("dannyduarte - fixed workarea.c", slLocate(3, 8));
+	//slPrint("dannyduarte - fixed workarea.c", slLocate(3, 8));
 	slPrint("ReyeMe - for his czechnology", slLocate(3, 9));
 	slPrint("Emerald Nova - fixed-point timer", slLocate(3, 11));
-	slPrint("fafling - actually read VDP2 manual", slLocate(3, 13));
+	slPrint("fafling - actually read the manuals", slLocate(3, 13));
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
 	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
 
 	slPrint("Sound Driver by Ponut64", slLocate(3, 21));
+	slPrint("Great Value Game Engine", slLocate(3, 22));
+	slPrint("also by Ponut64", slLocate(3, 23));
 	
 	//testing_level_data((Sint8*)"LIST0.REM", (void*)dirty_buf);
 	

@@ -81,12 +81,17 @@ void reset_player(void)
 }
 
 
-void pl_jump(void){
-	// if(you.velocity[Y] > 0){
-		// you.dV[Y] = -fxm(you.floorNorm[Y], you.velocity[Y]);
-	// } else {
-		// you.dV[Y] = 0;
-	// }
+void pl_jump(void)
+{
+	//First: If we are jumping on a frame where we just touched the ground,
+	// the Y velocity will not have been zeroed out to the ground.
+	// Thus, jumping may fail to add enough velocity to overcome this.
+	// To compensate, we must first remove velocity relative to the floor.
+	if(you.velocity[Y] < 0)
+	{
+		you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]);
+		//you.velocity[Y] = 0;
+	}
 	you.hitSurface = false;
 	//This should not be time-scaled, since it does not increment over multiple frames.
 	you.velocity[X] -= fxm(229376, you.floorNorm[X]); 
@@ -239,10 +244,6 @@ void	player_phys_affect(void)
 		// nbg_sprintf(1, 9, "hitWall: (%i)", you.hitWall);
 		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
-		
-	//Something fucky going on:
-	//When slide is enabled, touching the ground triggers a really annoying vibration.
-	
 
 	//Delta-V has been time-scaled; it can be reset before we start accumulating it.
 	//Please be aware this should be done after, not before.
@@ -263,7 +264,9 @@ void	player_phys_affect(void)
 	//Derive three angles from two inputs. (Has to be time-scaled, because its incremental)
 	you.viewRot[X] += you.rotState[Y] * framerate;
 	you.viewRot[Y] -= you.rotState[X] * framerate;
-	
+	///////////////////////////////////////////////
+	// Control axis matrix
+	///////////////////////////////////////////////
 	static int slide_control_matrix[9];
 	//The control unit vector is using the player's bound box / matrix parameters.
 	//In this case, it's the forward vector.
@@ -286,17 +289,20 @@ void	player_phys_affect(void)
 
 	smart_cam();
 
-	//F = m * a : This comment means nothing. This math isn't here nor there.
-	//A = F / M :
-	const int airFriction = 655; //1%, Very low friction
+	///////////////////////////////////////////////
+	// Velocity Constant Changes
+	///////////////////////////////////////////////
+	const int airFriction = 325; //very low friction (<1%)
 		//There's always air .. unless we go into space, but whatevs, bruh
 		you.dV[X] -= fxm(you.velocity[X], (airFriction));
 		you.dV[Y] -= fxm(you.velocity[Y], (airFriction));
 		you.dV[Z] -= fxm(you.velocity[Z], (airFriction));
+		
+		you.dV[Y] -= GRAVITY;
 
-	/////////////////////////////
+	///////////////////////////////////////////////
 	// Jump & Jet Decisions
-	/////////////////////////////
+	///////////////////////////////////////////////
 		if(you.setJump == true)
 		{
 			pl_jump();
@@ -321,80 +327,48 @@ void	player_phys_affect(void)
 		
 	////////////////////////////////////////////////////
 	//Input-speed response
-	// I've tested it, and yes: -Y is correct.
 	////////////////////////////////////////////////////
 	if(you.setSlide != true && you.hitSurface == true)
 	{
 		you.dV[X] += fxm(you.IPaccel, you.ControlUV[X]);
-		you.dV[Y] -= fxm(you.IPaccel, you.ControlUV[Y]);
+		you.dV[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
 		you.dV[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
 	} else { 
 	//If sliding or in the air
 	//I don't want this to enable going faster, but I do want it to help you turn?
 	//I also want to increase turning authority at higher speeds?
 		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
-		you.dV[Y] -= fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
+		you.dV[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
 		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
 	}
-	////////////////////////////////////////////////////
-	// Wall collision response
-	////////////////////////////////////////////////////
-	if(you.hitWall == true)
-	{
-			//Push away.
-			you.pos[X] -= you.wallNorm[X]>>4;
-			you.pos[Y] -= you.wallNorm[Y]>>4;
-			you.pos[Z] -= you.wallNorm[Z]>>4;
-			//Floor position must also be pushed in case you are on the surface.
-			you.floorPos[X] -= you.wallNorm[X]>>4;
-			you.floorPos[Y] -= you.wallNorm[Y]>>4;
-			you.floorPos[Z] -= you.wallNorm[Z]>>4;
-			/*
-	This code is a relatively direct lift from Tribes.
-	I wouldn't have independently come up with a solution that works this well.
-	Instead, I was fixated on simply multiplying the wallNorm by velocity and subtracting that away from velocity.
-	My goal with that was to zero-out all direction towards the wall. That only mostly works.
-	This code however will let you bounce off of surfaces by an amount from 0-1 determined by the rebound elasticity.
-	Most notably, this works even if rebound elasticity is set to zero.
-			*/
-			int deflectionFactor = fxdot(you.velocity, you.wallNorm);
-			//This shouldn't be time-scaled, should it?
-			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Y] -= fxm(you.wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Z] -= fxm(you.wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
-		
-			you.hitWall = false;
-			
-			if(you.sanics >= 5<<16) pcm_play(snd_smack, PCM_SEMI, 7);
-	} 
+
 	////////////////////////////////////////////////////
 	//On-surface collision response
 	////////////////////////////////////////////////////
 	static VECTOR gravAcc;
+	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
 		//If normally on surface without modifier, high friction
 		you.surfFriction = (19660); //33%, high friction				
 		//Skiing Decisions
 		if(you.setSlide == true){
-			you.surfFriction = 655; //1%, very low friction (in this case, it's air + ground, 2%)
+			you.surfFriction = 155; //very very low friction
 		}		
 		//Friction decisions
 			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
 			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
 			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 		
-		if(firstSurfHit == false || (JO_ABS(you.floorNorm[Y]) < 49152))
+		if(firstSurfHit == false)
 		{
-
-			//Bounce and, incidentally, a decent way to discourage you from going up steep slopes.
 			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
 			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
 			//Or scaling the velocity by some half and not-half of the normal.
 			//What we have below is an "impact dot" by the deflection factor.
 			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
-			FIXED deflectionFactor = fxdot(you.velocity, you.floorNorm);
+			deflectionFactor = fxdot(you.velocity, you.floorNorm);
 			// This is ESSENTIAL for the momentum gameplay to work properly 
 			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
 			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
@@ -410,24 +384,33 @@ void	player_phys_affect(void)
 			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
 			you.wasClimbing = true;
 		} else {
-			///When on surface, I need to make sure Y velocity applied here by gravity does not increase in a way that opposes the surface normal.
-			///Also, stiction. You shouldn't ALWAYS slide :)
-			gravAcc[X] = -fxm((GRAVITY), you.floorNorm[X]); //Transform gravity by the surface
-			gravAcc[Y] = -fxm((GRAVITY), you.floorNorm[Y]);
-			gravAcc[Z] = -fxm((GRAVITY), you.floorNorm[Z]);
-			you.dV[X] += gravAcc[X];
-			you.dV[Y] += gravAcc[Y];
-			you.dV[Z] += gravAcc[Z];
-			you.dV[Y] = fxm(you.dV[Y], you.floorNorm[Y]); //Don't get Y velocity against the floor
-			you.velocity[Y] = fxm(you.velocity[Y], you.floorNorm[Y]);
-			//'floorPos' is a positive world-space position. Your velocity is added to it if you hit an object.
+			/*
+			My best explanation of what's happening here:
+			Weight/gravity is pushing the player down, at all times.
+			Right now the system does not abstract between force and acceleration; I know that's a major flaw.
+			But for now it's a needed simplification so I can understand things.
+			So we must interpret this "gravity" as the force itself, in the math, even though it is the weight.
+			The weight applies a force to the surface, and this force must be deflected by the surface.
+			There's no rebound here though, as the rebound is not controlling the collision state (like it is with walls).
+			*/
+			deflectionFactor = fxm(GRAVITY, you.floorNorm[Y]);
+
+			you.dV[X] += fxm(you.floorNorm[X], deflectionFactor); 
+			you.dV[Y] += fxm(you.floorNorm[Y], deflectionFactor); 
+			you.dV[Z] += fxm(you.floorNorm[Z], deflectionFactor); 
+
+			//You need to be able to hold on to some intent to move down, even if towards the floor.
+			//"dV" is literally just acceleration; we should be able to hold onto intent to accelerate. Or really, force.
+			//But my maths doesn't do force. Anyway, this is correct: dV not-floored, velocity is floored.
+			//The bounciness that this causes, for all I understand, appears to just be correct.
+			you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]);
 		}
 			you.pos[X] = (you.floorPos[X]);
 			you.pos[Y] = (you.floorPos[Y]);
 			you.pos[Z] = (you.floorPos[Z]);
 		
 		//Stiction; low velocities will trap at zero on surface.
-		if(!you.dirInp)
+		if(!you.dirInp && !you.setSlide)
 		{
 			you.velocity[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.velocity[X] : 0;
 			you.velocity[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.velocity[Y] : 0;
@@ -438,9 +421,36 @@ void	player_phys_affect(void)
 		}
 		
 	} else {
-		you.dV[Y] -= GRAVITY;
 		firstSurfHit = false;
 	}
+	
+	////////////////////////////////////////////////////
+	// Wall collision response
+	////////////////////////////////////////////////////
+	if(you.hitWall == true)
+	{
+			//Push away.
+			you.dV[X] -= you.wallNorm[X]>>2;
+			you.dV[Y] -= you.wallNorm[Y]>>2;
+			you.dV[Z] -= you.wallNorm[Z]>>2;
+			/*
+	This code is a relatively direct lift from Tribes.
+	I wouldn't have independently come up with a solution that works this well.
+	Instead, I was fixated on simply multiplying the wallNorm by velocity and subtracting that away from velocity.
+	My goal with that was to zero-out all direction towards the wall. That only mostly works.
+	This code however will let you bounce off of surfaces by an amount from 0-1 determined by the rebound elasticity.
+	Most notably, this works even if rebound elasticity is set to zero.
+			*/
+			deflectionFactor = fxdot(you.velocity, you.wallNorm);
+			//This shouldn't be time-scaled, should it?
+			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Y] -= fxm(you.wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[Z] -= fxm(you.wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
+		
+			you.hitWall = false;
+			
+			if(you.sanics >= 7<<16) pcm_play(snd_smack, PCM_SEMI, 7);
+	} 
 
 	//Ladder/Climb Escape Sequence
 	//At least in one test, this was pretty much perfect!
