@@ -1,5 +1,6 @@
 
 #include <sl_def.h>
+#include <string.h>
 #include "def.h"
 #include "pcmsys.h"
 #include "input.h"
@@ -106,7 +107,7 @@ void pl_jet(void){
 	if(you.hitSurface == true && you.power == you.maxPower)
 	{
 		//Surface release
-		you.pos[Y] += 6553 + (1<<16);
+		you.pos[Y] += 6553 - fxm(you.floorNorm[X], 1<<16) - fxm(you.floorNorm[Y], 1<<16) - fxm(you.floorNorm[Z], 1<<16);
 		you.hitSurface = false;
 		//Hop
 		//This should not be time-scaled, since it does not increment over multiple frames.
@@ -234,6 +235,121 @@ void	smart_cam(void)
 	}
 	
 }
+
+void	construct_line_tables(void)
+{
+	
+	//////////////////////////////////////////////////////////////
+	// Add the position of the mover's box centre-faces to the mover's world position
+	// "Get world-space point position"
+	//////////////////////////////////////////////////////////////
+	//
+	// Have to be careful how collisions are checked; they affect where you end up being snapped to.
+	// So be careful: This is NEEDED to successfully capture high-velocity collisions.
+	// However, floor-snapping needs to be aware of the gap created by it, or else it screws up your speed.
+	//
+	// Also, two of the nearly-identical struct exist because somewhere along the line, I flipped the coordinate systems.
+	// And I don't know how to unflip them.
+	you.fwd_world_faces.xp0[X] = pl_RBB.Xplus[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.xp0[Y] = pl_RBB.Xplus[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.xp0[Z] = pl_RBB.Xplus[Z] 	+ pl_RBB.pos[Z];
+	you.fwd_world_faces.xp1[X] = pl_RBB.Xneg[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.xp1[Y] = pl_RBB.Xneg[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.xp1[Z] = pl_RBB.Xneg[Z] 	+ pl_RBB.pos[Z];
+	you.fwd_world_faces.yp0[X] = pl_RBB.Yplus[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.yp0[Y] = pl_RBB.Yplus[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.yp0[Z] = pl_RBB.Yplus[Z] 	+ pl_RBB.pos[Z];
+	you.fwd_world_faces.yp1[X] = pl_RBB.Yneg[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.yp1[Y] = pl_RBB.Yneg[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.yp1[Z] = pl_RBB.Yneg[Z] 	+ pl_RBB.pos[Z];
+	you.fwd_world_faces.zp0[X] = pl_RBB.Zplus[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.zp0[Y] = pl_RBB.Zplus[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.zp0[Z] = pl_RBB.Zplus[Z] 	+ pl_RBB.pos[Z];
+	you.fwd_world_faces.zp1[X] = pl_RBB.Zneg[X] 	+ pl_RBB.pos[X];
+	you.fwd_world_faces.zp1[Y] = pl_RBB.Zneg[Y] 	+ pl_RBB.pos[Y];
+	you.fwd_world_faces.zp1[Z] = pl_RBB.Zneg[Z] 	+ pl_RBB.pos[Z];
+	
+	you.bwd_world_faces.xp0[X] = pl_RBB.Xplus[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.xp0[Y] = pl_RBB.Xplus[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.xp0[Z] = pl_RBB.Xplus[Z] 	- pl_RBB.pos[Z];
+	you.bwd_world_faces.xp1[X] = pl_RBB.Xneg[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.xp1[Y] = pl_RBB.Xneg[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.xp1[Z] = pl_RBB.Xneg[Z] 	- pl_RBB.pos[Z];
+	you.bwd_world_faces.yp0[X] = pl_RBB.Yplus[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.yp0[Y] = pl_RBB.Yplus[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.yp0[Z] = pl_RBB.Yplus[Z] 	- pl_RBB.pos[Z];
+	you.bwd_world_faces.yp1[X] = pl_RBB.Yneg[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.yp1[Y] = pl_RBB.Yneg[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.yp1[Z] = pl_RBB.Yneg[Z] 	- pl_RBB.pos[Z];
+	you.bwd_world_faces.zp0[X] = pl_RBB.Zplus[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.zp0[Y] = pl_RBB.Zplus[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.zp0[Z] = pl_RBB.Zplus[Z] 	- pl_RBB.pos[Z];
+	you.bwd_world_faces.zp1[X] = pl_RBB.Zneg[X] 	- pl_RBB.pos[X];
+	you.bwd_world_faces.zp1[Y] = pl_RBB.Zneg[Y] 	- pl_RBB.pos[Y];
+	you.bwd_world_faces.zp1[Z] = pl_RBB.Zneg[Z] 	- pl_RBB.pos[Z];
+	
+	you.time_axis.xp0[X] = fxm(fxm(pl_RBB.UVX[X],  JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.xp0[Y] = fxm(fxm(pl_RBB.UVX[Y],  JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.xp0[Z] = fxm(fxm(pl_RBB.UVX[Z],  JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	you.time_axis.xp1[X] = fxm(fxm(pl_RBB.UVNX[X], JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.xp1[Y] = fxm(fxm(pl_RBB.UVNX[Y], JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.xp1[Z] = fxm(fxm(pl_RBB.UVNX[Z], JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	you.time_axis.yp0[X] = fxm(fxm(pl_RBB.UVY[X],  JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.yp0[Y] = fxm(fxm(pl_RBB.UVY[Y],  JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.yp0[Z] = fxm(fxm(pl_RBB.UVY[Z],  JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	you.time_axis.yp1[X] = fxm(fxm(pl_RBB.UVNY[X], JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.yp1[Y] = fxm(fxm(pl_RBB.UVNY[Y], JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.yp1[Z] = fxm(fxm(pl_RBB.UVNY[Z], JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	you.time_axis.zp0[X] = fxm(fxm(pl_RBB.UVZ[X],  JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.zp0[Y] = fxm(fxm(pl_RBB.UVZ[Y],  JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.zp0[Z] = fxm(fxm(pl_RBB.UVZ[Z],  JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	you.time_axis.zp1[X] = fxm(fxm(pl_RBB.UVNZ[X], JO_ABS(pl_RBB.velocity[X])>>1), time_fixed_scale);
+	you.time_axis.zp1[Y] = fxm(fxm(pl_RBB.UVNZ[Y], JO_ABS(pl_RBB.velocity[Y])>>1), time_fixed_scale);
+	you.time_axis.zp1[Z] = fxm(fxm(pl_RBB.UVNZ[Z], JO_ABS(pl_RBB.velocity[Z])>>1), time_fixed_scale);
+	
+	you.fwd_world_faces.xp0[X] += you.time_axis.xp0[X];
+	you.fwd_world_faces.xp0[Y] += you.time_axis.xp0[Y];
+	you.fwd_world_faces.xp0[Z] += you.time_axis.xp0[Z];
+	you.fwd_world_faces.xp1[X] += you.time_axis.xp1[X];
+	you.fwd_world_faces.xp1[Y] += you.time_axis.xp1[Y];
+	you.fwd_world_faces.xp1[Z] += you.time_axis.xp1[Z];
+	you.fwd_world_faces.yp0[X] += you.time_axis.yp0[X];
+	you.fwd_world_faces.yp0[Y] += you.time_axis.yp0[Y];
+	you.fwd_world_faces.yp0[Z] += you.time_axis.yp0[Z];
+	you.fwd_world_faces.yp1[X] += you.time_axis.yp1[X];
+	you.fwd_world_faces.yp1[Y] += you.time_axis.yp1[Y];
+	you.fwd_world_faces.yp1[Z] += you.time_axis.yp1[Z];
+	you.fwd_world_faces.zp0[X] += you.time_axis.zp0[X];
+	you.fwd_world_faces.zp0[Y] += you.time_axis.zp0[Y];
+	you.fwd_world_faces.zp0[Z] += you.time_axis.zp0[Z];
+	you.fwd_world_faces.zp1[X] += you.time_axis.zp1[X];
+	you.fwd_world_faces.zp1[Y] += you.time_axis.zp1[Y];
+	you.fwd_world_faces.zp1[Z] += you.time_axis.zp1[Z];
+	
+	you.bwd_world_faces.xp0[X] += you.time_axis.xp0[X];
+	you.bwd_world_faces.xp0[Y] += you.time_axis.xp0[Y];
+	you.bwd_world_faces.xp0[Z] += you.time_axis.xp0[Z];
+	you.bwd_world_faces.xp1[X] += you.time_axis.xp1[X];
+	you.bwd_world_faces.xp1[Y] += you.time_axis.xp1[Y];
+	you.bwd_world_faces.xp1[Z] += you.time_axis.xp1[Z];
+	you.bwd_world_faces.yp0[X] += you.time_axis.yp0[X];
+	you.bwd_world_faces.yp0[Y] += you.time_axis.yp0[Y];
+	you.bwd_world_faces.yp0[Z] += you.time_axis.yp0[Z];
+	you.bwd_world_faces.yp1[X] += you.time_axis.yp1[X];
+	you.bwd_world_faces.yp1[Y] += you.time_axis.yp1[Y];
+	you.bwd_world_faces.yp1[Z] += you.time_axis.yp1[Z];
+	you.bwd_world_faces.zp0[X] += you.time_axis.zp0[X];
+	you.bwd_world_faces.zp0[Y] += you.time_axis.zp0[Y];
+	you.bwd_world_faces.zp0[Z] += you.time_axis.zp0[Z];
+	you.bwd_world_faces.zp1[X] += you.time_axis.zp1[X];
+	you.bwd_world_faces.zp1[Y] += you.time_axis.zp1[Y];
+	you.bwd_world_faces.zp1[Z] += you.time_axis.zp1[Z];
+	
+		// nbg_sprintf(1, 6, "xx: (%i)", you.world_faces.xp0[X]);
+		// nbg_sprintf(1, 7, "xy: (%i)", you.world_faces.xp0[Y]);
+		// nbg_sprintf(1, 8, "xz: (%i)", you.world_faces.xp0[Z]);			
+	
+}
  
 void	player_phys_affect(void)
 {
@@ -345,7 +461,6 @@ void	player_phys_affect(void)
 	////////////////////////////////////////////////////
 	//On-surface collision response
 	////////////////////////////////////////////////////
-	static VECTOR gravAcc;
 	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
@@ -370,9 +485,9 @@ void	player_phys_affect(void)
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			deflectionFactor = fxdot(you.velocity, you.floorNorm);
 			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
 			
 			firstSurfHit = true;
 		}
@@ -599,47 +714,6 @@ void	player_phys_affect(void)
 		you.ladder = false;
 
 /*
-_lineTable moverCFs = {
-	.xp0[X] = pl_RBB.Xplus[X] 	- pl_RBB.pos[X],
-	.xp0[Y] = pl_RBB.Xplus[Y] 	- pl_RBB.pos[Y],
-	.xp0[Z] = pl_RBB.Xplus[Z] 	- pl_RBB.pos[Z],
-	.xp1[X] = pl_RBB.Xneg[X] 	- pl_RBB.pos[X],
-	.xp1[Y] = pl_RBB.Xneg[Y] 	- pl_RBB.pos[Y],
-	.xp1[Z] = pl_RBB.Xneg[Z] 	- pl_RBB.pos[Z],
-	.yp0[X] = pl_RBB.Yplus[X] 	- pl_RBB.pos[X],
-	.yp0[Y] = pl_RBB.Yplus[Y] 	- pl_RBB.pos[Y],
-	.yp0[Z] = pl_RBB.Yplus[Z] 	- pl_RBB.pos[Z],
-	.yp1[X] = pl_RBB.Yneg[X] 	- pl_RBB.pos[X],
-	.yp1[Y] = pl_RBB.Yneg[Y] 	- pl_RBB.pos[Y],
-	.yp1[Z] = pl_RBB.Yneg[Z] 	- pl_RBB.pos[Z],
-	.zp0[X] = pl_RBB.Zplus[X] 	- pl_RBB.pos[X],
-	.zp0[Y] = pl_RBB.Zplus[Y] 	- pl_RBB.pos[Y],
-	.zp0[Z] = pl_RBB.Zplus[Z] 	- pl_RBB.pos[Z],
-	.zp1[X] = pl_RBB.Zneg[X] 	- pl_RBB.pos[X],
-	.zp1[Y] = pl_RBB.Zneg[Y] 	- pl_RBB.pos[Y],
-	.zp1[Z] = pl_RBB.Zneg[Z] 	- pl_RBB.pos[Z]
-}; 
-
-	moverCFs.xp0[X] += fxm(pl_RBB.UVX[X],  JO_ABS(you.velocity[X]));
-	moverCFs.xp0[Y] += fxm(pl_RBB.UVX[Y],  JO_ABS(you.velocity[Y]));
-	moverCFs.xp0[Z] += fxm(pl_RBB.UVX[Z],  JO_ABS(you.velocity[Z]));
-	moverCFs.xp1[X] += fxm(pl_RBB.UVNX[X], JO_ABS(you.velocity[X]));
-	moverCFs.xp1[Y] += fxm(pl_RBB.UVNX[Y], JO_ABS(you.velocity[Y]));
-	moverCFs.xp1[Z] += fxm(pl_RBB.UVNX[Z], JO_ABS(you.velocity[Z]));
-	
-	moverCFs.yp0[X] += fxm(pl_RBB.UVY[X],  JO_ABS(you.velocity[X]));
-	moverCFs.yp0[Y] += fxm(pl_RBB.UVY[Y],  JO_ABS(you.velocity[Y]));
-	moverCFs.yp0[Z] += fxm(pl_RBB.UVY[Z],  JO_ABS(you.velocity[Z]));
-	moverCFs.yp1[X] += fxm(pl_RBB.UVNY[X], JO_ABS(you.velocity[X]));
-	moverCFs.yp1[Y] += fxm(pl_RBB.UVNY[Y], JO_ABS(you.velocity[Y]));
-	moverCFs.yp1[Z] += fxm(pl_RBB.UVNY[Z], JO_ABS(you.velocity[Z]));
-	
-	moverCFs.zp0[X] += fxm(pl_RBB.UVZ[X],  JO_ABS(you.velocity[X]));
-	moverCFs.zp0[Y] += fxm(pl_RBB.UVZ[Y],  JO_ABS(you.velocity[Y]));
-	moverCFs.zp0[Z] += fxm(pl_RBB.UVZ[Z],  JO_ABS(you.velocity[Z]));
-	moverCFs.zp1[X] += fxm(pl_RBB.UVNZ[X], JO_ABS(you.velocity[X]));
-	moverCFs.zp1[Y] += fxm(pl_RBB.UVNZ[Y], JO_ABS(you.velocity[Y]));
-	moverCFs.zp1[Z] += fxm(pl_RBB.UVNZ[Z], JO_ABS(you.velocity[Z]));
 
 		short dirZP[3] = {pl_RBB.UVZ[X]>>3,	  pl_RBB.UVZ[Y]>>3, 	 pl_RBB.UVZ[Z]>>3};
 		short dirZN[3] = {pl_RBB.UVNZ[X]>>3, pl_RBB.UVNZ[Y]>>3, 	pl_RBB.UVNZ[Z]>>3};
@@ -648,16 +722,16 @@ _lineTable moverCFs = {
 		short dirYP[3] = {pl_RBB.UVY[X]>>3,	  pl_RBB.UVY[Y]>>3, 	 pl_RBB.UVY[Z]>>3};
 		short dirYN[3] = {pl_RBB.UVNY[X]>>3, pl_RBB.UVNY[Y]>>3,		pl_RBB.UVNY[Z]>>3};
 		add_to_sprite_list(you.wpos, dirXP, 0,   16	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(moverCFs.xp0, dirXP, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(moverCFs.xp1, dirXN, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.xp0, dirXP, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.xp1, dirXN, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
 		add_to_sprite_list(you.wpos, dirYP, 0,   19	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(moverCFs.yp0, dirYP, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(moverCFs.yp1, dirYN, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.yp0, dirYP, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.yp1, dirYN, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
 		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(moverCFs.zp0, dirZP, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(moverCFs.zp1, dirZN, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.zp0, dirZP, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
+		add_to_sprite_list(you.scaled_faces.zp1, dirZN, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
  */
-
+	construct_line_tables();
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;
 	pl_RBB.status[0] = 'R';	

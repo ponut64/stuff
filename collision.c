@@ -390,7 +390,7 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 
 }
 
-void	pl_physics_handler(_boundBox * mover, _boundBox * stator, POINT hitPt, short faceIndex, short obj_type_data)
+void	pl_physics_handler(_boundBox * mover, _boundBox * stator, _lineTable * moverTimeAxis, POINT hitPt, short faceIndex, short obj_type_data)
 {
 	/*
 	
@@ -428,9 +428,9 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		
 		standing_surface_alignment(you.floorNorm);
 			
-		you.floorPos[X] = -(hitPt[X]) - (mover->Yneg[X]);
-		you.floorPos[Y] = -(hitPt[Y]) - (mover->Yneg[Y]);
-		you.floorPos[Z] = -(hitPt[Z]) - (mover->Yneg[Z]);
+		you.floorPos[X] = -(hitPt[X]) - (mover->Yneg[X]) - moverTimeAxis->yp1[X];
+		you.floorPos[Y] = -(hitPt[Y]) - (mover->Yneg[Y]) - moverTimeAxis->yp1[Y];
+		you.floorPos[Z] = -(hitPt[Z]) - (mover->Yneg[Z]) - moverTimeAxis->yp1[Z];
 		you.shadowPos[X] = -hitPt[X];
 		you.shadowPos[Y] = -hitPt[Y];
 		you.shadowPos[Z] = -hitPt[Z];
@@ -526,7 +526,7 @@ void	player_shadow_object(_boundBox * stator, POINT centerDif)
 
 }
 
-Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover, short obj_type_data)
+Bool	player_collide_boxes(_boundBox * stator, _boundBox * mover, _lineTable * moverCFs, _lineTable * moverTimeAxis, short obj_type_data)
 {
 
 static FIXED bigRadius = 0;
@@ -574,39 +574,17 @@ if(stator->status[3] != 'B')
 
 numBoxChecks++;
 
-//Box Collision Check
-_lineTable moverCFs = {
-	.xp0[X] = mover->Xplus[X] 	- mover->pos[X],// - mover->velocity[X],
-	.xp0[Y] = mover->Xplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
-	.xp0[Z] = mover->Xplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
-	.xp1[X] = mover->Xneg[X] 	- mover->pos[X],// + mover->velocity[X],
-	.xp1[Y] = mover->Xneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
-	.xp1[Z] = mover->Xneg[Z] 	- mover->pos[Z],// + mover->velocity[Z],
-	.yp0[X] = mover->Yplus[X] 	- mover->pos[X],// - mover->velocity[X],
-	.yp0[Y] = mover->Yplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
-	.yp0[Z] = mover->Yplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
-	.yp1[X] = mover->Yneg[X] 	- mover->pos[X],// + mover->velocity[X],
-	.yp1[Y] = mover->Yneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
-	.yp1[Z] = mover->Yneg[Z] 	- mover->pos[Z],// + mover->velocity[Z],
-	.zp0[X] = mover->Zplus[X] 	- mover->pos[X],// - mover->velocity[X],
-	.zp0[Y] = mover->Zplus[Y] 	- mover->pos[Y],// - mover->velocity[Y],
-	.zp0[Z] = mover->Zplus[Z] 	- mover->pos[Z],// - mover->velocity[Z],
-	.zp1[X] = mover->Zneg[X] 	- mover->pos[X],// + mover->velocity[X],
-	.zp1[Y] = mover->Zneg[Y] 	- mover->pos[Y],// + mover->velocity[Y],
-	.zp1[Z] = mover->Zneg[Z] 	- mover->pos[Z]// + mover->velocity[Z]
-}; 
-
 	for(int i = 0; i < 6; i++)
 	{
    		//Backfacing Faces
 		if(fxdot(centerDif, stator->nmtbl[i]) > 0) continue;
 		//Drawing lines to face
 		
-		lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, stator->cftbl[i],
+		lineChecks[X] = line_hit_plane_here(moverCFs->xp0, moverCFs->xp1, stator->cftbl[i],
 										stator->nmtbl[i], stator->pos, 16384, lineEnds[X]);
-		lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, stator->cftbl[i],
+		lineChecks[Y] = line_hit_plane_here(moverCFs->yp0, moverCFs->yp1, stator->cftbl[i],
 										stator->nmtbl[i], stator->pos, 65536, lineEnds[Y]);
-		lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, stator->cftbl[i],
+		lineChecks[Z] = line_hit_plane_here(moverCFs->zp0, moverCFs->zp1, stator->cftbl[i],
 										stator->nmtbl[i], stator->pos, 16384, lineEnds[Z]);
 		for(int u = 0; u < 3; u++)
 		{
@@ -620,7 +598,7 @@ _lineTable moverCFs = {
 						{
 							if(edge_wind_test(stator->pltbl[i][3], stator->pltbl[i][0], lineEnds[u], boxDisField[i], 12) > 0)
 							{
-								pl_physics_handler(mover, stator, lineEnds[u], i, obj_type_data);
+								pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);
 								mover->collisionID = stator->boxID;
 								stator->collisionID = mover->boxID;
 								you.hitBox = true;
@@ -654,7 +632,7 @@ void	player_collision_test_loop(void)
 		 //Check if object # is a collision-approved type
 		if( boxtype == OBJPOP )
 			{
-				player_collide_boxes(&RBBs[i], &pl_RBB, edata);
+				player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
 				subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
 			} else if(boxtype == (ITEM | OBJPOP)) {
 				item_collision(i, &pl_RBB);
@@ -665,17 +643,17 @@ void	player_collision_test_loop(void)
 				if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_BUILDING)
 				{
 					//If it was loaded as a building-type object, collision test it as such.
-					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
+					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
 					if(you.hitObject == true){
 						RBBs[i].collisionID = pl_RBB.boxID;
 						pl_RBB.collisionID = RBBs[i].boxID;
 					}
 				} else {
-					player_collide_boxes(&RBBs[i], &pl_RBB, edata);
+					player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
 				}
 			} else if(boxtype == (BUILD | OBJPOP))
 			{
-				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos);
+				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
 				if(you.hitObject  == true){
 					RBBs[i].collisionID = pl_RBB.boxID;
 					pl_RBB.collisionID = RBBs[i].boxID;

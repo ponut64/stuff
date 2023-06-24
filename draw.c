@@ -492,20 +492,20 @@ void	master_draw(void)
 	time_at_end = get_time_in_frame();
 	//Debug stuff. Important!
 	
-	// slPrintFX(time_at_start, slLocate(6, 7));
-	// slPrintFX(time_at_dsp, slLocate(6, 8));
-	// slPrintFX(time_of_master_draw, slLocate(6, 9));
-	// slPrintFX(time_of_object_management, slLocate(6, 10));
-	// slPrintFX(time_at_end, slLocate(6, 11));
-	// if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 12));
-	// if(objects_render_time > 0) slPrintFX(objects_render_time, slLocate(6, 13));
-	// nbg_sprintf(2, 7, "Start:");
-	// nbg_sprintf(2, 8, "DSP:");
-	// nbg_sprintf(2, 9, "Map:");
-	// nbg_sprintf(2, 10, "Objs:");
-	// nbg_sprintf(2, 11, "End:");
-	// nbg_sprintf(2, 12, "Plyr:");
-	// nbg_sprintf(2, 13, "Modl:");
+	slPrintFX(time_at_start, slLocate(6, 7));
+	slPrintFX(time_at_dsp, slLocate(6, 8));
+	slPrintFX(time_of_master_draw, slLocate(6, 9));
+	slPrintFX(time_of_object_management, slLocate(6, 10));
+	slPrintFX(time_at_end, slLocate(6, 11));
+	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 12));
+	if(objects_render_time > 0) slPrintFX(objects_render_time, slLocate(6, 13));
+	nbg_sprintf(2, 7, "Start:");
+	nbg_sprintf(2, 8, "DSP:");
+	nbg_sprintf(2, 9, "Map:");
+	nbg_sprintf(2, 10, "Objs:");
+	nbg_sprintf(2, 11, "End:");
+	nbg_sprintf(2, 12, "Plyr:");
+	nbg_sprintf(2, 13, "Modl:");
 		
 }
 

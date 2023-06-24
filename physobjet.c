@@ -219,12 +219,16 @@ b. Performance issues.
 	1. I've figured out a way to profile MSH2.
 	I can't really profile SSH2 correctly.
 	2. I've mostly-fixed the frame-rate response, so the game should work at the same speed at 60/30/20 fps.
-	3. Some performance issues may be CPU related.
-	4. Other performance issues may be VDP1 related. I don't know how to profile that right now.
+	3. There are some CPU-performance issues on Slave SH2 that have been A-B profiled (do work or do not do work).
+	4. However, I still haven't conclusively found whether or not these are VDP1 issues (since that test also removed polygons).
+	5. According to the profiling, the issue is not on Master SH2.
+	6. Some more tests should be done with:
+	a. simplified CPU load, and b. simplified VDP1 load (polylines). If simplying the CPU load and going to polylines removes issue...
+	okay, that'll be a simple test. Not today. I'm tired.
 	
-c. Some gates are not triggering, either properly or at all. This is a problem, and needs to be fixed.
+c. Gate triggering was half-fixed. It works now, but there's no escape sequence so it just does its work twice.
 
-e. not portal - it's not strictly needed yet
+
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things

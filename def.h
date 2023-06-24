@@ -60,6 +60,17 @@ extern int time_fixed_scale; //Will be LOWER at LOWER FRAME-TIME
 //////////////////////////////////////////////////////////////////////////////
 extern int flagIconTexno;
 
+
+typedef struct {
+	FIXED xp0[XYZ];
+	FIXED xp1[XYZ];
+	FIXED yp0[XYZ];
+	FIXED yp1[XYZ];
+	FIXED zp0[XYZ];
+	FIXED zp1[XYZ];
+} _lineTable;
+
+
 //Structs
 typedef struct {
 	FIXED pos[XYZ];
@@ -116,6 +127,10 @@ typedef struct {
 	FIXED surfFriction;
 	
 	int points;
+	
+	_lineTable fwd_world_faces;
+	_lineTable bwd_world_faces;
+	_lineTable time_axis;
 	
 	Bool aboveObject;
 	Bool hitMap;

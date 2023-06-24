@@ -261,7 +261,7 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 // This function is running on Master SH2. The rendering functions are running on Slave SH2.
 // In this condition, the setting of the prematrix is controlled by the Slave SH2.
 // Hitherto, the correct prematrix may not be set for testing collision. The position must be pointed to instead of changing the prematrix.
-void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position)
+void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, _lineTable * moverCFs, _lineTable * moverTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
 		if(ent->file_done != true) return;
@@ -349,52 +349,6 @@ Bool shadowStruck = false;
 	discard_vector[Y] = 0;
 	discard_vector[Z] = 0;
 	//nbg_sprintf(1, 15, "Total planes: (%i)", total_planes);
-	
-	//////////////////////////////////////////////////////////////
-	// Add the position of the mover's box centre-faces to the mover's world position
-	// "Get world-space point position"
-	//////////////////////////////////////////////////////////////
-_lineTable moverCFs = {
-	.xp0[X] = mover->Xplus[X] 	+ mover->pos[X],// - mover->velocity[X],
-	.xp0[Y] = mover->Xplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
-	.xp0[Z] = mover->Xplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
-	.xp1[X] = mover->Xneg[X] 	+ mover->pos[X],// + mover->velocity[X],
-	.xp1[Y] = mover->Xneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
-	.xp1[Z] = mover->Xneg[Z] 	+ mover->pos[Z],// + mover->velocity[Z],
-	.yp0[X] = mover->Yplus[X] 	+ mover->pos[X],// - mover->velocity[X],
-	.yp0[Y] = mover->Yplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
-	.yp0[Z] = mover->Yplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
-	.yp1[X] = mover->Yneg[X] 	+ mover->pos[X],// + mover->velocity[X],
-	.yp1[Y] = mover->Yneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
-	.yp1[Z] = mover->Yneg[Z] 	+ mover->pos[Z],// + mover->velocity[Z],
-	.zp0[X] = mover->Zplus[X] 	+ mover->pos[X],// - mover->velocity[X],
-	.zp0[Y] = mover->Zplus[Y] 	+ mover->pos[Y],// - mover->velocity[Y],
-	.zp0[Z] = mover->Zplus[Z] 	+ mover->pos[Z],// - mover->velocity[Z],
-	.zp1[X] = mover->Zneg[X] 	+ mover->pos[X],// + mover->velocity[X],
-	.zp1[Y] = mover->Zneg[Y] 	+ mover->pos[Y],// + mover->velocity[Y],
-	.zp1[Z] = mover->Zneg[Z] 	+ mover->pos[Z]// + mover->velocity[Z]
-}; 
-	// Have to be careful how collisions are checked; they affect where you end up being snapped to.
-	// moverCFs.xp0[X] += fxm(mover->UVX[X],  JO_ABS(mover->velocity[X]));
-	// moverCFs.xp0[Y] += fxm(mover->UVX[Y],  JO_ABS(mover->velocity[Y]));
-	// moverCFs.xp0[Z] += fxm(mover->UVX[Z],  JO_ABS(mover->velocity[Z]));
-	// moverCFs.xp1[X] += fxm(mover->UVNX[X], JO_ABS(mover->velocity[X]));
-	// moverCFs.xp1[Y] += fxm(mover->UVNX[Y], JO_ABS(mover->velocity[Y]));
-	// moverCFs.xp1[Z] += fxm(mover->UVNX[Z], JO_ABS(mover->velocity[Z]));
-
-	// moverCFs.yp0[X] += fxm(mover->UVY[X],  JO_ABS(mover->velocity[X]));
-	// moverCFs.yp0[Y] += fxm(mover->UVY[Y],  JO_ABS(mover->velocity[Y]));
-	// moverCFs.yp0[Z] += fxm(mover->UVY[Z],  JO_ABS(mover->velocity[Z]));
-	// moverCFs.yp1[X] += fxm(mover->UVNY[X], JO_ABS(mover->velocity[X]));
-	// moverCFs.yp1[Y] += fxm(mover->UVNY[Y], JO_ABS(mover->velocity[Y]));
-	// moverCFs.yp1[Z] += fxm(mover->UVNY[Z], JO_ABS(mover->velocity[Z]));
-
-	// moverCFs.zp0[X] += fxm(mover->UVZ[X],  JO_ABS(mover->velocity[X]));
-	// moverCFs.zp0[Y] += fxm(mover->UVZ[Y],  JO_ABS(mover->velocity[Y]));
-	// moverCFs.zp0[Z] += fxm(mover->UVZ[Z],  JO_ABS(mover->velocity[Z]));
-	// moverCFs.zp1[X] += fxm(mover->UVNZ[X], JO_ABS(mover->velocity[X]));
-	// moverCFs.zp1[Y] += fxm(mover->UVNZ[Y], JO_ABS(mover->velocity[Y]));
-	// moverCFs.zp1[Z] += fxm(mover->UVNZ[Z], JO_ABS(mover->velocity[Z]));
 
 POINT plane_points[4];
 VECTOR used_normal;
@@ -453,7 +407,7 @@ if(you.hitSurface && last_floor_entity == ent)
 	// The tolerance level for a collision here is double the normal tolerance for hitting a floor.
 	// We prefer to have the player stick to surfaces they are standing on a little more strongly.
 	//////////////////////////////////////////////////////////////
-	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
+	lineChecks[Y] = line_hit_plane_here(moverCFs->yp0, moverCFs->yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
 	//////////////////////////////////////////////////////////////
 	// Proceed with edge wind testing if the line is still in the right spot.
 	// Notice there are a few conditions here which are either manually inserted to a fixed value or omitted:
@@ -490,10 +444,9 @@ if(you.hitSurface && last_floor_entity == ent)
 							}
 						}
 						standing_surface_alignment(you.floorNorm);
-						
-						you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
-						you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
-						you.floorPos[Z] = ((lineEnds[Y][Z]) - (mover->Yneg[Z]));
+						you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+						you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+						you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 						you.shadowPos[X] = lineEnds[Y][X];
 						you.shadowPos[Y] = lineEnds[Y][Y];
 						you.shadowPos[Z] = lineEnds[Y][Z];
@@ -562,14 +515,14 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	if(__builtin_expect(!hitY, 0))
 	{
-	lineChecks[Y] = line_hit_plane_here(moverCFs.yp0, moverCFs.yp1, plane_center, used_normal, discard_vector, 1<<16, lineEnds[Y]);
+	lineChecks[Y] = line_hit_plane_here(moverCFs->yp0, moverCFs->yp1, plane_center, used_normal, discard_vector, 1<<16, lineEnds[Y]);
 	} else {
 	lineChecks[Y] = false;
 	}
 	if(__builtin_expect (!hitXZ, 0))
 	{
-	lineChecks[Z] = line_hit_plane_here(moverCFs.zp0, moverCFs.zp1, plane_center, used_normal, discard_vector, 32768, lineEnds[Z]);
-	lineChecks[X] = line_hit_plane_here(moverCFs.xp0, moverCFs.xp1, plane_center, used_normal, discard_vector, 32768, lineEnds[X]);	
+	lineChecks[Z] = line_hit_plane_here(moverCFs->zp0, moverCFs->zp1, plane_center, used_normal, discard_vector, 32768, lineEnds[Z]);
+	lineChecks[X] = line_hit_plane_here(moverCFs->xp0, moverCFs->xp1, plane_center, used_normal, discard_vector, 32768, lineEnds[X]);	
 	} else {
 	lineChecks[Z] = false;
 	lineChecks[X] = false;
@@ -652,9 +605,9 @@ for(int i = 0; i < total_planes; i++)
 								
 								standing_surface_alignment(you.floorNorm);
 								
-								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
-								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
-								you.floorPos[Z] = ((lineEnds[Y][Z]) - (mover->Yneg[Z]));
+								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 								
 								you.hitSurface = true;
 							} else {
@@ -714,9 +667,9 @@ for(int i = 0; i < total_planes; i++)
 								
 								standing_surface_alignment(you.floorNorm);
 								
-								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
-								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
-								you.floorPos[Z] = ((lineEnds[Y][Z]) - (mover->Yneg[Z]));
+								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 								
 								you.hitSurface = true;
 							} else {
@@ -773,9 +726,9 @@ for(int i = 0; i < total_planes; i++)
 								
 								standing_surface_alignment(you.floorNorm);
 								
-								you.floorPos[X] = ((lineEnds[Y][X]) - (mover->Yneg[X]));
-								you.floorPos[Y] = ((lineEnds[Y][Y]) - (mover->Yneg[Y]));
-								you.floorPos[Z] = ((lineEnds[Y][Z]) - (mover->Yneg[Z]));
+								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 								
 								you.hitSurface = true;
 							} else {
