@@ -361,6 +361,16 @@ _sobject Build24 = {
 	.light_bright = 0
 };
 
+_sobject Build25 = {
+	.entity_ID = 36,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -522,6 +532,7 @@ void	fill_obj_list(void)
 	objList[33] = &Build22;
 	objList[34] = &Build23;
 	objList[35] = &Build24;
+	objList[36] = &Build25;
 	
 	objList[50] = &Gate_Plane;
 	objList[51] = &StartStand;

@@ -33,7 +33,7 @@ boxDisField[5] = N_Xp;
 }
 
 
-int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard, short shift)
+__attribute__((always_inline)) int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard, short shift)
 {
 	
 	int left = 0;

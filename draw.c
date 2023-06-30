@@ -51,8 +51,9 @@ int globalColorOffset;
 int glblLightApply = true;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
+//Profiling stuff
 int player_render_time;
-int objects_render_time;
+int animation_time;
 
 void	computeLight(void)
 {
@@ -143,6 +144,106 @@ void	master_draw_stats(void)
 		}
 }
 
+void	player_animation(void)
+{
+	
+	//Profiling Set-up
+	static int start_time;
+	
+	start_time = get_time_in_frame();
+	
+			//Animation Chains
+					static int airTimer = 0;
+			if(pl_model.file_done == true)
+			{
+				if(you.hitSurface == true)
+				{
+				airTimer = 0;
+					if(you.setSlide != true && you.climbing != true && airTimer == 0)
+					{
+						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0)
+						{
+							meshAnimProcessing(&idle, &pl_model,  false);
+						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp)
+						{
+						if(you.IPaccel <= 0){
+								meshAnimProcessing(&stop, &pl_model,  false);
+							}
+						if(you.sanics < 2<<16 && you.IPaccel > 0){
+								meshAnimProcessing(&walk, &pl_model,  true);
+							}
+						if(you.sanics < 3<<16 && you.sanics > 2<<16){
+								meshAnimProcessing(&run, &pl_model,  true);
+							}
+						if(you.sanics >= 3<<16){
+								meshAnimProcessing(&dbound, &pl_model,  true);
+							}
+						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp)
+						{
+							meshAnimProcessing(&stop, &pl_model,  false);
+						} else {
+							meshAnimProcessing(&idle, &pl_model,  false);
+						}	
+						//IF NOT SLIDE ENDIF
+					} else if(you.setSlide == true && you.climbing != true){
+						if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
+						{
+							meshAnimProcessing(&slideRln, &pl_model,  false);
+						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
+						{
+							meshAnimProcessing(&slideLln, &pl_model,  false);
+						} else {
+							meshAnimProcessing(&slideIdle, &pl_model,  false);
+						}
+						//IF SLIDE ENDIF
+					} else if(you.climbing == true)
+					{
+						if(you.sanics == 0)
+						{
+							meshAnimProcessing(&climbIdle, &pl_model,  false);
+						} else {
+							meshAnimProcessing(&climbing, &pl_model,  false);
+						}
+						//IF CLIMB ENDIF
+					}
+					//IF SURFACE ENDIF	
+				} else {
+						airTimer++;
+						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0)
+						{
+							if(!you.setJet){
+								meshAnimProcessing(&jump, &pl_model,  false);
+							} else {
+								meshAnimProcessing(&hop, &pl_model,  false);
+							}
+						} else if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
+						{
+							meshAnimProcessing(&airRight, &pl_model,  false);
+						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
+						{
+							meshAnimProcessing(&airLeft, &pl_model,  false);
+						} else {
+							meshAnimProcessing(&airIdle, &pl_model,  false);
+						}
+				}//IF AIR ENDIF
+			} //IF MODEL LOADED ENDIF
+	
+			//This plays a wing flap animation when you start 'jetting'.
+			//Due to the configuration of the animation, the wings stop after one flap.
+			//This code manually resets the flap animation when you're done jetting, so they will flap again.
+			if(you.setJet)
+			{
+				meshAnimProcessing(&flap, &wings,  false);
+			} else {
+				flap.currentFrm = flap.startFrm * 8;
+				flap.currentKeyFrm = flap.startFrm;
+				flap.reset_enable = 'Y';
+			}
+			
+	animation_time = get_time_in_frame() - start_time;
+	
+}
+
 void	player_draw(void)
 {
 	
@@ -160,99 +261,18 @@ void	player_draw(void)
 		pl_model.prematrix = (FIXED*)&pl_RBB;
 		wings.prematrix = (FIXED*)&pl_RBB;
 		
-			//Animation Chains
-					static int airTimer = 0;
-			if(pl_model.file_done == true)
-			{
-				if(you.hitSurface == true)
-				{
-				airTimer = 0;
-					if(you.setSlide != true && you.climbing != true && airTimer == 0)
-					{
-						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0)
-						{
-							ssh2DrawAnimation(&idle, &pl_model,  false);
-						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp)
-						{
-						if(you.IPaccel <= 0){
-								ssh2DrawAnimation(&stop, &pl_model,  false);
-							}
-						if(you.sanics < 2<<16 && you.IPaccel > 0){
-								ssh2DrawAnimation(&walk, &pl_model,  true);
-							}
-						if(you.sanics < 3<<16 && you.sanics > 2<<16){
-								ssh2DrawAnimation(&run, &pl_model,  true);
-							}
-						if(you.sanics >= 3<<16){
-								ssh2DrawAnimation(&dbound, &pl_model,  true);
-							}
-						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp)
-						{
-							ssh2DrawAnimation(&stop, &pl_model,  false);
-						} else {
-							ssh2DrawAnimation(&idle, &pl_model,  false);
-						}	
-						//IF NOT SLIDE ENDIF
-					} else if(you.setSlide == true && you.climbing != true){
-						if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
-						{
-							ssh2DrawAnimation(&slideRln, &pl_model,  false);
-						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
-						{
-							ssh2DrawAnimation(&slideLln, &pl_model,  false);
-						} else {
-							ssh2DrawAnimation(&slideIdle, &pl_model,  false);
-						}
-						//IF SLIDE ENDIF
-					} else if(you.climbing == true)
-					{
-						if(you.sanics == 0)
-						{
-							ssh2DrawAnimation(&climbIdle, &pl_model,  false);
-						} else {
-							ssh2DrawAnimation(&climbing, &pl_model,  false);
-						}
-						//IF CLIMB ENDIF
-					}
-					//IF SURFACE ENDIF	
-				} else {
-						airTimer++;
-						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0)
-						{
-							if(!you.setJet){
-								ssh2DrawAnimation(&jump, &pl_model,  false);
-							} else {
-								ssh2DrawAnimation(&hop, &pl_model,  false);
-							}
-						} else if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
-						{
-							ssh2DrawAnimation(&airRight, &pl_model,  false);
-						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
-						{
-							ssh2DrawAnimation(&airLeft, &pl_model,  false);
-						} else {
-							ssh2DrawAnimation(&airIdle, &pl_model,  false);
-						}
-				}//IF AIR ENDIF
-			} //IF MODEL LOADED ENDIF
-			
-			
+		ssh2DrawModel(&pl_model);
+
 	}
 	slPopMatrix();
 	
-	slPushMatrix();
-			//This plays a wing flap animation when you start 'jetting'.
-			//Due to the configuration of the animation, the wings stop after one flap.
-			//This code manually resets the flap animation when you're done jetting, so they will flap again.
-			if(you.setJet)
-			{
-				ssh2DrawAnimation(&flap, &wings,  false);
-			} else {
-				flap.currentFrm = flap.startFrm * 8;
-				flap.currentKeyFrm = flap.startFrm;
-				flap.reset_enable = 'Y';
-			}
-	slPopMatrix();
+	
+	if(you.setJet)
+	{
+		slPushMatrix();
+		ssh2DrawModel(&wings);
+		slPopMatrix();
+	}
 
 		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
 		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
@@ -265,10 +285,7 @@ void	player_draw(void)
 void	obj_draw_queue(void)
 {
 	
-	//Profiling Set-up
-	static int start_time;
-	
-	start_time = get_time_in_frame();
+
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -316,7 +333,6 @@ void	obj_draw_queue(void)
 		}
 	}
 	
-	objects_render_time = get_time_in_frame() - start_time;
 }
 
 void	shadow_draw(void)
@@ -405,6 +421,8 @@ void	object_draw(void)
 
 void	map_draw_prep(void)
 {
+	hmap_cluster();
+	
 	//Loads the DSP pepperbox
 	you.prevCellPos[X] = you.cellPos[X];
 	you.prevCellPos[Y] = you.cellPos[Y];
@@ -458,7 +476,6 @@ void	master_draw(void)
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);
 
-	hmap_cluster();
 	//
 	time_at_dsp = get_time_in_frame();
 	//
@@ -480,6 +497,7 @@ void	master_draw(void)
 		collide_with_heightmap(&pl_RBB);
 		//
 	time_of_object_management = get_time_in_frame() - math_time;
+	player_animation();
 		//
 	} else if(you.inMenu)
 	{
@@ -488,7 +506,7 @@ void	master_draw(void)
 		slSlaveFunc(sort_master_polys, 0);
 		//
 	}
-	
+
 	time_at_end = get_time_in_frame();
 	//Debug stuff. Important!
 	
@@ -496,16 +514,16 @@ void	master_draw(void)
 	slPrintFX(time_at_dsp, slLocate(6, 8));
 	slPrintFX(time_of_master_draw, slLocate(6, 9));
 	slPrintFX(time_of_object_management, slLocate(6, 10));
-	slPrintFX(time_at_end, slLocate(6, 11));
-	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 12));
-	if(objects_render_time > 0) slPrintFX(objects_render_time, slLocate(6, 13));
+	slPrintFX(animation_time, slLocate(6, 11));
+	slPrintFX(time_at_end, slLocate(6, 12));
+	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 13));
 	nbg_sprintf(2, 7, "Start:");
 	nbg_sprintf(2, 8, "DSP:");
 	nbg_sprintf(2, 9, "Map:");
 	nbg_sprintf(2, 10, "Objs:");
-	nbg_sprintf(2, 11, "End:");
-	nbg_sprintf(2, 12, "Plyr:");
-	nbg_sprintf(2, 13, "Modl:");
+	nbg_sprintf(2, 11, "Anim:");
+	nbg_sprintf(2, 12, "End:");
+	nbg_sprintf(2, 13, "Plyr:");
 		
 }
 

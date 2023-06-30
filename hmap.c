@@ -17,6 +17,7 @@
 #include "minimap.h"
 #include "mymath.h"
 #include "sound.h"
+#include "collision.h"
 //
 #include "dspm.h"
 //
@@ -772,6 +773,63 @@ int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 	return luma;
 }
 
+short preprocess_portals(_portal ** used_portal)
+{
+	short enable_portals = 0;
+	//Primary goal:
+	//Look through the portal list and:
+	// 1. Find which portal is the largest. We want to use that one.
+	// 2. Determine the depth of the portal
+	// 3. Determine whether to front or backface the portal
+	// 4. Return a pointer to the used portal
+	// nbg_sprintf(0, 15, "port(%i)", current_portal_count);
+	static int bestsize = 0;
+	int cursize = 0;
+	if(current_portal_count > 0)
+	{
+		bestsize = 0;
+		for(int i = 0; i < current_portal_count; i++)
+		{
+			//Ideally, I would use the polygon with the best balance of X/Y span, in addition to best X/Y size.
+			//So a tiny Y span would be tossed in favor of something that had a larger X, or vice versa.
+			int szA[2] = {portals[i].verts[0][X] - portals[i].verts[1][X], portals[i].verts[0][Y] - portals[i].verts[1][Y]};
+			int szB[2] = {portals[i].verts[1][X] - portals[i].verts[2][X], portals[i].verts[1][Y] - portals[i].verts[2][Y]};
+			int szC[2] = {portals[i].verts[2][X] - portals[i].verts[3][X], portals[i].verts[2][Y] - portals[i].verts[3][Y]};
+			int szD[2] = {portals[i].verts[3][X] - portals[i].verts[0][X], portals[i].verts[3][Y] - portals[i].verts[0][Y]};
+			cursize =  (szA[X] * szA[X]) + (szA[Y] * szA[Y]);
+			cursize += (szB[X] * szB[X]) + (szB[Y] * szB[Y]);
+			cursize += (szC[X] * szC[X]) + (szC[Y] * szC[Y]);
+			cursize += (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
+			if(cursize > bestsize)
+			{
+				*used_portal = &portals[i];
+				portals[i].depth = JO_MAX(JO_MAX(portals[i].verts[0][Z], portals[i].verts[1][Z]), JO_MAX(portals[i].verts[2][Z], portals[i].verts[3][Z]));
+				bestsize = cursize;
+				
+				//A cross-product can tell us if it's backfaced or not.
+				int cross0 = (portals[i].verts[1][X] - portals[i].verts[3][X])
+									* (portals[i].verts[0][Y] - portals[i].verts[2][Y]);
+				int cross1 = (portals[i].verts[1][Y] - portals[i].verts[3][Y])
+									* (portals[i].verts[0][X] - portals[i].verts[2][X]);
+				portals[i].backface = (cross1 >= cross0) ? 1 : 0;
+				
+				portals[i].min[X] = JO_MIN(JO_MIN(portals[i].verts[0][X], portals[i].verts[1][X]), JO_MIN(portals[i].verts[2][X], portals[i].verts[3][X]));
+				portals[i].min[Y] = JO_MIN(JO_MIN(portals[i].verts[0][Y], portals[i].verts[1][Y]), JO_MIN(portals[i].verts[2][Y], portals[i].verts[3][Y]));
+				portals[i].max[X] = JO_MAX(JO_MAX(portals[i].verts[0][X], portals[i].verts[1][X]), JO_MAX(portals[i].verts[2][X], portals[i].verts[3][X]));
+				portals[i].max[Y] = JO_MAX(JO_MAX(portals[i].verts[0][Y], portals[i].verts[1][Y]), JO_MAX(portals[i].verts[2][Y], portals[i].verts[3][Y]));
+
+			}	
+		}
+		enable_portals = 1;
+	}
+	if(portal_reset == 1)
+	{
+		current_portal_count = 0;
+		portal_reset = 0;
+	}
+	return enable_portals;
+}
+
 ////////////////////////////
 // Helper data for dynamic polygon subdivision
 ////////////////////////////
@@ -953,14 +1011,9 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 void	update_hmap(MATRIX msMatrix)
 { //Master SH2 drawing function (needs to be sorted after by slave)
 
-	//static int startOffset;
-	//startOffset = (main_map_total_pix>>1) - (main_map_x_pix * (LCL_MAP_PIX>>1)) - (LCL_MAP_PIX>>1);
 	static int rowOffset;
 	static int x_pix_sample;
 	static int y_pix_sample;
-	// static int src_pix;
-	// static int rowLimit;
-	// static int RightBoundPixel;
 	static int dst_pix;
 	
 	register int dspReturnTgt = 0;
@@ -988,10 +1041,9 @@ void	update_hmap(MATRIX msMatrix)
 	unsigned short colorBank;
 	unsigned short pclp = 0;
 	int inverseZ = 0;
-//
-//The only way to increase the render distance is with a non-uniform density.
-//
-	
+
+	static _portal * used_portal = &portals[0];
+	short portal_active = preprocess_portals(&used_portal);
 	
 	//Loop Concept:
 	//SO just open Paint.NET make a 255x255 image.
@@ -1005,29 +1057,38 @@ void	update_hmap(MATRIX msMatrix)
 	
 	//The whole way its being done is very stupid, though ?
 	
-			//y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
-		//for(int k = 0; k < LCL_MAP_PIX; k++){
-			//rowOffset = (k * main_map_x_pix) + startOffset;
-			//rowLimit = rowOffset / main_map_x_pix;
-			//for(int v = 0; v < LCL_MAP_PIX; v++){
-			//	x_pix_sample = v + rowOffset + you.dispPos[X];
-			//	RightBoundPixel = (x_pix_sample - (rowLimit * main_map_x_pix));
-			//	src_pix = x_pix_sample - y_pix_sample;
-			//	dst_pix = v+(k*LCL_MAP_PIX);
-			//	if(src_pix < main_map_total_pix && src_pix >= 0 && RightBoundPixel < main_map_x_pix && RightBoundPixel >= 0){
-			//polymap->pntbl[dst_pix][Y] = -(main_map[src_pix]<<16);
-			//	} else { //Fill Set Value if outside of map area
-			//polymap->pntbl[dst_pix][Y] = -(127<<16);
-			//	}
-		for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
-		{
-			dspReturnTgt = dsp_output_addr[dst_pix];
-			if(dspReturnTgt >= 0){
-			polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<(MAP_V_SCALE));
-				} else { //Fill Set Value if outside of map area
-			polymap->pntbl[dst_pix][Y] = -(127<<(MAP_V_SCALE));
-				}
-
+	// static int startOffset;
+	// startOffset = (main_map_total_pix>>1) - (main_map_x_pix * (LCL_MAP_PIX>>1)) - (LCL_MAP_PIX>>1);
+	// static int src_pix;
+	// static int rowLimit;
+	// static int RightBoundPixel;
+	// y_pix_sample = (you.dispPos[Y] * (main_map_x_pix));
+	// for(int k = 0; k < LCL_MAP_PIX; k++)
+	// {
+	// rowOffset = (k * main_map_x_pix) + startOffset;
+	// rowLimit = rowOffset / main_map_x_pix;
+		// for(int v = 0; v < LCL_MAP_PIX; v++)
+		// {
+			// x_pix_sample = v + rowOffset + you.dispPos[X];
+			// RightBoundPixel = (x_pix_sample - (rowLimit * main_map_x_pix));
+			// src_pix = x_pix_sample - y_pix_sample;
+			// dst_pix = v+(k*LCL_MAP_PIX);
+			// if(src_pix < main_map_total_pix && src_pix >= 0 && RightBoundPixel < main_map_x_pix && RightBoundPixel >= 0)
+			// {
+		// polymap->pntbl[dst_pix][Y] = -(main_map[src_pix]<<MAP_V_SCALE);
+			// } else { //Fill Set Value if outside of map area
+		// polymap->pntbl[dst_pix][Y] = -(127<<MAP_V_SCALE);
+			// }
+		// }
+	// }
+	for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
+	{
+		dspReturnTgt = dsp_output_addr[dst_pix];
+		if(dspReturnTgt >= 0){
+		polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<(MAP_V_SCALE));
+			} else { //Fill Set Value if outside of map area
+		polymap->pntbl[dst_pix][Y] = -(127<<(MAP_V_SCALE));
+			}
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Vertice 3D Transformation
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1055,141 +1116,176 @@ void	update_hmap(MATRIX msMatrix)
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
-			}	// Row Filler Loop End Stub
-		//} // Row Selector Loop End Stub
-		
+
+		//Portalling
+		//What if the DSP did this? in parallel?
+		if(portal_active)
+		{
+			if(msh2VertArea[dst_pix].pnt[X] > used_portal->min[X])
+			{
+				if(msh2VertArea[dst_pix].pnt[X] < used_portal->max[X])
+				{
+					if(msh2VertArea[dst_pix].pnt[Y] > used_portal->min[Y])
+					{
+						if(msh2VertArea[dst_pix].pnt[Y] < used_portal->max[Y])
+						{
+							int discard = (used_portal->backface) ? N_Zn : N_Zp;
+							if(edge_wind_test(used_portal->verts[0], used_portal->verts[1], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
+							{
+								if(edge_wind_test(used_portal->verts[1], used_portal->verts[2], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
+								{
+									if(edge_wind_test(used_portal->verts[2], used_portal->verts[3], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
+									{
+										if(edge_wind_test(used_portal->verts[3], used_portal->verts[0], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
+										{
+											msh2VertArea[dst_pix].clipFlag |= CLIP_Z;
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+	//	}	// Row Filler Loop End Stub
+	} // Row Selector Loop End Stub
+	nbg_sprintf(0, 15, "max(%i),(%i)", used_portal->max[X], used_portal->max[Y]);
+	nbg_sprintf(0, 16, "min(%i),(%i)", used_portal->min[X], used_portal->min[Y]);	
+	
+	
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 
-			//Loop explanation:
-			//When we retrieve the map from the CD, we calculate the normals of every "potential" polygon in the map and write them to NormTbl.
-			//The map is forced to be odd in both dimensions (X and Y) to force there to be an objective "center" pixel. This is necessary so we can find our place in the map,
-			//for the above loop.
-			//However, this complicates assigning our "compressed" normals to polygons.
-			//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
-			//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
-			//Very important is to find the local polygon 0 ("top left") to use as the offset for our pos.
-			//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
-			//The vertice map does have a center. So we define our center as the polygon which has the center vertice (of the main map)
-			// as its first vertice [vertice 0 of 0-1-2-3].
-			// currently, 12 represents the polymap_width>>1
+	//Loop explanation:
+	//When we retrieve the map from the CD, we calculate the normals of every "potential" polygon in the map and write them to NormTbl.
+	//The map is forced to be odd in both dimensions (X and Y) to force there to be an objective "center" pixel. This is necessary so we can find our place in the map,
+	//for the above loop.
+	//However, this complicates assigning our "compressed" normals to polygons.
+	//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
+	//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
+	//Very important is to find the local polygon 0 ("top left") to use as the offset for our pos.
+	//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
+	//The vertice map does have a center. So we define our center as the polygon which has the center vertice (of the main map)
+	// as its first vertice [vertice 0 of 0-1-2-3].
+	// currently, 12 represents the polymap_width>>1
 			
-			//We also draw the polygons here.
+	//We also draw the polygons here.
+	
+	//This polygon contains the center pixel (main_map_total_pix>>1)
+	int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); 
+	//This is the upper-left polygon of the display area
+	int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); 
+	int src_norm = 0;
+	int dst_poly = 0;
+	VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
+	
+	vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
+	//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
+	unsigned short flip = 0; 
+	int texno = 0; //Ditto
+	int dither = 0;
+	
+	y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
+	
+	int subbed_polys = 0;
 			
-			//This polygon contains the center pixel (main_map_total_pix>>1)
-			int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); 
-			//This is the upper-left polygon of the display area
-			int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); 
-			int src_norm = 0;
-			int dst_poly = 0;
-			VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
-			
-			vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
-			//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
-			unsigned short flip = 0; 
-			int texno = 0; //Ditto
-			int dither = 0;
-			
-			y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
-			
-			int subbed_polys = 0;
-			
-		for(int k = 0; k < LCL_MAP_PLY; k++){
+	for(int k = 0; k < LCL_MAP_PLY; k++)
+	{
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Row Selection
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			rowOffset = (k * (main_map_x_pix-1)) + poly_offset;
+		rowOffset = (k * (main_map_x_pix-1)) + poly_offset;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			for(int v = 0; v < LCL_MAP_PLY; v++){
+		for(int v = 0; v < LCL_MAP_PLY; v++)
+		{
 				
-				dst_poly = v+(k*LCL_MAP_PLY);
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//HMAP Normal/Texture Finder
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-				x_pix_sample = (v + rowOffset + (you.dispPos[X]));
-				
-				src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
+			dst_poly = v+(k*LCL_MAP_PLY);
+			
+			ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[0]];
+			ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[1]];
+			ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[2]];
+			ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[3]];
+			////////////////////////////////////////////////
+			//Backface & Screenspace Culling Section
+			////////////////////////////////////////////////
 
-				tempNorm[X] = normTbl[src_norm]<<9;
-				tempNorm[Y] = normTbl[src_norm+1]<<9;
-				tempNorm[Z] = normTbl[src_norm+2]<<9;
+			//Components of screen-space cross-product used for backface culling.
+			//Vertice order hint:
+			// 0 - 1
+			// 3 - 2
+			//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
+			int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+								* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
+			int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+								* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
+			//Sorting target. Uses weighted max.
+			// int zDepthTgt = JO_MAX(
+			// JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+			int zDepthTgt = (JO_MAX(
+			JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
+			((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
+			int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
+			
+			if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 
-		texno = mapTex[x_pix_sample - y_pix_sample] & 1023;//texture_angle_resolver(dst_poly, tempNorm, &flip);
-		flip = (mapTex[x_pix_sample - y_pix_sample]>>8) & 48;
-		dither = mapTex[x_pix_sample - y_pix_sample] & (1<<15);
-		dither = (dither == 0) ? mapTex[x_pix_sample - y_pix_sample] & (1<<14) : dither;
-		
-		ptv[0] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[0]];
-		ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[1]];
-		ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[2]];
-		ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[3]];
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Backface & Screenspace Culling Section
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////
+			//HMAP Normal/Texture Finder
+			////////////////////////////////////////////////
+			x_pix_sample = (v + rowOffset + (you.dispPos[X]));
+			
+			src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
+			
+			tempNorm[X] = normTbl[src_norm]<<9;
+			tempNorm[Y] = normTbl[src_norm+1]<<9;
+			tempNorm[Z] = normTbl[src_norm+2]<<9;
 
-		//Components of screen-space cross-product used for backface culling.
-		//Vertice order hint:
-		// 0 - 1
-		// 3 - 2
-		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
-		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
-							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
-							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Sorting target. Uses max.
-		 // int zDepthTgt = JO_MAX(
-		// JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		int zDepthTgt = (JO_MAX(
-		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
-		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
-		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
-		
-		if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+			texno = mapTex[x_pix_sample - y_pix_sample] & 1023;//texture_angle_resolver(dst_poly, tempNorm, &flip);
+			flip = (mapTex[x_pix_sample - y_pix_sample]>>8) & 48;
+			dither = mapTex[x_pix_sample - y_pix_sample] & (1<<15);
+			dither = (dither == 0) ? mapTex[x_pix_sample - y_pix_sample] & (1<<14) : dither;
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//If any of the Z's are less than 100, render the polygon subdivided four ways.
-// Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
-// I think that's the only way this makes sense.
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
-		if(ptv[0]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[1]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL)
-		|| ptv[2]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[3]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL))
-		{	
-		texno += (dither & 0x8000) ? starting_small_crossing_texno : 0;
-		subbed_polys++;
-		render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
-		continue;
-		}
-		//Since this texture was not subdivided, use its corresponding combined texture.
-		//That is found by adding the base map texture amount to the texture number.
-		//This also manages whether or not to use a dithered texture. It's ugly to add *another* branch to the render loop...
-		texno += (dither & 0x8000) ? starting_combined_crossing_texno : (dither & 0x4000) ? amt_of_angular_tex_per_table : map_tex_amt;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Flip logic to keep vertice 0 on-screen, or disable preclipping
-//
-// Secondary Note:
-// The addition of polygon subdivision for the map makes this feature extraneous.
-// All of the polygons which might be crossing the screen edge should be small, or subdivided.
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		preclipping(ptv, &flip, &pclp);
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Lighting
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			////////////////////////////////////////////////
+			//If any of the Z's are less than 100, render the polygon subdivided four ways.
+			// Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
+			// I think that's the only way this makes sense.
+			////////////////////////////////////////////////	
+			if(ptv[0]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[1]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL)
+			|| ptv[2]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[3]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL))
+			{	
+			texno += (dither & 0x8000) ? starting_small_crossing_texno : 0;
+			subbed_polys++;
+			render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
+			continue;
+			}
+			//Since this texture was not subdivided, use its corresponding combined texture.
+			//That is found by adding the base map texture amount to the texture number.
+			//This also manages whether or not to use a dithered texture. It's ugly to add *another* branch to the render loop...
+			texno += (dither & 0x8000) ? starting_combined_crossing_texno : (dither & 0x4000) ? amt_of_angular_tex_per_table : map_tex_amt;
+			////////////////////////////////////////////////
+			// You'd think this doesn't need to be here, because otherwise everything would be subdivided or small.
+			// BUT PLEASE TRUST ME IT *NEEDS* TO BE HERE.
+			////////////////////////////////////////////////
+			preclipping(ptv, &flip, &pclp);
+			////////////////////////////////////////////////
+			//Lighting
+			////////////////////////////////////////////////
 
-		luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
-		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
-		//In normal "vision" however, bright light would do that..
-		//Use transformed normal as shade determinant
-		determine_colorbank(&colorBank, &luma);
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
-                     VDP1_BASE_CMDCTRL | (flip), ( VDP1_BASE_PMODE ) | pclp, //Reads flip value
-                     pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			}	// Row Filler Loop End Stub
-		} // Row Selector Loop End Stub
+			luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
+			luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+			luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
+			//In normal "vision" however, bright light would do that..
+			//Use transformed normal as shade determinant
+			determine_colorbank(&colorBank, &luma);
+			////////////////////////////////////////////////
+			msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+				VDP1_BASE_CMDCTRL | (flip), ( VDP1_BASE_PMODE ) | pclp, //Reads flip value
+				pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
+			////////////////////////////////////////////////
+		}	// Row Filler Loop End Stub
+	} // Row Selector Loop End Stub
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
 	*sysBool = true;

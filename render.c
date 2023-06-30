@@ -21,6 +21,10 @@ point_light * active_lights;
 entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
+_portal portals[MAX_PORTALS];
+short current_portal_count;
+short portal_reset;
+
 int dummy[4];
 int * ssh2SentPolys;
 int * msh2SentPolys;
@@ -103,6 +107,7 @@ void	frame_render_prep(void)
 		transPolys[0] = 0;
 		anims = 0;
 		drawn_entity_count = 0;
+		portal_reset = 1;	
 		vert_clip_x = TV_HALF_WIDTH;
 		vert_clip_nx = -TV_HALF_WIDTH;
 		vert_clip_y = TV_HALF_HEIGHT;
@@ -1093,6 +1098,121 @@ localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 		
 		anims++; //Increment animation work area pointer
 
+}
+
+//Use by either CPU to apply the animation interpolation to a mesh.
+void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant)
+{
+	if(ent->file_done != 1){return;}
+
+    GVPLY * model = ent->pol;
+	
+	//Process for static pose change:
+	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
+	//2. Set currentFrm to the AnimArea startFrm<<3
+	//3. Set uniforn to 0
+	//4. Set the local arate to 4
+	//5. Set currentKeyFrm to the AnimArea startFrm
+	//6. set the nextKeyFrame to the animCtrl startFrm
+	//7. Interpolate once
+	//8. Return all control data as if set from the animCtrl pose
+	short animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
+//
+	unsigned char localArate;
+	unsigned char nextKeyFrm;
+	int frDelta;
+	compVert * curKeyFrame;
+	compVert * nextKeyFrame;
+    /**Sets the animation data**/
+	///Variable interpolation set
+	localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
+
+
+	AnimArea[anims].currentFrm += (localArate * framerate)>>1;
+
+	AnimArea[anims].currentKeyFrm = (AnimArea[anims].currentFrm>>3);
+    if (AnimArea[anims].currentKeyFrm >= AnimArea[anims].endFrm)
+	{
+        AnimArea[anims].currentFrm -= (AnimArea[anims].endFrm - AnimArea[anims].startFrm)<<3;
+        AnimArea[anims].currentKeyFrm = AnimArea[anims].currentFrm>>3;
+	} else if(AnimArea[anims].currentKeyFrm < AnimArea[anims].startFrm)
+	{
+		AnimArea[anims].currentKeyFrm = AnimArea[anims].startFrm;
+		AnimArea[anims].currentFrm += (AnimArea[anims].endFrm-AnimArea[anims].startFrm)<<3;
+	}
+    nextKeyFrm = AnimArea[anims].currentKeyFrm+1;
+
+    if (nextKeyFrm >= AnimArea[anims].endFrm)
+	{
+        nextKeyFrm = AnimArea[anims].startFrm;
+	} else if (nextKeyFrm <= AnimArea[anims].startFrm)
+	{
+        nextKeyFrm = AnimArea[anims].startFrm+1;
+	}
+
+	
+ if(animation_change == 1 && transplant != 1) 
+ {
+	//For single-frame interpolation between poses
+	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].currentKeyFrm]->cVert;
+	nextKeyFrame = (compVert*)ent->animation[animCtrl->startFrm]->cVert;
+	frDelta = 8;
+ } else {
+	//For interpolation inside keyframed animation
+	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].currentKeyFrm]->cVert;
+	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
+	///Don't touch this! **absolute** frame delta 
+	frDelta = (AnimArea[anims].currentFrm)-(AnimArea[anims].currentKeyFrm<<3);
+ }
+
+
+	//Animation Data
+    volatile Sint32 * dst = model->pntbl[0];
+    short * src = curKeyFrame[0];
+    short * nxt = nextKeyFrame[0];
+	
+	for(unsigned int i = 0; i < model->nbPoint; i++)
+	{
+		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
+		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
+		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
+	}
+
+    dst = (Sint32 *)&model->pltbl[0];
+    volatile Uint8 *src2 = ent->animation[AnimArea[anims].currentKeyFrm]->cNorm; //A new 1-byte src
+
+	for(unsigned int i = 0; i < model->nbPolygon; i++)
+	{
+		//New normals in from animation normal table // These are not written back to memory
+        model->nmtbl[i][X]=ANORMS[*src2][X];
+        model->nmtbl[i][Y]=ANORMS[*src2][Y];
+        model->nmtbl[i][Z]=ANORMS[*src2][Z];
+		src2++;
+	}
+		
+ // Check to see if the animation matches, or if reset is enabled.
+ // In these cases, re-load information from the AnimCtrl.
+ if(animation_change == 1 || animCtrl->reset_enable == 'Y') 
+ {
+	
+	if(transplant != 1)
+	{
+	AnimArea[anims].currentFrm = animCtrl->startFrm<<3;
+	} else {
+		//Transplant the running frame / current frame to its place in the other animation set
+	AnimArea[anims].currentFrm += (animCtrl->startFrm<<3) - (AnimArea[anims].startFrm<<3) + 2;
+		//Transplant the keyframe pos so it doesn't spend a frame re-seating the animation
+	AnimArea[anims].currentKeyFrm = AnimArea[anims].currentFrm>>3;
+	}
+	
+	AnimArea[anims].startFrm = animCtrl->startFrm;
+	AnimArea[anims].endFrm = animCtrl->endFrm;
+	AnimArea[anims].reset_enable = 'N';
+	animCtrl->reset_enable = 'N';
+ }
+		
+		anims++; //Increment animation work area pointer
+	
 }
 
 

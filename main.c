@@ -201,6 +201,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TGATE0.GVP",		HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -244,11 +246,6 @@ void	game_frame(void)
 
 	slCashPurge();
 	prep_map_mtx();
-	//ABC+Start Exit Condition
-	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
-	{
-		SYS_Exit(0);
-	}
 	
 	update_gamespeed();
 	maintRand();
@@ -257,6 +254,13 @@ void	game_frame(void)
 	master_draw(); 
 	operate_stage_music();
 	reset_pad(&pad1);
+
+	//ABC+Start Exit Condition
+	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
+	{
+		SYS_Exit(0);
+	}
+
 }
 
 void	my_vlank(void)

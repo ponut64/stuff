@@ -71,27 +71,30 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
-		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
-		declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(220 / 40) + 1, -69, (240 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(140 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
-		declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
-		declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
-		declare_object_at_cell((140 / 40) + 1, -69, -(220 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		// declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell(-(220 / 40) + 1, -69, (240 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell(-(140 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		// declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		// declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		// declare_object_at_cell((140 / 40) + 1, -69, -(220 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
 		
-		declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
-		declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+		// declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
 		
-		declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
+		
+		//declare_object_at_cell((120 / 40) + 1, -30, -(0 / 40), 36 /*tgate0*/, 0, 0, 0, 0, 0);
+		
 	} else if(levelNo == 1)
 	{
 		// Pizza Tower - Bite the Crust
@@ -575,9 +578,9 @@ void	create_objects(int levelNo)
 
 	declare_object_at_cell(-(860 / 40) + 1, -140, -(980 / 40), 10 /*platf00*/, 0, 0, -30, 0, 0);
 
-	declare_object_at_cell((500 / 40) + 1, -148, (980 / 40), 16 /*overhang*/, 0, 0, 0, 0, 0);
-	
 	declare_object_at_cell(-(1120 / 40) + 1, -160, -(1080 / 40), 20 /*tunnel3*/, 0, 0, 0, 0, 0);
+
+	declare_object_at_cell((500 / 40) + 1, -148, (980 / 40), 16 /*overhang*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(1340 / 40) + 1, -359, (900 / 40), 25 /*float01*/, 0, 45, 0, 0, 0);
 	

@@ -62,6 +62,8 @@
 
 #define MAX_SPRITES (64)
 
+#define MAX_PORTALS	(8)
+
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 
@@ -69,11 +71,11 @@
 Render data flags:
 	
 	Byte 1 of render_data_flags:
-	|	0		|	1		|	2		|	3		|	4	-	5 	|	6	-	7 |		
-	  Dual-plane	Mesh	 Polyline		MSB On		Tex. flip	  Sorting rule
+	|	0		|	1		|	2		|	3		|	4	-	5 	|		6	-	7 	 	|		
+	  Dual-plane	Mesh	 Polyline		MSB On		Tex. flip	  		Sorting rule
 	Byte 2 of render_data_flags:
-	|	8		|	9		|	10		|	11		|	12	-	13 	|	14	-	15 |		
-	Subdivision	  Collision		Ladder	Climbable			 
+	|	8		|	9		|	10		|	11		|	12	 -	13	|	14		|	15		|		
+	Subdivision	  Collision		Ladder	Climbable		Portal Specs	 			On/off
 */
 	#define GV_FLAG_SINGLE		(0x1) // Zero, dual-plane. One, single-plane.
 	#define GV_FLAG_MESH		(0x2) // Zero, no mesh. One, mesh.
@@ -83,6 +85,9 @@ Render data flags:
 	#define GV_FLAG_PHYS		(0x200) // Zero, physical plane (in supported objects). One, no collision with plane.
 	#define GV_FLAG_LADDER		(0x400) // Boolean. 1 = ladder. 0 = no ladder. Notice: all ladders are climbable.
 	#define GV_FLAG_CLIMBABLE	(0x800) //Boolean. 1 = Climbable. 0 = not climbable.
+	#define GV_FLAG_PORTAL		(0x1000) //Boolean. 0, not a portal. 1, is a portal.
+	#define GV_FLAG_PORT_TYPE	(0x2000) //Boolean. 0, portal OUT processing. 1, portal IN processing.
+	#define GV_FLAG_DISPLAY		(0x8000) //Boolean. 1, polygon is treated as polygon. 0, polygon is not rendered. 
 	#define GV_SORT_MAX			(0x40)
 	#define GV_SORT_CEN			(0x80)
 	#define GV_SORT_MIN			(0xC0)
@@ -180,7 +185,24 @@ typedef struct
 	int * btmRight; //Note: Only writes to this, does not read from it.
 } __basic_menu;
 
+//////////////////////////////////
+// Basic Portal/Occluder Stuff
+//////////////////////////////////
+typedef struct 
+{
+	int verts[4][3];
+	int depth;
+	unsigned char type;
+	unsigned char backface;
+	unsigned char sectorA;
+	unsigned char sectorB;
+	short min[2];
+	short max[2];
+} _portal;
 
+extern _portal portals[MAX_PORTALS];
+extern short current_portal_count;
+extern short portal_reset;
 extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;
@@ -241,6 +263,7 @@ void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);
 void	ssh2DrawModel(entity_t * ent);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
 void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant);
+void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant);
 void	sort_master_polys(void);
 #endif
 

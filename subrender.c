@@ -6,7 +6,6 @@
 #include "mymath.h"
 #include "render.h"
 
-
 	/*
 	
 	TEXTURE ID MATRIX:
@@ -26,6 +25,7 @@
 	14	- 1/8 y, 1/2 x
 	15	- 1/8 y, 1/4 x
 	16	- 1/8 y, 1/8 x
+	This needs to move to a texture coordinate system...
 
 	*/
 	#define SUBDIVIDE_W		(1)
@@ -51,7 +51,7 @@
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
 		short	texture_rules[4]		= {16, 16, 16, 0};
 		// **really** trying to squeeze the performance here
-		int		z_rules[4]				= {300<<16, 100<<16, 33<<16, 0};
+		int		z_rules[4]				= {300<<16, 66<<16, 33<<16, 0};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
@@ -342,23 +342,23 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	// If the file is not yet loaded, do not try and render it.
 	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
 	///////////////////////////////////////////
-		if(ent->file_done != true) return;
-		if(ent->type != 'B') return;
-		GVPLY * mesh = ent->pol;
-		
-		sub_poly_cnt = 0;
-		sub_vert_cnt = 0;
-		unsigned short	colorBank = 0;
-		int		inverseZ = 0;
-		int 	luma = 0;
-		int 	zDepthTgt = 0;
-		unsigned short	flags = 0;
-		unsigned short	flip = 0;
-		unsigned short	pclp = 0;
-		
-		FIXED * mesh_position = &ent->prematrix[9];
+	if(ent->file_done != true) return;
+	if(ent->type != 'B') return;
+	GVPLY * mesh = ent->pol;
+	
+	sub_poly_cnt = 0;
+	sub_vert_cnt = 0;
+	unsigned short	colorBank = 0;
+	int		inverseZ = 0;
+	int 	luma = 0;
+	int 	zDepthTgt = 0;
+	unsigned short	flags = 0;
+	unsigned short	flip = 0;
+	unsigned short	pclp = 0;
+	
+	FIXED * mesh_position = &ent->prematrix[9];
 
-		POINT	pl_pts[4];
+	POINT	pl_pts[4];
 
     static MATRIX newMtx;
 	static FIXED m0x[4];
@@ -430,6 +430,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 {
 		sub_vert_cnt = 0;
 		sub_poly_cnt = 0;
+		
+	flags = mesh->attbl[i].render_data_flags;
+		
 	for(int u = 0; u < 4; u++)
 	{
 	//////////////////////////////////////////////////////////////
@@ -470,8 +473,21 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 & ssh2VertArea[2].clipFlag
 		 & ssh2VertArea[3].clipFlag) continue;
 		 
-	flags = mesh->attbl[i].render_data_flags;
-	zDepthTgt = GET_SORT_DATA(flags);
+	//////////////////////////////////////////////////////////////
+	// Portal stuff
+	// This plane rendering really has a lot of garbage in it, doesn't it?
+	//////////////////////////////////////////////////////////////
+	if(flags & GV_FLAG_PORTAL && current_portal_count < MAX_PORTALS)
+	{
+		for(int u = 0; u < 4; u++)
+		{
+		portals[current_portal_count].verts[u][X] = ssh2VertArea[u].pnt[X];
+		portals[current_portal_count].verts[u][Y] = ssh2VertArea[u].pnt[Y];
+		portals[current_portal_count].verts[u][Z] = ssh2VertArea[u].pnt[Z];
+		}
+		current_portal_count++;
+	}
+	if(!(flags & GV_FLAG_DISPLAY)) continue;
 		 
 	//////////////////////////////////////////////////////////////
 	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
@@ -626,6 +642,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		///////////////////////////////////////////
 			if(used_textures[j] != 0)
 			{
+				//Could this be tabled? Would speed things up a bit.
+				//Generally, when I UV-coordinate the textures, I'll have to use a table.
+				//There will be a table for each subdivision level.
 				specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * TEXTS_GENERATED_PER_TEXTURE_LOADED)
 				+ (ent->numTexture + ent->base_texture) + used_textures[j];
 			} else {
@@ -693,8 +712,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// So here, we insert it into the correct place in the command table to be the drawn color.
 		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : mesh->attbl[i].texno;
 
-      ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt,
-					ptv[2]->pnt, ptv[3]->pnt,
+      ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
 		pcoTexDefs[specific_texture].SRCA, colorBank, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}

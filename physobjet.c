@@ -212,21 +212,25 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. 3D Pad Support -
-	First pass working/done. Playable. Cool.
-	
-b. Performance issues.
+a. Performance issues.
 	1. I've figured out a way to profile MSH2.
 	I can't really profile SSH2 correctly.
 	2. I've mostly-fixed the frame-rate response, so the game should work at the same speed at 60/30/20 fps.
-	3. There are some CPU-performance issues on Slave SH2 that have been A-B profiled (do work or do not do work).
-	4. However, I still haven't conclusively found whether or not these are VDP1 issues (since that test also removed polygons).
-	5. According to the profiling, the issue is not on Master SH2.
-	6. Some more tests should be done with:
-	a. simplified CPU load, and b. simplified VDP1 load (polylines). If simplying the CPU load and going to polylines removes issue...
-	okay, that'll be a simple test. Not today. I'm tired.
-	
-c. Gate triggering was half-fixed. It works now, but there's no escape sequence so it just does its work twice.
+	3. Performance between CPUs or VDP1 bottleneck has been profiled.
+		a. There IS a CPU performance issue, and I have done some work towards it. It's Pretty Much OK now.
+		b. There IS a VDP1 performance issue. This is actually more pervasive and affects more levels.
+		I guess solving the VDP1 issue would go a long way with a portal system.
+é. Portal work:
+	1. Converter can define (basic) portals.
+	2. Subrender system can communicate if something is a portal or not, and not display it.
+	3. Map system can, in the most basic not-really-usable way, comply with the antiportal.
+Next steps:
+	1. A portal list, not exceeding 16, can be built each frame as the subrender system transforms them.
+	If the entries exceed 16, it just doesn't add it.
+	2. For now:
+	Before rendering the map, the portal with the largest screen area will be found.
+	This portal will be used for occlusion.
+	It also needs to be able to handle there being no portal.
 
 
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
@@ -251,7 +255,6 @@ j. Improved asset management - allowing each level to load assets specific to it
 k. Music visualizer
 	Whether ADX stream or PCM stream.
 	In either case, just return some data unique to the frame, relative to the music being played.
-l. Change music depending on what is going on
 
 **/
 
