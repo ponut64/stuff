@@ -216,21 +216,15 @@ a. Performance issues.
 	1. I've figured out a way to profile MSH2.
 	I can't really profile SSH2 correctly.
 	2. I've mostly-fixed the frame-rate response, so the game should work at the same speed at 60/30/20 fps.
-	3. Performance between CPUs or VDP1 bottleneck has been profiled.
-		a. There IS a CPU performance issue, and I have done some work towards it. It's Pretty Much OK now.
-		b. There IS a VDP1 performance issue. This is actually more pervasive and affects more levels.
-		I guess solving the VDP1 issue would go a long way with a portal system.
 é. Portal work:
-	1. Converter can define (basic) portals.
-	2. Subrender system can communicate if something is a portal or not, and not display it.
-	3. Map system can, in the most basic not-really-usable way, comply with the antiportal.
-Next steps:
-	1. A portal list, not exceeding 16, can be built each frame as the subrender system transforms them.
-	If the entries exceed 16, it just doesn't add it.
-	2. For now:
-	Before rendering the map, the portal with the largest screen area will be found.
-	This portal will be used for occlusion.
-	It also needs to be able to handle there being no portal.
+	1. Basic portal implementation is working; it DOES help performance.
+	But i'm not there yet.
+ç. CPU performance nibbles
+	I've been able to deduce that a large part of the issue is bus contention/bus time.
+	So I think I should re-work the subdivision system to use 16-bit vertices instead of 32-bit vertices.
+	Granted, I'm not sure how that'll work. Problem for another day.
+	For now, I'm just going to have to reconvert and test all of the assets to make sure everything is working.
+	
 
 
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny

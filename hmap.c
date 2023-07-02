@@ -853,11 +853,15 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	unsigned short used_flip = *flip;
 	unsigned short colorBank = 0;
 	unsigned short pclp = 0;
-	for(int u = 0; u < 4; u++)
-	{
-		pnts[u] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[u]][0];
-		umpt[u] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[u]][0];
-	}
+
+		pnts[0] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[0]][0];
+		pnts[1] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[1]][0];
+		pnts[2] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[2]][0];
+		pnts[3] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[3]][0];
+		umpt[0] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[0]][0];
+		umpt[1] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[1]][0];
+		umpt[2] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[2]][0];
+		umpt[3] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[3]][0];
 	/*
 	0A			1A | 0B			1B
 							
@@ -971,7 +975,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 //Lighting 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		luma = 0;
-		for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
+/* 		for(int i = 0; i < MAX_DYNAMIC_LIGHTS; i++)
 		{
 		point_light * lightSrc = &active_lights[i];
 				if(lightSrc->pop == 1)
@@ -995,7 +999,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 				}
 		}	
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
-		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
+ */		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
 		//In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
@@ -1151,9 +1155,8 @@ void	update_hmap(MATRIX msMatrix)
 
 	//	}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub
-	nbg_sprintf(0, 15, "max(%i),(%i)", used_portal->max[X], used_portal->max[Y]);
-	nbg_sprintf(0, 16, "min(%i),(%i)", used_portal->min[X], used_portal->min[Y]);	
-	
+	// nbg_sprintf(0, 15, "max(%i),(%i)", used_portal->max[X], used_portal->max[Y]);
+	// nbg_sprintf(0, 16, "min(%i),(%i)", used_portal->min[X], used_portal->min[Y]);	
 	
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 
@@ -1268,13 +1271,16 @@ void	update_hmap(MATRIX msMatrix)
 			// You'd think this doesn't need to be here, because otherwise everything would be subdivided or small.
 			// BUT PLEASE TRUST ME IT *NEEDS* TO BE HERE.
 			////////////////////////////////////////////////
-			preclipping(ptv, &flip, &pclp);
+			//preclipping(ptv, &flip, &pclp);
+			pclp |= VDP1_PRECLIPPING_DISABLE;
 			////////////////////////////////////////////////
 			//Lighting
 			////////////////////////////////////////////////
-
-			luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
-			luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+			luma = 0;
+			// To protect the global light from being reduced by the dynamic lights, limit the dynamic light to 0 luma.
+			//luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
+			//luma = (luma < 0) ? 0 : luma; 
+			
 			luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
 			//In normal "vision" however, bright light would do that..
 			//Use transformed normal as shade determinant

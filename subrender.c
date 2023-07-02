@@ -355,8 +355,6 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	unsigned short	flags = 0;
 	unsigned short	flip = 0;
 	unsigned short	pclp = 0;
-	
-	FIXED * mesh_position = &ent->prematrix[9];
 
 	POINT	pl_pts[4];
 
@@ -409,22 +407,23 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
 	////////////////////////////////////////////////////
-	POINT relative_light_pos = {0, 0, 0};
-	static POINT tx_light_pos[MAX_DYNAMIC_LIGHTS];
-	int inverted_proxima;
+	// POINT relative_light_pos = {0, 0, 0};
+	// static POINT tx_light_pos[MAX_DYNAMIC_LIGHTS];
+	// FIXED * mesh_position = &ent->prematrix[9];
+	// int inverted_proxima;
 	
-	for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
-	{
-		if(active_lights[l].pop == 1)
-		{
-			relative_light_pos[X] = -active_lights[l].pos[X] - mesh_position[X];
-			relative_light_pos[Y] = -active_lights[l].pos[Y] - mesh_position[Y];
-			relative_light_pos[Z] = -active_lights[l].pos[Z] - mesh_position[Z];
-			tx_light_pos[l][X] = trans_pt_by_component(relative_light_pos, m0x);
-			tx_light_pos[l][Y] = trans_pt_by_component(relative_light_pos, m1y);
-			tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, m2z);
-		}
-	}
+	// for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+	// {
+		// if(active_lights[l].pop == 1)
+		// {
+			// relative_light_pos[X] = -active_lights[l].pos[X] - mesh_position[X];
+			// relative_light_pos[Y] = -active_lights[l].pos[Y] - mesh_position[Y];
+			// relative_light_pos[Z] = -active_lights[l].pos[Z] - mesh_position[Z];
+			// tx_light_pos[l][X] = trans_pt_by_component(relative_light_pos, m0x);
+			// tx_light_pos[l][Y] = trans_pt_by_component(relative_light_pos, m1y);
+			// tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, m2z);
+		// }
+	// }
 
 for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 {
@@ -473,6 +472,14 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		 & ssh2VertArea[2].clipFlag
 		 & ssh2VertArea[3].clipFlag) continue;
 		 
+	///////////////////////////////////////////
+	//	Check the maximum Z of every new polygon.
+	// 	This is the first polygon. So, if its maximum Z is too low, just discard it.
+	///////////////////////////////////////////
+	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
+	
 	//////////////////////////////////////////////////////////////
 	// Portal stuff
 	// This plane rendering really has a lot of garbage in it, doesn't it?
@@ -503,19 +510,13 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	} else {
 		dual_plane = 1;
 	}
-	//
+	
 	//////////////////////////////////////////////////////////////
 	// We have at least four vertices, and at least one polygon (the plane's data itself).
 	//////////////////////////////////////////////////////////////
 		sub_vert_cnt += 4;
 		sub_poly_cnt += 1;
-	///////////////////////////////////////////
-	//	Check the maximum Z of every new polygon.
-	// 	This is the first polygon. So, if its maximum Z is too low, just discard it.
-	///////////////////////////////////////////
-	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
-	if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
+	
 	//min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
 	//		JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	///////////////////////////////////////////
@@ -661,17 +662,15 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// The position of the polygon is treated as the average of points 0 and 2.
 		///////////////////////////////////////////
 		luma = 0;
-		for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+/* 		for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
 		{
 			if(active_lights[l].pop == 1)
 			{
+				//This should be tabled for speed.
+				//A 3D relative pos table should be used. 
+				//Each entry is 10-bit precise.
+				//The output for each entry is the dot product of the three entries divided into one (inverse).
 				
-				/*
-				This should be tabled for speed.
-				A 3D relative pos table should be used. 
-				Each entry is 10-bit precise.
-				The output for each entry is the dot product of the three entries divided into one (inverse).
-				*/
 				relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
 														+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>12;
 				relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
@@ -682,16 +681,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 									(relative_light_pos[Y] * relative_light_pos[Y]) +
 									(relative_light_pos[Z] * relative_light_pos[Z]))>>8;
 				inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
-				
-				// relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
-														// + subdivided_points[subdivided_polygons[j][2]][X])>>1));
-				// relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
-														// + subdivided_points[subdivided_polygons[j][2]][Y])>>1));
-				// relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
-														// + subdivided_points[subdivided_polygons[j][2]][Z])>>1));
-				// inverted_proxima = fxdot(relative_light_pos, relative_light_pos)>>16;
-				
-				// inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
 						
 				luma += inverted_proxima * (int)active_lights[l].bright;
 			}
@@ -699,7 +688,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		}
 
 		luma = (luma < 0) ? 0 : luma; 
-		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light);
+ */		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light);
 		//If the plane is dual-plane, add the absolute luma, instead of the signed luma.
 		luma = (dual_plane) ? JO_ABS(luma) : luma;
 		luma += active_lights[0].min_bright; 
@@ -774,7 +763,7 @@ void	TEMP_process_mesh_for_subdivision_rules(GVPLY * mesh)
 			{
 				subdivision_rules[1] = (subdivision_rules[1] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
 			}
-			if(len_w >= SUBDIVISION_SCALE<<2)
+			if(len_h >= SUBDIVISION_SCALE<<2)
 			{
 				subdivision_rules[2] = (subdivision_rules[2] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
 			}

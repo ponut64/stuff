@@ -24,6 +24,7 @@ FIXED		fxm(FIXED d1, FIXED d2);
 FIXED		fxdot(FIXED * ptA, FIXED * ptB);
 FIXED		fxdiv(FIXED dividend, FIXED divisor);
 void		SetFixDiv(FIXED dividend, FIXED divisor);
+void		SetDiv(int dividend, int divisor);
 
 FIXED		approximate_distance(FIXED * p0, FIXED * p1);
 FIXED		fxisqrt(FIXED input);

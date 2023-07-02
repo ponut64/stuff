@@ -111,6 +111,26 @@ After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit qu
 	
 }
 
+//Set data in s for division unit.
+ //Defined as "dividend / divisor", for fixed points, using division unit
+inline void		SetDiv(int dividend, int divisor)
+{
+
+/*
+SH7604 Manual Information:
+
+The 64-bit dividend is set in dividend s H and L (DVDNTH and DVDNTL).
+First set the value in DVDNTH. When a value is written to DVDNTL, the 64-bit ÷ 32-bit operation begins.
+After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTL.
+
+[ME:]These s can only be accessed via pointers. . . because our compiler is not aware of them.
+*/	
+
+*DVSR = divisor;
+*DVDNTL = dividend;
+	
+}
+
 
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
