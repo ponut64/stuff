@@ -1128,9 +1128,15 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	localArate = animCtrl->arate[AnimArea[anims].currentKeyFrm];
 
 
+	////
+	//
+	// The interpolator has 16 steps at current + ((next - current)>>4)
+	// I don't understand why the key-frames are shifted by 3, for 8 steps... but they have to be.
+	//
+	////
 	AnimArea[anims].currentFrm += (localArate * framerate)>>1;
-
 	AnimArea[anims].currentKeyFrm = (AnimArea[anims].currentFrm>>3);
+	
     if (AnimArea[anims].currentKeyFrm >= AnimArea[anims].endFrm)
 	{
         AnimArea[anims].currentFrm -= (AnimArea[anims].endFrm - AnimArea[anims].startFrm)<<3;
@@ -1170,12 +1176,19 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
     volatile Sint32 * dst = model->pntbl[0];
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
-	
+	/////
+	//
+	//	Primary frame delta shift is 4, or 16 delta steps possible.
+	//	1 is therefore 1/16th interpolation, 2 is 2/16th, 3 is 3/16th, etc.
+	//	This interpolation is from the current keyframe;
+	//	At 16/16 steps, the delta will be 1, making the current the next keyframe.
+	//
+	/////
 	for(unsigned int i = 0; i < model->nbPoint; i++)
 	{
-		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
-		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
-		*dst++=( *src + ((( (*nxt++) - (*src++)) * frDelta)>>4))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>4))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>4))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>4))<<8;
 	}
 
     dst = (Sint32 *)&model->pltbl[0];

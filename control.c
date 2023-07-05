@@ -15,6 +15,12 @@ This file is compiled separately.
 #include "control.h"
 
 int spdfactr;
+int fixCamRot;
+int fixPlyrRot;
+int fixCtrlRot;
+
+_controlOptions usrCntrlOption = {.followForce = 1<<16, .cameraAccel = 45, .cameraCap = 0,
+									.movementCam = 1, .facingCam = 1, .lockoutTime = 1<<16};
 
 Bool holdCam = false;
 Bool usePolyLine = false;
@@ -26,26 +32,23 @@ Bool usePolyLine = false;
 void controls(void)
 {
 	if(is_key_down(DIGI_X)){
-		you.rotState[X] -= 45 * framerate; //Look/turn left
+		you.rotState[X] -= usrCntrlOption.cameraAccel * framerate; //Look/turn left
+		usrCntrlOption.lockTimer = usrCntrlOption.lockoutTime;
 	}
 	if(is_key_down(DIGI_B)){
 
-		you.rotState[Y] -= 45 * framerate; //Look down
+		you.rotState[Y] -= usrCntrlOption.cameraAccel * framerate; //Look down
+		usrCntrlOption.lockTimer = usrCntrlOption.lockoutTime;
 	}
 	if(is_key_down(DIGI_Z)){
-		you.rotState[X] += 45 * framerate; //Look/turn right
+		you.rotState[X] += usrCntrlOption.cameraAccel * framerate; //Look/turn right
+		usrCntrlOption.lockTimer = usrCntrlOption.lockoutTime;
 	}
-    if (is_key_down(DIGI_X))
-    {
-		
-    }
 	if (is_key_down(DIGI_Y))
     {
-		you.rotState[Y] += 45 * framerate; //Look up
+		you.rotState[Y] += usrCntrlOption.cameraAccel * framerate; //Look up
+		usrCntrlOption.lockTimer = usrCntrlOption.lockoutTime;
     }
-	if(is_key_down(DIGI_Z)){
-
-	}
 	
 	//Before we try to handle directional input, first assume that there is none on this frame.
 	you.dirInp = false;
@@ -123,9 +126,39 @@ void controls(void)
 		}
 	}
 	
-		
-	if(you.dirInp == true){
+	/////////////////////////
+	// Face / Strafe button Key Function
+	// 1. If pressed, the camera will snap to where you are facing.
+	// 2. If held, controls will stay relative to direction faced.
+	// 3. If you are moving when you hold the key, your current movement direction will be relative to the new camera.
+	// 4. If you are not moving, the new direction faced will be rotation 0, or your current facing is the new basis.
+	/////////////////////////
+	if(is_key_struck(DIGI_C))
+	{
+		fixCamRot = you.viewRot[Y];
+		fixPlyrRot = you.rot[Y];
+		fixCtrlRot = you.rot2[Y];
+	}
+	if(is_key_down(DIGI_C))
+	{
+		if(you.dirInp == true) you.rot[Y] = you.rot2[Y] - fixCamRot + fixCtrlRot;
+		you.viewRot[Y] = -fixPlyrRot;
+		you.viewRot[X] = 0;
+	} else if(you.dirInp == true)
+	{
 		you.rot[Y] = you.rot2[Y] - you.viewRot[Y];
+
+	}
+	
+	if(is_key_release(DIGI_C))
+	{
+		you.rot[Y] = fixPlyrRot; 
+	}
+	
+
+		
+	if(you.dirInp == true)
+	{
 		you.IPaccel += spdfactr;
 	}
 		

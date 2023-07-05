@@ -192,8 +192,20 @@ void	pl_step_snd(void){
 
 void	smart_cam(void)
 {
-	
+	///////////////////////////////////////////
 	//Smart Camera Setup
+	///////////////////////////////////////////
+	if((you.rot2[Y] > (150 * 182) && you.rot2[Y] < (210 * 182) && you.dirInp) || usrCntrlOption.lockTimer > 0)
+	{
+		usrCntrlOption.lockout = true;
+	}
+	if(usrCntrlOption.lockTimer > 0)
+	{
+		usrCntrlOption.lockTimer -= delta_time;
+	}
+	///////////////////////////////////////////
+	// Movement-following camera
+	///////////////////////////////////////////
 	// "uview" is the discrete vector notation of the player's viewport.
 	VECTOR uview = {-slSin(you.viewRot[Y]), slSin(you.viewRot[X]), slCos(you.viewRot[Y])};
 	// proportion_y is a mathemagical value that is the positive or negative proportion of the view vector,
@@ -205,35 +217,64 @@ void	smart_cam(void)
 	//angDif_y is an expression of how different the movement vector and viewing vector is,
 	//as it relates to the axis that Y view rotation controls (X and Z).
 	short angDif_y;
-	if(!you.climbing)
+	if(usrCntrlOption.movementCam)
 	{
-		proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
-		proportion_x = (you.DirUV[Y] - uview[Y])>>7;
-		angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
-	} else {
-		proportion_y = (fxm((you.floorNorm[X] - uview[X]),(you.floorNorm[X] - uview[X])) + fxm((you.floorNorm[Z] - uview[Z]),(you.floorNorm[Z] - uview[Z])))>>7;
-		proportion_x = (you.floorNorm[Y] - uview[Y])>>7;
-		angDif_y = (slAtan(you.floorNorm[X], you.floorNorm[Z]) - slAtan(uview[X], uview[Z]));
-	}
-
-	//This angle will amount to a proportion of angle we're not yet facing towards the ground.
-	int propotion_facing_ground = (-32768 - uview[Y])>>7;
-	//Will pivot camera towards direction of motion
-	if((JO_ABS(you.velocity[X]) > 1024 || JO_ABS(you.velocity[Z]) > 1024) &&  JO_ABS(angDif_y) > 1024 &&
-	(is_key_up(DIGI_DOWN) | is_key_down(DIGI_LEFT) | is_key_down(DIGI_RIGHT)))
-	{
-		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
-		you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
-	}
-	if((JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true))
-	{
-		//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
-		//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
-		//If we are climbing, proportion_x was pre-adjusted so we'll try and look at the wall.
-		you.viewRot[X] += (you.hitSurface == true || you.climbing) ? (proportion_x * framerate)>>1 : (propotion_facing_ground * framerate)>>1;
-
-	}
+		if(!you.climbing)
+		{
+			proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
+			proportion_x = (you.DirUV[Y] - uview[Y])>>7;
+			angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
+		} else {
+			proportion_y = (fxm((you.floorNorm[X] - uview[X]),(you.floorNorm[X] - uview[X])) + fxm((you.floorNorm[Z] - uview[Z]),(you.floorNorm[Z] - uview[Z])))>>7;
+			proportion_x = (you.floorNorm[Y] - uview[Y])>>7;
+			angDif_y = (slAtan(you.floorNorm[X], you.floorNorm[Z]) - slAtan(uview[X], uview[Z]));
+		}
 	
+		//This angle will amount to a proportion of angle we're not yet facing towards the ground.
+		int proportion_facing_ground = (-32768 - uview[Y])>>7;
+		//Will pivot camera towards direction of motion
+		proportion_x = fxm(proportion_x, usrCntrlOption.followForce);
+		proportion_y = fxm(proportion_y, usrCntrlOption.followForce);
+		proportion_facing_ground = fxm(proportion_facing_ground, usrCntrlOption.followForce);
+		if((JO_ABS(you.velocity[X]) > 1024 || JO_ABS(you.velocity[Z]) > 1024) &&  JO_ABS(angDif_y) > 1024 && !usrCntrlOption.lockout)
+		{
+			//Determines if we want to rotate view clockwise or counterclockwise (and then does)
+			you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
+			usrCntrlOption.lockout = true;
+		}
+		if((JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true))
+		{
+			//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
+			//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
+			//If we are climbing, proportion_x was pre-adjusted so we'll try and look at the wall.
+			you.viewRot[X] += (you.hitSurface == true || you.climbing) ? (proportion_x * framerate)>>1 : (proportion_facing_ground * framerate)>>1;
+			usrCntrlOption.lockout = true;
+		}
+	}
+	//////////////////////////////////////////////
+	// Facing-following camera
+	//////////////////////////////////////////////
+	//Push the facing-follow camera up a little bit. Just to control warping.
+	if(usrCntrlOption.facingCam)
+	{
+		uview[Y] = slSin(you.viewRot[X] + (7 * 182));
+		proportion_y = (fxm((you.ControlUV[X] - uview[X]),
+		(you.ControlUV[X] - uview[X])) + fxm((you.ControlUV[Z] - uview[Z]),
+		(you.ControlUV[Z] - uview[Z])))>>7;
+		proportion_x = (you.ControlUV[Y] - uview[Y])>>7;
+		angDif_y = (slAtan(you.ControlUV[X], you.ControlUV[Z]) - slAtan(uview[X], uview[Z]));
+		
+		proportion_x = fxm(proportion_x, usrCntrlOption.followForce);
+		proportion_y = fxm(proportion_y, usrCntrlOption.followForce);
+		
+		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
+		if(!usrCntrlOption.lockout)
+		{
+			you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
+			you.viewRot[X] += (proportion_x * framerate)>>1;
+		}
+	}
+	usrCntrlOption.lockout = false;
 }
 
 void	construct_line_tables(void)
@@ -611,18 +652,32 @@ void	player_phys_affect(void)
 	}
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
+	////////////////////////////////////////////////////////////
 	//Movement and rotation speed maximum and minimums
+	////////////////////////////////////////////////////////////
 	if(you.IPaccel >= PLR_FWD_SPD) you.IPaccel = PLR_FWD_SPD;
 	if(you.IPaccel <= -PLR_FWD_SPD) you.IPaccel = -PLR_FWD_SPD;
 	//
-	if(JO_ABS(you.rotState[X]) < 40) you.rotState[X] = 0;
-	if(JO_ABS(you.rotState[Y]) < 40) you.rotState[Y] = 0;
-	//De-rating
+	if(JO_ABS(you.rotState[X]) < usrCntrlOption.cameraAccel>>1) you.rotState[X] = 0;
+	if(JO_ABS(you.rotState[Y]) < usrCntrlOption.cameraAccel>>1) you.rotState[Y] = 0;
+	
+	if(usrCntrlOption.cameraCap != 0)
+	{
+		you.rotState[X] = (you.rotState[X] > usrCntrlOption.cameraCap) ? usrCntrlOption.cameraCap : you.rotState[X];
+		you.rotState[Y] = (you.rotState[Y] > usrCntrlOption.cameraCap) ? usrCntrlOption.cameraCap : you.rotState[Y];
+		you.rotState[X] = (you.rotState[X] < -usrCntrlOption.cameraCap) ? -usrCntrlOption.cameraCap : you.rotState[X];
+		you.rotState[Y] = (you.rotState[Y] < -usrCntrlOption.cameraCap) ? -usrCntrlOption.cameraCap : you.rotState[Y];
+	}
+	////////////////////////////////////////////////////////////
+	//De-rating user-input rotation
+	////////////////////////////////////////////////////////////
 	if( is_key_up(DIGI_X) && you.rotState[X] < 0) you.rotState[X] += fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[X]), 16384));//A
 	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//S
 	if( is_key_up(DIGI_Z) && you.rotState[X] > 0) you.rotState[X] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[X]), 16384));//D
 	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//W
-	
+	////////////////////////////////////////////////////////////
+	//De-rating speed
+	////////////////////////////////////////////////////////////
 	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel -= fxm(time_fixed_scale, 1500); 
 	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel = 0;
 

@@ -111,16 +111,17 @@ void	debug_menu_layer(__basic_menu * mnu)
 
 void	start_menu_layer(__basic_menu * mnu)
 {
-	mnu->topLeft[X] = 120;
+	mnu->topLeft[X] = 35;
 	mnu->topLeft[Y] = 40;
-	mnu->scale[X] = 120;
+	mnu->scale[X] = 140;
 	mnu->scale[Y] = 24;
-	mnu->option_grid[X] = 1;
-	mnu->option_grid[Y] = 5;
-	mnu->num_option = 5;
+	mnu->option_grid[X] = 2;
+	mnu->option_grid[Y] = 4;
+	mnu->num_option = 6;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
-	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Cancel Timer", "Level Select", "Debug Menu"};
+	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Cancel Timer",
+									"Level Select", "Debug Menu", "Options Menu"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -152,6 +153,9 @@ void	start_menu_layer(__basic_menu * mnu)
 			case(4):
 			menuLayer = HUD_LAYER_DEBUG;
 			break; 
+			case(5):
+			menuLayer = HUD_LAYER_OPTION_1;
+			mnu->selection = 0;
 			default:
 			break;
 		}
@@ -211,6 +215,208 @@ void	levelselect_menu_layer(__basic_menu * mnu)
 	
 }
 
+void	options_menu_layer(__basic_menu * mnu)
+{
+	
+	mnu->topLeft[X] = 35;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 140;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 6;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"<- Back", "Tgl Movement Cam", "Tgl Facing Cam",
+									"Auto Cam Spd", "Next->"};
+	mnu->option_text = option_list;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			menuLayer = HUD_LAYER_START;
+			break;
+			case(1):
+			usrCntrlOption.movementCam = (usrCntrlOption.movementCam == 1) ? 0 : 1;
+			break;
+			case(2):
+			usrCntrlOption.facingCam = (usrCntrlOption.facingCam == 1) ? 0 : 1;
+			break;
+			case(3):
+			usrCntrlOption.followForce = 1<<16;
+			break;
+			case(4):
+			menuLayer = HUD_LAYER_OPTION_2;
+			mnu->selection = 0;
+			break; 
+			default:
+			break;
+		}
+	}
+	
+	if(is_key_release(DIGI_Y) && mnu->selection == 3)
+	{
+		pcm_play(snd_click, PCM_SEMI, 6);
+		usrCntrlOption.followForce += 1024;
+	}
+
+	if(is_key_release(DIGI_B) && mnu->selection == 3)
+	{
+		pcm_play(snd_click, PCM_SEMI, 6);
+		usrCntrlOption.followForce -= 1024;
+	}
+	
+	if(usrCntrlOption.followForce < 0) usrCntrlOption.followForce = 0;
+	
+	static int option_bg_tlp[XY];
+	static int option_bg_brpt[XY];
+	option_bg_tlp[X] = 180;
+	option_bg_tlp[Y] = 40;
+	option_bg_brpt[X] = 350;
+	option_bg_brpt[Y] = 170;
+	draw2dSquare(option_bg_tlp, option_bg_brpt, 17 + 128, 0);
+	
+	if(usrCntrlOption.movementCam)
+	{
+		spr_sprintf(200, 76, "On");
+	} else {
+		spr_sprintf(200, 76, "Off");
+	}
+	
+	if(usrCntrlOption.facingCam)
+	{
+		spr_sprintf(200, 100, "On");
+	} else {
+		spr_sprintf(200, 100, "Off");
+	}
+	
+	if(usrCntrlOption.followForce > 0)
+	{
+	spr_sprintf(200, 124, "%i", usrCntrlOption.followForce);
+	} else {
+	spr_sprintf(200, 124, "Auto Cam OFF");
+	}
+	
+	spr_sprintf(180, 146, "Y inc, B dec, A reset");
+	
+}
+
+
+void	options_menu_layer_2(__basic_menu * mnu)
+{
+	
+	mnu->topLeft[X] = 35;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 140;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 6;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"<- Back", "Camera Accel", "Cam Spd Cap",
+									"Lockout Time", "<emp>"};
+	mnu->option_text = option_list;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			menuLayer = HUD_LAYER_OPTION_1;
+			break;
+			case(1):
+			usrCntrlOption.cameraAccel = 45;
+			break;
+			case(2):
+			usrCntrlOption.cameraCap = 0;
+			break;
+			case(3):
+			usrCntrlOption.lockoutTime = 1<<16;
+			break;
+			case(4):
+
+			break; 
+			default:
+			break;
+		}
+	}
+	
+	if(is_key_down(DIGI_Y))
+	{
+		switch(mnu->selection)
+		{
+			case(1):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.cameraAccel += 2;
+			break;
+			case(2):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.cameraCap += 90;
+			break;
+			case(3):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.lockoutTime += 1024;
+			break;
+			default:
+			break;
+		}
+	}
+
+	if(is_key_down(DIGI_B))
+	{
+		switch(mnu->selection)
+		{
+			case(1):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.cameraAccel -= 2;
+			break;
+			case(2):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.cameraCap -= 90;
+			break;
+			case(3):
+			pcm_play(snd_click, PCM_SEMI, 6);
+			usrCntrlOption.lockoutTime -= 1024;
+			break;
+			default:
+			break;
+		}
+	}
+	
+	if(usrCntrlOption.lockoutTime < 0) usrCntrlOption.lockoutTime = 0;
+	if(usrCntrlOption.cameraAccel < 0) usrCntrlOption.cameraAccel = 0;
+	if(usrCntrlOption.cameraCap < 0) usrCntrlOption.cameraCap = 0;
+	
+	static int option_bg_tlp[XY];
+	static int option_bg_brpt[XY];
+	option_bg_tlp[X] = 180;
+	option_bg_tlp[Y] = 40;
+	option_bg_brpt[X] = 350;
+	option_bg_brpt[Y] = 170;
+	draw2dSquare(option_bg_tlp, option_bg_brpt, 8 + 128, 0);
+	
+
+	spr_sprintf(200, 76, "%i", usrCntrlOption.cameraAccel);
+	
+	if(usrCntrlOption.cameraCap == 0)
+	{
+		spr_sprintf(200, 100, "Uncapped");
+	} else {
+		spr_sprintf(200, 100, "%i", usrCntrlOption.cameraCap);
+	}
+	
+	spr_sprintf(200, 124, "%i", usrCntrlOption.lockoutTime);
+	
+	spr_sprintf(180, 146, "Y inc, B dec, A reset");
+	
+}
+
+
 void	start_menu(void)
 {
 
@@ -234,6 +440,12 @@ void	start_menu(void)
 		} else if(menuLayer == HUD_LAYER_LEVEL)
 		{
 			levelselect_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_OPTION_1)
+		{
+			options_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_OPTION_2)
+		{
+			options_menu_layer_2(&mnu);
 		}
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;
 	fuckinghatesynchingkeysvblankbullshit_timer++;

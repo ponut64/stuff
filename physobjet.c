@@ -212,19 +212,19 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. Performance issues.
-	1. I've figured out a way to profile MSH2.
-	I can't really profile SSH2 correctly.
-	2. I've mostly-fixed the frame-rate response, so the game should work at the same speed at 60/30/20 fps.
-é. Portal work:
-	1. Basic portal implementation is working; it DOES help performance.
-	But i'm not there yet.
-ç. CPU performance nibbles
-	I've been able to deduce that a large part of the issue is bus contention/bus time.
-	So I think I should re-work the subdivision system to use 16-bit vertices instead of 32-bit vertices.
-	Granted, I'm not sure how that'll work. Problem for another day.
-	For now, I'm just going to have to reconvert and test all of the assets to make sure everything is working.
-	
+a. Control/camera changes
+	1. Options menu
+		Adjustable camera follow: Stiff to unstiff
+		Adjustable camera speed: Fast to slow
+		Adjustable camera speed cap: Low or no cap
+	2. Camera feature addition
+		People, for some reason, want the camera to actively pivot to where you are facing.
+		This is something I usually fight against in games, because I want to look where I want to look.
+		So I am frustrated by the problem.
+		Furthermore, this is a pretty big problem!
+		The viewRot has to have a pressure towards your rot.
+b. Performer
+	Can't I use the major axis of the normal as a SUPER extra fast backface culler?
 
 
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny

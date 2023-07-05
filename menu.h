@@ -2,9 +2,11 @@
 #ifndef __MENU_H__
 # define __MENU_H__
 
-#define HUD_LAYER_START	(0)
-#define HUD_LAYER_DEBUG	(1)
-#define HUD_LAYER_LEVEL	(2)
+#define HUD_LAYER_START		(0)
+#define HUD_LAYER_DEBUG		(1)
+#define HUD_LAYER_LEVEL		(2)
+#define HUD_LAYER_OPTION_1	(3)
+#define HUD_LAYER_OPTION_2	(4)
 
 #define HUD_EVENT_TYPES (32)
 #define HUD_EVENT_START (1)
