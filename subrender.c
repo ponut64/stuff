@@ -26,8 +26,725 @@
 	15	- 1/8 y, 1/4 x
 	16	- 1/8 y, 1/8 x
 	This needs to move to a texture coordinate system...
+	
+	SUBDIVISION TABLES
+	+ rule:
+	1 | 2
+	- + -
+	3 | 4
+	
+	- rule:
+	1
+	-
+	2
+	
+	| rule:
+	1	|	2
+	
+	How will the tables work?
+	t_rules[224][4];
+	Put in the texture # being subdivided, it spits out the texture # of the subdivisions.
+	So, thusly, if you assign the texture # correctly, you can just walk that down to the final textures all the time.
+	Now I just have to write this table back into C.
+	
+	In this system, I also want to allow tiled textures, in addition to UV cut textures.
+	but I have to get the UV cut textures working properly first
+	
+	For UV cuts from 64x64
+	1 = 8 (in u and v)
+	
+	Starting from:
+	x1y1,x8y8 = 1 (downscaled),		+++	(64x64)
+		1+:	30
+		1+:	31
+		1+:	32
+		1+:	33
+			
+	x1y1,x4y8 = 2 (downscaled),		-++	(32x64)
+		1-:	30
+		1-: 32
+			
+	x5y1,x8y8 = 3 (downscaled),		-++
+		1-: 31
+		1-: 33
+			
+	x1y1,x8y4 = 4 (downscaled),		|++	(64x32)
+		1|:	30
+		1|:	31
+			
+	x1y5,x8y8 = 5 (downscaled),		|++
+		1|:	32
+		1|:	33
+			
+	x1y1,x2y8 = 6 (downscaled),		--+	(16x64)
+		1-:	34
+		1-:	38
+			
+	x3y1,x4y8 = 7 (downscaled),		--+
+		1-:	32
+		1-:	39
+			
+	x5y1,x6y8 = 8 (downscaled),		--+
+		1-:	31
+		1-:	36
+			
+	x7y1,x8y8 = 9 (downscaled),		--+
+		1-:	37
+		1-:	41
+			
+	x1y1,x8y2 = 10 (downscaled,		||+	(64x16)
+		1|:	42
+		1|:	44
+	
+	x1y3,x8y4 = 11 (downscaled),	||+
+		1|:	43
+		1|:	45
+	
+	x1y5,x8y6 = 12 (downscaled),	||+
+		1|:	46
+		1|:	48
+	
+	x1y7,x8y8 = 13 (downscaled),	||+
+		1|:	47
+		1|:	49
+	
+	x1y1,x1y8 = 14 (downscaled),	---	(8x64)
+		1-: 50
+		1-: 58
+	x2y1,x2y8 = 15 (downscaled),	---
+		1-: 51
+		1-: 59
+	x3y1,x3y8 = 16 (downscaled),	---
+		1-: 52
+		1-: 60
+	x4y1,x4y8 = 17 (downscaled),	---
+		1-: 53
+		1-: 61
+	x5y1,x5y8 = 18 (downscaled),	---
+		1-: 54
+		1-: 62
+	x6y1,x6y8 = 19 (downscaled),	---
+		1-: 55
+		1-: 63
+	x7y1,x7y8 = 20 (downscaled),	---
+		1-: 56
+		1-: 64
+	x8y1,x8y8 = 21 (downscaled),	---	
+		1-: 57
+		1-: 65
+	
+	x1y1,x8y1 = 22 (downscaled),	|||	(64x8)
+		1|: 66
+		1|: 70
+	x1y2,x8y2 = 23 (downscaled),	|||
+		1|: 67
+		1|: 71
+	x1y3,x8y3 = 24 (downscaled),	|||
+		1|: 68
+		1|: 72
+	x1y4,x8y4 = 25 (downscaled),	|||
+		1|: 69
+		1|: 73
+	x1y5,x8y5 = 26 (downscaled),	|||
+		1|: 74
+		1|: 78
+	x1y6,x8y6 = 27 (downscaled),	|||
+		1|: 75
+		1|: 79
+	x1y7,x8y7 = 28 (downscaled),	|||
+		1|: 76
+		1|: 80
+	x1y8,x8y8 = 29 (downscaled),	|||
+		1|: 77
+		1|: 81
+	
+	x1y1,x4y4 = 30,					++	(32x32)
+		1+:	82
+		1+: 83
+		1+: 86
+		1+: 87
 
+	x5y1,x8y4 = 31,					++
+		1+: 84
+		1+: 85
+		1+: 88
+		1+: 89
+	
+	x1y5,x4y8 = 32,					++
+		1+: 90
+		1+: 91
+		1+: 94
+		1+: 95
+	
+	x5y5,x8y8 = 33,					++
+		1+: 92
+		1+: 93
+		1+: 96
+		1+: 97
+	
+	x1y1,x2y4 = 34,					-+	(16x32)
+		1-: 82
+		1-: 86
+	x3y1,x4y4 = 35,					-+
+		1-: 83
+		1-: 87
+	x5y1,x6y4 = 36,					-+
+		1-: 84
+		1-: 88
+	x7y1,x8y4 = 37,					-+
+		1-: 85
+		1-: 89
+	x1y5,x2y8 = 38,					-+
+		1-: 90
+		1-: 94
+	x3y5,x4y8 = 39,					-+
+		1-: 91
+		1-: 95
+	x5y5,x6y8 = 40,					-+
+		1-: 92
+		1-: 96
+	x7y5,x8y8 = 41,					-+
+		1-: 93
+		1-: 97
+	
+	-------------------------------------------
+	(alerta: zona de accidentes)
+	x1y1,x4y2 = 42,					|+	(32x16)
+		1|: 82
+		1|: 83
+	x1y3,x4y4 = 43,					|+
+		1|: 86
+		1|: 87
+	x5y1,x8y2 = 44,					|+
+		1|: 84
+		1|: 85
+	x5y3,x8y4 = 45,					|+
+		1|: 88
+		1|: 89
+	x1y5,x4y6 = 46,					|+
+		1|: 90
+		1|: 91
+	x1y7,x4y8 = 47,					|+
+		1|: 94
+		1|: 95
+	x5y5,x8y6 = 48,					|+
+		1|: 92
+		1|: 93
+	x5y7,x8y8 = 49,					|+
+		1|: 96
+		1|: 97
+	--------------------------------------------
+	x1y1,x1y4 = 50,					--	(8x32)
+		1-: 98
+		1-: 99
+	x2y1,x2y4 = 51,					--
+		1-: 100
+		1-: 101
+	x3y1,x3y4 = 52,					--
+		1-: 102
+		1-: 103
+	x4y1,x4y4 = 53,					--
+		1-: 104
+		1-: 105
+	x5y1,x5y4 = 54,					--
+		1-: 106
+		1-: 107
+	x6y1,x6y4 = 55,					--
+		1-: 108
+		1-: 109
+	x7y1,x7y4 = 56,					--
+		1-: 110
+		1-: 111
+	x8y1,x8y4 = 57,					--
+		1-: 112
+		1-: 113
+	x1y5,x1y8 = 58,					--
+		1-: 114
+		1-: 115
+    x2y5,x2y8 = 59,					--
+		1-: 116
+		1-: 117
+    x3y5,x3y8 = 60,					--
+		1-: 118
+		1-: 119
+    x4y5,x4y8 = 61,					--
+		1-: 120
+		1-: 121
+    x5y5,x5y8 = 62,					--
+		1-: 122
+		1-: 123
+    x6y5,x6y8 = 63,					--
+		1-: 124
+		1-: 125
+    x7y5,x7y8 = 64,					--
+		1-: 126
+		1-: 127
+    x8y5,x8y8 = 65,					--
+		1-: 128
+		1-: 129
+	--------------------------------------------
+	alerta: zona de accidentes
+	x1y1,x4y1 = 66,					||	(32x8)
+		1|: 130
+		1|: 132
+	x1y2,x4y2 = 67,					||
+		1|: 131
+		1|: 133
+	x1y3,x4y3 = 68,					||
+		1|: 138
+		1|: 140
+	x1y4,x4y4 = 69,					||
+		1|: 139
+		1|: 141
+	
+	x5y1,x8y1 = 70,					||
+		1|: 134
+		1|: 136
+	x5y2,x8y2 = 71,					||
+		1|: 135
+		1|: 137
+	x5y3,x8y3 = 72,					||
+		1|: 142
+		1|: 144
+	x5y4,x8y4 = 73,					||
+		1|: 143
+		1|: 145
+	
+	x1y5,x4y5 = 74,					||
+		1|: 146
+		1|: 148
+    x1y6,x4y6 = 75,					||
+		1|: 147
+		1|: 149
+    x1y7,x4y7 = 76,					||
+		1|: 154
+		1|: 156
+    x1y8,x4y8 = 77,					||
+		1|: 155
+		1|: 157
+	
+    x5y5,x8y5 = 78,					||
+		1|: 150
+		1|: 152
+    x5y6,x8y6 = 79,					||
+		1|: 151
+		1|: 153
+    x5y7,x8y7 = 80,					||
+		1|: 158
+		1|: 160
+    x5y8,x8y8 = 81,					||	
+		1|: 159
+		1|: 161
+	--------------------------------------------
+	x1y1,x2y2 = 82					+	(16x16)
+	162, 166, 163, 167
+	x3y1,x4y2 = 83					+
+	170, 174, 171, 175
+	x5y1,x6y2 = 84					+
+	178, 182, 179, 183
+	x7y1,x8y2 = 85					+
+	186, 190, 187, 191
+	x1y3,x2y4 = 86					+	
+	164, 168, 165, 169
+	x3y3,x4y4 = 87					+
+	172, 176, 173, 177
+	x5y3,x6y4 = 88					+
+	180, 184, 181, 185
+	x7y3,x8y4 = 89					+
+	188, 192, 189, 193
+	x1y5,x2y6 = 90					+	
+	194, 198, 195, 199
+	x3y5,x4y6 = 91					+
+	202, 206, 203, 207
+	x5y5,x6y6 = 92					+
+	210, 214, 211, 215
+	x7y5,x8y6 = 93					+
+	218, 222, 219, 223
+	x1y7,x2y8 = 94					+	
+	196, 200, 197, 201
+	x3y7,x4y8 = 95					+
+	204, 208, 205, 209
+	x5y7,x6y8 = 96					+
+	212, 216, 213, 217
+	x7y7,x8y8 = 97					+
+	220, 224, 221, 225
+	--------------------------------------------
+	alerta: zona de accidentes
+	
+	x1y1,x1y2 = 98,					-	(8x16)
+	162, 163
+	x1y3,x1y4 = 99,					-
+	164, 165
+	x2y1,x2y2 = 100,				-
+	166, 167
+	x2y3,x2y4 = 101,				-	
+	168, 169
+	x3y1,x3y2 = 102,				-
+	170, 171
+	x3y3,x3y4 = 103,				-	
+	172, 173
+	x4y1,x4y2 = 104,				-
+	174, 175
+	x4y3,x4y4 = 105,				-	
+	176, 177
+	x5y1,x5y2 = 106,				-
+	178, 179
+	x5y3,x5y4 = 107,				-
+	180, 181
+	x6y1,x6y2 = 108,				-
+	182, 183
+	x6y3,x6y4 = 109,				-
+	184, 185
+	x7y1,x7y2 = 110,				-
+	186, 187
+	x7y3,x7y4 = 111,				-
+	188, 189
+	x8y1,x8y2 = 112,				-
+	190, 191
+	x8y3,x8y4 = 113,				-
+	192, 193
+	
+	x1y5,x1y6 = 114,				-	
+	194, 195
+	x1y7,x1y8 = 115,				-
+	196, 197
+	x2y5,x2y6 = 116,				-
+	198, 199
+	x2y7,x2y8 = 117,				-	
+	200, 201
+	x3y5,x3y6 = 118,				-
+	202, 203
+	x3y7,x3y8 = 119,				-	
+	204, 205
+	x4y5,x4y6 = 120,				-
+	206, 207
+	x4y7,x4y8 = 121,				-	
+	208, 209
+	x5y5,x5y6 = 122,				-
+	210, 211
+	x5y7,x5y8 = 123,				-
+	212, 213
+	x6y5,x6y6 = 124,				-
+	214, 215
+	x6y7,x6y8 = 125,				-
+	216, 217
+	x7y5,x7y6 = 126,				-
+	218, 219
+	x7y7,x7y8 = 127,				-
+	220, 221
+	x8y5,x8y6 = 128,				-
+	222, 223
+	x8y7,x8y8 = 129,				-
+	224, 225
+	--------------------------------------------
+	mora zona de accidentes
+	
+	x1y1,x2y1 = 130,				|	(16x8)
+	162, 166
+	x1y2,x2y2 = 131,				|
+	163, 167
+	x3y1,x4y1 = 132,				|
+	170, 174
+	x3y2,x4y2 = 133,				|	
+	171, 175
+	x5y1,x6y1 = 134,				|
+	178, 182
+	x5y2,x6y2 = 135,				|
+	179, 183
+	x7y1,x8y1 = 136,				|
+	186, 190
+	x7y2,x8y2 = 137,				|	
+	187, 191
+
+	x1y3,x2y3 = 138,				|
+	164, 168
+	x1y4,x2y4 = 139,				|
+	165, 169
+	x3y3,x4y3 = 140,				|
+	172, 176
+	x3y4,x4y4 = 141,				|
+	173, 177
+	x5y3,x6y3 = 142,				|
+	180, 184
+	x5y4,x6y4 = 143,				|
+	181, 185
+	x7y3,x8y3 = 144,				|
+	188, 192
+	x7y4,x8y4 = 145,				|
+	189, 193
+
+	x1y5,x2y5 = 146,				|
+	194, 198
+	x1y6,x2y6 = 147,				|
+	195, 199
+	x3y5,x4y5 = 148,				|
+	202, 206
+	x3y6,x4y6 = 149,				|
+	203, 207
+	x5y5,x6y5 = 150,				|
+	210, 214
+	x5y6,x6y6 = 151,				|
+	211, 215
+	x7y5,x8y5 = 152,				|
+	218, 222
+	x7y6,x8y6 = 153,				|
+	219, 223
+	
+	x1y7,x2y7 = 154,				|
+	196, 200
+	x1y8,x2y8 = 155,				|
+	197, 201
+	x3y7,x4y7 = 156,				|
+	204, 208
+	x3y8,x4y8 = 157,				|
+	205, 209
+	x5y7,x6y7 = 158,				|
+	212, 216
+	x5y8,x6y8 = 159,				|
+	213, 217
+	x7y7,x8y7 = 160,				|
+	220, 224
+	x7y8,x8y8 = 161,				|
+	221, 225
+	
+	--------------------------------------------
+	mora zona de accidentes
+	
+	x1y1 = 162,
+	x1y2 = 163,
+	x1y3 = 164,
+	x1y4 = 165,
+	x2y1 = 166,
+	x2y2 = 167,
+	x2y3 = 168,
+	x2y4 = 169,
+	x3y1 = 170,
+	x3y2 = 171,
+	x3y3 = 172,
+	x3y4 = 173,
+	x4y1 = 174,
+	x4y2 = 175,
+	x4y3 = 176,
+	x4y4 = 177,
+	x5y1 = 178,
+	x5y2 = 179,
+	x5y3 = 180,
+	x5y4 = 181,
+	x6y1 = 182
+	x6y2 = 183
+	x6y3 = 184
+	x6y4 = 185
+	x7y1 = 186
+	x7y2 = 187
+	x7y3 = 188
+	x7y4 = 189
+	x8y1 = 190
+	x8y2 = 191
+	x8y3 = 192
+	x8y4 = 193
+	
+	x1y5 = 194
+	x1y6 = 195
+	x1y7 = 196
+	x1y8 = 197
+	x2y5 = 198
+	x2y6 = 199
+	x2y7 = 200
+	x2y8 = 201
+	x3y5 = 202
+	x3y6 = 203
+	x3y7 = 204
+	x3y8 = 205
+	x4y5 = 206
+	x4y6 = 207
+	x4y7 = 208
+	x4y8 = 209
+	x5y5 = 210
+	x5y6 = 211
+	x5y7 = 212
+	x5y8 = 213
+	x6y5 = 214
+	x6y6 = 215
+	x6y7 = 216
+	x6y8 = 217
+	x7y5 = 218
+	x7y6 = 219
+	x7y7 = 220
+	x7y8 = 221
+	x8y5 = 222
+	x8y6 = 223
+	x8y7 = 224
+	x8y8 = 225
+	
 	*/
+
+
+unsigned short texIDs_cut_from_texID[225][4] = {
+	{30, 31, 32, 33}, // +++
+	{30, 32, 0, 0}, // -++
+	{31, 33, 0, 0}, // -++
+	{30, 31, 0, 0}, // |++
+	{32, 33, 0, 0}, // |++
+	{34, 38, 0, 0}, // --+
+	{32, 39, 0, 0}, // --+
+	{31, 36, 0, 0}, // --+
+	{37, 41, 0, 0}, // --+
+	{42, 44, 0, 0}, // ||+
+	{43, 45, 0, 0}, // ||+
+	{46, 48, 0, 0}, // ||+
+	{47, 49, 0, 0}, // ||+
+	{50, 58, 0, 0}, // ---
+	{51, 59, 0, 0}, // ---
+	{52, 60, 0, 0}, // ---
+	{53, 61, 0, 0}, // ---
+	{54, 62, 0, 0}, // ---
+	{55, 63, 0, 0}, // ---
+	{56, 64, 0, 0}, // ---
+	{57, 65, 0, 0}, // ---
+	{66, 70, 0, 0}, // |||
+	{67, 71, 0, 0}, // |||
+	{68, 72, 0, 0}, // |||
+	{69, 73, 0, 0}, // |||
+	{74, 78, 0, 0}, // |||
+	{75, 79, 0, 0}, // |||
+	{76, 80, 0, 0}, // |||
+	{77, 81, 0, 0}, // |||
+	{82, 83, 86, 86}, // ++
+	{84, 85, 88, 89}, // ++
+	{90, 91, 94, 95}, // ++
+	{92, 93, 96, 97}, // ++
+	{82, 86, 0, 0}, // -+
+	{83, 87, 0, 0}, // -+
+	{84, 88, 0, 0}, // -+
+	{85, 89, 0, 0}, // -+
+	{90, 94, 0, 0}, // -+
+	{91, 95, 0, 0}, // -+
+	{92, 96, 0, 0}, // -+
+	{93, 97, 0, 0}, // -+
+	{82, 83, 0, 0}, // |+
+	{86, 87, 0, 0}, // |+
+	{84, 85, 0, 0}, // |+
+	{88, 89, 0, 0}, // |+
+	{90, 91, 0, 0}, // |+
+	{94, 95, 0, 0}, // |+
+	{92, 93, 0, 0}, // |+
+	{96, 97, 0, 0}, // |+
+	{98, 99, 0, 0}, // --
+	{100, 101, 0, 0}, // --
+	{102, 103, 0, 0}, // --
+	{104, 105, 0, 0}, // --
+	{106, 107, 0, 0}, // --
+	{108, 109, 0, 0}, // --
+	{110, 111, 0, 0}, // --
+	{112, 113, 0, 0}, // --
+	{114, 115, 0, 0}, // --
+	{116, 117, 0, 0}, // --
+	{118, 119, 0, 0}, // --
+	{120, 121, 0, 0}, // --
+	{122, 123, 0, 0}, // --
+	{124, 125, 0, 0}, // --
+	{126, 127, 0, 0}, // --
+	{128, 129, 0, 0}, // --
+	{130, 132, 0, 0}, // ||
+	{131, 133, 0, 0}, // ||
+	{138, 140, 0, 0}, // ||
+	{139, 141, 0, 0}, // ||
+	{134, 136, 0, 0}, // ||
+	{135, 137, 0, 0}, // ||
+	{142, 144, 0, 0}, // ||
+	{143, 145, 0, 0}, // ||
+	{146, 148, 0, 0}, // ||
+	{147, 149, 0, 0}, // ||
+	{154, 156, 0, 0}, // ||
+	{155, 157, 0, 0}, // ||
+	{150, 152, 0, 0}, // ||
+	{151, 153, 0, 0}, // ||
+	{158, 160, 0, 0}, // ||
+	{159, 161, 0, 0}, // ||
+	{162, 166, 163, 167}, // +
+	{170, 174, 171, 175}, // +
+	{178, 182, 179, 183}, // +
+	{186, 190, 187, 191}, // +
+	{164, 168, 165, 169}, // +
+	{172, 176, 173, 177}, // +
+	{180, 184, 181, 185}, // +
+	{188, 192, 189, 193}, // +
+	{194, 198, 195, 199}, // +
+	{202, 206, 203, 207}, // +
+	{210, 214, 211, 215}, // +
+	{218, 222, 219, 223}, // +
+	{196, 200, 197, 201}, // +
+	{204, 208, 205, 209}, // +
+	{212, 216, 213, 217}, // +
+	{220, 224, 221, 225}, // +
+	{162, 163, 0, 0}, // -
+	{164, 165, 0, 0}, // -
+	{166, 167, 0, 0}, // -
+	{168, 169, 0, 0}, // -
+	{170, 171, 0, 0}, // -
+	{172, 173, 0, 0}, // -
+	{174, 175, 0, 0}, // -
+	{176, 177, 0, 0}, // -
+	{178, 179, 0, 0}, // -
+	{180, 181, 0, 0}, // -
+	{182, 183, 0, 0}, // -
+	{184, 185, 0, 0}, // -
+	{186, 187, 0, 0}, // -
+	{188, 189, 0, 0}, // -
+	{190, 191, 0, 0}, // -
+	{192, 193, 0, 0}, // -
+	{194, 195, 0, 0}, // -
+	{196, 197, 0, 0}, // -
+	{198, 199, 0, 0}, // -
+	{200, 201, 0, 0}, // -
+	{202, 203, 0, 0}, // -
+	{204, 205, 0, 0}, // -
+	{206, 207, 0, 0}, // -
+	{208, 209, 0, 0}, // -
+	{210, 211, 0, 0}, // -
+	{212, 213, 0, 0}, // -
+	{214, 215, 0, 0}, // -
+	{216, 217, 0, 0}, // -
+	{218, 219, 0, 0}, // -
+	{220, 221, 0, 0}, // -
+	{222, 223, 0, 0}, // -
+	{224, 225, 0, 0}, // -
+	{162, 166, 0, 0}, // |
+	{163, 167, 0, 0}, // |
+	{170, 174, 0, 0}, // |
+	{171, 175, 0, 0}, // |
+	{178, 182, 0, 0}, // |
+	{179, 183, 0, 0}, // |
+	{186, 190, 0, 0}, // |
+	{187, 191, 0, 0}, // |
+	{164, 168, 0, 0}, // |
+	{165, 169, 0, 0}, // |
+	{172, 176, 0, 0}, // |
+	{173, 177, 0, 0}, // |
+	{180, 184, 0, 0}, // |
+	{181, 185, 0, 0}, // |
+	{188, 192, 0, 0}, // |
+	{189, 193, 0, 0}, // |
+	{194, 198, 0, 0}, // |
+	{195, 199, 0, 0}, // |
+	{202, 206, 0, 0}, // |
+	{203, 207, 0, 0}, // |
+	{210, 214, 0, 0}, // |
+	{211, 215, 0, 0}, // |
+	{218, 222, 0, 0}, // |
+	{219, 223, 0, 0}, // |
+	{196, 200, 0, 0}, // |
+	{197, 201, 0, 0}, // |
+	{204, 208, 0, 0}, // |
+	{205, 209, 0, 0}, // |
+	{212, 216, 0, 0}, // |
+	{213, 217, 0, 0}, // |
+	{220, 224, 0, 0}, // |
+	{221, 225, 0, 0}  // |
+	//(remaining values do not subdivide)
+};
+
+	
 	#define SUBDIVIDE_W		(1)
 	#define SUBDIVIDE_H		(2)
 	#define SUBDIVIDE_HV	(3)
@@ -109,6 +826,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	//Make the 4 new polygons
 	//////////////////////////////////////////////////////////////////
 	/*
+	//Why break chirality? to comply with the texture coordinate system (more easily, anyway)
 	0A			1A | 0B			1B
 							
 			A				B
@@ -117,15 +835,15 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	
 	0D			1D | 0C			1C
 	
-			D				C
+			C				D
 
 	3D			2D | 3C			2C
 	*/
 	// Initial Conditions
 	subdivided_polygons[poly_a][0] = subdivided_polygons[overwritten_polygon][0];
 	subdivided_polygons[poly_b][1] = subdivided_polygons[overwritten_polygon][1];
-	subdivided_polygons[poly_c][2] = subdivided_polygons[overwritten_polygon][2];
-	subdivided_polygons[poly_d][3] = subdivided_polygons[overwritten_polygon][3];
+	subdivided_polygons[poly_d][2] = subdivided_polygons[overwritten_polygon][2];
+	subdivided_polygons[poly_c][3] = subdivided_polygons[overwritten_polygon][3];
 
 	// Center
 	// 
@@ -139,8 +857,8 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 
 	subdivided_polygons[poly_a][2] = tgt_pnt;
 	subdivided_polygons[poly_b][3] = tgt_pnt;
-	subdivided_polygons[poly_c][0] = tgt_pnt;
-	subdivided_polygons[poly_d][1] = tgt_pnt;
+	subdivided_polygons[poly_d][0] = tgt_pnt;
+	subdivided_polygons[poly_c][1] = tgt_pnt;
 
 	tgt_pnt++;
 	// 0 -> 1
@@ -157,15 +875,15 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[1][Z])>>1;
 	
 	subdivided_polygons[poly_b][2] = tgt_pnt;
-	subdivided_polygons[poly_c][1] = tgt_pnt;
+	subdivided_polygons[poly_d][1] = tgt_pnt;
 	tgt_pnt++;
 	// 3 -> 2
 	subdivided_points[tgt_pnt][X] = (ptv[2][X] + ptv[3][X])>>1;
 	subdivided_points[tgt_pnt][Y] = (ptv[2][Y] + ptv[3][Y])>>1;
 	subdivided_points[tgt_pnt][Z] = (ptv[2][Z] + ptv[3][Z])>>1;
 	
-	subdivided_polygons[poly_c][3] = tgt_pnt;
-	subdivided_polygons[poly_d][2] = tgt_pnt;
+	subdivided_polygons[poly_d][3] = tgt_pnt;
+	subdivided_polygons[poly_c][2] = tgt_pnt;
 	tgt_pnt++;
 	// 3 -> 0
 	subdivided_points[tgt_pnt][X] = (ptv[0][X] + ptv[3][X])>>1;
@@ -173,7 +891,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	subdivided_points[tgt_pnt][Z] = (ptv[0][Z] + ptv[3][Z])>>1;
 	
 	subdivided_polygons[poly_a][3] = tgt_pnt;
-	subdivided_polygons[poly_d][0] = tgt_pnt;
+	subdivided_polygons[poly_c][0] = tgt_pnt;
 	tgt_pnt++;
 	sub_vert_cnt = tgt_pnt;
 	sub_poly_cnt += 3; //Only add 3, as there was already 1 polygon. It was split into four.
@@ -538,6 +1256,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
 		subdivision_rules[3] = 0;
 		
+		
 		if(!subdivision_rules[0] || subdivision_rules[3])
 		{
 			//In this case the polygon is too small or too large.
@@ -547,16 +1266,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			///////////////////////////////////////////
 			// The subdivision rules were pre-calculated by the converter tool.
 			///////////////////////////////////////////
-			/*
-			I also want to test a "first-divide" rule:
-			Polygons are set to have a texture scale related to the polygon scale.
-			In this, the textures have a fixed size, making for a maximum polygon size.
-			When polygons exceed that size, I want to be able to set a "first subdivision".
-			This first subdivision can only be used for polygons exceeding the maximum size once.
-			This first subdivision will always be applied when a polygon is of a size to need it.
-			The polygons from the first subdivision will always use a texture at its greatest size.
-			The system then calculates the subdivisions from the size of polygons made by that first subdivision.
-			*/
 			// texture_rules[0] = 16;
 			// texture_rules[1] = 16;
 			// texture_rules[2] = 16;

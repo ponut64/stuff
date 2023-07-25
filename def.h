@@ -145,6 +145,8 @@ typedef struct {
 //////////////////////////////////////////////////////////////////////////////
 extern _player you;
 
+extern int cutTex;
+
 //Variables
 extern POINT zPt;
 extern POINT alwaysLow;

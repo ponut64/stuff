@@ -7,6 +7,7 @@
 #define HUD_LAYER_LEVEL		(2)
 #define HUD_LAYER_OPTION_1	(3)
 #define HUD_LAYER_OPTION_2	(4)
+#define HUD_LAYER_TEXVIEWER	(5)
 
 #define HUD_EVENT_TYPES (32)
 #define HUD_EVENT_START (1)

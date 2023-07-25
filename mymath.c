@@ -131,6 +131,12 @@ After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit qu
 	
 }
 
+inline void	swap_ushort(unsigned short * a, unsigned short * b)
+{
+	unsigned short e = *a;
+	*a = *b;
+	*b = e;
+}
 
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector

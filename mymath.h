@@ -26,6 +26,8 @@ FIXED		fxdiv(FIXED dividend, FIXED divisor);
 void		SetFixDiv(FIXED dividend, FIXED divisor);
 void		SetDiv(int dividend, int divisor);
 
+void		swap_ushort(unsigned short * a, unsigned short * b);
+
 FIXED		approximate_distance(FIXED * p0, FIXED * p1);
 FIXED		fxisqrt(FIXED input);
 

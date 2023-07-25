@@ -23,7 +23,7 @@
 	#define NEAR_PLANE_DISTANCE (15<<16) //The minimum Z allowed
 #endif
 
-#define VRAM_TEXTURE_BASE (0x10000) //Matches jo engine specification
+#define VRAM_TEXTURE_BASE (0xA000) //Matches jo engine specification
 #define VDP1_VRAM (0x25C00000)
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
 #define INTERNAL_MAX_POLY 2600 //Slave only 1700

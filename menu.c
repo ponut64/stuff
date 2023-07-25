@@ -117,11 +117,12 @@ void	start_menu_layer(__basic_menu * mnu)
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 2;
 	mnu->option_grid[Y] = 4;
-	mnu->num_option = 6;
+	mnu->num_option = 7;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
 	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Cancel Timer",
-									"Level Select", "Debug Menu", "Options Menu"};
+									"Level Select", "Debug Menu", "Options Menu",
+									"Texture Viewer"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -156,6 +157,11 @@ void	start_menu_layer(__basic_menu * mnu)
 			case(5):
 			menuLayer = HUD_LAYER_OPTION_1;
 			mnu->selection = 0;
+			break;
+			case(6):
+			menuLayer = HUD_LAYER_TEXVIEWER;
+			mnu->selection = 0;
+			break;
 			default:
 			break;
 		}
@@ -200,6 +206,7 @@ void	levelselect_menu_layer(__basic_menu * mnu)
 			case(4):
 			p64MapRequest(levelSelect);
 			you.inMenu = false;
+			break;
 			default:
 			break;
 		}
@@ -224,7 +231,7 @@ void	options_menu_layer(__basic_menu * mnu)
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 1;
 	mnu->option_grid[Y] = 5;
-	mnu->num_option = 6;
+	mnu->num_option = 5;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
 	static char * option_list[] = {"<- Back", "Tgl Movement Cam", "Tgl Facing Cam",
@@ -314,7 +321,7 @@ void	options_menu_layer_2(__basic_menu * mnu)
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 1;
 	mnu->option_grid[Y] = 5;
-	mnu->num_option = 6;
+	mnu->num_option = 5;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
 	static char * option_list[] = {"<- Back", "Camera Accel", "Cam Spd Cap",
@@ -417,6 +424,71 @@ void	options_menu_layer_2(__basic_menu * mnu)
 }
 
 
+void	texviewer_menu_layer(__basic_menu * mnu)
+{
+	
+	mnu->topLeft[X] = 120;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 120;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 5;
+	mnu->num_option = 2;
+	mnu->backColor = 79;
+	mnu->optionColor = 5;
+	static char * option_list[] = {"<- Back", "Select Texture"};
+	mnu->option_text = option_list;
+	
+	static int texSelect = 0;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			menuLayer = HUD_LAYER_START;
+			break;
+			case(1):
+			texSelect++;
+			break;
+			default:
+			break;
+		}
+	}
+
+	if(is_key_release(DIGI_B))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			break;
+			case(1):
+			texSelect--;
+			break;
+			default:
+			break;
+		}
+	}
+	
+	if(is_key_down(DIGI_X) && mnu->selection == 1)
+	{
+		texSelect++;
+	}
+
+	if(is_key_down(DIGI_Y) && mnu->selection == 1)
+	{
+		texSelect--;
+	}
+
+	spr_sprintf(16, 50, "Texno:%i", texSelect);
+	spr_sprintf(16, 74, "Addr:%i", (pcoTexDefs[texSelect].SRCA<<3));
+	draw_normal_sprite(32, 96, texSelect, 1);
+
+	
+}
+
 void	start_menu(void)
 {
 
@@ -446,6 +518,9 @@ void	start_menu(void)
 		} else if(menuLayer == HUD_LAYER_OPTION_2)
 		{
 			options_menu_layer_2(&mnu);
+		} else if(menuLayer == HUD_LAYER_TEXVIEWER)
+		{
+			texviewer_menu_layer(&mnu);
 		}
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;
 	fuckinghatesynchingkeysvblankbullshit_timer++;

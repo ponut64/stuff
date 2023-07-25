@@ -203,7 +203,7 @@ Slide Hop is to have three "things to do". These aren't just the primary things 
 
 1 - Gates
 d. option for minimum speed track or gate - not done
-e. allow rings in gate series - not tested
+e. allow gate-rings in gate series - not tested
 
 2 - Seven Rings
 g. timed lap 2 with rings - not done, maybe not needed
@@ -212,17 +212,13 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. Control/camera changes
-	1. Options menu
-		Adjustable camera follow: Stiff to unstiff
-		Adjustable camera speed: Fast to slow
-		Adjustable camera speed cap: Low or no cap
-	2. Camera feature addition
-		People, for some reason, want the camera to actively pivot to where you are facing.
-		This is something I usually fight against in games, because I want to look where I want to look.
-		So I am frustrated by the problem.
-		Furthermore, this is a pretty big problem!
-		The viewRot has to have a pressure towards your rot.
+a.
+	UV cut and subdivision
+	1. general UV cut table is made
+	2. step 2 is make a 64x64 texture to be cut, and load it
+	3. step 3 is start UV cutting it and preview the textures
+	4. step 4 is make the subdivision texture tables
+		which'll have to be broken up into many steps
 b. Performer
 	Can't I use the major axis of the normal as a SUPER extra fast backface culler?
 

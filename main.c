@@ -100,11 +100,6 @@ animationControl climbing;
 //////////////////////////////////////////////////////////////////////////////
 	_player you;
 
-void	dpinit(void)
-{
-	init_vdp2(0xE726);
-}
-
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
@@ -152,6 +147,9 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
 	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
+	cutTex = numTex;
+	WRAP_NewTexture((Sint8*)"TEXCUT.TGA", (void*)dirty_buf);
+	cut_experiments(cutTex);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
@@ -296,6 +294,61 @@ void	attributions(void)
 	nbg_clear_text();
 }
 
+int		validation_escape(void)
+{
+	static int first_stroke = 0;
+	static int escaped = 0;
+	if(is_key_pressed(DIGI_L) && is_key_pressed(DIGI_R))
+	{
+		first_stroke = 1;
+	}
+	
+	if(first_stroke == 1 && is_key_pressed(DIGI_DOWN) && is_key_pressed(DIGI_START) && is_key_up(DIGI_L) && is_key_up(DIGI_R))
+	{
+		escaped = 1;
+	}
+	return escaped;
+}
+
+void	hardware_validation(void)
+{
+	load_drv(ADX_MASTER_2304); 
+
+	//update_gamespeed();
+	//int start_time = get_time_in_frame();
+	run_dsp(); //Dry-run the DSP to get it to flag done
+	
+/* 	while(dsp_noti_addr[0] == 0){
+		if(validation_escape()) break;
+	}; //"DSP Wait"
+	
+	int time_at_end = get_time_in_frame();
+	
+	while(m68k_com->start != 0){
+		if(validation_escape()) break;
+	}; //68K Wait
+	
+	int time_at_sound = get_time_in_frame();
+	
+	// slPrintFX(time_at_end - start_time, slLocate(5, 10));
+	// slPrintFX(time_at_sound - start_time, slLocate(18, 10));
+	
+	if((time_at_end - start_time) < 111411 || ((time_at_sound - start_time) < (100<<16)))
+	{
+		while(1)
+		{
+			slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
+			nbg_sprintf(5, 10, "There is something wrong with");
+			nbg_sprintf(5, 11, "your Saturn video game system.");
+			nbg_sprintf(5, 12, "You can contact our associates");
+			nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
+			nbg_sprintf(5, 14, "for the necessary repairs.");
+			if(validation_escape()) break;
+		}
+	}
+	 */
+}
+
 int	main(void)
 {
 	//jo_core_init(0xE726); 
@@ -307,19 +360,19 @@ int	main(void)
 	//Loading Area
 	//
 	init_lwram();
-	dpinit();
+	init_vdp2(0xE726);
 	init_render_area(90 * 182);
 	initPhys();
 	init_box_handling();
 	anim_defs();
 	init_heightmap();
-	//Sound Driver
-	load_drv(ADX_MASTER_2304); 
-	//
-	load_dsp_prog();
-	//
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
+	//
+	//
+	load_dsp_prog();
+	//Sound Driver & Hardware/Emulator Validation
+	hardware_validation();
 	//
 	
 	fill_obj_list();
@@ -332,7 +385,6 @@ int	main(void)
 	set_camera();
 	reset_player();
 
-	run_dsp(); //Dry-run the DSP to get it to flag done
 	add_adx_front_buffer(23040);
 	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);

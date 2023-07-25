@@ -17,6 +17,7 @@ extern int numTex;
 void	get_file_in_memory(Sint8 * filename, void * destination);
 Bool	set_tga_to_sprite_palette(void * file_start);
 
+void	cut_experiments(int texno);
 
 void	color_offset_vdp1_palette(int colorCode, int * run_only_once);
 void	restore_vdp1_palette(void);

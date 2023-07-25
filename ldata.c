@@ -35,8 +35,10 @@ void	replace_table_0(void * source_data)
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[0]);
 	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
-	memcpy(&old_tex_tbl_names[0], &map_tex_tbl_names[0], 12);
-	//*old_tex_tbl_names[0] = *map_tex_tbl_names[0];
+	for(int i = 0; i < 13; i++)
+	{
+		old_tex_tbl_names[0][i] = map_tex_tbl_names[0][i];
+	}
 }
 
 void	replace_table_1(void * source_data)
@@ -44,7 +46,10 @@ void	replace_table_1(void * source_data)
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[1]);
 	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
-	memcpy(&old_tex_tbl_names[1], &map_tex_tbl_names[1], 12);
+	for(int i = 0; i < 13; i++)
+	{
+		old_tex_tbl_names[1][i] = map_tex_tbl_names[1][i];
+	}
 }
 
 void	replace_table_2(void * source_data)
@@ -52,7 +57,10 @@ void	replace_table_2(void * source_data)
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[2]);
 	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
-	memcpy(&old_tex_tbl_names[2], &map_tex_tbl_names[2], 12);
+	for(int i = 0; i < 13; i++)
+	{
+		old_tex_tbl_names[2][i] = map_tex_tbl_names[2][i];
+	}
 }
 
 void	replace_table_3(void * source_data)
@@ -60,7 +68,10 @@ void	replace_table_3(void * source_data)
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[3]);
 	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
-	memcpy(&old_tex_tbl_names[3], &map_tex_tbl_names[3], 12);
+	for(int i = 0; i < 13; i++)
+	{
+		old_tex_tbl_names[3][i] = map_tex_tbl_names[3][i];
+	}
 }
 
 void	replace_table_4(void * source_data)
@@ -68,7 +79,10 @@ void	replace_table_4(void * source_data)
 	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[4]);
 	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
 	make_dithered_textures_for_map(1); 
-	memcpy(&old_tex_tbl_names[4], &map_tex_tbl_names[4], 12);
+	for(int i = 0; i < 13; i++)
+	{
+		old_tex_tbl_names[4][i] = map_tex_tbl_names[4][i];
+	}
 }
 
 void	process_binary_ldata(void * source_data)
