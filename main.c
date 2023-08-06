@@ -147,9 +147,25 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
 	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
-	cutTex = numTex;
-	WRAP_NewTexture((Sint8*)"TEXCUT.TGA", (void*)dirty_buf);
-	cut_experiments(cutTex);
+	
+	/////////////////////////////////////
+	// Floor / heightmap textures
+	/////////////////////////////////////
+	map_texture_table_numbers[0] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[0], (void*)dirty_buf, 0);
+	map_texture_table_numbers[1] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[1], (void*)dirty_buf, 0);
+	map_texture_table_numbers[2] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[2], (void*)dirty_buf, 0);
+	map_texture_table_numbers[3] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[3], (void*)dirty_buf, 0);
+	map_texture_table_numbers[4] = numTex;
+	WRAP_NewTable((Sint8*)&map_tex_tbl_names[4], (void*)dirty_buf, 0);
+	map_end_of_original_textures = numTex;
+	map_tex_amt = (numTex - map_texture_table_numbers[0]);
+	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
+	map_last_combined_texno = numTex;
+	make_dithered_textures_for_map(0);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
@@ -169,7 +185,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAG.GVP",			HWRAM_ldptr, &entities[57], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FFIELD.GVP",		HWRAM_ldptr, &entities[55], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_BUILDING, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -199,32 +215,13 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TGATE0.GVP",		HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAT.GVP",		HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
-	
-	/////////////////////////////////////
-	// Floor / heightmap textures
-	/////////////////////////////////////
-	map_texture_table_numbers[0] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[0], (void*)dirty_buf, 0);
-	map_texture_table_numbers[1] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[1], (void*)dirty_buf, 0);
-	map_texture_table_numbers[2] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[2], (void*)dirty_buf, 0);
-	map_texture_table_numbers[3] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[3], (void*)dirty_buf, 0);
-	map_texture_table_numbers[4] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[4], (void*)dirty_buf, 0);
-	map_end_of_original_textures = numTex;
-	map_tex_amt = (numTex - map_texture_table_numbers[0]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
-	map_last_combined_texno = numTex;
-	make_dithered_textures_for_map(0);
 	
 	p64MapRequest(0);
 	//

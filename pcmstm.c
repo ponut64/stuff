@@ -46,7 +46,7 @@ void	file_request_manager(void)
 	}
 }
 
-void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *))
+void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *), short immediate_or_async)
 {
 	if(number_of_requests >= MAX_FILE_REQUESTS) return;
 	file_request_list[number_of_requests].id = GFS_NameToId(filename);
@@ -54,7 +54,38 @@ void	new_file_request(Sint8 * filename, void * destination, void (*handler_funct
 	file_request_list[number_of_requests].handler_function = handler_function;
 	file_request_list[number_of_requests].active = 1;
 	file_request_list[number_of_requests].done = 0;
+	file_request_list[number_of_requests].immediate_or_async = immediate_or_async;
 	number_of_requests++;
+}
+
+void	load_file_list_immediate(void)
+{
+	
+
+	GfsHn gfs_ea;
+	Sint32 file_size;
+	
+	for(int i = number_of_requests; i > -1; i--)
+	{
+		if(file_request_list[i].active && !file_request_list[i].done)
+		{
+			
+		//Open GFS
+			gfs_ea = GFS_Open(file_request_list[i].id);
+		//Get size
+			GFS_GetFileInfo(gfs_ea, NULL, NULL, &file_size, NULL);
+		//Close it again
+			GFS_Close(gfs_ea);
+			
+			GFS_Load(file_request_list[i].id, 0, (Uint32 *)file_request_list[i].destination, file_size);
+			
+			file_request_list[i].handler_function(file_request_list[i].destination);
+			
+			file_request_list[i].active = 0;
+			file_request_list[i].done = 1;
+			number_of_requests--;
+		}
+	}
 }
 
 void	finish_file_request(void)
@@ -578,18 +609,29 @@ void		pcm_stream_host(void(*game_code)(void))
 			//The parameters are set and other important parameters are re-set here, too.
 				
 			//////////////////
-				file_system_status_reporting = REPORT_SETTING_UP_FILE;
-				//game_code();
-				file.handle = GFS_Open(file.id);
-				GFS_SetReadPara(file.handle, (64 * 1024));
-				GFS_SetTransPara(file.handle, file_transfer_sector);
-				GFS_SetTmode(file.handle, GFS_TMODE_SDMA0);
-				GFS_GetFileSize(file.handle, NULL, &file.total_sectors, NULL);
-				GFS_GetFileInfo(file.handle, NULL, NULL, &file.total_bytes, NULL);
-				file.sectors_read_so_far = 0;
-				file.setup_requested = false;
-				file.requested = true;
-				file.transfer_lock = true;
+				if(active_request->immediate_or_async == 1)
+				{
+					//Very tough thing.
+					stm.stopping = true;
+					stm.restarting = true;
+					pcm_cease(stm.pcm_num);
+					GFS_Close(buf.file_handle);
+					load_file_list_immediate();
+					file.setup_requested = false;
+				} else {
+					file_system_status_reporting = REPORT_SETTING_UP_FILE;
+					//game_code();
+					file.handle = GFS_Open(file.id);
+					GFS_SetReadPara(file.handle, (64 * 1024));
+					GFS_SetTransPara(file.handle, file_transfer_sector);
+					GFS_SetTmode(file.handle, GFS_TMODE_SDMA0);
+					GFS_GetFileSize(file.handle, NULL, &file.total_sectors, NULL);
+					GFS_GetFileInfo(file.handle, NULL, NULL, &file.total_bytes, NULL);
+					file.sectors_read_so_far = 0;
+					file.setup_requested = false;
+					file.requested = true;
+					file.transfer_lock = true;
+				}
 			//////////////////
 				//slSynch();
 			} else if(adx_stream.file.requested /*&& !adx_stream.back_buffer_filled[0] && !adx_stream.back_buffer_filled[1] */

@@ -95,7 +95,6 @@ void	process_binary_ldata(void * source_data)
 	//Alright, I really did not want to do this in fixed-order-processing.
 	//However, it's just so much less efficient to do it any other way.
 	//I would've thought just searching a chunk of RAM for a string was simple, but no, there's no single function.
-	
 
 	
 	//////////////////////////////////
@@ -145,24 +144,44 @@ void	process_binary_ldata(void * source_data)
 		{
 			if(l == 0)
 			{
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0, 1); 
 				//nbg_sprintf(2, 8, "0(%i)", parity);
 				//nbg_sprintf(2, 8, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 1){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1, 1); 
 				//nbg_sprintf(2, 9, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 2){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2, 1); 
 				//nbg_sprintf(2, 10, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 3){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3, 1); 
 				//nbg_sprintf(2, 11, "3(%i)", parity);
 			} else if(l == 4){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4, 1); 
 				//nbg_sprintf(2, 12, "4(%i)", parity);
 			}
 		}
 	}
+	
+	//////////////////////////////////
+	// Prepare to get the palette out of the file
+	// First, skip over the marker "PALTEX"
+	//////////////////////////////////
+	cptr += 6;
+	static char palname[13];
+	
+	for(int i = 0; i < 12; i++)
+	{
+		if(*cptr != ' ')
+		{
+			palname[i] = *cptr++;
+		} else {
+			palname[i] = 0; //NUL character / string terminator
+			cptr++;
+		}
+	}
+	
+	new_file_request((Sint8*)palname, dirty_buf, set_tga_to_sprite_palette, 1);
 	
 	//////////////////////////////////
 	//Prepare to load the object list

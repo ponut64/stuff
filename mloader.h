@@ -6,6 +6,7 @@
 #define MODEL_TYPE_PLAYER ('P')
 #define MODEL_TYPE_BUILDING ('B')
 #define MODEL_TYPE_UNDEFINED ('F')
+#define MODEL_TYPE_TPACK	('T')
 
 typedef     Sint16	compVert[XYZ];
 typedef     Uint8   compNorm;
@@ -55,7 +56,7 @@ Information about the scale and subdivision rules of the plane.
 typedef struct {
 	unsigned short render_data_flags;
 	unsigned char plane_information;
-	unsigned char portal_information;
+	unsigned char uv_id;
 	unsigned char first_sector;
 	unsigned char second_sector;
 	unsigned short texno;

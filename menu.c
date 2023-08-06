@@ -9,6 +9,7 @@
 #include "mymath.h"
 #include "pcmsys.h"
 #include "pcmstm.h"
+#include "tga.h"
 #include "input.h"
 #include "control.h"
 #include "render.h"
@@ -483,7 +484,8 @@ void	texviewer_menu_layer(__basic_menu * mnu)
 	}
 
 	spr_sprintf(16, 50, "Texno:%i", texSelect);
-	spr_sprintf(16, 74, "Addr:%i", (pcoTexDefs[texSelect].SRCA<<3));
+	spr_sprintf(16, 64, "Addr:%i", (pcoTexDefs[texSelect].SRCA<<3));
+	spr_sprintf(16, 78, "End:%i", (pcoTexDefs[numTex-1].SRCA<<3));
 	draw_normal_sprite(32, 96, texSelect, 1);
 
 	

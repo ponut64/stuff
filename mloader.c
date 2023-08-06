@@ -63,6 +63,38 @@ void * loadTextures(void * workAddress, entity_t * model)
 	return (void*)readByte;
 }
 
+void * unpackTextures(void * workAddress, entity_t * model)
+{
+	// This function is for UV cutting a 64x64 (large) texture or for UV tiling an 8x8 (small) texture.
+	//unsigned short * debug_addr = (unsigned short *)workAddress;
+	unsigned char * readByte = (unsigned char *)workAddress;
+	unsigned char tHeight = 0;
+	unsigned char tWidth = 0;
+	unsigned int tSize = 0;
+	//nbg_sprintf(0, 14, "(%i)", model->numTexture);
+	// nbg_sprintf(0, 15, "(%i)", debug_addr[0]);
+	for(int j = 0; j < model->numTexture+1; j++)
+	{
+		readByte+=2;	//Skip over a boundary short word, 0xF7F7
+		tHeight = readByte[0];
+		tWidth = readByte[1];
+		tSize = tHeight * tWidth;
+		readByte += 2; //Skip over the H x W bytes
+		GLOBAL_img_addr = readByte;
+		if(tWidth == 64)
+		{
+			// UV cut it
+			uv_cut(readByte);
+		} else if(tWidth == 8)
+		{
+			// UV tile it (or at least try to)
+			uv_tile(readByte, tWidth, tHeight);
+		}
+		readByte += tSize;
+	}
+	return (void*)readByte;
+}
+
 void * loadAnimations(void * startAddress, entity_t * model, modelData_t * modelData)
 {
     void * workAddress = startAddress;
@@ -139,7 +171,6 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	Sint32 file_size;
 	
 	Sint32 local_name = GFS_NameToId(filename);
-	char loadingNewTextures = 'Y';
 
 //Open GFS
 	gfs_mdat = GFS_Open((Sint32)local_name);
@@ -175,39 +206,27 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	baseTex = src_tex_model->base_texture;
 	model->numTexture = src_tex_model->numTexture;
 	setTextures(model, baseTex); 
-	loadingNewTextures = 'N';
 	} else {
 	model->numTexture = setTextures(model, baseTex); 
 	}
 	
-
-
     workAddress = loadAnimations(workAddress, model, model_header);
-	// A temporary address is used to retrieve the following data.
-	// This is used because the following data is to be overwritten whenever new model data is loaded.
-	// To facilitate this, workAddress is pointed forward past all important data that must not be overwritten.
-	// Thus the temporary pointer is pointing to all data that can be thrown out once parsed.
-	// The "NewTex" flag will determine if textures are loaded at all or not.
+
 	unsigned char * readByte = workAddress;
-	if(loadingNewTextures == 'Y')
+	if(modelType == MODEL_TYPE_TPACK)
 	{
-		void * temporaryAddress;
-		temporaryAddress = loadTextures(workAddress, model);
-		readByte = temporaryAddress;
+		readByte = unpackTextures(workAddress, model);
+	} else if(modelType != MODEL_TYPE_BUILDING)
+	{
+		readByte = loadTextures(workAddress, model);
 	}
 	////////////////
-	// If the model type is 'B' (for BUILDING), create combined textures.
-	// Also read the item data at the end of the payload.
+	//	Most model types		-> Allowed to include raw textures, with no processing.
+	//	Model type TPACK		-> Building texture pack. Textures from these are UV-cut or UV-combined.
+	//	Model type BUILDING		-> Building model. Not allowed to add new textures. Can declare objects from its payload.
 	////////////////
 	if(model->type == MODEL_TYPE_BUILDING)
 	{
-		if(loadingNewTextures == 'Y')
-		{
-			for(int j = 0; j < model->numTexture+1; j++)
-			{
-				make_combined_textures(model->base_texture + j);
-			}
-		}
 		unsigned char * total_items = &readByte[0];
 		//unsigned char * unique_items = &readByte[1];
 		short * item_data = (short *)&readByte[2];	

@@ -526,10 +526,10 @@ void	player_phys_affect(void)
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			deflectionFactor = fxdot(you.velocity, you.floorNorm);
 			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
-			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
-			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY>>4)); 
-			
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY)); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY)); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY)); 
+			you.dV[Y] += fxm(you.dV[Y], you.floorNorm[Y]);
 			firstSurfHit = true;
 		}
 		

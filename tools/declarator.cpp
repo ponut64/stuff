@@ -42,6 +42,7 @@ string music1;
 string music2;
 string music3;
 string texNames[5];
+string palName;
 
 void	declare_object_at_cell(short pixX, short height, short pixY, short type, short xrot, short yrot, short zrot, unsigned short more_data, unsigned short eeOrData)
 {
@@ -71,6 +72,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL0.TGA";
 		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
@@ -93,25 +95,19 @@ void	create_objects(int levelNo)
 		
 		declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
 		
-		//declare_object_at_cell((120 / 40) + 1, -30, -(0 / 40), 36 /*tgate0*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell((0 / 40) + 1, -100, (200 / 40), 36 /*tgate0*/, 0, 90, 0, 0, 0);
 		
 	} else if(levelNo == 1)
 	{
-		// Pizza Tower - Bite the Crust
-		// Perhaps only two music themes per level:
-		// 1. Discovery
-		// 2. Track Discovered, and you've started it; this track will play until the track is finished.
-		// When done, will go back to "Discovery" track.
-		// Will trigger one loop of "Speed" theme when flag is taken.
-		// Pizza Tower - Tubular Trash Zone
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "DASHY.MUS";
+		music2 = "PLAYRUL.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIRTEST.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
+		texNames[0] = "DIR1B.TGA";
+		texNames[1] = "DIR1B.TGA";
+		texNames[2] = "DIR1C.TGA";
+		texNames[3] = "DIR1C.TGA";
+		texNames[4] = "DIR1A.TGA";
+		palName = "PAL1.TGA";
 		declare_object_at_cell(-(180 / 40) + 1, -120, -(620 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 
 		declare_object_at_cell((540 / 40) + 1, -320, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
@@ -124,8 +120,8 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((340 / 40) + 1, -437, (1100 / 40), 18 /*post00*/, 0, 0, 0, 0, 3<<4);
 		declare_object_at_cell((2020 / 40) + 1, -444, (580 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
 		declare_object_at_cell((1860 / 40) + 1, -444, (580 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
-		declare_object_at_cell((1580 / 40) + 1, -434, -(940 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
-		declare_object_at_cell((1740 / 40) + 1, -434, -(940 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
+		declare_object_at_cell((1580 / 40) + 1, -434, -(980 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
+		declare_object_at_cell((1740 / 40) + 1, -434, -(980 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
 		
 		declare_object_at_cell((2140 / 40) + 1, -510, -(1420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 		declare_object_at_cell((660 / 40) + 1, -256, -(860 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -154,7 +150,7 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((1740 / 40) + 1, -259, (1060 / 40), 16 /*overhang*/, 0, 45, 0, 0, 0);
 		declare_object_at_cell((1660 / 40) + 1, -313, -(940 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
 		
-		declare_object_at_cell(-(780 / 40) + 1, -275, -(780 / 40), 21 /*wall1*/, 0, 180, 0, 0, 0);
+		declare_object_at_cell(-(780 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 180, 0, 0, 0);
 		declare_object_at_cell(-(1020 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 0, 0, 0, 0);
 		
 		declare_object_at_cell((660 / 40) + 1, -377, (1180 / 40), 25 /*float01*/, 0, 90, 0, 0, 0);
@@ -219,6 +215,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIRTEST.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL2.TGA";
 	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 	declare_object_at_cell((500 / 40) + 1, -368, -(2500 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
 	declare_object_at_cell(-(1460 / 40) + 1, -281, -(3020 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
@@ -321,6 +318,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIRTEST.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL3.TGA";
 	declare_object_at_cell((1060 / 40) + 1, -172, (820 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell((1020 / 40) + 1, -260, -(420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
@@ -382,6 +380,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIRTEST.TGA";
+		palName = "PAL4.TGA";
 	declare_object_at_cell((460 / 40) + 1, -350, -(5060 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell(-(500 / 40) + 1, -145, (1100 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
@@ -464,6 +463,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL5.TGA";
 	declare_object_at_cell(-(280 / 40) + 1, -97, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell(-(1820 / 40) + 1, -360, (1900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -536,6 +536,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL6.TGA";
 	declare_object_at_cell(-(380 / 40) + 1, -276, -(1620 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(100 / 40) + 1, -278, -(60 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -624,8 +625,8 @@ void	create_objects(int levelNo)
 	
 	declare_object_at_cell((740 / 40) + 1, -247, -(60 / 40), 27 /*hiway01*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(980 / 40) + 1, -247, -(60 / 40), 27 /*hiway01*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(100 / 40) + 1, -247, -(940 / 40), 27 /*hiway01*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(100 / 40) + 1, -247, (820 / 40), 27 /*hiway01*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(100 / 40) + 1, -247, -(940 / 40), 27 /*hiway01*/, 0, 90, 0, 0, 0);
+	declare_object_at_cell(-(100 / 40) + 1, -247, (820 / 40), 27 /*hiway01*/, 0, 90, 0, 0, 0);
 		
 	} else if(levelNo == 7)
 	{
@@ -638,6 +639,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL7.TGA";
 	declare_object_at_cell((20 / 40) + 1, -215, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(1340 / 40) + 1, -458, (2260 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -738,6 +740,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
+		palName = "PAL8.TGA";
 	declare_object_at_cell(-(1580 / 40) + 1, -454, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(3540 / 40) + 1, -193, (3900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -924,6 +927,18 @@ int		main(void)
 			}
 		}
 	}
+	
+	file << "PALTEX";
+	
+		namelen = 12 - palName.length();
+		file << palName;
+		if(namelen > 0)
+		{
+			for(int j = 0; j < namelen; j++)
+			{
+				file << " ";
+			}
+		}
 	
 	file << "OBJECTS!";
 	dptr = &objects_data_list[0];

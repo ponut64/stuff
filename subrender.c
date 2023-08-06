@@ -6,579 +6,6 @@
 #include "mymath.h"
 #include "render.h"
 
-	/*
-	
-	TEXTURE ID MATRIX:
-	1	- full size
-	2	- full y, 1/2 x
-	3	- full y, 1/4 x
-	4	- full y, 1/8 x
-	5	- 1/2 y, full x
-	6	- 1/2 y, 1/2 x
-	7	- 1/2 y, 1/4 x
-	8	- 1/2 y, 1/8 x
-	9	- 1/4 y, full x
-	10	- 1/4 y, 1/2 x
-	11	- 1/4 y, 1/4 x
-	12	- 1/4 y, 1/8 x
-	13	- 1/8 y, full x
-	14	- 1/8 y, 1/2 x
-	15	- 1/8 y, 1/4 x
-	16	- 1/8 y, 1/8 x
-	This needs to move to a texture coordinate system...
-	
-	SUBDIVISION TABLES
-	+ rule:
-	1 | 2
-	- + -
-	3 | 4
-	
-	- rule:
-	1
-	-
-	2
-	
-	| rule:
-	1	|	2
-	
-	How will the tables work?
-	t_rules[224][4];
-	Put in the texture # being subdivided, it spits out the texture # of the subdivisions.
-	So, thusly, if you assign the texture # correctly, you can just walk that down to the final textures all the time.
-	Now I just have to write this table back into C.
-	
-	In this system, I also want to allow tiled textures, in addition to UV cut textures.
-	but I have to get the UV cut textures working properly first
-	
-	For UV cuts from 64x64
-	1 = 8 (in u and v)
-	
-	Starting from:
-	x1y1,x8y8 = 1 (downscaled),		+++	(64x64)
-		1+:	30
-		1+:	31
-		1+:	32
-		1+:	33
-			
-	x1y1,x4y8 = 2 (downscaled),		-++	(32x64)
-		1-:	30
-		1-: 32
-			
-	x5y1,x8y8 = 3 (downscaled),		-++
-		1-: 31
-		1-: 33
-			
-	x1y1,x8y4 = 4 (downscaled),		|++	(64x32)
-		1|:	30
-		1|:	31
-			
-	x1y5,x8y8 = 5 (downscaled),		|++
-		1|:	32
-		1|:	33
-			
-	x1y1,x2y8 = 6 (downscaled),		--+	(16x64)
-		1-:	34
-		1-:	38
-			
-	x3y1,x4y8 = 7 (downscaled),		--+
-		1-:	32
-		1-:	39
-			
-	x5y1,x6y8 = 8 (downscaled),		--+
-		1-:	31
-		1-:	36
-			
-	x7y1,x8y8 = 9 (downscaled),		--+
-		1-:	37
-		1-:	41
-			
-	x1y1,x8y2 = 10 (downscaled,		||+	(64x16)
-		1|:	42
-		1|:	44
-	
-	x1y3,x8y4 = 11 (downscaled),	||+
-		1|:	43
-		1|:	45
-	
-	x1y5,x8y6 = 12 (downscaled),	||+
-		1|:	46
-		1|:	48
-	
-	x1y7,x8y8 = 13 (downscaled),	||+
-		1|:	47
-		1|:	49
-	
-	x1y1,x1y8 = 14 (downscaled),	---	(8x64)
-		1-: 50
-		1-: 58
-	x2y1,x2y8 = 15 (downscaled),	---
-		1-: 51
-		1-: 59
-	x3y1,x3y8 = 16 (downscaled),	---
-		1-: 52
-		1-: 60
-	x4y1,x4y8 = 17 (downscaled),	---
-		1-: 53
-		1-: 61
-	x5y1,x5y8 = 18 (downscaled),	---
-		1-: 54
-		1-: 62
-	x6y1,x6y8 = 19 (downscaled),	---
-		1-: 55
-		1-: 63
-	x7y1,x7y8 = 20 (downscaled),	---
-		1-: 56
-		1-: 64
-	x8y1,x8y8 = 21 (downscaled),	---	
-		1-: 57
-		1-: 65
-	
-	x1y1,x8y1 = 22 (downscaled),	|||	(64x8)
-		1|: 66
-		1|: 70
-	x1y2,x8y2 = 23 (downscaled),	|||
-		1|: 67
-		1|: 71
-	x1y3,x8y3 = 24 (downscaled),	|||
-		1|: 68
-		1|: 72
-	x1y4,x8y4 = 25 (downscaled),	|||
-		1|: 69
-		1|: 73
-	x1y5,x8y5 = 26 (downscaled),	|||
-		1|: 74
-		1|: 78
-	x1y6,x8y6 = 27 (downscaled),	|||
-		1|: 75
-		1|: 79
-	x1y7,x8y7 = 28 (downscaled),	|||
-		1|: 76
-		1|: 80
-	x1y8,x8y8 = 29 (downscaled),	|||
-		1|: 77
-		1|: 81
-	
-	x1y1,x4y4 = 30,					++	(32x32)
-		1+:	82
-		1+: 83
-		1+: 86
-		1+: 87
-
-	x5y1,x8y4 = 31,					++
-		1+: 84
-		1+: 85
-		1+: 88
-		1+: 89
-	
-	x1y5,x4y8 = 32,					++
-		1+: 90
-		1+: 91
-		1+: 94
-		1+: 95
-	
-	x5y5,x8y8 = 33,					++
-		1+: 92
-		1+: 93
-		1+: 96
-		1+: 97
-	
-	x1y1,x2y4 = 34,					-+	(16x32)
-		1-: 82
-		1-: 86
-	x3y1,x4y4 = 35,					-+
-		1-: 83
-		1-: 87
-	x5y1,x6y4 = 36,					-+
-		1-: 84
-		1-: 88
-	x7y1,x8y4 = 37,					-+
-		1-: 85
-		1-: 89
-	x1y5,x2y8 = 38,					-+
-		1-: 90
-		1-: 94
-	x3y5,x4y8 = 39,					-+
-		1-: 91
-		1-: 95
-	x5y5,x6y8 = 40,					-+
-		1-: 92
-		1-: 96
-	x7y5,x8y8 = 41,					-+
-		1-: 93
-		1-: 97
-	
-	-------------------------------------------
-	(alerta: zona de accidentes)
-	x1y1,x4y2 = 42,					|+	(32x16)
-		1|: 82
-		1|: 83
-	x1y3,x4y4 = 43,					|+
-		1|: 86
-		1|: 87
-	x5y1,x8y2 = 44,					|+
-		1|: 84
-		1|: 85
-	x5y3,x8y4 = 45,					|+
-		1|: 88
-		1|: 89
-	x1y5,x4y6 = 46,					|+
-		1|: 90
-		1|: 91
-	x1y7,x4y8 = 47,					|+
-		1|: 94
-		1|: 95
-	x5y5,x8y6 = 48,					|+
-		1|: 92
-		1|: 93
-	x5y7,x8y8 = 49,					|+
-		1|: 96
-		1|: 97
-	--------------------------------------------
-	x1y1,x1y4 = 50,					--	(8x32)
-		1-: 98
-		1-: 99
-	x2y1,x2y4 = 51,					--
-		1-: 100
-		1-: 101
-	x3y1,x3y4 = 52,					--
-		1-: 102
-		1-: 103
-	x4y1,x4y4 = 53,					--
-		1-: 104
-		1-: 105
-	x5y1,x5y4 = 54,					--
-		1-: 106
-		1-: 107
-	x6y1,x6y4 = 55,					--
-		1-: 108
-		1-: 109
-	x7y1,x7y4 = 56,					--
-		1-: 110
-		1-: 111
-	x8y1,x8y4 = 57,					--
-		1-: 112
-		1-: 113
-	x1y5,x1y8 = 58,					--
-		1-: 114
-		1-: 115
-    x2y5,x2y8 = 59,					--
-		1-: 116
-		1-: 117
-    x3y5,x3y8 = 60,					--
-		1-: 118
-		1-: 119
-    x4y5,x4y8 = 61,					--
-		1-: 120
-		1-: 121
-    x5y5,x5y8 = 62,					--
-		1-: 122
-		1-: 123
-    x6y5,x6y8 = 63,					--
-		1-: 124
-		1-: 125
-    x7y5,x7y8 = 64,					--
-		1-: 126
-		1-: 127
-    x8y5,x8y8 = 65,					--
-		1-: 128
-		1-: 129
-	--------------------------------------------
-	alerta: zona de accidentes
-	x1y1,x4y1 = 66,					||	(32x8)
-		1|: 130
-		1|: 132
-	x1y2,x4y2 = 67,					||
-		1|: 131
-		1|: 133
-	x1y3,x4y3 = 68,					||
-		1|: 138
-		1|: 140
-	x1y4,x4y4 = 69,					||
-		1|: 139
-		1|: 141
-	
-	x5y1,x8y1 = 70,					||
-		1|: 134
-		1|: 136
-	x5y2,x8y2 = 71,					||
-		1|: 135
-		1|: 137
-	x5y3,x8y3 = 72,					||
-		1|: 142
-		1|: 144
-	x5y4,x8y4 = 73,					||
-		1|: 143
-		1|: 145
-	
-	x1y5,x4y5 = 74,					||
-		1|: 146
-		1|: 148
-    x1y6,x4y6 = 75,					||
-		1|: 147
-		1|: 149
-    x1y7,x4y7 = 76,					||
-		1|: 154
-		1|: 156
-    x1y8,x4y8 = 77,					||
-		1|: 155
-		1|: 157
-	
-    x5y5,x8y5 = 78,					||
-		1|: 150
-		1|: 152
-    x5y6,x8y6 = 79,					||
-		1|: 151
-		1|: 153
-    x5y7,x8y7 = 80,					||
-		1|: 158
-		1|: 160
-    x5y8,x8y8 = 81,					||	
-		1|: 159
-		1|: 161
-	--------------------------------------------
-	x1y1,x2y2 = 82					+	(16x16)
-	162, 166, 163, 167
-	x3y1,x4y2 = 83					+
-	170, 174, 171, 175
-	x5y1,x6y2 = 84					+
-	178, 182, 179, 183
-	x7y1,x8y2 = 85					+
-	186, 190, 187, 191
-	x1y3,x2y4 = 86					+	
-	164, 168, 165, 169
-	x3y3,x4y4 = 87					+
-	172, 176, 173, 177
-	x5y3,x6y4 = 88					+
-	180, 184, 181, 185
-	x7y3,x8y4 = 89					+
-	188, 192, 189, 193
-	x1y5,x2y6 = 90					+	
-	194, 198, 195, 199
-	x3y5,x4y6 = 91					+
-	202, 206, 203, 207
-	x5y5,x6y6 = 92					+
-	210, 214, 211, 215
-	x7y5,x8y6 = 93					+
-	218, 222, 219, 223
-	x1y7,x2y8 = 94					+	
-	196, 200, 197, 201
-	x3y7,x4y8 = 95					+
-	204, 208, 205, 209
-	x5y7,x6y8 = 96					+
-	212, 216, 213, 217
-	x7y7,x8y8 = 97					+
-	220, 224, 221, 225
-	--------------------------------------------
-	alerta: zona de accidentes
-	
-	x1y1,x1y2 = 98,					-	(8x16)
-	162, 163
-	x1y3,x1y4 = 99,					-
-	164, 165
-	x2y1,x2y2 = 100,				-
-	166, 167
-	x2y3,x2y4 = 101,				-	
-	168, 169
-	x3y1,x3y2 = 102,				-
-	170, 171
-	x3y3,x3y4 = 103,				-	
-	172, 173
-	x4y1,x4y2 = 104,				-
-	174, 175
-	x4y3,x4y4 = 105,				-	
-	176, 177
-	x5y1,x5y2 = 106,				-
-	178, 179
-	x5y3,x5y4 = 107,				-
-	180, 181
-	x6y1,x6y2 = 108,				-
-	182, 183
-	x6y3,x6y4 = 109,				-
-	184, 185
-	x7y1,x7y2 = 110,				-
-	186, 187
-	x7y3,x7y4 = 111,				-
-	188, 189
-	x8y1,x8y2 = 112,				-
-	190, 191
-	x8y3,x8y4 = 113,				-
-	192, 193
-	
-	x1y5,x1y6 = 114,				-	
-	194, 195
-	x1y7,x1y8 = 115,				-
-	196, 197
-	x2y5,x2y6 = 116,				-
-	198, 199
-	x2y7,x2y8 = 117,				-	
-	200, 201
-	x3y5,x3y6 = 118,				-
-	202, 203
-	x3y7,x3y8 = 119,				-	
-	204, 205
-	x4y5,x4y6 = 120,				-
-	206, 207
-	x4y7,x4y8 = 121,				-	
-	208, 209
-	x5y5,x5y6 = 122,				-
-	210, 211
-	x5y7,x5y8 = 123,				-
-	212, 213
-	x6y5,x6y6 = 124,				-
-	214, 215
-	x6y7,x6y8 = 125,				-
-	216, 217
-	x7y5,x7y6 = 126,				-
-	218, 219
-	x7y7,x7y8 = 127,				-
-	220, 221
-	x8y5,x8y6 = 128,				-
-	222, 223
-	x8y7,x8y8 = 129,				-
-	224, 225
-	--------------------------------------------
-	mora zona de accidentes
-	
-	x1y1,x2y1 = 130,				|	(16x8)
-	162, 166
-	x1y2,x2y2 = 131,				|
-	163, 167
-	x3y1,x4y1 = 132,				|
-	170, 174
-	x3y2,x4y2 = 133,				|	
-	171, 175
-	x5y1,x6y1 = 134,				|
-	178, 182
-	x5y2,x6y2 = 135,				|
-	179, 183
-	x7y1,x8y1 = 136,				|
-	186, 190
-	x7y2,x8y2 = 137,				|	
-	187, 191
-
-	x1y3,x2y3 = 138,				|
-	164, 168
-	x1y4,x2y4 = 139,				|
-	165, 169
-	x3y3,x4y3 = 140,				|
-	172, 176
-	x3y4,x4y4 = 141,				|
-	173, 177
-	x5y3,x6y3 = 142,				|
-	180, 184
-	x5y4,x6y4 = 143,				|
-	181, 185
-	x7y3,x8y3 = 144,				|
-	188, 192
-	x7y4,x8y4 = 145,				|
-	189, 193
-
-	x1y5,x2y5 = 146,				|
-	194, 198
-	x1y6,x2y6 = 147,				|
-	195, 199
-	x3y5,x4y5 = 148,				|
-	202, 206
-	x3y6,x4y6 = 149,				|
-	203, 207
-	x5y5,x6y5 = 150,				|
-	210, 214
-	x5y6,x6y6 = 151,				|
-	211, 215
-	x7y5,x8y5 = 152,				|
-	218, 222
-	x7y6,x8y6 = 153,				|
-	219, 223
-	
-	x1y7,x2y7 = 154,				|
-	196, 200
-	x1y8,x2y8 = 155,				|
-	197, 201
-	x3y7,x4y7 = 156,				|
-	204, 208
-	x3y8,x4y8 = 157,				|
-	205, 209
-	x5y7,x6y7 = 158,				|
-	212, 216
-	x5y8,x6y8 = 159,				|
-	213, 217
-	x7y7,x8y7 = 160,				|
-	220, 224
-	x7y8,x8y8 = 161,				|
-	221, 225
-	
-	--------------------------------------------
-	mora zona de accidentes
-	
-	x1y1 = 162,
-	x1y2 = 163,
-	x1y3 = 164,
-	x1y4 = 165,
-	x2y1 = 166,
-	x2y2 = 167,
-	x2y3 = 168,
-	x2y4 = 169,
-	x3y1 = 170,
-	x3y2 = 171,
-	x3y3 = 172,
-	x3y4 = 173,
-	x4y1 = 174,
-	x4y2 = 175,
-	x4y3 = 176,
-	x4y4 = 177,
-	x5y1 = 178,
-	x5y2 = 179,
-	x5y3 = 180,
-	x5y4 = 181,
-	x6y1 = 182
-	x6y2 = 183
-	x6y3 = 184
-	x6y4 = 185
-	x7y1 = 186
-	x7y2 = 187
-	x7y3 = 188
-	x7y4 = 189
-	x8y1 = 190
-	x8y2 = 191
-	x8y3 = 192
-	x8y4 = 193
-	
-	x1y5 = 194
-	x1y6 = 195
-	x1y7 = 196
-	x1y8 = 197
-	x2y5 = 198
-	x2y6 = 199
-	x2y7 = 200
-	x2y8 = 201
-	x3y5 = 202
-	x3y6 = 203
-	x3y7 = 204
-	x3y8 = 205
-	x4y5 = 206
-	x4y6 = 207
-	x4y7 = 208
-	x4y8 = 209
-	x5y5 = 210
-	x5y6 = 211
-	x5y7 = 212
-	x5y8 = 213
-	x6y5 = 214
-	x6y6 = 215
-	x6y7 = 216
-	x6y8 = 217
-	x7y5 = 218
-	x7y6 = 219
-	x7y7 = 220
-	x7y8 = 221
-	x8y5 = 222
-	x8y6 = 223
-	x8y7 = 224
-	x8y8 = 225
-	
-	*/
-
-
 unsigned short texIDs_cut_from_texID[225][4] = {
 	{30, 31, 32, 33}, // +++
 	{30, 32, 0, 0}, // -++
@@ -609,7 +36,7 @@ unsigned short texIDs_cut_from_texID[225][4] = {
 	{75, 79, 0, 0}, // |||
 	{76, 80, 0, 0}, // |||
 	{77, 81, 0, 0}, // |||
-	{82, 83, 86, 86}, // ++
+	{82, 83, 86, 87}, // ++
 	{84, 85, 88, 89}, // ++
 	{90, 91, 94, 95}, // ++
 	{92, 93, 96, 97}, // ++
@@ -744,14 +171,42 @@ unsigned short texIDs_cut_from_texID[225][4] = {
 	//(remaining values do not subdivide)
 };
 
+/*
+Portal information:
+Polygon ID of the next portal. 
+If it is 255, this polygon is not a portal.
+If it is 254, this is the last portal.
+
+Plane information:
+Information about the scale and subdivision rules of the plane.
+0-1: First subdivision rule
+2-3: Second subdivision rule
+4-5: Third subdivision rule
+6-7: ???
+*/
+	#define SUBDIVIDE_X		(1) // |
+	#define SUBDIVIDE_Y		(2) // -
+	#define SUBDIVIDE_XY	(3) // +
 	
-	#define SUBDIVIDE_W		(1)
-	#define SUBDIVIDE_H		(2)
-	#define SUBDIVIDE_HV	(3)
+	#define SUBDIVIDE_3XY	(0x3F) // +++
+	#define SUBDIVIDE_1Y2XY	(0x3E) // -++
+	#define SUBDIVIDE_1X2XY	(0x3D) // |++
+	#define SUBDIVIDE_2Y1XY	(0x3A) // --+
+	#define SUBDIVIDE_2X1XY	(0x35) // ||+
+	#define SUBDIVIDE_3Y	(0x2A) // ---
+	#define SUBDIVIDE_3X	(0x15) // |||
+	
+	#define SUBDIVIDE_2XY	(0xF) // ++
+	#define SUBDIVIDE_1Y1XY	(0xE) // -+
+	#define SUBDIVIDE_1X1XY	(0xD) // |+
+	#define SUBDIVIDE_2Y	(0xA) // --
+	#define SUBDIVIDE_2X	(0x5) // ||
+	
+	
 	
 	short		rule_to_texture[4] = {0, 1, 4, 5};
 
-	#define TEXTS_GENERATED_PER_TEXTURE_LOADED (16)
+	#define UV_CUT_COUNT (224)
 	#define SUBDIVISION_NEAR_PLANE (15<<16)
 	#define SUBDIVISION_SCALE (50)
 	
@@ -770,7 +225,7 @@ unsigned short texIDs_cut_from_texID[225][4] = {
 		// **really** trying to squeeze the performance here
 		int		z_rules[4]				= {300<<16, 66<<16, 33<<16, 0};
 
-void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
+void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions, short rootTex)
 {
 
 	//"Load" the original points (code shortening operation)
@@ -785,8 +240,8 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	
 	//if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
 	new_rule = subdivision_rules[total_divisions];
-
-	used_textures[overwritten_polygon] = texture_rules[total_divisions];
+	rootTex = rootTex-1;
+	used_textures[overwritten_polygon] = rootTex;
 	if(num_divisions == 0 || subdivision_rules[total_divisions] == 0)
 	{
 		return;
@@ -818,7 +273,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	short poly_c = sub_poly_cnt+1;
 	short poly_d = sub_poly_cnt+2;
 	
-	if(new_rule == SUBDIVIDE_HV) 
+	if(new_rule == SUBDIVIDE_XY) 
 	{
 	//////////////////////////////////////////////////////////////////
 	// Subdivide by all rules / Subdivide polygon into four new quads
@@ -907,28 +362,28 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_c][0]][Z], subdivided_points[subdivided_polygons[poly_c][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_c][2]][Z], subdivided_points[subdivided_polygons[poly_c][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_c, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_c, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][2]);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_d][0]][Z], subdivided_points[subdivided_polygons[poly_d][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_d][2]][Z], subdivided_points[subdivided_polygons[poly_d][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_d, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_d, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][3]);
 		}
 	
-	} else if(new_rule == SUBDIVIDE_H) 
+	} else if(new_rule == SUBDIVIDE_Y) 
 	{
 	//////////////////////////////////////////////////////////////////
 	// Subdivide between the edges 0->1 and 3->2 (""Vertically"")
@@ -981,16 +436,16 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
 		}
 		
-	} else if(new_rule == SUBDIVIDE_W)
+	} else if(new_rule == SUBDIVIDE_X)
 	{
 	//////////////////////////////////////////////////////////////////
 	// Subdivide between the edges 0->3 and 1->2 (""Horizontally"")
@@ -1042,13 +497,13 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
 			
 			max_z = JO_MAX(
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
 	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
 					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1);
+			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
 		}
 	}
 	
@@ -1242,11 +697,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	// Doing subdivision in screen-space **does not work**.
 	// Well, technically it works, but affine warping is experienced. It looks pretty awful.
 	///////////////////////////////////////////
-	
-	if(flags & GV_FLAG_NDIV)
+		used_textures[0] = mesh->attbl[i].uv_id;
+	if(!(flags & GV_FLAG_NDIV))
 	{ 
-		used_textures[0] = 0;
-	} else {
 	//////////////////////////////////////////////////////////////
 	// Check: Find the polygon's scale and thus subdivision scale.
 	// We find the true perimeter of the polygon.
@@ -1256,28 +709,17 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
 		subdivision_rules[3] = 0;
 		
-		
 		if(!subdivision_rules[0] || subdivision_rules[3])
 		{
 			//In this case the polygon is too small or too large.
 			//Large polygons will be excepted by making it look obviously wrong.
-			used_textures[0] = 0;
+			used_textures[0] = mesh->attbl[i].uv_id;
 		} else {
 			///////////////////////////////////////////
 			// The subdivision rules were pre-calculated by the converter tool.
+			// In addition, the base texture (the uv_id) was also pre-calculated by the tool.
 			///////////////////////////////////////////
-			// texture_rules[0] = 16;
-			// texture_rules[1] = 16;
-			// texture_rules[2] = 16;
-			// texture_rules[3] = 16;
-			short rule_0 = rule_to_texture[subdivision_rules[0]];
-			short rule_1 = rule_to_texture[subdivision_rules[1]];
-			short rule_2 = rule_to_texture[subdivision_rules[2]];
-			texture_rules[0] = 16 - (rule_0 + rule_1 + rule_2);
-			texture_rules[1] = texture_rules[0] + rule_0;
-			texture_rules[2] = texture_rules[1] + rule_1;
-
-			subdivide_plane(sub_vert_cnt, 0, 3, 0);
+			subdivide_plane(sub_vert_cnt, 0, 3, 0, mesh->attbl[i].uv_id);
 			///////////////////////////////////////////
 			//
 			// Screenspace Transform of SUBDIVIDED Vertices
@@ -1335,31 +777,19 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
 		// Uses weighted max
-		// It's best to adjust how other things are sorted, rather than this,
-		// because weighted max is the best between transparent floors/ceilings and walls.
 		///////////////////////////////////////////
 		zDepthTgt = (JO_MAX(
 		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
-		// zDepthTgt = JO_MAX(JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-					// JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
 
 			if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
 		///////////////////////////////////////////
-		// Use a combined texture, if the subdivision system stated one should be used.
-		// Otherwise, use the base texture.
+		// These use UV-cut textures now, so it's like this.
 		///////////////////////////////////////////
-			if(used_textures[j] != 0)
-			{
-				//Could this be tabled? Would speed things up a bit.
-				//Generally, when I UV-coordinate the textures, I'll have to use a table.
-				//There will be a table for each subdivision level.
-				specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * TEXTS_GENERATED_PER_TEXTURE_LOADED)
-				+ (ent->numTexture + ent->base_texture) + used_textures[j];
-			} else {
-				specific_texture = mesh->attbl[i].texno;
-			}
+		specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * UV_CUT_COUNT)
+		+ mesh->attbl[i].texno + used_textures[j];
+
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////
@@ -1453,28 +883,28 @@ void	TEMP_process_mesh_for_subdivision_rules(GVPLY * mesh)
 	
 			if(len_w >= SUBDIVISION_SCALE)
 			{
-				subdivision_rules[0] = SUBDIVIDE_W;
+				subdivision_rules[0] = SUBDIVIDE_X;
 			}
 			if(len_w >= SUBDIVISION_SCALE<<1)
 			{
-				subdivision_rules[1] = SUBDIVIDE_W;
+				subdivision_rules[1] = SUBDIVIDE_X;
 			}
 			if(len_w >= SUBDIVISION_SCALE<<2)
 			{
-				subdivision_rules[2] = SUBDIVIDE_W;
+				subdivision_rules[2] = SUBDIVIDE_X;
 			}
 			
 			if(len_h >= SUBDIVISION_SCALE)
 			{
-				subdivision_rules[0] = (subdivision_rules[0] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+				subdivision_rules[0] = (subdivision_rules[0] == SUBDIVIDE_X) ? SUBDIVIDE_XY : SUBDIVIDE_Y;
 			}
 			if(len_h >= SUBDIVISION_SCALE<<1)
 			{
-				subdivision_rules[1] = (subdivision_rules[1] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+				subdivision_rules[1] = (subdivision_rules[1] == SUBDIVIDE_X) ? SUBDIVIDE_XY : SUBDIVIDE_Y;
 			}
 			if(len_h >= SUBDIVISION_SCALE<<2)
 			{
-				subdivision_rules[2] = (subdivision_rules[2] == SUBDIVIDE_W) ? SUBDIVIDE_HV : SUBDIVIDE_H;
+				subdivision_rules[2] = (subdivision_rules[2] == SUBDIVIDE_X) ? SUBDIVIDE_XY : SUBDIVIDE_Y;
 			}
 			unsigned char subrules = subdivision_rules[0];
 			subrules |= subdivision_rules[1]<<2;

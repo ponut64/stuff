@@ -1,7 +1,10 @@
 #ifndef __HMAP_H__
 # define __HMAP_H__
 
-#define HMAP_SUBDIVISION_LEVEL (100<<16)
+#define HMAP_SUBDIVISION_LEVEL (120<<16)
+#define HMAP_TINY_TEX_LEVEL (400<<16)
+
+#define DITHER_CROSS 		(0x8000)
 
 typedef struct{
 	POINT verts[4];

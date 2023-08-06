@@ -43,7 +43,7 @@ void	get_file_in_memory(Sint8 * filename, void * destination)
 
 }
 	
-Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
+void	set_tga_to_sprite_palette(void * file_start)
 {
 	unsigned char * readByte = (unsigned char *)file_start;
 	unsigned short * readWord = (unsigned short *)file_start;
@@ -54,13 +54,13 @@ Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
 	
 	if(col_map_type != 0){
 		slPrint("(REJECTED NON-RGB TGA)", slLocate(0,0));
-		return 0;
+		return;
 	}
 	unsigned char data_type = readByte[2];
 	
 	if(data_type != 2) {
 		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
-		return 0;
+		return;
 	}
 	//Color Map Specification Data is ignored.
 	
@@ -73,7 +73,7 @@ Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
 	
 	if(byteFormat != 24){
 		slPrint("(TGA NOT 24BPP)", slLocate(0,0));
-		return 0; //File Typing Demands 24 bpp.
+		return; //File Typing Demands 24 bpp.
 	}
 	
 	//Descriptor Bytes are skipped.
@@ -100,7 +100,7 @@ Bool	set_tga_to_sprite_palette(void * file_start) //Returns "1" if successful.
 		//Set the text color (temporary, depends on library setting)
 		cRAM_24bm[1] = (255<<16) | (255<<8) | (255);
 	
-	return 1;
+	return;
 }
 
 //Note: colorCode will be signed.
@@ -193,7 +193,7 @@ void	add_texture_to_vram(int width, int height)
 	numTex++;
 }
 
-int		new_dithered_texture(int texno_a, int texno_b, short replaced_texture)
+int		new_dithered_texture(int texno_a, int texno_b, int replaced_texture)
 {
 	//Core concept: Create a new texture, same size as the both textures which also need to be the same size,
 	// with every odd pixel from texture A, and every even pixel from texture B.
@@ -247,7 +247,7 @@ int		new_dithered_texture(int texno_a, int texno_b, short replaced_texture)
 		return numTex-1;
 }
 
-void	make_4way_combined_textures(int start_texture_number, int end_texture_number, short replacement_start)
+void	make_4way_combined_textures(int start_texture_number, int end_texture_number, int replacement_start)
 {
 	// If replacement_start is non-zero, texture replacement will start at that number.
 	// If replacement is zero, new textures will be made instead.
@@ -358,35 +358,47 @@ void	generate_downscale_texture(int img_x, int img_y, int out_img_x, int out_img
 	
 }
 
-void	make_combined_textures(int texture_number)
+void	replace_downscale_texture(int large_texno, int scaled_texno)
+{
+	
+	int lrg_x = (pcoTexDefs[large_texno].SIZE & 0x3F00)>>5;
+	int lrg_y = (pcoTexDefs[large_texno].SIZE & 0xFF);
+	
+	int scl_x = (pcoTexDefs[scaled_texno].SIZE & 0x3F00)>>5;
+	int scl_y = (pcoTexDefs[scaled_texno].SIZE & 0xFF);
+	
+	FIXED x_pixel_scale = fxdiv(lrg_x<<16, scl_x<<16);
+	FIXED y_pixel_scale = fxdiv(lrg_y<<16, scl_y<<16);
+	int total_out_pix = scl_x * scl_y;
+	int pix_read_pt = 0;
+	
+	unsigned char * readByte = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[large_texno].SRCA<<3)));
+	unsigned char * writeByte = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[scaled_texno].SRCA<<3)));
+	
+	for(int p = 0; p < total_out_pix; p++)
+	{
+		int numY = p / (scl_x);
+		int numX = p - (numY * (scl_x));
+
+		int sample_y = (numY * y_pixel_scale)>>16;
+		int sample_x = (numX * x_pixel_scale)>>16;
+		if(sample_y > lrg_y) sample_y = lrg_y;
+		if(sample_x > lrg_x) sample_x = lrg_x;
+		pix_read_pt = (sample_y * lrg_x) + sample_x;
+		*writeByte++ = readByte[pix_read_pt];
+	}
+	
+}
+
+void	uv_tile(void * source_texture_data, int base_x, int base_y)
 {
 	
 	/////////////////////////////////////////////////
-	/**
-
-	REWIND
-	
-	What I want to do, actually, is intake a 64x64 texture and tile it all the way down to 8x8.
-	Texture cuts of the following sizes are needed:
-	
-	8x64	8x32	8x16	8x8
-	16x64	16x32	16x16	16x8
-	32x64	32x32	32x16	32x8
-	64x64	64x32	64x16	64x8
-	(Dimensions past 32x32 will be down-sampled to 32x32)
-	
-	For initial testing, I will start by tiling the 8x8 texture all the way up to 128x128.
-	
-	From that 128x128 source, I will generate all of the above textures.
-	I will also continue to support texture-to-tiles like that.
-	
-	**/
+	// What this does:
+	// It takes a small texture (presumably 8x8) and tiles it up to eight times, and generates textures for that.
 	/////////////////////////////////////////////////
 
-	unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texture_number].SRCA<<3)));
 	unsigned char * readByte = source_texture_data;
-	int base_x = (pcoTexDefs[texture_number].SIZE & 0x3F00)>>5;
-	int base_y = (pcoTexDefs[texture_number].SIZE & 0xFF);
 	// nbg_sprintf(5, 10, "bx(%i)", base_x);
 	// nbg_sprintf(5, 11, "by(%i)", base_y);
 	int tf_sx = base_x<<3;
@@ -435,10 +447,13 @@ void	make_combined_textures(int texture_number)
 	14	- 1/8 y, 1/2 x		NO +,	| to 15,NO -
 	15	- 1/8 y, 1/4 x		NO +,	| to 16,NO -
 	16	- 1/8 y, 1/8 x		NO FURTHER SUBDIVISION
-	
 	*/
 	static int img_sz[2];
 	static int img_min[2];
+	
+	unsigned short p_srca[16];
+	unsigned short p_size[16];
+	int stex = numTex-1;
 	
 	for(int dsy = 0; dsy < 4; dsy++)
 	{
@@ -457,29 +472,148 @@ void	make_combined_textures(int texture_number)
 
 			select_and_cut_from_64xH(img_sz, img_min, dirty_buf, buf_map);
 			generate_downscale_texture(ssx, ssy, tex_x, tex_y, buf_map);
+			int tgt = (dsy * 4) + dsx;
+			p_srca[tgt] = pcoTexDefs[numTex-1].SRCA;
+			p_size[tgt] = pcoTexDefs[numTex-1].SIZE;
 		}
 	}
 
+	/*
+
+	Remap:
+	0 -> 	1 			+++
+	1 -> 	2 & 3 		-++
+	2 -> 	6 - 9 		--+
+	3 -> 	14 - 21 	---
+	4 -> 	4 & 5 		|++
+	5 -> 	30 - 33 	++
+	6 -> 	34 - 41 	-+
+	7 ->	50 - 65 	--
+	8 -> 	10 - 13 	||+
+	9 -> 	42 - 49 	|+
+	10 ->	82 - 97 	+
+	11 ->	98 - 129 	-
+	12 ->	22 - 29 	|||
+	13 ->	66 - 81 	||
+	14 ->	130 - 161	|
+	15 ->	162 - 225	.
+	
+	*/
+	for(int i = 162; i <= 225; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[15];
+		pcoTexDefs[stex + i].SIZE = p_size[15];
+	}
+	
+	for(int i = 130; i <= 161; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[14];
+		pcoTexDefs[stex + i].SIZE = p_size[14];
+	}
+	
+	for(int i = 66; i <= 81; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[13];
+		pcoTexDefs[stex + i].SIZE = p_size[13];
+	}
+	
+	for(int i = 22; i <= 29; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[12];
+		pcoTexDefs[stex + i].SIZE = p_size[12];
+	}
+	
+	for(int i = 98; i <= 129; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[11];
+		pcoTexDefs[stex + i].SIZE = p_size[11];
+	}
+	
+	for(int i = 82; i <= 97; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[10];
+		pcoTexDefs[stex + i].SIZE = p_size[10];
+	}
+	
+	for(int i = 42; i <= 49; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[9];
+		pcoTexDefs[stex + i].SIZE = p_size[9];
+	}
+	
+	for(int i = 10; i <= 13; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[8];
+		pcoTexDefs[stex + i].SIZE = p_size[8];
+	}
+	
+	for(int i = 50; i <= 65; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[7];
+		pcoTexDefs[stex + i].SIZE = p_size[7];
+	}
+	
+	for(int i = 34; i <= 41; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[6];
+		pcoTexDefs[stex + i].SIZE = p_size[6];
+	}
+	
+	for(int i = 30; i <= 33; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[5];
+		pcoTexDefs[stex + i].SIZE = p_size[5];
+	}
+	
+	pcoTexDefs[stex + 4].SRCA = p_srca[4];
+	pcoTexDefs[stex + 4].SIZE = p_size[4];
+	pcoTexDefs[stex + 5].SRCA = p_srca[4];
+	pcoTexDefs[stex + 5].SIZE = p_size[4];
+	
+	for(int i = 14; i <= 21; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[3];
+		pcoTexDefs[stex + i].SIZE = p_size[3];
+	}
+	
+	for(int i = 6; i <= 9; i++)
+	{
+		pcoTexDefs[stex + i].SRCA = p_srca[2];
+		pcoTexDefs[stex + i].SIZE = p_size[2];
+	}
+	
+	pcoTexDefs[stex + 2].SRCA = p_srca[1];
+	pcoTexDefs[stex + 2].SIZE = p_size[1];
+	pcoTexDefs[stex + 3].SRCA = p_srca[1];
+	pcoTexDefs[stex + 3].SIZE = p_size[1];
+	
+	pcoTexDefs[stex + 1].SRCA = p_srca[0];
+	pcoTexDefs[stex + 1].SIZE = p_size[0];
+	
+	numTex += 209;
+	
 }
 
-int	cut_experiments(int texno)
+void	uv_cut(void * data_start)
 {
 /*
 Successfully cuts a 64x64 texture into all of the necessary chunks for subdivision by the three rules:
 +, -, and |.
 
-*/
-	
-	static int img_sz[2];
-	static int img_min[2];
-	
-	unsigned char * source_texture_data = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[texno].SRCA<<3)));
-	unsigned char * readByte = source_texture_data;
+While the width of 64 is fixed, the height is not.
+It should allow any height above 64x8. I could patch that in.
+Or I could just ignore that. Dunno.
 
+*/
+	unsigned char * readByte = data_start;
+
+	unsigned char * used_dirty_buf = dirty_buf;
+
+	int img_sz[2] = {0, 0};
+	int img_min[2] = {0, 0};
 	int tsl = 0;
 	
 	/* Original, downscaled */
-	int first_used_texno = numTex;
 	generate_downscale_texture(64, 64, 32, 32, readByte);
 
 	/* Horizontal halves (32x64) -++	*/
@@ -491,9 +625,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[X] = 32;
 		img_min[X] = x32 * 32;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x32, not a 32x64; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, used_dirty_buf);
 	}
 	
 	/* Vertical halves (64x32) |++	*/
@@ -505,9 +639,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[Y] = 32;
 		img_min[Y] = y32 * 32;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x32, not a 64x32; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, used_dirty_buf);
 	}
 	
 
@@ -522,9 +656,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[X] = 16;
 		img_min[X] = x16 * 16;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 16x32, not a 16x64; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 16, 32, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 16, 32, used_dirty_buf);
 	}
 	
 	/* Vertical quarters (64x16)	||+	*/
@@ -536,9 +670,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[Y] = 16;
 		img_min[Y] = y16 * 16;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x16, not a 64x16; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 16, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 16, used_dirty_buf);
 	}
 	
 	/* Vertical eighths (8x64) ---	*/
@@ -552,9 +686,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[X] = 8;
 		img_min[X] = x8 * 8;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 8x32, not a 8x64; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 8, 32, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 8, 32, used_dirty_buf);
 	}
 	
 	/* Horizontal eighths (64x8) |||	*/
@@ -566,9 +700,9 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		img_sz[Y] = 8;
 		img_min[Y] = y8 * 8;
 		
-		select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x8, not a 64x8; down-scale to optimize RAM and performance.
-		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 8, dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 8, used_dirty_buf);
 	}
 	
 	int quarter_texno[4];
@@ -588,8 +722,8 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 			img_min[X] = x32 * 32;
 			quarter_texno[tsl] = numTex;
 			tsl++;
-			select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
-			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], dirty_buf);
+			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
 		}
 	}
 	
@@ -613,8 +747,8 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		{
 			img_sz[X] = 16;
 			img_min[X] = x16 * 16;
-			select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
-			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], dirty_buf);
+			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
 		}
 	}
 	
@@ -670,8 +804,8 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 			
 			horieighth_texno[tsl] = numTex;
 			tsl++;
-			select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
-			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], dirty_buf);
+			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
 		}
 	}
 	
@@ -740,8 +874,8 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 			img_min[X] = (x16 * 16);
 			eighths_texno[tsl] = numTex;
 			tsl++;
-			select_and_cut_from_64xH(img_sz, img_min, readByte, dirty_buf);
-			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], dirty_buf);
+			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
 		}
 	}
 	
@@ -821,7 +955,6 @@ Successfully cuts a 64x64 texture into all of the necessary chunks for subdivisi
 		pcoTexDefs[numTex].SRCA = (pcoTexDefs[horieighth_texno[i]].SRCA) + (24 * 1); //"1" being "8>>3" 
 		numTex++;
 	}
-	return first_used_texno;
 		
 }
 
@@ -980,10 +1113,10 @@ void	ReplaceTextureTable(void * file_start, int tex_height, int first_replaced_t
 	
 }
 
-Bool WRAP_NewPalette(Sint8 * filename, void * file_start)
+void WRAP_NewPalette(Sint8 * filename, void * file_start)
 {
 	get_file_in_memory(filename, (void*)file_start);
-	return set_tga_to_sprite_palette((void*)file_start);
+	set_tga_to_sprite_palette((void*)file_start);
 }
 
 Bool WRAP_NewTexture(Sint8 * filename, void * file_start)

@@ -218,8 +218,8 @@ void	p64MapRequest(short levelNo)
 	ldat_name[10] = 'S';
 	
 	set_music_track = NO_STAGE_MUSIC; //Clear stage music, preparing to change music of course.
-	new_file_request(ldat_name, dirty_buf, process_binary_ldata);
-	new_file_request(pgm_name, dirty_buf, map_parser);
+	new_file_request(ldat_name, dirty_buf, process_binary_ldata, 0);
+	new_file_request(pgm_name, dirty_buf, map_parser, 0);
 	ldata_ready = false;
 
 }
@@ -265,7 +265,7 @@ int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	//if(txtbl_e[4].file_done != true) return;
 	
 	POINT absN = {JO_ABS(norm[X]), JO_ABS(norm[Y]), JO_ABS(norm[Z])};
-	int btdata = baseTex & 1023; 
+	int btdata = baseTex & 1023; // ??? ???
 	int texno = 0;
 	*flip = 0;
 	
@@ -308,16 +308,15 @@ int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 					}
 		}
 	}
-	return (btdata+texno) | (baseTex & (1<<15));
+	return (btdata+texno) | (baseTex & (1<<15)); // ??? why 1<<15 ????
 }
 
-	short starting_small_crossing_texno;
-	short starting_combined_crossing_texno;
-	const short amt_of_angular_tex_per_table = 45;
-	short angular_small_dither_texno[5][9];
-	short angular_combined_dither_texno[5][9];
-	short crossing_small_dither_texno[4][7];
-	short crossing_combined_dither_texno[4][7];
+	int starting_small_crossing_texno;
+	int starting_combined_crossing_texno;
+	int starting_tiny_texno;
+	int crossing_small_dither_texno[4][7];
+	int crossing_combined_dither_texno[4][7];
+	int ultra_downscale_texno[5][7];
 
 void	make_dithered_textures_for_map(short regenerate)
 {
@@ -339,75 +338,8 @@ void	make_dithered_textures_for_map(short regenerate)
 		01, 02, 03, 04, 05, 06, 14, 25, 36
 		9 results
 	*/
-
-	for(int rt = 0; rt < 5; rt++)
-	{
-		/*
-		Angular Dithers Organization
-		0 - > 0/1
-		1 - > 0/2
-		2 - > 0/3
-		3 - > 0/4
-		4 - > 0/5
-		5 - > 0/6
-		6 - > 1/4
-		7 - > 2/5
-		8 - > 3/6
-		*/
-		if(!regenerate)
-		{
-		nbg_sprintf(1, 1, "DITHERING...");
-		angular_small_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1		, 0);
-		angular_small_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2		, 0);
-		angular_small_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3		, 0);
-		angular_small_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4		, 0);
-		angular_small_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5		, 0);
-		angular_small_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6		, 0);
-		angular_small_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4	, 0);
-		angular_small_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5	, 0);
-		angular_small_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6	, 0);
-		} else {
-		//nbg_sprintf(1, 1, "REGEN.....");
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+1		, angular_small_dither_texno[rt][0]);
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+2		, angular_small_dither_texno[rt][1]);
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+3		, angular_small_dither_texno[rt][2]);
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+4		, angular_small_dither_texno[rt][3]);
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+5		, angular_small_dither_texno[rt][4]);
-		new_dithered_texture(map_texture_table_numbers[rt], map_texture_table_numbers[rt]+6		, angular_small_dither_texno[rt][5]);
-		new_dithered_texture(map_texture_table_numbers[rt]+1, map_texture_table_numbers[rt]+4	, angular_small_dither_texno[rt][6]);
-		new_dithered_texture(map_texture_table_numbers[rt]+2, map_texture_table_numbers[rt]+5	, angular_small_dither_texno[rt][7]);
-		new_dithered_texture(map_texture_table_numbers[rt]+3, map_texture_table_numbers[rt]+6	, angular_small_dither_texno[rt][8]);
-		}
-	}
 	
-
-	for(int rt = 0; rt < 5; rt++)
-	{
-		if(!regenerate)
-		{
-		angular_combined_dither_texno[rt][0] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+1, 0);
-		angular_combined_dither_texno[rt][1] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+2, 0);
-		angular_combined_dither_texno[rt][2] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+3, 0);
-		angular_combined_dither_texno[rt][3] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+4, 0);
-		angular_combined_dither_texno[rt][4] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+5, 0);
-		angular_combined_dither_texno[rt][5] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 		map_texture_table_numbers[rt]+map_tex_amt+6, 0);
-		angular_combined_dither_texno[rt][6] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4, 0);
-		angular_combined_dither_texno[rt][7] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5, 0);
-		angular_combined_dither_texno[rt][8] = new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6, 0);
-		} else {
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+1, angular_combined_dither_texno[rt][0]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+2, angular_combined_dither_texno[rt][1]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+3, angular_combined_dither_texno[rt][2]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+4, angular_combined_dither_texno[rt][3]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+5, angular_combined_dither_texno[rt][4]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt, 	map_texture_table_numbers[rt]+map_tex_amt+6, angular_combined_dither_texno[rt][5]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+1,	map_texture_table_numbers[rt]+map_tex_amt+4, angular_combined_dither_texno[rt][6]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+2,	map_texture_table_numbers[rt]+map_tex_amt+5, angular_combined_dither_texno[rt][7]);
-		new_dithered_texture(map_texture_table_numbers[rt]+map_tex_amt+3,	map_texture_table_numbers[rt]+map_tex_amt+6, angular_combined_dither_texno[rt][8]);
-		}
-	}
-	
-		starting_combined_crossing_texno = numTex;
+		if(!regenerate) starting_combined_crossing_texno = numTex;
 	//Loop to ensure the crossing small textures are in series with one another (no other textures between them).
 	for(int t = 0; t < 4; t++)
 	{
@@ -422,7 +354,7 @@ void	make_dithered_textures_for_map(short regenerate)
 		}
 	}
 	
-		starting_small_crossing_texno = numTex;
+		if(!regenerate) starting_small_crossing_texno = numTex;
 	//Loop to ensure the crossing large textures are in series with one another (no other textures between them).
 	for(int t = 0; t < 4; t++)
 	{
@@ -436,6 +368,31 @@ void	make_dithered_textures_for_map(short regenerate)
 			}
 		}
 	}
+	
+	/*
+	Writing 8x8 Ultra-downscale
+	The texture we have now is the original 24x24 texture, downscaled to 12x12, then tiled back to 24x24.
+	It is so to represent that the polygons are subdivided.
+	To save on VDP1 performance, we can also make even more trashy textures by making the far away ones 8x8.
+	This of course down-scales the original texture all the way down to 4x4.
+	But we're just going to use a pre-existing function to make downscales from them.
+	*/
+	unsigned char * readByte;
+	for(int i = 0; i < 5; i++)
+	{
+		for(int j = 0; j < 7; j++)
+		{
+			if(!regenerate)
+			{
+				readByte = (unsigned char *)((unsigned int)(VDP1_VRAM + (pcoTexDefs[map_texture_table_numbers[i]+j+map_tex_amt].SRCA<<3)));
+				ultra_downscale_texno[i][j] = numTex;
+				generate_downscale_texture(24, 24, 8, 8, readByte);
+			} else {
+				replace_downscale_texture(map_texture_table_numbers[i]+j+map_tex_amt, ultra_downscale_texno[i][j]);
+			}
+		}
+	}
+	if(!regenerate) starting_tiny_texno = ultra_downscale_texno[0][0];
 	
 }
 
@@ -525,13 +482,13 @@ void	process_map_for_normals(void)
 
 				for(int h = 0; h < 4; h++)
 				{
-					if(this_texture != tex_near[h] && !(tex_near[h] & (1<<15)))
+					if(this_texture != tex_near[h] && !(tex_near[h] & DITHER_CROSS))
 					{
 						tex_near[h] &= 1023;
 						this_texture &= 1023;
 			 			if(this_texture < tex_near[h])
 						{
-							mapTex[counted_poly] |= (1<<15);
+							mapTex[counted_poly] |= DITHER_CROSS;
 							break;
 						}
 					}
@@ -544,8 +501,10 @@ void	process_map_for_normals(void)
 	///////////////////////////////////////////////
 	// This loop assigns textures and texture orientation to slopes.
 	///////////////////////////////////////////////
-	for(int k = 0; k < (main_map_y_pix-1); k++){
-		for(int v = 0; v < (main_map_x_pix-1); v++){
+	for(int k = 0; k < (main_map_y_pix-1); k++)
+	{
+		for(int v = 0; v < (main_map_x_pix-1); v++)
+		{
 			  
  			cross[X] = normTbl[norm_index]<<9;
 			cross[Y] = normTbl[norm_index+1]<<9;
@@ -560,170 +519,8 @@ void	process_map_for_normals(void)
 		}
 	}
 	counted_poly = 0;
-	
-	////////////////////////////////////////////////
-	// This loop assigns dithering to textures which are adjacent to different textures within the same table.
-	////////////////////////////////////////////////
-	for(int k = 0; k < (main_map_y_pix-1); k++){
-		for(int v = 0; v < (main_map_x_pix-1); v++){
-			  
-  			int this_texture = mapTex[counted_poly];
-			unsigned short flip = this_texture & 0x3000;
-			tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
-			tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
-			tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
-			tex_near[3] = ((counted_poly - (main_map_x_pix-1)) > 0) ? mapTex[counted_poly-(main_map_x_pix-1)] : this_texture;
 
-				for(int h = 0; h < 4; h++)
-				{
-					if(this_texture != tex_near[h] && !(tex_near[h] & (1<<14)) && !(tex_near[h] & (1<<15)) && !(this_texture & (1<<15)))
-					{
-						tex_near[h] &= 1023;
-						//Re-fresh this_texture as we do some math in it in the loop
-						this_texture = mapTex[counted_poly] & 1023;
-						
-			 			if(this_texture >= map_texture_table_numbers[4] && tex_near[h] >= map_texture_table_numbers[4])
-						{
-							this_texture -= map_texture_table_numbers[4];
-							tex_near[h] -=  map_texture_table_numbers[4];
-							if(this_texture == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[4][0] + tex_near[h] - 1) | (1<<14);
-							} else if(tex_near[h] == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[4][0] + this_texture - 1) | (1<<14);
-							} else if( this_texture < 4 && tex_near[h] < 4)
-							{
-								continue;
-							} else if(this_texture >= 4 && tex_near[h] >= 4)
-							{
-								continue;
-							} else if(this_texture == 1 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[4][6]) | (1<<14);
-							} else if(this_texture == 2 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[4][7]) | (1<<14);
-							} else if(this_texture == 3 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[4][8]) | (1<<14);
-							}
-							break;
-						} else if(this_texture >= map_texture_table_numbers[3] && tex_near[h] >= map_texture_table_numbers[3])
-						{
-							this_texture -= map_texture_table_numbers[3];
-							tex_near[h] -=  map_texture_table_numbers[3];
-							if(this_texture == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[3][0] + tex_near[h] - 1) | (1<<14);
-							} else if(tex_near[h] == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[3][0] + this_texture - 1) | (1<<14);
-							} else if( this_texture < 4 && tex_near[h] < 4)
-							{
-								continue;
-							} else if(this_texture >= 4 && tex_near[h] >= 4)
-							{
-								continue;
-							} else if(this_texture == 1 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[3][6]) | (1<<14);
-							} else if(this_texture == 2 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[3][7]) | (1<<14);
-							} else if(this_texture == 3 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[3][8]) | (1<<14);
-							}
-							break;
-						} else if(this_texture >= map_texture_table_numbers[2] && tex_near[h] >= map_texture_table_numbers[2])
-						{
-							this_texture -= map_texture_table_numbers[2];
-							tex_near[h] -=  map_texture_table_numbers[2];
-							if(this_texture == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[2][0] + tex_near[h] - 1) | (1<<14);
-							} else if(tex_near[h] == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[2][0] + this_texture - 1) | (1<<14);
-							} else if( this_texture < 4 && tex_near[h] < 4)
-							{
-								continue;
-							} else if(this_texture >= 4 && tex_near[h] >= 4)
-							{
-								continue;
-							} else if(this_texture == 1 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[2][6]) | (1<<14);
-							} else if(this_texture == 2 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[2][7]) | (1<<14);
-							} else if(this_texture == 3 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[2][8]) | (1<<14);
-							}
-							break;
-						} else if(this_texture >= map_texture_table_numbers[1] && tex_near[h] >= map_texture_table_numbers[1])
-						{
-							this_texture -= map_texture_table_numbers[1];
-							tex_near[h] -=  map_texture_table_numbers[1];
-							if(this_texture == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[1][0] + tex_near[h] - 1) | (1<<14);
-							} else if(tex_near[h] == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[1][0] + this_texture - 1) | (1<<14);
-							} else if( this_texture < 4 && tex_near[h] < 4)
-							{
-								continue;
-							} else if(this_texture >= 4 && tex_near[h] >= 4)
-							{
-								continue;
-							} else if(this_texture == 1 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[1][6]) | (1<<14);
-							} else if(this_texture == 2 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[1][7]) | (1<<14);
-							} else if(this_texture == 3 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[1][8]) | (1<<14);
-							}
-							break;
-						} else if(this_texture >= map_texture_table_numbers[0] && tex_near[h] >= map_texture_table_numbers[0])
-						{
-							this_texture -= map_texture_table_numbers[0];
-							tex_near[h] -=  map_texture_table_numbers[0];
-							if(this_texture == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[0][0] + tex_near[h] - 1) | (1<<14);
-							} else if(tex_near[h] == 0)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[0][0] + this_texture - 1) | (1<<14);
-							} else if( this_texture < 4 && tex_near[h] < 4)
-							{
-								continue;
-							} else if(this_texture >= 4 && tex_near[h] >= 4)
-							{
-								continue;
-							} else if(this_texture == 1 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[0][6]) | (1<<14);
-							} else if(this_texture == 2 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[0][7]) | (1<<14);
-							} else if(this_texture == 3 && tex_near[h] >= 4)
-							{
-								mapTex[counted_poly] = (angular_small_dither_texno[0][8]) | (1<<14);
-							}
-							break;
-						}
-					}
-				}
-			mapTex[counted_poly] |= flip;
-			counted_poly++;
-		}
-	}
+}
 
 	
 	// nbg_sprintf(2, 6, "mp0(%i)", map_texture_table_numbers[0]);
@@ -737,8 +534,6 @@ void	process_map_for_normals(void)
 	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
 	
 	// nbg_sprintf(0, 13, "(%i)mtp", main_map_total_poly);
-	
-}
 
 	//Helper function for a routine which uses per-polygon light processing.
 	//This is different than the normal light processing in that it will get light data from any number of lights,
@@ -1180,7 +975,8 @@ void	update_hmap(MATRIX msMatrix)
 	//This is the upper-left polygon of the display area
 	int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); 
 	int src_norm = 0;
-	int dst_poly = 0;
+	int dst_poly = 0;	//(Destination polygon # for drawing)
+	int src_poly = 0; //(Source polygon # for texture data)
 	VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
 	
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
@@ -1238,35 +1034,41 @@ void	update_hmap(MATRIX msMatrix)
 			//HMAP Normal/Texture Finder
 			////////////////////////////////////////////////
 			x_pix_sample = (v + rowOffset + (you.dispPos[X]));
+			src_poly = x_pix_sample - y_pix_sample;
 			
-			src_norm = (x_pix_sample - y_pix_sample) * 3; //*3 because there are X,Y,Z components
+			src_norm = (src_poly) * 3; //*3 because there are X,Y,Z components
 			
 			tempNorm[X] = normTbl[src_norm]<<9;
 			tempNorm[Y] = normTbl[src_norm+1]<<9;
 			tempNorm[Z] = normTbl[src_norm+2]<<9;
 
-			texno = mapTex[x_pix_sample - y_pix_sample] & 1023;//texture_angle_resolver(dst_poly, tempNorm, &flip);
-			flip = (mapTex[x_pix_sample - y_pix_sample]>>8) & 48;
-			dither = mapTex[x_pix_sample - y_pix_sample] & (1<<15);
-			dither = (dither == 0) ? mapTex[x_pix_sample - y_pix_sample] & (1<<14) : dither;
+			texno = mapTex[src_poly] & 1023;
+			flip = (mapTex[src_poly]>>8) & 48;
+			dither = mapTex[src_poly] & DITHER_CROSS;
 
 			////////////////////////////////////////////////
 			//If any of the Z's are less than 100, render the polygon subdivided four ways.
 			// Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
 			// I think that's the only way this makes sense.
 			////////////////////////////////////////////////	
-			if(ptv[0]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[1]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL)
-			|| ptv[2]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL) || ptv[3]->pnt[Z] < (HMAP_SUBDIVISION_LEVEL))
+			if(zDepthTgt < HMAP_SUBDIVISION_LEVEL)
 			{	
-			texno += (dither & 0x8000) ? starting_small_crossing_texno : 0;
-			subbed_polys++;
-			render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
-			continue;
+				texno += (dither & DITHER_CROSS) ? starting_small_crossing_texno : 0;
+				subbed_polys++;
+				render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
+				continue;
 			}
 			//Since this texture was not subdivided, use its corresponding combined texture.
 			//That is found by adding the base map texture amount to the texture number.
 			//This also manages whether or not to use a dithered texture. It's ugly to add *another* branch to the render loop...
-			texno += (dither & 0x8000) ? starting_combined_crossing_texno : (dither & 0x4000) ? amt_of_angular_tex_per_table : map_tex_amt;
+			//The "tiny texture" is also an option if the polygon is far away.
+			if(zDepthTgt > HMAP_TINY_TEX_LEVEL)
+			{
+				texno -= map_texture_table_numbers[0];
+				texno = ultra_downscale_texno[0][0] + texno;
+			} else {
+				texno += (dither & DITHER_CROSS) ? starting_combined_crossing_texno : map_tex_amt;
+			}
 			////////////////////////////////////////////////
 			// You'd think this doesn't need to be here, because otherwise everything would be subdivided or small.
 			// BUT PLEASE TRUST ME IT *NEEDS* TO BE HERE.

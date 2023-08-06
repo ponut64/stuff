@@ -212,16 +212,24 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a.
-	UV cut and subdivision
-	1. general UV cut table is made
-	2. step 2 is make a 64x64 texture to be cut, and load it
-	3. step 3 is start UV cutting it and preview the textures
-	4. step 4 is make the subdivision texture tables
-		which'll have to be broken up into many steps
+a. assets
+	textures need work
+	palette system evaluation? eh, i'm stuck with it now
+	can change palette per level, evaluate the use of altered palettes
+	have drawing tablet now; i need to crank out textures enough to be able to pick good from bad
+	mostly just textures. lots of textures to make 4 more or less unique themes
+	so four unique palettes; that's a lot more managable
 b. Performer
 	Can't I use the major axis of the normal as a SUPER extra fast backface culler?
-
+c. other performer
+	CPU optimizations; the DSP has more potential. memory alignment benefit potential (16 byte).
+	vertex compression benefit potential (16 bit verts for heightmap)
+f. Z-Sort
+	As a general rule, walls should be sorted behind floors.
+	This isn't even about its position in the depth buffer. It is a pretty hard rule.
+	The exception case to this rule is if the wall or floor is below, behind, or above the current sector's wall or floors.
+	In this case, the current sector's walls and floors should be sorted in front of the other sector.
+	I do not know how to apply this rule to the game. But it would really help being able to control sorting groups.
 
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 

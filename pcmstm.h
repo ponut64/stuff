@@ -116,7 +116,6 @@ typedef struct {
 	Bool setup_requested;
 	Bool transfer_lock;
 	void * destination;
-
 } _generic_file_ctrl;
 
 typedef struct {
@@ -141,11 +140,12 @@ typedef struct {
 	Sint32 id; //File-system ID
 	void * destination; //Destination address
 	void (*handler_function)(void *); //Pointer to function used to handle this file
-	Bool active; // File request writes "1" when it wants this file served. Manager writes "0" when done.
-	Bool done; // File request writes "0" when it wants the file served. Manager writes "1" when done.
+	short active; // File request writes "1" when it wants this file served. Manager writes "0" when done.
+	short done; // File request writes "0" when it wants the file served. Manager writes "1" when done.
+	short immediate_or_async; // '0' specifies asynchronous. '1' specifies load immediate (stop game, load file, resume game).
 } _file_request_entry;
 
-void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *));
+void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *), short immediate_or_async);
 
 //
 //

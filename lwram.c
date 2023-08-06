@@ -48,8 +48,8 @@ void	init_lwram(void)
 // Ready Loaded Map
 	buf_map = (void*)(main_map-65536);
 // Textue Definitions
-	//In LWRAM because why use HWRAM for it? It is frequently cached data, anyhow. // 4096 bytes
-	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 2048)));
+	//In LWRAM because why use HWRAM for it? // 8kb
+	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 4096)));
 // Object Table
 	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
 // Building (Source Data) Object Table
