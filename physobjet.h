@@ -242,6 +242,7 @@ bitflag orientation for OBJECT:
 #define TRACK_DISCOVERED	(0x2)
 #define TRACK_COMPLETE		(0x1)
 #define	TRACK_CLEAR_RESET	(0xFFFB)
+#define TRACK_UNCOMPLETE	(0xFFFE)
 #define TRACK_ACTIVE		(0x8000)
 #define TRACK_INACTIVE		(0x7FFF)
 #define TRACK_NO_CHECK		(0xFF0F)

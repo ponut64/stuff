@@ -22,6 +22,10 @@ Particle Sys To-Do is done, for now.
 
 */
 
+int sparkTexno;
+int puffTexno;
+int auraTexno;
+
 _sprite		TestSpr = {
 	.lifetime = 3<<16,
 	.span[X] = 5,
@@ -40,7 +44,7 @@ _sprite		SmallPuff = {
 	.span[X] = 1,
 	.span[Y] = 1,
 	.span[Z] = 1,
-	.texno = 3,
+	.texno = 0,
 	.colorBank = 2,
 	.useClip = 0,
 	.extra = 0,
@@ -53,7 +57,7 @@ _sprite		GlowPuff = {
 	.span[X] = 1,
 	.span[Y] = 1,
 	.span[Z] = 1,
-	.texno = 4,
+	.texno = 0,
 	.colorBank = 1,
 	.useClip = 0,
 	.extra = 0,
@@ -61,8 +65,42 @@ _sprite		GlowPuff = {
 	.type = SPRITE_TYPE_BILLBOARD
 }; 
 
+_sprite		DropPuff = {
+	.lifetime = 16384,
+	.span[X] = 1,
+	.span[Y] = 2,
+	.span[Z] = 1,
+	.texno = 0,
+	.colorBank = 0,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 1,
+	.type = SPRITE_TYPE_BILLBOARD
+}; 
+
+_sprite		HopPuff = {
+	.lifetime = 32768,
+	.span[X] = 1,
+	.span[Y] = 1,
+	.span[Z] = 1,
+	.texno = 0,
+	.colorBank = 2,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 0,
+	.type = SPRITE_TYPE_BILLBOARD
+}; 
 
 _particle	particles[MAX_SPRITES];
+
+void	init_particle(void)
+{
+	HopPuff.texno = puffTexno;
+	DropPuff.texno = auraTexno;
+	GlowPuff.texno = sparkTexno;
+	SmallPuff.texno = puffTexno;
+	
+}
 
 _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity)
 {
@@ -87,7 +125,7 @@ _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos,
 }
 
 //Emits particles of a type with random velocities/directions from a radius
-void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int radius, int intensity, int count)
+void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count)
 {
 	for(int i = 0; i < count; i++)
 	{
@@ -106,8 +144,25 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		part->spr->pos[X] += fxm(part->dirUV[X], final_radius);
 		part->spr->pos[Y] += fxm(part->dirUV[Y], final_radius);
 		part->spr->pos[Z] += fxm(part->dirUV[Z], final_radius);
+		part->velocity[X] += inertia[X];
+		part->velocity[Y] += inertia[Y];
+		part->velocity[Z] += inertia[Z];
 		}
 	}
+}
+
+void	player_sliding_particles(void)
+{
+	static int effectTimeLimit = 8192;
+	static int effectTimeCount = 0;
+	
+	if(effectTimeCount > effectTimeLimit)
+	{
+	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, you.wpos, zPt, 8<<16, 8192, 3);
+	effectTimeCount = 0;
+	}
+	effectTimeCount += delta_time;
+	
 }
 
 // Mostly particle effect processor, but also arbitrates other effects e.g. scale
@@ -126,7 +181,7 @@ void	object_effects(int obj_index, int box_index)
 		case(EFFECT_SPARKLE):
 			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
 			{
-			emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, obj->pos, 12<<16, 8192, 2);
+			emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, obj->pos, zPt, 12<<16, 8192, 2);
 			obj->type.effectTimeCount = 0;
 			}
 			obj->type.effectTimeCount += delta_time;

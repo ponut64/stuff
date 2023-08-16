@@ -94,26 +94,17 @@ void pl_jump(void)
 		//you.velocity[Y] = 0;
 	}
 	you.hitSurface = false;
+	you.jumpAllowed = false;
 	//This should not be time-scaled, since it does not increment over multiple frames.
 	you.velocity[X] -= fxm(229376, you.floorNorm[X]); 
 	you.velocity[Y] -= fxm(229376, you.floorNorm[Y]);
 	you.velocity[Z] -= fxm(229376, you.floorNorm[Z]);
 	//Surface release
 	you.pos[Y] += 6553 + (1<<16);
-	pcm_play(snd_bstep, PCM_SEMI, 7);
+	pcm_play(snd_bstep, PCM_SEMI, 6);
 }
 
 void pl_jet(void){
-	if(you.hitSurface == true && you.power == you.maxPower)
-	{
-		//Surface release
-		you.pos[Y] += 6553 - fxm(you.floorNorm[X], 1<<16) - fxm(you.floorNorm[Y], 1<<16) - fxm(you.floorNorm[Z], 1<<16);
-		you.hitSurface = false;
-		//Hop
-		//This should not be time-scaled, since it does not increment over multiple frames.
-		you.velocity[Y] += (1<<16) + 32768;
-	}
-
 	if(you.dirInp == true)
 	{
 		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
@@ -122,9 +113,25 @@ void pl_jet(void){
 	} else {
 		you.dV[Y] += GRAVITY + (GRAVITY>>2);
 	}
+
+	if(you.jumpAllowed == true && you.power == you.maxPower)
+	{
+		//Surface release
+		you.pos[Y] += 6553 - fxm(you.floorNorm[X], 1<<16) - fxm(you.floorNorm[Y], 1<<16) - fxm(you.floorNorm[Z], 1<<16);
+		you.jumpAllowed = false;
+		you.hitSurface = false;
+		//Hop
+		//This should not be time-scaled, since it does not increment over multiple frames.
+		you.velocity[Y] += (1<<16) + 32768;
+		//Stuff for the puffs
+		you.wvel[X] -= you.dV[X]<<4;
+		you.wvel[Y] -= (2<<16) - (GRAVITY<<1);
+		you.wvel[Z] -= you.dV[Z]<<4;
+		emit_particle_explosion(&HopPuff, PARTICLE_TYPE_NOCOL, you.wpos, you.wvel, 12<<16, 8192, 6);
+	}
 		
 	you.power -= 1;
-	pcm_play(snd_bwee, PCM_PROTECTED, 7);
+	pcm_play(snd_bwee, PCM_PROTECTED, 6);
 }
 
 
@@ -179,7 +186,7 @@ void	pl_step_snd(void){
 	
 	if(runSnd == 1)
 	{
-		pcm_play(snd_lstep, PCM_PROTECTED, 6);
+		pcm_play(snd_lstep, PCM_PROTECTED, 5);
 	}
 	
 	oldHoofSetBools[0] = hoofSetBools[0];
@@ -436,6 +443,7 @@ void	player_phys_affect(void)
     you.ControlUV[Z] = pl_RBB.UVZ[Z];
 	} else if(you.setSlide == true)
 	{
+	player_sliding_particles();
 	copy_matrix(slide_control_matrix, &pl_RBB.UVX[0]);
 	fxRotLocalAxis(slide_control_matrix, alwaysHigh, -you.rot2[Y]);
 	you.ControlUV[X] = slide_control_matrix[6];
@@ -460,7 +468,7 @@ void	player_phys_affect(void)
 	///////////////////////////////////////////////
 	// Jump & Jet Decisions
 	///////////////////////////////////////////////
-		if(you.setJump == true)
+		if(you.setJump == true && you.jumpAllowed)
 		{
 			pl_jump();
 			you.setJump = false;
@@ -475,7 +483,7 @@ void	player_phys_affect(void)
 			pl_jet();
 		} else if(you.power < you.maxPower){
 			powerTimer += delta_time;
-			if(powerTimer > (255))
+			if(powerTimer > (4096))
 			{
 				you.power += 1;
 				powerTimer = 0;
@@ -505,6 +513,9 @@ void	player_phys_affect(void)
 	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
+		you.allowJumpTimer = 0;
+		you.jumpAllowed = true;
+		
 		//If normally on surface without modifier, high friction
 		you.surfFriction = (19660); //33%, high friction				
 		//Skiing Decisions
@@ -577,7 +588,14 @@ void	player_phys_affect(void)
 		}
 		
 	} else {
+		you.allowJumpTimer++;
 		firstSurfHit = false;
+		
+		//Allow jump at least two frames after being released from a surface
+		if(you.allowJumpTimer > 2)
+		{
+			you.jumpAllowed = false;
+		}
 	}
 	
 	////////////////////////////////////////////////////
@@ -749,6 +767,9 @@ void	player_phys_affect(void)
 		finalize_alignment(bound_box_starter.modified_box);
 		}
 		//The player's velocity is calculated independent of an actual value, so use it here instead.
+		you.wvel[X] = -you.velocity[X];
+		you.wvel[Y] = -you.velocity[Y];
+		you.wvel[Z] = -you.velocity[Z];
 		pl_RBB.velocity[X] = you.velocity[X];
 		pl_RBB.velocity[Y] = you.velocity[Y];
 		pl_RBB.velocity[Z] = you.velocity[Z];

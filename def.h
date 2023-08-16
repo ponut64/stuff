@@ -88,6 +88,7 @@ typedef struct {
 	ANGLE viewRot[XYZ];
 	int rotState[XYZ];
 	FIXED velocity[XYZ];
+	int wvel[XYZ];
 	int		dV[XYZ]; //Delta velocity (to be timescaled)
 	FIXED gravAccel;
 	FIXED Accel[XYZ];
@@ -108,6 +109,8 @@ typedef struct {
 	Bool wasClimbing;
 	Bool inMenu;
 	Bool cancelTimers;
+	Bool jumpAllowed;
+	int allowJumpTimer;
 	int sanics;
 	int avg_sanics;
 	int sanic_samples;

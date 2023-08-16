@@ -121,7 +121,7 @@ void	start_menu_layer(__basic_menu * mnu)
 	mnu->num_option = 7;
 	mnu->backColor = 79;
 	mnu->optionColor = 5;
-	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Cancel Timer",
+	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Reset Time",
 									"Level Select", "Debug Menu", "Options Menu",
 									"Texture Viewer"};
 	mnu->option_text = option_list;
@@ -707,8 +707,10 @@ void	init_hud_events(void)
 	event->soundNum = stm_orchit0;
 	event->volume = 6;
 	
-	event->texno = 5;
-	event->colorBank = 1<<6;
+	event->texno = 0;
+	static char ringgettxt[] = "All rings get!";
+	event->text = &ringgettxt[0];
+	event->colorBank = 3<<6;
 	
 	event = &hudEvents[RING1_EVENT];
 	

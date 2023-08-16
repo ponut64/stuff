@@ -172,7 +172,8 @@ void controls(void)
 
 	if(is_key_down(DIGI_A) ){
 		if(rKeyTimer <= (66 / framerate)){ 
-			if(you.hitSurface == true){
+			if(you.jumpAllowed == true)
+			{
 				you.setJump = true;
 				rKeyTimer += 50;
 			}

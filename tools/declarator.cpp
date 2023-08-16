@@ -64,10 +64,10 @@ void	create_objects(int levelNo)
 	
 	if(levelNo == 0)
 	{
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "BATLOBBY.MUS";
+		music2 = "MOVEIT.MUS";
 		music3 = "DRONK.MUS";
-		texNames[0] = "DIRTEST.TGA";
+		texNames[0] = "DIR0.TGA";
 		texNames[1] = "DIR1.TGA";
 		texNames[2] = "DIR2.TGA";
 		texNames[3] = "DIR3.TGA";
@@ -107,7 +107,7 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR1C.TGA";
 		texNames[3] = "DIR1C.TGA";
 		texNames[4] = "DIR1A.TGA";
-		palName = "PAL1.TGA";
+		palName = "PAL0.TGA";
 		declare_object_at_cell(-(180 / 40) + 1, -120, -(620 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 
 		declare_object_at_cell((540 / 40) + 1, -320, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
@@ -205,17 +205,16 @@ void	create_objects(int levelNo)
 		declare_object_at_cell(-(900 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 180, 0, 0, 0);
 	} else if(levelNo == 2)
 	{
-		// Red Vox - Choking on the Spite, good action theme.
 		// Red Vox - There's a Place, also good action theme.
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "SOCGIRL.MUS";
+		music2 = "EMINEN.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIRTEST.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL2.TGA";
+		texNames[0] = "DIR2B.TGA";
+		texNames[1] = "DIR2A.TGA";
+		texNames[2] = "DIR2D.TGA";
+		texNames[3] = "DIR2C.TGA";
+		texNames[4] = "DIR2B.TGA";
+		palName = "PAL1.TGA";
 	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 	declare_object_at_cell((500 / 40) + 1, -368, -(2500 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
 	declare_object_at_cell(-(1460 / 40) + 1, -281, -(3020 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
@@ -309,16 +308,15 @@ void	create_objects(int levelNo)
 
 	} else if(levelNo == 3)
 	{
-		// Teeth Dust in the Strongcold
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "SHAZFUNK.MUS";
+		music2 = "CHOSPITE.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIRTEST.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL3.TGA";
+		texNames[0] = "DIR3C.TGA";
+		texNames[1] = "DIR3B.TGA";
+		texNames[2] = "DIR3B.TGA";
+		texNames[3] = "DIR3A.TGA";
+		texNames[4] = "DIR3A.TGA";
+		palName = "PAL2.TGA";
 	declare_object_at_cell((1060 / 40) + 1, -172, (820 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell((1020 / 40) + 1, -260, -(420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
@@ -372,15 +370,15 @@ void	create_objects(int levelNo)
 	{
 		// Straightaway Runner
 		// Move it Boi - pizza tower
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "TULIPS.MUS";
+		music2 = "TEMPLE.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIRTEST.TGA";
-		palName = "PAL4.TGA";
+		texNames[0] = "DIR4C.TGA";
+		texNames[1] = "DIR4B.TGA";
+		texNames[2] = "DIR4A.TGA";
+		texNames[3] = "DIR4A.TGA";
+		texNames[4] = "DIR4D.TGA";
+		palName = "PAL3.TGA";
 	declare_object_at_cell((460 / 40) + 1, -350, -(5060 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell(-(500 / 40) + 1, -145, (1100 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
@@ -392,7 +390,7 @@ void	create_objects(int levelNo)
 	declare_object_at_cell((260 / 40) + 1, -116, -(4340 / 40), 7 /*t item*/, 0, 120, 0, 0, 0);
 	
 	declare_object_at_cell(-(340 / 40) + 1, -301, -(3100 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((60 / 40) + 1, -153, (2900 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((100 / 40) + 1, -153, (2940 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell((340 / 40) + 1, -382, -(4780 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);		
 	declare_object_at_cell((540 / 40) + 1, -385, -(4780 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
@@ -455,15 +453,15 @@ void	create_objects(int levelNo)
 	{
 		
 	//Despite the level's size, this is one of the harder ones.
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "DASHY.MUS";
+		music2 = "PLAYRUL.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL5.TGA";
+		texNames[0] = "DIR1B.TGA";
+		texNames[1] = "DIR1B.TGA";
+		texNames[2] = "DIR1C.TGA";
+		texNames[3] = "DIR1C.TGA";
+		texNames[4] = "DIR1A.TGA";
+		palName = "PAL0.TGA";
 	declare_object_at_cell(-(280 / 40) + 1, -97, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 
 	declare_object_at_cell(-(1820 / 40) + 1, -360, (1900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -528,19 +526,19 @@ void	create_objects(int levelNo)
 // If I forget, path is:
 // South -> North -> West -> East -> South (Ramp) -> West (Tunnel) -> North (Hill) -> East (NE Goal Corner)
 // This level's gonna be HARD.
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "SOCGIRL.MUS";
+		music2 = "EMINEN.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL6.TGA";
+		texNames[0] = "DIR2B.TGA";
+		texNames[1] = "DIR2A.TGA";
+		texNames[2] = "DIR2D.TGA";
+		texNames[3] = "DIR2C.TGA";
+		texNames[4] = "DIR2B.TGA";
+		palName = "PAL1.TGA";
 	declare_object_at_cell(-(380 / 40) + 1, -276, -(1620 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(100 / 40) + 1, -278, -(60 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(1500 / 40) + 1, -57, (1540 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(1500 / 40) + 1, -59, (1540 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell((500 / 40) + 1, -212, (980 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
 	declare_object_at_cell(-(100 / 40) + 1, -281, (820 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -631,15 +629,15 @@ void	create_objects(int levelNo)
 	} else if(levelNo == 7)
 	{
 		// MGMT Siberian Breaks ~7:40 "i hope i die before i get sold" nice
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "SHAZFUNK.MUS";
+		music2 = "CHOSPITE.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL7.TGA";
+		texNames[0] = "DIR3C.TGA";
+		texNames[1] = "DIR3B.TGA";
+		texNames[2] = "DIR3B.TGA";
+		texNames[3] = "DIR3A.TGA";
+		texNames[4] = "DIR3A.TGA";
+		palName = "PAL2.TGA";
 	declare_object_at_cell((20 / 40) + 1, -215, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(1340 / 40) + 1, -458, (2260 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
@@ -730,17 +728,15 @@ void	create_objects(int levelNo)
 	} else if(levelNo == 8)
 	{
 	//tbh this level sucks, but here it is
-	//i think this level might be the "pain song" level tbh
-	//i should add teleporters and shit... after july i guess
-		music1 = "TRSC202.MUS";
-		music2 = "TRZONE.MUS";
+		music1 = "TULIPS.MUS";
+		music2 = "TEMPLE.MUS";
 		music3 = "LONKR.MUS";
-		texNames[0] = "DIR0.TGA";
-		texNames[1] = "DIR1.TGA";
-		texNames[2] = "DIR2.TGA";
-		texNames[3] = "DIR3.TGA";
-		texNames[4] = "DIR4.TGA";
-		palName = "PAL8.TGA";
+		texNames[0] = "DIR4C.TGA";
+		texNames[1] = "DIR4B.TGA";
+		texNames[2] = "DIR4A.TGA";
+		texNames[3] = "DIR4A.TGA";
+		texNames[4] = "DIR4D.TGA";
+		palName = "PAL3.TGA";
 	declare_object_at_cell(-(1580 / 40) + 1, -454, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
 	declare_object_at_cell(-(3540 / 40) + 1, -193, (3900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);

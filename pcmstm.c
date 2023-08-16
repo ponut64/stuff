@@ -439,6 +439,8 @@ void		pcm_stream_host(void(*game_code)(void))
 	static Sint32 gfs_svr_status;
 	static Sint32 bytes_read_now;
 	static Sint32 byte_dummy;
+	
+	RESTART:
 
 	cd_init();
 
@@ -615,9 +617,9 @@ void		pcm_stream_host(void(*game_code)(void))
 					stm.stopping = true;
 					stm.restarting = true;
 					pcm_cease(stm.pcm_num);
-					GFS_Close(buf.file_handle);
-					load_file_list_immediate();
 					file.setup_requested = false;
+					load_file_list_immediate();
+					goto RESTART; //Ugly fix
 				} else {
 					file_system_status_reporting = REPORT_SETTING_UP_FILE;
 					//game_code();

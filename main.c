@@ -38,6 +38,7 @@ I am sorry for the pain you had to go through.
 #include "gamespeed.h"
 #include "menu.h"
 #include "sound.h"
+#include "particle.h"
 //
 #include "lwram.c"
 //
@@ -147,6 +148,13 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
 	WRAP_NewTexture((Sint8*)"FLAGICON.TGA", (void*)dirty_buf);
+	sparkTexno = numTex;
+	WRAP_NewTexture((Sint8*)"SPARK.TGA", (void*)dirty_buf);
+	auraTexno = numTex;
+	WRAP_NewTexture((Sint8*)"AURA.TGA", (void*)dirty_buf);
+	puffTexno = numTex;
+	WRAP_NewTexture((Sint8*)"PUFF.TGA", (void*)dirty_buf);
+
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -235,9 +243,6 @@ void	game_frame(void)
 	// nbg_sprintf(2, 10, "ay(%i)", apd1.ay);
 	// nbg_sprintf(2, 11, "lt(%i)", apd1.lta);
 	// nbg_sprintf(2, 12, "rt(%i)", apd1.rta);
-	// Okay, shit's crashing on real hardware, but not any emulator.
-	// The cause is my workarea.c
-	// Exactly what in workarea.c, I do not know.
 
 	slCashPurge();
 	prep_map_mtx();
@@ -279,10 +284,16 @@ void	attributions(void)
 	slPrint("fafling - actually read the manuals", slLocate(3, 13));
 	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
 	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
+	
+	slPrint("Music __STOLEN__ from:", slLocate(3,16));
+	slPrint("Red Vox, Freedom Planet, Pizza Tower", slLocate(3,17));
+	slPrint("Also: SGAP (Captive Unicorns)", slLocate(3, 18));
+	slPrint("Also: AndTheRainfall",	slLocate(3, 19));
+	slPrint("Also: Whowever made Shazfunk", slLocate(3, 20));
 
-	slPrint("Sound Driver by Ponut64", slLocate(3, 21));
-	slPrint("Great Value Game Engine", slLocate(3, 22));
-	slPrint("also by Ponut64", slLocate(3, 23));
+	slPrint("Sound Driver by Ponut64", slLocate(3, 22));
+	slPrint("Great Value Game Engine", slLocate(3, 23));
+	slPrint("also by Ponut64", slLocate(3, 24));
 	
 	//testing_level_data((Sint8*)"LIST0.REM", (void*)dirty_buf);
 	
@@ -377,6 +388,7 @@ int	main(void)
 	
 	//load_test();
 	attributions();
+	init_particle();
 	init_hud_events();
 	
 	set_camera();

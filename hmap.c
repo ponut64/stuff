@@ -1073,8 +1073,8 @@ void	update_hmap(MATRIX msMatrix)
 			// You'd think this doesn't need to be here, because otherwise everything would be subdivided or small.
 			// BUT PLEASE TRUST ME IT *NEEDS* TO BE HERE.
 			////////////////////////////////////////////////
-			//preclipping(ptv, &flip, &pclp);
-			pclp |= VDP1_PRECLIPPING_DISABLE;
+			preclipping(ptv, &flip, &pclp);
+			// pclp |= VDP1_PRECLIPPING_DISABLE;
 			////////////////////////////////////////////////
 			//Lighting
 			////////////////////////////////////////////////

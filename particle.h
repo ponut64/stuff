@@ -25,14 +25,22 @@ typedef struct {
 	unsigned short extra; //Type-specific data
 } _particle;
 
+extern int sparkTexno;
+extern int puffTexno;
+extern int auraTexno;
+
 extern _sprite		TestSpr; 
 extern _sprite		SmallPuff;
 extern _sprite		GlowPuff;
+extern _sprite		DropPuff;
+extern _sprite		HopPuff;	
 extern _particle	particle_starter;
 extern _particle	particles[MAX_SPRITES];
 
+void		init_particle(void);
 _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity);
-void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int radius, int intensity, int count);
+void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count);
+void		player_sliding_particles(void);
 void		object_effects(int obj_index, int box_index);
 void		particle_collision_handler(_particle * part, int * normal);
 void		operate_particles(void);

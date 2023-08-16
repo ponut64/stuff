@@ -212,43 +212,15 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. assets
-	textures need work
-	palette system evaluation? eh, i'm stuck with it now
-	can change palette per level, evaluate the use of altered palettes
-	have drawing tablet now; i need to crank out textures enough to be able to pick good from bad
-	mostly just textures. lots of textures to make 4 more or less unique themes
-	so four unique palettes; that's a lot more managable
-b. Performer
-	Can't I use the major axis of the normal as a SUPER extra fast backface culler?
-c. other performer
-	CPU optimizations; the DSP has more potential. memory alignment benefit potential (16 byte).
-	vertex compression benefit potential (16 bit verts for heightmap)
-f. Z-Sort
-	As a general rule, walls should be sorted behind floors.
-	This isn't even about its position in the depth buffer. It is a pretty hard rule.
-	The exception case to this rule is if the wall or floor is below, behind, or above the current sector's wall or floors.
-	In this case, the current sector's walls and floors should be sorted in front of the other sector.
-	I do not know how to apply this rule to the game. But it would really help being able to control sorting groups.
-
+a. level adjustments
+	0. need tutorial! -- i may not have time for that; i think i need to just create a simple level 0
+	4. need to indicate the flag stand open trigger better
+	10. need to adjudicate speed rankings on gates
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
-a. particle effect system ? - done
-b. destruction of entity into particles ? - OH YEAH THAT'S FUN!
-c. shrink effect on entity ? - Abstracted nicely
 ca. animated textures - simple thing, visual priority makes it low
-d. i am absolutely going to have to figure out texture cutting (in addition to the current tiling system)
-e. HUD event system is done
-f. 3D pad support + 3D pad menu? - pretty important, but low priority
 g. streaming image system ? - for memes.. -- non-essential, would rather test levels
-h. Level binary loading
-	A. List of objects is currently loaded from a file on CD.
-	B. Music file names are also loaded from this file.
-	2. What assets are in this level (?)
-	3. Object type list for the level (?)
-	5. Any other level-specific parameters (palette change, sun's brightness, sun angle, etc)
-i. Improved palette management - allowing each level to change the palette
 j. Improved asset management - allowing each level to load assets specific to it
 k. Music visualizer
 	Whether ADX stream or PCM stream.
@@ -1067,7 +1039,7 @@ void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stato
 	{
 		if(you.sanics > (4<<16))
 		{
-		emit_particle_explosion(&TestSpr, PARTICLE_TYPE_NORMAL, someOBJECTdata->pos, 15<<16, 3<<16, 16);
+		emit_particle_explosion(&TestSpr, PARTICLE_TYPE_NORMAL, someOBJECTdata->pos, zPt, 15<<16, 3<<16, 16);
 		someOBJECTdata->type.ext_dat |= OBJECT_DISABLED;
 		pcm_play(snd_khit, PCM_PROTECTED, 6);
 		}
@@ -1266,6 +1238,12 @@ void	manage_track_data(_declaredObject * someLDATA)
 		{
 			someLDATA->dist = 2<<16; //Set track discovery timer
 		}
+	} else if(you.cancelTimers)
+	{
+		//Reset the timer & track
+		someLDATA->dist = 0;
+		someLDATA->type.ext_dat &= TRACK_UNCOMPLETE;
+		someLDATA->type.ext_dat |= TRACK_RESET;
 	}
 	
 	////////////////////
@@ -1356,7 +1334,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			
 			if(manager_type == MANAGER_RETURN_PT)
 			{
-				if(item_type == ITEM_TYPE_FLAG && *edata & FLAG_RETURN)
+				if((item_type == ITEM_TYPE_FLAG && *edata & FLAG_RETURN) || you.cancelTimers)
 				{
 					*edata &= ITEM_NO_FLAGS;
 					someITEMdata->pix[X] = someLDATA->pix[X];
@@ -1441,8 +1419,11 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			//nbg_sprintf(0, 7, "                           ");
 			if(someLDATA->dist < 0 || you.cancelTimers)
 			{
+				nbg_sprintf(0, 7, "                           ");
+				someLDATA->type.ext_dat &= ITEM_MANAGER_ACTIVE;
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
+				someLDATA->dist = 0;
 			}
 			set_music_track = 1;
 			stm.times_to_loop = 1;
@@ -1559,7 +1540,9 @@ void	ldata_manager(void)
 					//If you have enough points and crossed all the tracks, enable the level changer.
 					someLDATA->type.ext_dat |= 0x80;
 			//	}
-		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && !(someLDATA->type.ext_dat & ITEM_MANAGER_INACTIVE))
+		} else if(you.cancelTimers ||
+		((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER &&
+		!(someLDATA->type.ext_dat & ITEM_MANAGER_INACTIVE)))
 		{
 			run_an_item_manager(someLDATA);
 		}
