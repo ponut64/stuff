@@ -19,6 +19,9 @@
 #define EVENT_STROBE_FLASH	('F')
 #define EVENT_STROBE_BLINK	('O')
 
+#define EVENT_NO_SOUND		(63)
+#define EVENT_SHOW_TEXT		(0)
+
 #define RING1_EVENT				(1)
 #define RING2_EVENT				(2)
 #define RING3_EVENT				(3)
@@ -37,6 +40,15 @@
 #define FLAG_CAPTURED_EVENT		(14)
 #define FLAG_RETURNED_EVENT		(15)
 #define FLAG_OPEN_EVENT			(16)
+
+#define SIGN_0					(17)
+#define	SIGN_1					(18)
+#define	SIGN_2					(19)
+#define	SIGN_3					(20)
+#define	SIGN_4					(21)
+#define	SIGN_5					(22)
+#define	SIGN_6					(23)
+#define SIGN_7					(24)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

@@ -21,7 +21,7 @@
 #define TRACK_DATA		(0x100) //Level data, gate data definition
 #define LEVEL_CHNG		(0x200) //Level data, level change location definition
 #define PSTART			(0x300) //Level data, player start location definition
-#define SOUND_TRIG		(0x400) //Level data, sound event trigger, stream-type
+#define EVENT_TRIG		(0x400) //Level data, sound event trigger, stream-type
 #define SDTRIG_PCM		(0x410) //Level data, sound event trigger, PCM-type
 #define ITEM_MANAGER	(0x500) //Level data, item manager
 
@@ -251,6 +251,40 @@ bitflag orientation for OBJECT:
 #define TRACK_GUIDE_NUMBER	(0xF00)
 #define TRACK_LAST_CHECKED	(0xF0)
 #define TRACK_LAST_PASSED	(0xF)
+/*
+	EVENT_TRIG orientation:
+	_sobject
+		ext_dat 
+			15 : Boolean. Enable/disable trigger.
+			14-12 : "LDATA" definition bits.
+			8-11 : "EVENT_TRIG" definition bits.
+			7-5 : nothing
+			4 : Stream or from-memory bitflag. 
+				If bit 4 is low, the sound is treated as an ADX stream, and is selected from a special ADX stream list.
+				If bit 4 is high, the sound is played from the on-hand PCM list on the driver.
+			0-3 : Presently unused.
+		radius
+			the radius of the trigger (in >>16 units)
+	_declaredObject
+		pos[xyz]
+			Location of the trigger
+		more_data
+			7 - 0 : The sound number intended to play back.
+			11 - 8 : The volume of the sound; directly related to the volume sent to the driver (shift right eight).
+		link 
+			declared object array entry of another level data
+*/
+
+#define DISABLE_TRIGGER 	(0x8000)
+#define ENABLE_TRIGGER		(0x7FFF)
+#define TRIGGER_TYPE		(0xF0)
+#define TRIGGER_TYPE_ADX	(0x10)
+#define TRIGGER_TYPE_PCM	(0x00)
+#define TRIGGER_TYPE_HUD	(0x20)
+
+#define MDAT_NUMBER			(0xFF)
+#define MDAT_VOLUME			(0xF00)
+
 
 /**
 //////////////////////////////////////////////////////////////////
@@ -315,27 +349,7 @@ bitflag orientation for OBJECT:
 		link 
 			declared object array entry of another level change
 /////////////////////////////////////////////////////////////////
-	SOUND_TRIG orientation:
-	_sobject
-		ext_dat 
-			15 : Boolean. If this sound has triggered yet, or not. ("popped")
-			14-12 : "LDATA" definition bits.
-			8-11 : "SOUND_TRIG" definition bits.
-			7-5 : nothing
-			4 : Stream or from-memory bitflag. 
-				If bit 4 is low, the sound is treated as an ADX stream, and is selected from a special ADX stream list.
-				If bit 4 is high, the sound is played from the on-hand PCM list on the driver.
-			0-3 : Presently unused.
-	_declaredObject
-		pos[xyz]
-			Location of the trigger
-		rot[xyz]
-			The radius of the trigger (in whole-number sizes e.g. "1" is approximately 1<<16 ... as per the declared function)
-		more_data
-			7 - 0 : The sound number intended to play back.
-			11 - 8 : The volume of the sound; directly related to the volume sent to the driver (shift right eight).
-		link 
-			declared object array entry of another level change
+
 **/
 
 

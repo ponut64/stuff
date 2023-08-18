@@ -213,7 +213,15 @@ a. (optional) mode for CTF wherein it is time + speed; time spent under a minimu
 
 Immediate next steps:
 a. level adjustments
-	0. need tutorial! -- i may not have time for that; i think i need to just create a simple level 0
+	0. need tutorial! 
+		a. have basic level to turn into a "tutorial"
+		b. plan: streams sound clips + puts text on screen via event system to tell player:
+		there is the JUMP button, which pushes you by the surface angle
+		there is the HOP button, which will also glide
+		there is the SLIDE button, which you can use to go very fast
+		.. maybe using posters is better? i'll need to rush to implement it...
+		ah, well: a poster, if you stand near it, it puts up the event. dunno if sound is worth it.
+		the flag stand is unlocked by finding the goal stand
 	4. need to indicate the flag stand open trigger better
 	10. need to adjudicate speed rankings on gates
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
@@ -273,21 +281,25 @@ void	object_control_loop(int ppos[XY])
 					// slPrintFX(position_difference[Y], slLocate(2, 8));
 					// slPrintFX(position_difference[Z], slLocate(2, 9));
 					
-					if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == SOUND_TRIG && !(dWorldObjects[i].type.ext_dat & OBJPOP))
+					if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == EVENT_TRIG && !(dWorldObjects[i].type.ext_dat & OBJPOP))
 					{	
 						// "360" is a magic number to convert the rotation angle into the literal size.
 						// This is used for radius of collision with the trigger.
-						if(position_difference[X] < (dWorldObjects[i].rot[X] * 360)
-						&& position_difference[Y] < (dWorldObjects[i].rot[Y] * 360)
-						&& position_difference[Z] < (dWorldObjects[i].rot[Z] * 360))
+						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
+						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
+						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16))
 						{
-							if((dWorldObjects[i].type.ext_dat & SDTRIG_PCM) == SDTRIG_PCM)
+							if((dWorldObjects[i].type.ext_dat & TRIGGER_TYPE) == TRIGGER_TYPE_PCM)
 							{
-								pcm_play(dWorldObjects[i].more_data & 0xFF, PCM_PROTECTED, dWorldObjects[i].more_data>>8);
+								pcm_play(dWorldObjects[i].more_data & MDAT_NUMBER, PCM_PROTECTED, dWorldObjects[i].more_data>>8);
 								dWorldObjects[i].type.ext_dat |= OBJPOP;
-							} else {
-								start_adx_stream((Sint8*)"TESTSND.ADX", dWorldObjects[i].more_data>>8);
+							} else if((dWorldObjects[i].type.ext_dat & TRIGGER_TYPE) == TRIGGER_TYPE_ADX)
+							{
+								start_adx_stream(stmsnd[dWorldObjects[i].more_data & MDAT_NUMBER], dWorldObjects[i].more_data>>8);
 								dWorldObjects[i].type.ext_dat |= OBJPOP;
+							} else if((dWorldObjects[i].type.ext_dat & TRIGGER_TYPE) == TRIGGER_TYPE_HUD)
+							{
+								start_hud_event(dWorldObjects[i].more_data & MDAT_NUMBER);
 							}
 						}
 

@@ -73,27 +73,74 @@ void	create_objects(int levelNo)
 		texNames[3] = "DIR3.TGA";
 		texNames[4] = "DIR4.TGA";
 		palName = "PAL0.TGA";
-		declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
-		declare_object_at_cell(-(260 / 40) + 1, -69, (380 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(220 / 40) + 1, -69, (240 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell(-(140 / 40) + 1, -69, (180 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
-		declare_object_at_cell(-(140 / 40) + 1, -69, (260 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
-		declare_object_at_cell((220 / 40) + 1, -69, -(180 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
-		declare_object_at_cell((140 / 40) + 1, -69, -(220 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		declare_object_at_cell((340 / 40) + 1, -333, (20 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
 		
-		declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
-		declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
-		declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+		declare_object_at_cell(-(20 / 40) + 1, -269, -(20 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((160 / 40) + 1, -133, (880.0 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
 		
-		declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((20 / 40) + 1, -227, -(260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((20 / 40) + 1, -227, (260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 		
-		declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(380 / 40) + 1, -315, -(860 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(180 / 40) + 1, -315, -(860 / 40), 18 /*post00*/, 0, 0, 0, 0, 0);
+		
+		declare_object_at_cell(-(340 / 40) + 1, -239, (20 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		declare_object_at_cell(-(220 / 40) + 1, -239, -(20 / 40), 18 /*post00*/, 0, 0, 0, 0, 1<<4);
+		
+		declare_object_at_cell(-(380 / 40) + 1, -310, (940 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		declare_object_at_cell(-(180 / 40) + 1, -310, (940 / 40), 18 /*post00*/, 0, 0, 0, 0, 2<<4);
+		
+		declare_object_at_cell((260 / 40) + 1, -431, (20 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+		declare_object_at_cell(-(260 / 40) + 1, -159, -(1260 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+		declare_object_at_cell((20 / 40) + 1, -230, -(460 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+		declare_object_at_cell((20 / 40) + 1, -230, (460 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+		declare_object_at_cell(-(260 / 40) + 1, -155, (1260 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+		declare_object_at_cell((180 / 40) + 1, -286, -(900 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+		declare_object_at_cell(-(20 / 40) + 1, -281, (1220 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+		
+		declare_object_at_cell((60 / 40) + 1, -281, -(60 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((60 / 40) + 1, -281, -(60 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 17, 0);
+		
+		declare_object_at_cell((100 / 40) + 1, -145, (820 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((100 / 40) + 1, -145, (820 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 18, 0);
+		
+		declare_object_at_cell(-(220 / 40) + 1, -184, -(20 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(220 / 40) + 1, -184, -(20 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 19, 0);
+		
+		declare_object_at_cell(-(180 / 40) + 1, -259, -(940 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(180 / 40) + 1, -259, -(940 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 20, 0);
+		
+		declare_object_at_cell(-(300 / 40) + 1, -254, (940 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(300 / 40) + 1, -254, (940 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 21, 0);
+		
+		declare_object_at_cell((180 / 40) + 1, -329, -(20 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((180 / 40) + 1, -329, -(20 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 22, 0);
+		
+		declare_object_at_cell((20 / 40) + 1, -235, (500 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((20 / 40) + 1, -235, (500 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 23, 0);
+
+		declare_object_at_cell((20 / 40) + 1, -235, -(500 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((20 / 40) + 1, -235, -(500 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 24, 0);
+		
+		declare_object_at_cell((180 / 40) + 1, -192, -(900 / 40), 14 /*greece03*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(20 / 40) + 1, -187, (1220 / 40), 14 /*greece03*/, 0, 45, 0, 0, 0);
+		
+		declare_object_at_cell((260 / 40) + 1, -343, (20 / 40), 22 /*float03*/, 0, -45, 0, 0, 0);
+		
+		// declare_object_at_cell((0 / 40) + 1, -20, (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell((260 / 40), -10, (140 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
+		// declare_object_at_cell((260 / 40), -10, (180 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (220 / 40), 3 /*t item*/, 0, 30, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (260 / 40), 4 /*t item*/, 0, 45, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (300 / 40), 5 /*t item*/, 0, 90, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (340 / 40), 6 /*t item*/, 0, 105, 0, 	0, 0);
+		// declare_object_at_cell((260 / 40), -10, (380 / 40), 7 /*t item*/, 0, 120, 0, 	0, 0);
+		
+		// declare_object_at_cell(-(300 / 40) + 1, -4, -(340 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
+		// declare_object_at_cell((340 / 40) + 1, -5, -(340 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
+		
+		// declare_object_at_cell((120 / 40) + 1, -100, -(0 / 40), 22 /*float03*/, 0, 0, 0, 0, 0);
 		
 		// declare_object_at_cell((0 / 40) + 1, -100, (200 / 40), 36 /*tgate0*/, 0, 90, 0, 0, 0);
 		

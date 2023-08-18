@@ -193,6 +193,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAG.GVP",			HWRAM_ldptr, &entities[57], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FFIELD.GVP",		HWRAM_ldptr, &entities[55], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SIGN.GVP",			HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
+
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -222,8 +224,6 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		HWRAM_ldptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAT.GVP",		HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);

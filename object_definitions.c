@@ -413,12 +413,12 @@ _sobject Player_Start_Location = {
 	.ext_dat = LDATA | PSTART
 };
 
-_sobject PCM_Sound_Trigger = {
+_sobject PCM_EVENT_trigger = {
 	.entity_ID = 0,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = LDATA | SOUND_TRIG
+	.ext_dat = LDATA | EVENT_TRIG
 };
 
 _sobject Empty = {
@@ -435,6 +435,14 @@ _sobject Gate_Plane = {
 	.radius[Y] = 0,
 	.radius[Z] = 0,
 	.ext_dat = GHOST
+};
+
+_sobject Sign0 = {
+	.entity_ID = 0,
+	.radius[X] = 40,
+	.radius[Y] = 40,
+	.radius[Z] = 40,
+	.ext_dat = LDATA | EVENT_TRIG | TRIGGER_TYPE_HUD
 };
 
 _sobject FlagStand = {
@@ -534,6 +542,8 @@ void	fill_obj_list(void)
 	objList[35] = &Build24;
 	objList[36] = &Build25;
 	
+	objList[49] = &Sign0;
+	
 	objList[50] = &Gate_Plane;
 	objList[51] = &StartStand;
 	objList[52] = &CrushBlock;
@@ -547,7 +557,6 @@ void	fill_obj_list(void)
 	objList[59] = &SampleItemManager;
 	objList[60] = &SampleTrackData;
 	objList[61] = &Player_Start_Location;
-	objList[62] = &PCM_Sound_Trigger;
 
 	objList[63] = &Empty;
 }
