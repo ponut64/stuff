@@ -713,8 +713,8 @@ void	create_objects(int levelNo)
 	declare_object_at_cell((100 / 40) + 1, -242, (2140 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);		
 	declare_object_at_cell((100 / 40) + 1, -242, (2460 / 40), 18 /*post00*/, 0, 0, 0, 0, 4<<4);
 	
-	declare_object_at_cell(-(2220 / 40) + 1, -190, (1700 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);		
-	declare_object_at_cell(-(2620 / 40) + 1, -190, (1700 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
+	declare_object_at_cell(-(2300 / 40) + 1, -182, (1700 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);		
+	declare_object_at_cell(-(2540 / 40) + 1, -182, (1700 / 40), 18 /*post00*/, 0, 0, 0, 0, 5<<4);
 	
 	declare_object_at_cell((100 / 40) + 1, -405,  -(100 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(20 / 40) + 1, -405,  -(20 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
@@ -735,7 +735,6 @@ void	create_objects(int levelNo)
 	declare_object_at_cell((180 / 40) + 1, -465, (20 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
 	declare_object_at_cell(-(140 / 40) + 1, -465, -(100 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
 	declare_object_at_cell((1020 / 40) + 1, -277, -(540 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
-	declare_object_at_cell(-(2420 / 40) + 1, -174, (1700 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
 	
 	declare_object_at_cell((500 / 40) + 1, -245, (2300 / 40), 16 /*overhang*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(300 / 40) + 1, -245, (2300 / 40), 16 /*overhang*/, 0, 0, 0, 0, 0);

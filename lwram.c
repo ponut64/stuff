@@ -57,9 +57,9 @@ void	init_lwram(void)
 //Space used from end of LWRAM: about 256 KB
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Map Normal Table
-	normTbl = (void*)((unsigned int)(LWRAM)); //In LWRAM // 192KB
+	lightTbl = (void*)((unsigned int)(LWRAM)); //In LWRAM // 192KB
 // 65536/x table // 128KB // 256KB into RAM
-	division_table = (void*)((unsigned int)(normTbl + (192 * 1024))); //In LWRAM // 128KB
+	division_table = (void*)((unsigned int)(lightTbl + (192 * 1024))); //In LWRAM // 128KB
 // Map Texture Table
 	mapTex = (void*)((unsigned int)(division_table + (128 * 1024))); //In LWRAM // 64KB
 //

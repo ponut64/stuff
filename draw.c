@@ -148,9 +148,9 @@ void	player_animation(void)
 {
 	
 	//Profiling Set-up
-	//static int start_time;
+	static int start_time;
 	
-	//start_time = get_time_in_frame();
+	start_time = get_time_in_frame();
 	
 			//Animation Chains
 					static int airTimer = 0;
@@ -240,7 +240,7 @@ void	player_animation(void)
 				flap.reset_enable = 'Y';
 			}
 			
-	//animation_time = get_time_in_frame() - start_time;
+	animation_time = get_time_in_frame() - start_time;
 	
 }
 
@@ -248,9 +248,9 @@ void	player_draw(void)
 {
 	
 	//Profiling Set-up
-	//static int start_time;
+	static int start_time;
 
-	//start_time = get_time_in_frame();
+	start_time = get_time_in_frame();
 	slPushMatrix();
 	{
 
@@ -278,7 +278,7 @@ void	player_draw(void)
 		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
 		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
 	
-	//player_render_time = get_time_in_frame() - start_time;
+	player_render_time = get_time_in_frame() - start_time;
 
 }
 
@@ -458,16 +458,16 @@ void	map_draw(void)
 
 void	master_draw(void)
 {
-	//static int time_at_start;
-	//static int time_at_dsp;
-	//static int time_of_master_draw;
-	//static int time_of_object_management;
-	//static int time_at_end;
-	//
-	//static int math_time;
-	//
-	//time_at_start = get_time_in_frame();
-	//
+	static int time_at_start;
+	static int time_at_dsp;
+	static int time_of_master_draw;
+	static int time_of_object_management;
+	static int time_at_end;
+	
+	static int math_time;
+	
+	time_at_start = get_time_in_frame();
+	
 	if(!you.inMenu)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
@@ -477,13 +477,13 @@ void	master_draw(void)
 	object_control_loop(you.dispPos);
 
 	//
-	//time_at_dsp = get_time_in_frame();
+	time_at_dsp = get_time_in_frame();
 	//
 	map_draw();
 	map_draw_prep();
 	//
-	//time_of_master_draw = get_time_in_frame() - time_at_dsp;
-	//math_time = get_time_in_frame();
+	time_of_master_draw = get_time_in_frame() - time_at_dsp;
+	math_time = get_time_in_frame();
 	//
 	operate_particles();
 	hud_menu();
@@ -496,7 +496,7 @@ void	master_draw(void)
 		player_collision_test_loop();
 		collide_with_heightmap(&pl_RBB);
 		//
-	//time_of_object_management = get_time_in_frame() - math_time;
+	time_of_object_management = get_time_in_frame() - math_time;
 	player_animation();
 		//
 	} else if(you.inMenu)
@@ -507,23 +507,25 @@ void	master_draw(void)
 		//
 	}
 
-	//time_at_end = get_time_in_frame();
+	time_at_end = get_time_in_frame();
 	//Debug stuff. Important!
 	
-	// slPrintFX(time_at_start, slLocate(6, 7));
-	// slPrintFX(time_at_dsp, slLocate(6, 8));
-	// slPrintFX(time_of_master_draw, slLocate(6, 9));
-	// slPrintFX(time_of_object_management, slLocate(6, 10));
-	// slPrintFX(animation_time, slLocate(6, 11));
-	// slPrintFX(time_at_end, slLocate(6, 12));
-	// if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 13));
-	// nbg_sprintf(2, 7, "Start:");
-	// nbg_sprintf(2, 8, "DSP:");
-	// nbg_sprintf(2, 9, "Map:");
-	// nbg_sprintf(2, 10, "Objs:");
-	// nbg_sprintf(2, 11, "Anim:");
-	// nbg_sprintf(2, 12, "End:");
-	// nbg_sprintf(2, 13, "Plyr:");
-		
+	if(viewInfoTxt == 1)
+	{
+	slPrintFX(time_at_start, slLocate(6, 7));
+	slPrintFX(time_at_dsp, slLocate(6, 8));
+	slPrintFX(time_of_master_draw, slLocate(6, 9));
+	slPrintFX(time_of_object_management, slLocate(6, 10));
+	slPrintFX(animation_time, slLocate(6, 11));
+	slPrintFX(time_at_end, slLocate(6, 12));
+	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 13));
+	nbg_sprintf(2, 7, "Start:");
+	nbg_sprintf(2, 8, "DSP:");
+	nbg_sprintf(2, 9, "Map:");
+	nbg_sprintf(2, 10, "Objs:");
+	nbg_sprintf(2, 11, "Anim:");
+	nbg_sprintf(2, 12, "End:");
+	nbg_sprintf(2, 13, "Plyr:");
+	}
 }
 

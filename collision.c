@@ -62,59 +62,35 @@ __attribute__((always_inline)) int		edge_wind_test(POINT plane_p0, POINT plane_p
 	
 	*/
 	
-	//Triangle exception handling
-	// if(plane_p0[X] == plane_p1[X] &&
-	// plane_p0[Y] == plane_p1[Y] &&
-	// plane_p0[Z] == plane_p1[Z])
-	// {
-		// return true;
-	// }
-	
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	//Using integer math. The precision of fixed point is not required, and this prevents overflows.
 	/////////////////////////////////////////////////////////////////////////////////////////////
-	if(discard == N_Xp)
+	switch(discard)
 	{
-		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
-		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
+	case (N_Xp):
 		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		//slPrint("Discard X+", slLocate(2, 5));
-	} else if(discard == N_Zp)
-	{
-		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
-		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
+		break;
+	case (N_Zp):
 		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		//slPrint("Discard Z+", slLocate(2, 5));
-	} else if(discard == N_Yn)
-	{
-		// left = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
-		// right = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X]));
+		break;
+	case (N_Yn):
 		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		//slPrint("Discard Y+", slLocate(2, 5));
-	} else if(discard == N_Xn)
-	{
-		// right = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[Z] - plane_p0[Z]));
-		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[Y] - plane_p0[Y]));
+		break;
+	case (N_Xn):
 		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		//slPrint("Discard X-", slLocate(2, 5));
-	} else if(discard == N_Zn)
-	{
-		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Y] - plane_p0[Y]));
-		// left = fxm((test_pt[Y] - plane_p0[Y]), (plane_p1[X] - plane_p0[X]));
+		break;
+	case (N_Zn):
 		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		//slPrint("Discard Z-", slLocate(2, 5));
-	} else if(discard == N_Yp)
-	{
-		// right = fxm((test_pt[X] - plane_p0[X]), (plane_p1[Z] - plane_p0[Z]));
-		// left = fxm((test_pt[Z] - plane_p0[Z]), (plane_p1[X] - plane_p0[X])); 
+		break;
+	case (N_Yp):
 		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		//slPrint("Discard Y-", slLocate(2, 5));
+		break;
 	}
 	// slPrint("Left:", slLocate(2, 7 + (prntidx * 2)));
 	// slPrintFX(left, slLocate(2, 8 + (prntidx * 2)));

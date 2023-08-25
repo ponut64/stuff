@@ -114,6 +114,9 @@ void pl_jet(void){
 		you.dV[Y] += GRAVITY + (GRAVITY>>2);
 	}
 
+	//X/Z Speed Allowance for zero air thrust
+	int hvscl = fxm(you.velocity[X], you.velocity[X]) + fxm(you.velocity[Z], you.velocity[Z]);
+
 	if(you.jumpAllowed == true && you.power == you.maxPower)
 	{
 		//Surface release
@@ -128,7 +131,17 @@ void pl_jet(void){
 		you.wvel[Y] -= (2<<16) - (GRAVITY<<1);
 		you.wvel[Z] -= you.dV[Z]<<4;
 		emit_particle_explosion(&HopPuff, PARTICLE_TYPE_NOCOL, you.wpos, you.wvel, 12<<16, 8192, 6);
+	} else if(you.jumpAllowed == false && you.power == you.maxPower && hvscl < 16384)
+	{
+		you.dV[X] += fxm(32768, you.ControlUV[X]);
+		you.dV[Z] += fxm(32768, you.ControlUV[Z]);
+		//Stuff for the puffs
+		you.wvel[X] -= you.dV[X]<<2;
+		you.wvel[Y] -= (1<<16) - (GRAVITY<<1);
+		you.wvel[Z] -= you.dV[Z]<<2;
+		emit_particle_explosion(&HopPuff, PARTICLE_TYPE_NOCOL, you.wpos, you.wvel, 12<<16, 8192, 6);
 	}
+
 		
 	you.power -= 1;
 	pcm_play(snd_bwee, PCM_PROTECTED, 6);
@@ -513,36 +526,12 @@ void	player_phys_affect(void)
 	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
+		you.pos[X] = (you.floorPos[X]);
+		you.pos[Y] = (you.floorPos[Y]);
+		you.pos[Z] = (you.floorPos[Z]);
+		
 		you.allowJumpTimer = 0;
 		you.jumpAllowed = true;
-		
-		//If normally on surface without modifier, high friction
-		you.surfFriction = (19660); //33%, high friction				
-		//Skiing Decisions
-		if(you.setSlide == true){
-			you.surfFriction = 155; //very very low friction
-		}		
-		//Friction decisions
-			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
-			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
-			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
-		
-		if(firstSurfHit == false)
-		{
-			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
-			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
-			//Or scaling the velocity by some half and not-half of the normal.
-			//What we have below is an "impact dot" by the deflection factor.
-			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
-			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
-			deflectionFactor = fxdot(you.velocity, you.floorNorm);
-			// This is ESSENTIAL for the momentum gameplay to work properly 
-			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY)); 
-			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY)); 
-			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY)); 
-			you.dV[Y] += fxm(you.dV[Y], you.floorNorm[Y]);
-			firstSurfHit = true;
-		}
 		
 		if(you.climbing)
 		{
@@ -550,7 +539,8 @@ void	player_phys_affect(void)
 			you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
 			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
 			you.wasClimbing = true;
-		} else {
+		} else if(firstSurfHit)
+		{
 			/*
 			My best explanation of what's happening here:
 			Weight/gravity is pushing the player down, at all times.
@@ -572,9 +562,25 @@ void	player_phys_affect(void)
 			//The bounciness that this causes, for all I understand, appears to just be correct.
 			you.velocity[Y] += fxm(you.velocity[Y], you.floorNorm[Y]);
 		}
-			you.pos[X] = (you.floorPos[X]);
-			you.pos[Y] = (you.floorPos[Y]);
-			you.pos[Z] = (you.floorPos[Z]);
+		
+		//Note the order of operations. This is placed after gravity is surface-deflected.
+		///It is placed here for bounce control.
+		if(firstSurfHit == false)
+		{
+			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
+			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
+			//Or scaling the velocity by some half and not-half of the normal.
+			//What we have below is an "impact dot" by the deflection factor.
+			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
+			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
+			deflectionFactor = fxdot(you.velocity, you.floorNorm);
+			// This is ESSENTIAL for the momentum gameplay to work properly 
+			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY)); 
+			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY)); 
+			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY)); 
+			//you.dV[Y] += fxm(REBOUND_ELASTICITY, you.floorNorm[Y]);
+			firstSurfHit = true;
+		}
 		
 		//Stiction; low velocities will trap at zero on surface.
 		if(!you.dirInp && !you.setSlide)
@@ -586,6 +592,18 @@ void	player_phys_affect(void)
 			you.dV[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.dV[Y] : 0;
 			you.dV[Z] = (JO_ABS(you.velocity[Z]) > 6553) ? you.dV[Z] : 0;
 		}
+		
+		///Take note that friction is done last in order to not corrupt the basis vector of floor bounce.
+		//If normally on surface without modifier, high friction
+		you.surfFriction = (19660); //33%, high friction				
+		//Skiing Decisions
+		if(you.setSlide == true){
+			you.surfFriction = 155; //very very low friction
+		}		
+		//Friction decisions
+			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
+			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
+			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 		
 	} else {
 		you.allowJumpTimer++;

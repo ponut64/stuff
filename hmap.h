@@ -42,7 +42,8 @@ extern Bool map_chg;
 extern _heightmap maps[4];
 extern Uint8 * main_map;
 extern Uint8 * buf_map;
-extern char * normTbl;
+// lightTbl : currently not a normal table, but instead a light table
+extern short * lightTbl;
 //Notice: Map Tex contains a 10-bit texture number, and two extra bits of flip data.
 extern unsigned short * mapTex;
 // The texture file names which are to be, or currently are, loaded from CD to use as textures for the heightmap.

@@ -27,7 +27,7 @@
 Uint8 * main_map = (Uint8*)LWRAM;
 Uint8 * buf_map = (Uint8*)LWRAM;
 
-char * normTbl;
+short * lightTbl;
 unsigned short * mapTex;
 int main_map_total_pix = LCL_MAP_PIX * LCL_MAP_PIX;
 int main_map_total_poly = LCL_MAP_PLY * LCL_MAP_PLY;
@@ -403,52 +403,58 @@ void	process_map_for_normals(void)
 	VECTOR rminusb = {-(CELL_SIZE), 0, (CELL_SIZE)};
 	VECTOR sminusb = {(CELL_SIZE), 0, (CELL_SIZE)};
 	VECTOR cross = {0, 0, 0};
+	VECTOR normal = {0, 0, 0};
 	
-	int norm_index = 0;
 	unsigned char * readByte = &main_map[0];
 	
 	main_map_total_poly = 0;
 	
 	//Please don't ask me why this works...
 	//I was up late one day and.. oh man..
-	for(int k = 0; k < (main_map_y_pix-1); k++){
-		for(int v = 0; v < (main_map_x_pix-1); v++){
+	for(int k = 0; k < (main_map_y_pix-1); k++)
+	{
+		for(int v = 0; v < (main_map_x_pix-1); v++)
+		{
 			e	= (k * (main_map_x_pix)) + v - 1;
 			ys[0]	= readByte[e];
 			ys[1]	= readByte[e + 1];
 			ys[2]	= readByte[e + 1 + (main_map_x_pix)];
 			ys[3]	= readByte[e + (main_map_x_pix)];
-
-
 			
-	rminusb[1] = (ys[2]<<16) - (ys[0]<<16);
+			rminusb[1] = (ys[2]<<16) - (ys[0]<<16);
+		
+			sminusb[1] = (ys[3]<<16) - (ys[1]<<16);
+			
+			fxcross(rminusb, sminusb, cross);
+		
+			cross[X] = cross[X]>>8; //Shift to supresss overflows
+			cross[Y] = cross[Y]>>8;
+			cross[Z] = cross[Z]>>8;
+		
+			accurate_normalize(cross, normal);
 
-	sminusb[1] = (ys[3]<<16) - (ys[1]<<16);
-	
-	fxcross(rminusb, sminusb, cross);
-
-	cross[X] = cross[X]>>8; //Shift to supresss overflows
-	cross[Y] = cross[Y]>>8;
-	cross[Z] = cross[Z]>>8;
-
-	double_normalize(cross, cross);
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	// I should seriously consider using the ANORM.H table here.
-	// That requires looping forward to calculate the real normals and then backwards to resolve to an ANORM entry --
-	// BUT that is a quality optimization, because then I can use another table for pre-made dot products for real-time lighting.
-	// I should then reprocess all entities to use ANORM.H entries. That will make real-time lighting a lot cheaper.
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	normTbl[norm_index] = (cross[X] > 0) ? -JO_ABS(cross[X]>>9) : JO_ABS(cross[X]>>9); //X value write
-	normTbl[norm_index+1] = (cross[Y] > 0) ? -JO_ABS(cross[Y]>>9) : JO_ABS(cross[Y]>>9); //Y value write
-	normTbl[norm_index+2] = (cross[Z] > 0) ? -JO_ABS(cross[Z]>>9) : JO_ABS(cross[Z]>>9); //Z value write
-	norm_index+=3;
-
-	/////////////////////
-	// Pre-computation of textures on map change (needed the normal first)
-	/////////////////////
-	mapTex[main_map_total_poly] = texture_table_by_height(&ys[0]);
-
-	main_map_total_poly++;
+			///////////////////////
+			//Flipping light angle (because coordinate system mayhem)
+			///////////////////////
+			cross[X] = active_lights[0].ambient_light[X];
+			cross[Y] = -active_lights[0].ambient_light[Y];
+			cross[Z] = active_lights[0].ambient_light[Z];
+			lightTbl[main_map_total_poly] = (fxdot(normal, cross))>>1;
+			
+		
+			/////////////////////
+			// Assignment of tables by height
+			/////////////////////
+			mapTex[main_map_total_poly] = texture_table_by_height(&ys[0]);
+			
+			///////////////////////////////////////////////
+			// This part assigns textures and texture orientation to slopes.
+			///////////////////////////////////////////////
+			unsigned short flip;
+			int texno = texture_angle_resolver(mapTex[main_map_total_poly], &normal[0], &flip);
+			mapTex[main_map_total_poly] = (texno) | (flip<<8);
+		
+			main_map_total_poly++;
 		}
 		
 	}
@@ -457,9 +463,7 @@ void	process_map_for_normals(void)
 	// Now that we've found what texture table everything is going to use...
 	// Let's run some logic to assign a new texture to every texture that is bordering another texture
 	////////////////////
-	int counted_poly = 0;
-	norm_index = 0;
-	static int tex_near[4] = {0, 0, 0, 0};
+	//static int tex_near[4] = {0, 0, 0, 0};
 	//
 	//	A _bitflag_ will be added to textures with detected borders.
 	//
@@ -493,32 +497,10 @@ void	process_map_for_normals(void)
 						}
 					}
 				}
-			counted_poly++;
+
 		}
 	} */
-	counted_poly = 0;
 	
-	///////////////////////////////////////////////
-	// This loop assigns textures and texture orientation to slopes.
-	///////////////////////////////////////////////
-	for(int k = 0; k < (main_map_y_pix-1); k++)
-	{
-		for(int v = 0; v < (main_map_x_pix-1); v++)
-		{
-			  
- 			cross[X] = normTbl[norm_index]<<9;
-			cross[Y] = normTbl[norm_index+1]<<9;
-			cross[Z] = normTbl[norm_index+2]<<9;
-			norm_index += 3;
-			
-			unsigned short flip;
-			int texno = texture_angle_resolver(mapTex[counted_poly], &cross[0], &flip);
-			mapTex[counted_poly] = (texno) | (flip<<8);
-			 
-			counted_poly++;
-		}
-	}
-	counted_poly = 0;
 
 }
 
@@ -528,10 +510,6 @@ void	process_map_for_normals(void)
 	// nbg_sprintf(2, 8, "mp0(%i)", map_texture_table_numbers[2]);
 	// nbg_sprintf(2, 9, "mp0(%i)", map_texture_table_numbers[3]);
 	// nbg_sprintf(2, 10, "mp0(%i)", map_texture_table_numbers[4]);
-
-	// slPrintFX((int)(normTbl[normCheck]<<9), slLocate(0, 8));
-	// slPrintFX((int)(normTbl[normCheck+1]<<9), slLocate(0, 9));
-	// slPrintFX((int)(normTbl[normCheck+2]<<9), slLocate(0, 10));
 	
 	// nbg_sprintf(0, 13, "(%i)mtp", main_map_total_poly);
 
@@ -639,7 +617,7 @@ int		unmath_center[3];
 // Takes a polygon from the map & its associated data from the precompiled tables and subdivides it four-ways.
 // Then issues the commands. The polygon had already been checked for culling, so we can check for less of that.
 ////////////////////////////
-void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short * flip, int * depth,  FIXED * tempNorm)
+void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short * flip, short * baseLight, int * depth)
 {
 	//Shorthand Point Data
 	FIXED * pnts[4];
@@ -794,7 +772,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 				}
 		}	
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
- */		luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
+ */		luma += *baseLight + active_lights[0].min_bright;
 		//In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
@@ -918,6 +896,8 @@ void	update_hmap(MATRIX msMatrix)
 
 		//Portalling
 		//What if the DSP did this? in parallel?
+		// Please take special note that some form of occlusion culling is absolutely necessary.
+		// But it does need to be faster than this.
 		if(portal_active)
 		{
 			if(msh2VertArea[dst_pix].pnt[X] > used_portal->min[X])
@@ -956,11 +936,11 @@ void	update_hmap(MATRIX msMatrix)
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 
 	//Loop explanation:
-	//When we retrieve the map from the CD, we calculate the normals of every "potential" polygon in the map and write them to NormTbl.
 	//The map is forced to be odd in both dimensions (X and Y) to force there to be an objective "center" pixel. This is necessary so we can find our place in the map,
 	//for the above loop.
 	//However, this complicates assigning our "compressed" normals to polygons.
-	//The local map is an odd number too (25x25 right now). The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
+	//The local map is an odd number too (e.g. 25x25).
+	//The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
 	//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
 	//Very important is to find the local polygon 0 ("top left") to use as the offset for our pos.
 	//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
@@ -974,11 +954,9 @@ void	update_hmap(MATRIX msMatrix)
 	int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); 
 	//This is the upper-left polygon of the display area
 	int poly_offset = (poly_center - ((main_map_x_pix-1) * (LCL_MAP_PLY>>1))) - (LCL_MAP_PLY>>1); 
-	int src_norm = 0;
 	int dst_poly = 0;	//(Destination polygon # for drawing)
 	int src_poly = 0; //(Source polygon # for texture data)
-	VECTOR tempNorm = {0, 0, 0}; //Temporary normal used so the normal read does not have to be written again
-	
+
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
 	//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
 	unsigned short flip = 0; 
@@ -1035,12 +1013,6 @@ void	update_hmap(MATRIX msMatrix)
 			////////////////////////////////////////////////
 			x_pix_sample = (v + rowOffset + (you.dispPos[X]));
 			src_poly = x_pix_sample - y_pix_sample;
-			
-			src_norm = (src_poly) * 3; //*3 because there are X,Y,Z components
-			
-			tempNorm[X] = normTbl[src_norm]<<9;
-			tempNorm[Y] = normTbl[src_norm+1]<<9;
-			tempNorm[Z] = normTbl[src_norm+2]<<9;
 
 			texno = mapTex[src_poly] & 1023;
 			flip = (mapTex[src_poly]>>8) & 48;
@@ -1055,7 +1027,7 @@ void	update_hmap(MATRIX msMatrix)
 			{	
 				texno += (dither & DITHER_CROSS) ? starting_small_crossing_texno : 0;
 				subbed_polys++;
-				render_map_subdivided_polygon(&dst_poly, &texno, &flip, &zDepthTgt, &tempNorm[0]);
+				render_map_subdivided_polygon(&dst_poly, &texno, &flip, &lightTbl[src_poly], &zDepthTgt);
 				continue;
 			}
 			//Since this texture was not subdivided, use its corresponding combined texture.
@@ -1074,7 +1046,6 @@ void	update_hmap(MATRIX msMatrix)
 			// BUT PLEASE TRUST ME IT *NEEDS* TO BE HERE.
 			////////////////////////////////////////////////
 			preclipping(ptv, &flip, &pclp);
-			// pclp |= VDP1_PRECLIPPING_DISABLE;
 			////////////////////////////////////////////////
 			//Lighting
 			////////////////////////////////////////////////
@@ -1082,9 +1053,7 @@ void	update_hmap(MATRIX msMatrix)
 			// To protect the global light from being reduced by the dynamic lights, limit the dynamic light to 0 luma.
 			//luma = per_polygon_light(polymap, hmap_actual_pos, dst_poly);
 			//luma = (luma < 0) ? 0 : luma; 
-			
-			luma += fxdot(tempNorm, active_lights[0].ambient_light) + active_lights[0].min_bright;
-			//In normal "vision" however, bright light would do that..
+			luma += lightTbl[src_poly] + active_lights[0].min_bright;
 			//Use transformed normal as shade determinant
 			determine_colorbank(&colorBank, &luma);
 			////////////////////////////////////////////////

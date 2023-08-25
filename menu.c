@@ -924,8 +924,8 @@ void	init_hud_events(void)
 	event->startPos[Y] = 0;
 	event->endPos[X] = 176;
 	event->endPos[Y] = 140;
-	event->eventTime = 1<<16; 
-	event->spriteTime = 1<<16; //One second
+	event->eventTime = 2<<16; 
+	event->spriteTime = 2<<16; //One second
 	event->screenStep = 10;
 	
 	event->soundType = PCM_PROTECTED;
