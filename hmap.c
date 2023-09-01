@@ -822,6 +822,9 @@ void	update_hmap(MATRIX msMatrix)
 	static _portal * used_portal = &portals[0];
 	short portal_active = preprocess_portals(&used_portal);
 	
+	load_winder_prog();
+	run_winder_prog();
+	int clipct = 0;
 	//Loop Concept:
 	//SO just open Paint.NET make a 255x255 image.
 	//Then with the selection tool, drag a box exactly 25x25 in size.
@@ -895,7 +898,6 @@ void	update_hmap(MATRIX msMatrix)
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
 
 		//Portalling
-		//What if the DSP did this? in parallel?
 		// Please take special note that some form of occlusion culling is absolutely necessary.
 		// But it does need to be faster than this.
 		if(portal_active)
@@ -918,6 +920,7 @@ void	update_hmap(MATRIX msMatrix)
 										if(edge_wind_test(used_portal->verts[3], used_portal->verts[0], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
 										{
 											msh2VertArea[dst_pix].clipFlag |= CLIP_Z;
+											clipct++;
 										}
 									}
 								}
@@ -1066,6 +1069,11 @@ void	update_hmap(MATRIX msMatrix)
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
 	*sysBool = true;
+	
+	nbg_sprintf(5, 17, "dsp(%i)", dsp_noti_addr[0]);
+	nbg_sprintf(5, 18, "(%i)", clipct);
+	
+	
 }
 
 

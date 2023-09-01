@@ -125,8 +125,8 @@ typedef struct {
 //////////////////////////////////
 typedef struct {
     POINT  pnt;
-	short clipFlag;
-} vertex_t; //14 bytes each
+	int clipFlag;
+} vertex_t; //16 bytes each
 
 //////////////////////////////////
 // Point light data struct

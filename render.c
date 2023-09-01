@@ -9,8 +9,8 @@
 
 SPRITE * localSprBuf = (SPRITE *)0x060D5B60;
 
-vertex_t ssh2VertArea[MAX_SSH2_ENTITY_VERTICES+1];
-vertex_t msh2VertArea[MAX_MSH2_ENTITY_VERTICES+1];
+vertex_t __attribute__ ((aligned (8))) ssh2VertArea[MAX_SSH2_ENTITY_VERTICES+1];
+vertex_t __attribute__ ((aligned (8))) msh2VertArea[MAX_MSH2_ENTITY_VERTICES+1];
 animationControl AnimArea[MAX_SIMULTANEOUS_ANIMATED_ENTITIES];
 _sprite sprWorkList[MAX_SPRITES];
 paletteCode * pcoTexDefs; //Defined with a LWRAM address in lwram.c
@@ -21,7 +21,7 @@ point_light * active_lights;
 entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
-_portal portals[MAX_PORTALS];
+_portal __attribute__ ((aligned (8))) portals[MAX_PORTALS];
 short current_portal_count;
 short portal_reset;
 

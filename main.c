@@ -324,37 +324,37 @@ void	hardware_validation(void)
 
 	//update_gamespeed();
 	//int start_time = get_time_in_frame();
-	run_dsp(); //Dry-run the DSP to get it to flag done
-	
-/* 	while(dsp_noti_addr[0] == 0){
-		if(validation_escape()) break;
-	}; //"DSP Wait"
-	
-	int time_at_end = get_time_in_frame();
-	
-	while(m68k_com->start != 0){
-		if(validation_escape()) break;
-	}; //68K Wait
-	
-	int time_at_sound = get_time_in_frame();
-	
-	// slPrintFX(time_at_end - start_time, slLocate(5, 10));
-	// slPrintFX(time_at_sound - start_time, slLocate(18, 10));
-	
-	if((time_at_end - start_time) < 111411 || ((time_at_sound - start_time) < (100<<16)))
-	{
-		while(1)
-		{
-			slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
-			nbg_sprintf(5, 10, "There is something wrong with");
-			nbg_sprintf(5, 11, "your Saturn video game system.");
-			nbg_sprintf(5, 12, "You can contact our associates");
-			nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
-			nbg_sprintf(5, 14, "for the necessary repairs.");
-			if(validation_escape()) break;
-		}
-	}
-	 */
+	run_hmap_prog(); //Dry-run the DSP to get it to flag done
+	//
+ 	//while(dsp_noti_addr[0] == 0){
+	//	if(validation_escape()) break;
+	//}; //"DSP Wait"
+	//
+	//int time_at_end = get_time_in_frame();
+	//
+	//while(m68k_com->start != 0){
+	//	if(validation_escape()) break;
+	//}; //68K Wait
+	//
+	//int time_at_sound = get_time_in_frame();
+	//
+	//// slPrintFX(time_at_end - start_time, slLocate(5, 10));
+	//// slPrintFX(time_at_sound - start_time, slLocate(18, 10));
+	//
+	//if((time_at_end - start_time) < 111411 || ((time_at_sound - start_time) < (100<<16)))
+	//{
+	//	while(1)
+	//	{
+	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
+	//		nbg_sprintf(5, 10, "There is something wrong with");
+	//		nbg_sprintf(5, 11, "your Saturn video game system.");
+	//		nbg_sprintf(5, 12, "You can contact our associates");
+	//		nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
+	//		nbg_sprintf(5, 14, "for the necessary repairs.");
+	//		if(validation_escape()) break;
+	//	}
+	//}
+	// 
 }
 
 int	main(void)
@@ -378,7 +378,8 @@ int	main(void)
 	slIntFunction(my_vlank);
 	//
 	//
-	load_dsp_prog();
+	init_dsp_programs();
+	load_hmap_prog();
 	//Sound Driver & Hardware/Emulator Validation
 	hardware_validation();
 	//

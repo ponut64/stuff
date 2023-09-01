@@ -761,7 +761,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
 
-	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+	unsigned short usedCMDCTRL = VDP1_POLYLINE_CMDCTRL;//(flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0};

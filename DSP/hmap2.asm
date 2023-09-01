@@ -19,7 +19,7 @@
 	sl									mov alu,a		mov 0,mc1			;
 										clr a			mov all,mc3			; Notification of end status address in RAM3 58
 	;------------------------------------------------------------------------ MATH DATA TRANSFER
-	DMAH2 D0,M2,5															; DMA of inputs into the DSP via DMA Hold Address.
+	DMAH2 D0,MC2,5															; DMA of inputs into the DSP via DMA Hold Address.
 	;------------------------------------------------------------------------ DMAH prevents change to RA0/WA0 as a result of DMA.
 	NOP				NOP					NOP				MOV 0,CT2			; CT3 = 0.
 														MOV 0,CT1
@@ -313,7 +313,7 @@
 	;
 	;-------------------------------------------------------------------------------------------------------------------------
 															mov 0,ct3		; Re-select 0 for the output
-	DMA2	M3,D0,LINE_PIX													; DMA
+	DMA2	MC3,D0,LINE_PIX													; DMA
 															mov 63,ct3		; 
 			mov m3,p														; 
 	ad2								mov alu,a				mov LINE_PIX,PL	; Add LINE_PIX to src pixel address
@@ -341,7 +341,7 @@
 															mov 0,ct0
 															mov 32,mc0
 															mov 0,ct0
-	DMAH2 M0,D0,1	;Write notification of end status "32"
+	DMAH2 MC0,D0,1	;Write notification of end status "32"
 	ENDI
 	;-------------------------------------------------------------------------------------------------------------------------
 	; Unsigned math only

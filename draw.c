@@ -444,7 +444,8 @@ void	map_draw_prep(void)
 	hmap_actual_pos[Y] = 0;
 	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.velocity[Z]);
 	
-	run_dsp();
+	load_hmap_prog();
+	run_hmap_prog();
 	
 }
 

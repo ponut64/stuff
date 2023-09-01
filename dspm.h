@@ -4,8 +4,11 @@
 extern volatile int * dsp_input_addr;
 extern volatile int * dsp_noti_addr;
 extern volatile int * dsp_output_addr;
-void	load_dsp_prog(void);
-void	run_dsp(void);
+void	init_dsp_programs(void);
+void	load_hmap_prog(void);
+void	load_winder_prog(void);
+void	run_hmap_prog(void);
+void	run_winder_prog(void);
 
 #endif
 
