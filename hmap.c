@@ -546,7 +546,7 @@ int		per_polygon_light(GVPLY * model, POINT wldPos, int polynumber)
 	return luma;
 }
 
-short preprocess_portals(_portal ** used_portal)
+short preprocess_portals(void)
 {
 	short enable_portals = 0;
 	//Primary goal:
@@ -558,48 +558,101 @@ short preprocess_portals(_portal ** used_portal)
 	// nbg_sprintf(0, 15, "port(%i)", current_portal_count);
 	static int bestsize = 0;
 	int cursize = 0;
-	if(current_portal_count > 0)
-	{
 		bestsize = 0;
-		for(int i = 0; i < current_portal_count; i++)
+	int used_pid[2];
+	used_pid[0] = 0;
+	used_pid[1] = 0;
+	for(int i = 0; i < MAX_SCENE_PORTALS; i++)
+	{
+		if(i < current_portal_count)
 		{
-			//Ideally, I would use the polygon with the best balance of X/Y span, in addition to best X/Y size.
-			//So a tiny Y span would be tossed in favor of something that had a larger X, or vice versa.
-			int szA[2] = {portals[i].verts[0][X] - portals[i].verts[1][X], portals[i].verts[0][Y] - portals[i].verts[1][Y]};
-			int szB[2] = {portals[i].verts[1][X] - portals[i].verts[2][X], portals[i].verts[1][Y] - portals[i].verts[2][Y]};
-			int szC[2] = {portals[i].verts[2][X] - portals[i].verts[3][X], portals[i].verts[2][Y] - portals[i].verts[3][Y]};
-			int szD[2] = {portals[i].verts[3][X] - portals[i].verts[0][X], portals[i].verts[3][Y] - portals[i].verts[0][Y]};
+			int szA[2] = {scene_portals[i].verts[0][X] - scene_portals[i].verts[1][X], scene_portals[i].verts[0][Y] - scene_portals[i].verts[1][Y]};
+			int szB[2] = {scene_portals[i].verts[1][X] - scene_portals[i].verts[2][X], scene_portals[i].verts[1][Y] - scene_portals[i].verts[2][Y]};
+			int szC[2] = {scene_portals[i].verts[2][X] - scene_portals[i].verts[3][X], scene_portals[i].verts[2][Y] - scene_portals[i].verts[3][Y]};
+			int szD[2] = {scene_portals[i].verts[3][X] - scene_portals[i].verts[0][X], scene_portals[i].verts[3][Y] - scene_portals[i].verts[0][Y]};
 			cursize =  (szA[X] * szA[X]) + (szA[Y] * szA[Y]);
 			cursize += (szB[X] * szB[X]) + (szB[Y] * szB[Y]);
 			cursize += (szC[X] * szC[X]) + (szC[Y] * szC[Y]);
 			cursize += (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
+			scene_portals[i].depth = JO_MIN(JO_MIN(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MIN(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
+			int max_depth = JO_MAX(JO_MAX(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MAX(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
+			// scene_portals also need to be marked as inactive if they are too near the camera.
+			// In the case of the max depth being determined as less than zero, the portal is behind the camera.
+			// It shouldn't be used; we'll deactivate it.
+			if(scene_portals[i].depth < 0) scene_portals[i].depth = 0;
+			if(max_depth < 10<<16) scene_portals[i].type = 0; //Set type to zero to deactivate the portal
+			
+			//A cross-product can tell us if it's backfaced or not.
+			int cross0 = (scene_portals[i].verts[1][X] - scene_portals[i].verts[3][X])
+								* (scene_portals[i].verts[0][Y] - scene_portals[i].verts[2][Y]);
+			int cross1 = (scene_portals[i].verts[1][Y] - scene_portals[i].verts[3][Y])
+								* (scene_portals[i].verts[0][X] - scene_portals[i].verts[2][X]);
+			scene_portals[i].backface = (cross1 >= cross0) ? 1 : 0;
+			if(scene_portals[i].backface && (scene_portals[i].type & PORTAL_TYPE_BACK) && !(scene_portals[i].type & PORTAL_TYPE_DUAL))
+			{
+				scene_portals[i].type = 0; //Portal NOT backfaced but only active when backfaced; disable portal
+			} else if(!scene_portals[i].backface && !(scene_portals[i].type & PORTAL_TYPE_BACK) && !(scene_portals[i].type & PORTAL_TYPE_DUAL))
+			{
+				scene_portals[i].type = 0; //Portal backfaced but only active when NOT backfaced; disable portal
+			}
+			
+			
 			if(cursize > bestsize)
 			{
-				*used_portal = &portals[i];
-				portals[i].depth = JO_MAX(JO_MAX(portals[i].verts[0][Z], portals[i].verts[1][Z]), JO_MAX(portals[i].verts[2][Z], portals[i].verts[3][Z]));
+				used_pid[1] = used_pid[0];
+				used_pid[0] = i;
 				bestsize = cursize;
-				
-				//A cross-product can tell us if it's backfaced or not.
-				int cross0 = (portals[i].verts[1][X] - portals[i].verts[3][X])
-									* (portals[i].verts[0][Y] - portals[i].verts[2][Y]);
-				int cross1 = (portals[i].verts[1][Y] - portals[i].verts[3][Y])
-									* (portals[i].verts[0][X] - portals[i].verts[2][X]);
-				portals[i].backface = (cross1 >= cross0) ? 1 : 0;
-				
-				portals[i].min[X] = JO_MIN(JO_MIN(portals[i].verts[0][X], portals[i].verts[1][X]), JO_MIN(portals[i].verts[2][X], portals[i].verts[3][X]));
-				portals[i].min[Y] = JO_MIN(JO_MIN(portals[i].verts[0][Y], portals[i].verts[1][Y]), JO_MIN(portals[i].verts[2][Y], portals[i].verts[3][Y]));
-				portals[i].max[X] = JO_MAX(JO_MAX(portals[i].verts[0][X], portals[i].verts[1][X]), JO_MAX(portals[i].verts[2][X], portals[i].verts[3][X]));
-				portals[i].max[Y] = JO_MAX(JO_MAX(portals[i].verts[0][Y], portals[i].verts[1][Y]), JO_MAX(portals[i].verts[2][Y], portals[i].verts[3][Y]));
-
 			}	
+		} else {
+			scene_portals[i].type = 0; //Set type to 0 to deactivate the portal
 		}
-		enable_portals = 1;
+	enable_portals = 1;
 	}
 	if(portal_reset == 1)
 	{
 		current_portal_count = 0;
 		portal_reset = 0;
 	}
+	
+	//nbg_sprintf(5, 10, "(%x)", *((unsigned int *)&scene_portals[0].sectorA));
+	
+	if(enable_portals)
+	{
+	used_portals[0].verts[0][X] = scene_portals[used_pid[0]].verts[0][X];
+	used_portals[0].verts[0][Y] = scene_portals[used_pid[0]].verts[0][Y];
+	used_portals[0].verts[0][Z] = scene_portals[used_pid[0]].verts[0][Z];
+	used_portals[0].verts[1][X] = scene_portals[used_pid[0]].verts[1][X];
+	used_portals[0].verts[1][Y] = scene_portals[used_pid[0]].verts[1][Y];
+	used_portals[0].verts[1][Z] = scene_portals[used_pid[0]].verts[1][Z];
+	used_portals[0].verts[2][X] = scene_portals[used_pid[0]].verts[2][X];
+	used_portals[0].verts[2][Y] = scene_portals[used_pid[0]].verts[2][Y];
+	used_portals[0].verts[2][Z] = scene_portals[used_pid[0]].verts[2][Z];
+	used_portals[0].verts[3][X] = scene_portals[used_pid[0]].verts[3][X];
+	used_portals[0].verts[3][Y] = scene_portals[used_pid[0]].verts[3][Y];
+	used_portals[0].verts[3][Z] = scene_portals[used_pid[0]].verts[3][Z];	
+	used_portals[0].backface = scene_portals[used_pid[0]].backface;
+	used_portals[0].type = scene_portals[used_pid[0]].type;
+	used_portals[0].sectorA = scene_portals[used_pid[0]].sectorA;
+	used_portals[0].sectorB = scene_portals[used_pid[0]].sectorB;
+	
+	used_portals[1].verts[0][X] = scene_portals[used_pid[1]].verts[0][X];
+	used_portals[1].verts[0][Y] = scene_portals[used_pid[1]].verts[0][Y];
+	used_portals[1].verts[0][Z] = scene_portals[used_pid[1]].verts[0][Z];
+	used_portals[1].verts[1][X] = scene_portals[used_pid[1]].verts[1][X];
+	used_portals[1].verts[1][Y] = scene_portals[used_pid[1]].verts[1][Y];
+	used_portals[1].verts[1][Z] = scene_portals[used_pid[1]].verts[1][Z];
+	used_portals[1].verts[2][X] = scene_portals[used_pid[1]].verts[2][X];
+	used_portals[1].verts[2][Y] = scene_portals[used_pid[1]].verts[2][Y];
+	used_portals[1].verts[2][Z] = scene_portals[used_pid[1]].verts[2][Z];
+	used_portals[1].verts[3][X] = scene_portals[used_pid[1]].verts[3][X];
+	used_portals[1].verts[3][Y] = scene_portals[used_pid[1]].verts[3][Y];
+	used_portals[1].verts[3][Z] = scene_portals[used_pid[1]].verts[3][Z];	
+	used_portals[1].backface = scene_portals[used_pid[1]].backface;
+	used_portals[1].type = scene_portals[used_pid[1]].type;
+	used_portals[1].sectorA = scene_portals[used_pid[1]].sectorA;
+	used_portals[1].sectorB = scene_portals[used_pid[1]].sectorB;
+	}
+
 	return enable_portals;
 }
 
@@ -627,14 +680,14 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	unsigned short colorBank = 0;
 	unsigned short pclp = 0;
 
-		pnts[0] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[0]][0];
-		pnts[1] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[1]][0];
-		pnts[2] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[2]][0];
-		pnts[3] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[3]][0];
-		umpt[0] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[0]][0];
-		umpt[1] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[1]][0];
-		umpt[2] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[2]][0];
-		umpt[3] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[3]][0];
+	pnts[0] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[0]][0];
+	pnts[1] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[1]][0];
+	pnts[2] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[2]][0];
+	pnts[3] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[3]][0];
+	umpt[0] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[0]][0];
+	umpt[1] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[1]][0];
+	umpt[2] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[2]][0];
+	umpt[3] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[3]][0];
 	/*
 	0A			1A | 0B			1B
 							
@@ -819,11 +872,10 @@ void	update_hmap(MATRIX msMatrix)
 	unsigned short pclp = 0;
 	int inverseZ = 0;
 
-	static _portal * used_portal = &portals[0];
-	short portal_active = preprocess_portals(&used_portal);
+	short portal_active = preprocess_portals();
 	
 	load_winder_prog();
-	run_winder_prog();
+	//run_winder_prog();
 	int clipct = 0;
 	//Loop Concept:
 	//SO just open Paint.NET make a 255x255 image.
@@ -861,6 +913,7 @@ void	update_hmap(MATRIX msMatrix)
 			// }
 		// }
 	// }
+
 	for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
 	{
 		dspReturnTgt = dsp_output_addr[dst_pix];
@@ -890,46 +943,7 @@ void	update_hmap(MATRIX msMatrix)
         msh2VertArea[dst_pix].pnt[X] = fxm(verts_without_inverse_z[dst_pix][X], inverseZ)>>SCR_SCALE_X;
         msh2VertArea[dst_pix].pnt[Y] = fxm(verts_without_inverse_z[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
  
-        //Screen Clip Flags for on-off screen decimation
-		msh2VertArea[dst_pix].clipFlag = ((msh2VertArea[dst_pix].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
-		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
-
-		//Portalling
-		// Please take special note that some form of occlusion culling is absolutely necessary.
-		// But it does need to be faster than this.
-		if(portal_active)
-		{
-			if(msh2VertArea[dst_pix].pnt[X] > used_portal->min[X])
-			{
-				if(msh2VertArea[dst_pix].pnt[X] < used_portal->max[X])
-				{
-					if(msh2VertArea[dst_pix].pnt[Y] > used_portal->min[Y])
-					{
-						if(msh2VertArea[dst_pix].pnt[Y] < used_portal->max[Y])
-						{
-							int discard = (used_portal->backface) ? N_Zn : N_Zp;
-							if(edge_wind_test(used_portal->verts[0], used_portal->verts[1], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
-							{
-								if(edge_wind_test(used_portal->verts[1], used_portal->verts[2], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
-								{
-									if(edge_wind_test(used_portal->verts[2], used_portal->verts[3], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
-									{
-										if(edge_wind_test(used_portal->verts[3], used_portal->verts[0], msh2VertArea[dst_pix].pnt, discard, 0) >= 0)
-										{
-											msh2VertArea[dst_pix].clipFlag |= CLIP_Z;
-											clipct++;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		if(dst_pix == 1) run_winder_prog();
 
 	//	}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub
@@ -961,6 +975,7 @@ void	update_hmap(MATRIX msMatrix)
 	int src_poly = 0; //(Source polygon # for texture data)
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
+	//volatile int * uclip[4] = {0, 0, 0, 0};
 	//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
 	unsigned short flip = 0; 
 	int texno = 0; //Ditto
@@ -969,7 +984,28 @@ void	update_hmap(MATRIX msMatrix)
 	y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
 	
 	int subbed_polys = 0;
-			
+	
+	//Dumb solution: While DSP is crunching the clipping, don't let the SH2 process any polygons.
+	// **IDEALLY** the SH2 could continue crunching polygons,
+	// and just wait for the DSP to catch up when it finds vertices that the DSP hasn't crunched yet.
+	// However, while the DSP does mark a vertex when it checks whether clipped or not, 
+	// I was unable to get the SH2 to wait when it sees one that isn't clipped.
+	// Because, you know, it's waiting for a number to magically change without its knowledge.
+	while(dsp_noti_addr[0] == 0){}
+	//	Another dumb solution:
+	// Whereby the DSP is in progress working on clip flags, the SH2 cannot write any clip flags lest the DSP overwrite them.
+	// Thus we have to have SH2 do screen clipping only after DSP is done.
+	// If my DSP code had program RAM left in it, I'd have it do this.
+	for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
+	{
+	       //Screen Clip Flags for on-off screen decimation
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
+		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
+	}
+	
 	for(int k = 0; k < LCL_MAP_PLY; k++)
 	{
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -986,6 +1022,14 @@ void	update_hmap(MATRIX msMatrix)
 			ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[1]];
 			ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[2]];
 			ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[3]];
+			// if(!(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag & DSP_CLIP_CHECK))
+			// {
+				// uclip[0] = (volatile int *)((unsigned int)&ptv[0]->clipFlag | UNCACHE);
+				// uclip[1] = (volatile int *)((unsigned int)&ptv[1]->clipFlag | UNCACHE);
+				// uclip[2] = (volatile int *)((unsigned int)&ptv[2]->clipFlag | UNCACHE);
+				// uclip[3] = (volatile int *)((unsigned int)&ptv[3]->clipFlag | UNCACHE);
+				// while(!(*uclip[0] & *uclip[1] & *uclip[2] & *uclip[3] & DSP_CLIP_CHECK)){};
+			// }
 			////////////////////////////////////////////////
 			//Backface & Screenspace Culling Section
 			////////////////////////////////////////////////
@@ -1007,8 +1051,7 @@ void	update_hmap(MATRIX msMatrix)
 			JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
 			JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 			((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
-			int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
-			
+			int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag & 0xFF);
 			if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 
 			////////////////////////////////////////////////
@@ -1066,12 +1109,20 @@ void	update_hmap(MATRIX msMatrix)
 			////////////////////////////////////////////////
 		}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub
+	
+	//Purge clip flags
+	//Necessary process for DSP use
+	for(int i = 0; i < (LCL_MAP_PIX * LCL_MAP_PIX); i++)
+	{
+		if(msh2VertArea[i].clipFlag & DSP_CLIP_CHECK) clipct++;
+		msh2VertArea[i].clipFlag = 0;
+	}
+	
+	// nbg_sprintf(5, 17, "chk(%i)", clipct);
+	// nbg_sprintf(5, 18, "clp(%i)", dsp_noti_addr[1]);
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
 	*sysBool = true;
-	
-	nbg_sprintf(5, 17, "dsp(%i)", dsp_noti_addr[0]);
-	nbg_sprintf(5, 18, "(%i)", clipct);
 	
 	
 }

@@ -320,19 +320,10 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 
 		if(hitLine)
 		{
-			if(edge_wind_test(plane_points[0], plane_points[1], hitPt, dominant_axis, 12) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], hitPt, dominant_axis, 12))
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], hitPt, dominant_axis, 12) >= 0)
-				{
-					if(edge_wind_test(plane_points[2], plane_points[3], hitPt, dominant_axis, 12) >= 0)
-					{
-						if(edge_wind_test(plane_points[3], plane_points[0], hitPt, dominant_axis, 12) >= 0)
-						{
-							particle_collision_handler(part, plnm);
-							return true;
-						}
-					}
-				}
+				particle_collision_handler(part, plnm);
+				return true;
 			}
 		}
 	//Loop end stub
@@ -414,19 +405,10 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
 
 		if(hitLine)
 		{
-			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], hitPt, boxDisField[i], 12) >= 0)
+			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, boxDisField[i], 12))
 			{
-				if(edge_wind_test(obj->pltbl[i][1], obj->pltbl[i][2], hitPt, boxDisField[i], 12) >= 0)
-				{
-					if(edge_wind_test(obj->pltbl[i][2], obj->pltbl[i][3], hitPt, boxDisField[i], 12) >= 0)
-					{
-						if(edge_wind_test(obj->pltbl[i][3], obj->pltbl[i][0], hitPt, boxDisField[i], 12) >= 0)
-						{
-							particle_collision_handler(part, obj->nmtbl[i]);
-							return true;
-						}
-					}
-				}
+				particle_collision_handler(part, obj->nmtbl[i]);
+				return true;
 			} 
 		}
 	}

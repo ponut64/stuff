@@ -4,6 +4,8 @@
 	REPORT = 12584960	; End stat DMA address
 	PORTAL_ACTIVE = $100
 	PORTAL_OR_OCCLUDE = $200
+	PORTAL_TYPE_BACK = $400
+	PORTAL_TYPE_DUAL = $800
 	;------------------------------------------------------------------------ P64 PROGRAM ADDRESS HEADER
 														mov 0,ct1
 	MVI INPUT,MC1													;	CT1 = 0
@@ -22,8 +24,6 @@
 	sl									mov alu,a		mov 0,ct1	;	CT1 = 4, CT3 = 63
 														mov all,mc3	;
 	;------------------------------------------------------------------------ CT3 = ??
-	; RAM3 58: Copy of vertex address
-	; RAM3 59: Temporary copy of portal address
 	; RAM3 60: Control inputs address (Read)
 	; RAM3 61: Vertex table address  (Read), becomes Vertex Clipping Address (Write)
 	; RAM3 62: Portal table address (Read)
@@ -60,9 +60,6 @@
 	;
 	;	Next steps:
 	;	Enabling multiple portals to be processed
-	;	There is not enough program RAM to facilitate loading multiple portals in to RAM and then using them in sequence.
-	;	In order to use multiple portals, they will have to be copied in multiple times via the DMA command from HWRAM.
-	;	This is unfortunate.
 	;
 	;	Communication Input Layout:
 	;	DMA -> RAM0[0] -> # of vertices to clip
@@ -74,6 +71,19 @@
 	;	DMA -> RAM0[6] -> Clip flag applied when clipped OUT of 2 -> 3 edge of portal
 	;	DMA -> RAM0[7] -> Clip flag applied when clipped OUT of 3 -> 0 edge of portal
 	;	
+	;	Multi-portal process:
+	;	Find some free cache in the RAM banks such that ~6 portals could be stored
+	;	This being the maximum amount of portals (occluders) that may be present in a scene at once
+	;	The program then pipes in all of the portals, in order from 0-5, to the appropriate RAM regions:
+	;	RAM1[0] - RAM1[13] : Active Portal (Portal 0?)
+	;	RAM0[8] - RAM0[21] : Portal 1
+	;	RAM0[22] - RAM0[35] : Portal 2
+	;	RAM0[36] - RAM0[49] : Portal 3
+	;	RAM0[50] - RAM0[63] : Portal 4
+	;	RAM2[8] - RAM2[21] : Portal 5
+	;	RAM2[22] - RAM2[35] : Portal 6
+	;	RAM2[36] - RAM2[49] : Portal 7
+	;	RAM2[50] - RAM2[63] : Portal 8
 	;	
 	;
 	;------------------------------------------------------------------------
@@ -87,37 +97,27 @@
 											mov all,mc3		; CT3 = 30
 	DMAH2 D0,MC0,8											; CT3 = 31
 											mov 62,ct3		; CT0 = 4 ; Inputs to RAM0 0 ; 
-											mov 0,ct0		; CT1 = 12 ; CT3 = 62
+											mov M3,RA0		; CT3 = 62
+	DMAH2 D0,MC1,14											; Portal address (RAM3 62) in RA0
+											mov 0,ct0		; CT1 = 12 ; DMA in verts[4][3] (12 ints) to RAM1[0] - RAM1[11]
 											mov 61,ct3		; CT0 = 0
 								mov m3,a	mov 3,PL		; CT3 = 61 (&vertex_t[0])
-											mov 58,ct3
-											mov all,mc3
-											mov 61,ct3
-	ad2							mov alu,a	mov m3,ra0		;
+	ad2							mov alu,a	mov m3,ra0		; Move &vertex_t[0] to A, and 3 to P
 											mov all,wa0		; Add 3 to &vertex_t[0] to reach &vertex_t[0].clipFlag
 											mov all,mc3		; move &vertex_t[0].clipFlag to WA0 
-															; CT3 = 62 ; &vertex_t[0].clipFlag back to RAM3 61
+	; -------------------------------------------------------
+	; Procedure to skip the portal if it is not marked as active.
+											mov 13,ct1		; CT3 = 62 ; &vertex_t[0].clipFlag back to RAM3 61
+	mvi PORTAL_ACTIVE,PL									; CT1 = 13
+								mov m1,a	
+	and							
+	jmp Z,FOR_EXIT1
+	nop										
 	; -----------------------------------------------------------------------
 	; Take special note that RA0 and WA0 increment separately.
 	; Because of this, I have to increment the addresses mathematically.
 	; -----------------------------------------------------------------------
-	;	Process:
-	;	1. Check vertex count; if zero, exit.
-	;	2. Decrement vertex count.
-	;	3. Copy original portal count.
-	;	3a. Copy original portal adddress.
-	;	4. Check copied portal count; if zero go to step #11.
-	;	5. Decrement copied portal count.
-	;	5a. Move copied portal address to RA0.
-	;	6. DMA in portal. 
-	;	6a. Add to copied portal address.
-	;	7. Check portal. If disabled, go to step #4.
-	;	8. Check vertex against portal.
-	;	9. Apply clip flags if needed.
-	;	10. Go to step #4.
-	;	11. Add to vertex WRITE and vertex READ addresses.
-	;	11a. Move vertex WRITE and vertex READ to RA0/WA0, respectively.
-	;	12. Go to step #1.
+	; Intent: Use RAM0 0 as loop counter (# of vertices)
 	; for(int ram0[0]; ram0[0] > 0; ram0[0]--)
 	; Information:
 	; Loop count			->	RAM0[0]
@@ -127,10 +127,7 @@
 	; &vertex_t.clipFlag	->	WA0	(Write)
 	; -----------------------------------------------------------------------
 	;	CT0 = 0 ; CT1 = ?? ; CT2 = ?? CT3 = ?? ; All but CT0 are undefined.
-	;	1. Check vertex count; if zero, exit.
-	;	2. Decrement vertex count.
 	FOR_ENTRY1: ; Test the condition "ram0[0] > 0"
-											mov 0,ct0
 					mov m0,p	clr a						; 
 	ad2							mov alu,a	mov 1,PL		; RAM0[0] in P as loop counter
 	jmp ZS,FOR_EXIT1										; RAM0[0] moved to A with AD2 instruction ; 1 in PL
@@ -139,56 +136,20 @@
 								clr a		mov all,mc0		; CT2 = 0 ; Perform RAM0[0] - 1
 															; CT0 = 1 ; Result to RAM0[0] ; 
 	;	---------------------------------------------------------------------
-	;	DMA in vertex_t[i]. Four units ( 16 bytes ).
-	;	---------------------------------------------------------------------
-	DMAH2 D0,MC2,4
-	;	---------------------------------------------------------------------
-	;	3. Copy original portal count.
-	;	3a. Copy original portal adddress.
-	;	RAM0[1] : Portal count to test
-	;	RAM2[20] : Portal count for this vertex
-	;	RAM3[62] : Portal address
-	;	RAM3[59] : Copied portal address
+	;	SH2 Sync Delay
+	;	Moves RAM0[1] to LOP, then processes a nop with lps here.
 											mov 1,ct0
-								mov m0,a	mov 20,ct2	; CT0 = 1
-											mov all,mc2	; CT2 = 20
-											mov 62,ct3	; CT2 = 21
-								mov m3,a	mov 59,ct3	; CT3 = 62 (Portal address)
-											mov all,mc3	; ct3 = 59 (Copied portal address)
+											mov m0,LOP	; CT0 = 1
+	lps
+	nop										mov 12,ct1	
 	;	---------------------------------------------------------------------
-	;	Check RAM2[20] to see if it is <= 0. (Portal incrementor)
-	;	4. Check copied portal count; if zero go to step #11.
-	REPORTAL:
-											mov 20,ct2	; CT3 = 60
-					mov m2,p	clr a		mov 0,ct1	; CT2 = 20
-	add													; CT1 = 0
-	jmp Z,CONTINUE
-	nop							mov m2,a	mov 1,PL
+	;	Loop body
+	;	Step 1: DMA in vertex_t[i]. Four units ( 16 bytes ).
+	;	DMA with address increment will be used.
 	;	---------------------------------------------------------------------
-	;	5. Decrement copied portal count. RAM2[20]
-	;	5a. Move copied portal address to RA0. RAM3[59]
-	sub							mov alu,a	mov 59,ct3
-								clr a		mov all,mc2	; CT3 = 59
-											mov m3,RA0
+	DMA2 D0,MC2,4
 	;	---------------------------------------------------------------------
-	;	DMA in the portal 14 units at RAM1[0].
-	;	6. DMA in portal. 
-	;	6a. Add to copied portal address.
-	DMAH2 D0,MC1,14
-								mov m3,a	mov 14,PL
-	add							mov alu,a
-											mov all,mc3
-	; -------------------------------------------------------
-	;	7. Check portal. If disabled, go to step #4.
-											mov 13,ct1		; CT3 = 60
-	mvi PORTAL_ACTIVE,PL									; CT1 = 13
-								mov m1,a	
-	and							
-	jmp Z,REPORTAL
-	nop										
-	;	---------------------------------------------------------------------
-	;	8. Check vertex against portal.
-	;	Check the vertex' depth against the portal's depth.
+	;	Step 2: Check the vertex' depth against the portal's depth.
 	;	If the vertex Z is lower than the portal's Z (read: nearer to camera), cease the test.
 	;	point[Z] = RAM2[2]
 	;	portal[i].depth = RAM1[12]
@@ -197,7 +158,7 @@
 	sub							mov alu,a	mov 1,ct2	;
 	jmp S,UNCLIPPED										; CT2 = 1
 	;	---------------------------------------------------------------------
-	;	Chirality check maths
+	;	Step 2: Chirality check maths
 	;
 	;	point[X] is RAM2[0], point[Y] is RAM2[1]
 	;	p0[X] is RAM1[0], p0[Y] is RAM1[1]
@@ -375,9 +336,6 @@
 	jmp UNCLIPPED
 	OCCLUDE_30:
 	; -----------------------------------------------------------------------
-	;	9. Apply clip flags if needed.
-	;	It should only DMA out at the CONTINUE step.
-	;	This is because the portals will apply stacking flip flags.
 	;	Next: If RAM3[2] is < 0, jump to UNCLIPPED.
 	;	If RAM3[2] is >= 0, all edges have passed the test (in case of clip IN).
 	;	We shall then mark RAM2[3] with the data DMA'd in at RAM0[3], and DMA it out. 
@@ -389,43 +347,34 @@
 				mov m0,p	mov m2,a
 	or						mov alu,a		mov 30,ct3
 							clr a			mov all,mc2
+											mov 3,ct2
+	DMAH2 MC2,D0,1
 	;	In this case, I also want to use, say, RAM3[30] to store the # of hits.
-	;	10. Go to step #4.
 							mov m3,a		mov 1,PL
 	ad2						mov alu,a		
 											mov all,mc3
-	jmp REPORTAL
+	jmp CONTINUE:
 	UNCLIPPED:
 	;	In case the vertex is not clipped IN, mark the vertex as being checked with the data DMA'd in at RAM0[2], then continue.
 	;	This branch will also be reached by portals that clip OUT.
-	;	10. Go to step #4.
 											mov 3,ct2
 											mov 2,ct0
 				mov m0,p	mov m2,a
 	or						mov alu,a		
 							clr a			mov all,mc2
-	jmp REPORTAL			
-	CONTINUE:
-	;	---------------------------------------------------------------------
-	;	11. DMA out the clip flag after all portals have processed.
-	;	11a. Add to vertex WRITE and vertex READ addresses.
-	;	11b. Move vertex WRITE and vertex READ to RA0/WA0, respectively.
-	;	We must retrieve the output DMA address in RAM3[61] and add 4 to it then write it back.
-	;	We must also retrieve the vertex READ address (RAM3[58]), add 4 to it, then write it back.
 											mov 3,ct2
 	DMAH2 MC2,D0,1
+	;	---------------------------------------------------------------------
+	;	CT0 = ?? ; CT1 = ?? ; CT2 = ?? ; CT3 = ?? ; Treat all counters as undefined.
+	;	We must retrieve the output DMA address in RAM3[61] and add 4 to it then write it back.
+	CONTINUE:
 							clr a			mov 61,ct3
 							mov m3,a		mov 4,PL
 	add						mov alu,a
 											mov all,wa0
 							clr a			mov all,mc3
-											mov 58,ct3
-							mov m3,a		mov 4,PL
-	add						mov alu,a		
-											mov all,ra0
-											mov all,mc3	; 	
-	;	12. Go to step #1.
-	jmp FOR_ENTRY1
+	jmp FOR_ENTRY1 	; Return to top of loop
+											mov 0,ct0
 	;	---------------------------------------------------------------------
 	FOR_EXIT1:
 											mov 63,ct3	; 
@@ -435,6 +384,7 @@
 											mov 29,ct3
 	DMAH2 MC3,D0,2										; Procedure to DMA RAM3[29,30] out to the reporting address
 	END
+	nop
 	;	---------------------------------------------------------------------
 	;	Single-side subroutine execution
 	;	(y - y0) * (x1 - x0) - (x - x0) * (y1 - y0)

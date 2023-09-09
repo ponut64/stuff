@@ -51,10 +51,6 @@ int globalColorOffset;
 int glblLightApply = true;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
-//Profiling stuff
-int player_render_time;
-int animation_time;
-
 void	computeLight(void)
 {
 
@@ -147,11 +143,6 @@ void	master_draw_stats(void)
 void	player_animation(void)
 {
 	
-	//Profiling Set-up
-	static int start_time;
-	
-	start_time = get_time_in_frame();
-	
 			//Animation Chains
 					static int airTimer = 0;
 			if(pl_model.file_done == true)
@@ -239,18 +230,12 @@ void	player_animation(void)
 				flap.currentKeyFrm = flap.startFrm;
 				flap.reset_enable = 'Y';
 			}
-			
-	animation_time = get_time_in_frame() - start_time;
 	
 }
 
 void	player_draw(void)
 {
 	
-	//Profiling Set-up
-	static int start_time;
-
-	start_time = get_time_in_frame();
 	slPushMatrix();
 	{
 
@@ -277,15 +262,11 @@ void	player_draw(void)
 		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
 		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
 		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
-	
-	player_render_time = get_time_in_frame() - start_time;
 
 }
 
 void	obj_draw_queue(void)
 {
-	
-
 		
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -381,10 +362,12 @@ void	prep_map_mtx(void)
 	slPopMatrix();
 }
 
+	//volatile int times[8];
 
 void	object_draw(void)
 {
-	
+	*timeComm = 0;
+	//times[2] = get_time_in_frame();
 	computeLight();
 	slPushMatrix();
 	{	
@@ -412,10 +395,22 @@ void	object_draw(void)
 	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
 	player_draw();
 	shadow_draw();
-		
+	//times[3] = get_time_in_frame();
 	obj_draw_queue();
+	//times[4] = get_time_in_frame();
 	}
 	slPopMatrix();
+	
+	//if(viewInfoTxt == 1)
+	//{
+	//slPrintFX(times[2], slLocate(7, 12));
+	//slPrintFX(times[3], slLocate(7, 13));
+	//slPrintFX(times[4], slLocate(7, 14));
+	//nbg_sprintf(2, 11, "SSH2:");
+	//nbg_sprintf(2, 12, "S.Beg:");
+	//nbg_sprintf(2, 13, "Plyr:");
+	//nbg_sprintf(2, 14, "Ents:");
+	//}
 	
 }
 
@@ -446,7 +441,7 @@ void	map_draw_prep(void)
 	
 	load_hmap_prog();
 	run_hmap_prog();
-	
+
 }
 
 void	map_draw(void)
@@ -460,10 +455,12 @@ void	map_draw(void)
 void	master_draw(void)
 {
 	static int time_at_start;
-	static int time_at_dsp;
 	static int time_of_master_draw;
 	static int time_of_object_management;
 	static int time_at_end;
+	static int time_at_ssh2_end;
+	static int interim_time;
+	static int extra_time;
 	
 	static int math_time;
 	
@@ -473,18 +470,19 @@ void	master_draw(void)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
+	interim_time = get_time_in_frame();
 	flush_boxes(0);
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);
-
+	time_of_object_management = get_time_in_frame() - interim_time;
+	interim_time = get_time_in_frame();
 	//
-	time_at_dsp = get_time_in_frame();
 	//
 	map_draw();
 	map_draw_prep();
 	//
-	time_of_master_draw = get_time_in_frame() - time_at_dsp;
-	math_time = get_time_in_frame();
+	time_of_master_draw = get_time_in_frame() - interim_time;
+	interim_time = get_time_in_frame();
 	//
 	operate_particles();
 	hud_menu();
@@ -497,8 +495,8 @@ void	master_draw(void)
 		player_collision_test_loop();
 		collide_with_heightmap(&pl_RBB);
 		//
-	time_of_object_management = get_time_in_frame() - math_time;
 	player_animation();
+	extra_time = get_time_in_frame() - interim_time;
 		//
 	} else if(you.inMenu)
 	{
@@ -513,20 +511,24 @@ void	master_draw(void)
 	
 	if(viewInfoTxt == 1)
 	{
-	slPrintFX(time_at_start, slLocate(6, 7));
-	slPrintFX(time_at_dsp, slLocate(6, 8));
-	slPrintFX(time_of_master_draw, slLocate(6, 9));
-	slPrintFX(time_of_object_management, slLocate(6, 10));
-	slPrintFX(animation_time, slLocate(6, 11));
-	slPrintFX(time_at_end, slLocate(6, 12));
-	if(player_render_time > 0) slPrintFX(player_render_time, slLocate(6, 13));
-	nbg_sprintf(2, 7, "Start:");
-	nbg_sprintf(2, 8, "DSP:");
-	nbg_sprintf(2, 9, "Map:");
-	nbg_sprintf(2, 10, "Objs:");
-	nbg_sprintf(2, 11, "Anim:");
-	nbg_sprintf(2, 12, "End:");
-	nbg_sprintf(2, 13, "Plyr:");
+	slPrintFX(time_at_start, slLocate(7, 7));
+	slPrintFX(time_of_master_draw, slLocate(7, 8));
+	slPrintFX(time_of_object_management, slLocate(7, 9));
+	slPrintFX(extra_time, slLocate(7, 10));
+	slPrintFX(time_at_end, slLocate(7, 11));
+	nbg_sprintf(2, 6, "MSH2:");
+	nbg_sprintf(2, 7, "Strt:");
+	nbg_sprintf(2, 8, "Map:");
+	nbg_sprintf(2, 9, "Objs:");
+	nbg_sprintf(2, 10, "Ext:");
+	nbg_sprintf(2, 11, "End:");
+	
+	while(!*timeComm){
+		if(get_time_in_frame() >= (50<<16)) break;
+	};
+	time_at_ssh2_end = get_time_in_frame();
+	slPrintFX(time_at_ssh2_end, slLocate(7, 12));
+	nbg_sprintf(2, 12, "SSH2:");
 	}
 }
 

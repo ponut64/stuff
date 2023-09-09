@@ -52,6 +52,8 @@
 #define SCRN_CLIP_FLAGS	(0xF)
 #define CLIP_Z 			(1<<4)
 #define LOW_Z 			(1<<5)
+#define DSP_CLIP_IN		(0x1FF)
+#define DSP_CLIP_CHECK	(0x100)
 
 #define CLIP_TO_SCRN_X(xcoord) ((xcoord > TV_HALF_WIDTH) ? TV_HALF_WIDTH : (xcoord < -TV_HALF_WIDTH) ? -TV_HALF_WIDTH : xcoord)
 #define CLIP_TO_SCRN_Y(ycoord) ((ycoord > TV_HALF_HEIGHT) ? TV_HALF_HEIGHT : (ycoord < -TV_HALF_HEIGHT) ? -TV_HALF_HEIGHT : ycoord)
@@ -62,7 +64,8 @@
 
 #define MAX_SPRITES (64)
 
-#define MAX_PORTALS	(8)
+#define MAX_SCENE_PORTALS	(8)
+#define MAX_USED_PORTALS	(2)
 
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
@@ -97,6 +100,11 @@ Render data flags:
 	#define GET_SORT_DATA(n)	(n & 0xC0)
 	#define GET_FLIP_DATA(n)	(n & 0x30)
 	
+	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
+	#define PORTAL_OR_OCCLUDE	(1<<1)	//Portal IN or OUT setting (portal or occluder). 1 = portal. 0 = occluder.
+	#define PORTAL_TYPE_BACK	(1<<2)	// Portal on back-facing only, otherwise front facing only
+	#define PORTAL_TYPE_DUAL	(1<<3)	// Portal on both front and back facing (portal always used if active)
+
 //////////////////////////////////
 // Engine's working struct for drawing raw sprites
 ///////////// /////////////////////
@@ -192,15 +200,14 @@ typedef struct
 {
 	int verts[4][3];
 	int depth;
-	unsigned char type;
-	unsigned char backface;
 	unsigned char sectorA;
 	unsigned char sectorB;
-	short min[2];
-	short max[2];
+	unsigned char type;
+	unsigned char backface;
 } _portal;
 
-extern _portal portals[MAX_PORTALS];
+extern _portal scene_portals[MAX_SCENE_PORTALS];
+extern _portal used_portals[MAX_USED_PORTALS];
 extern short current_portal_count;
 extern short portal_reset;
 extern entity_t * drawn_entity_list[64];
@@ -223,6 +230,7 @@ extern int * ssh2SentPolys;
 extern int * msh2SentPolys;
 extern int * transVerts;
 extern int * transPolys;
+extern int * timeComm;
 extern paletteCode * pcoTexDefs;
 
 extern point_light * active_lights;

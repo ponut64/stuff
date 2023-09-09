@@ -215,9 +215,11 @@ Information about the scale and subdivision rules of the plane.
 	// when viewed through the plane, are discarded.
 	// That is effectively an anti-portal...
 
-		POINT	subdivided_points[512];
-		short	subdivided_polygons[512][4]; //4 Vertex IDs of the subdivided_points
-		short	used_textures[512];
+		POINT		sub_transform_buffer[256];
+		vertex_t	screen_transform_buffer[256];
+		POINT		subdivided_points[128];
+		short		subdivided_polygons[128][4]; //4 Vertex IDs of the subdivided_points
+		short		used_textures[128];
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
@@ -529,7 +531,8 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	unsigned short	flip = 0;
 	unsigned short	pclp = 0;
 
-	POINT	pl_pts[4];
+	vertex_t * ptv[5];
+	unsigned short vids[4];
 
     static MATRIX newMtx;
 	static FIXED m0x[4];
@@ -597,6 +600,38 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 			// tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, m2z);
 		// }
 	// }
+	
+//First: Transform all of the vertices of the mesh to a buffer.
+for(unsigned int i = 0; i < mesh->nbPoint; i++)
+{
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//Vertice 3D Transformation
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /**calculate z**/
+        screen_transform_buffer[i].pnt[Z] = trans_pt_by_component(mesh->pntbl[i], m2z);
+		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
+		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
+         /**Starts the division**/
+        SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+
+        /**Calculates X and Y while waiting for screenDist/z **/
+        sub_transform_buffer[i][Y] = trans_pt_by_component(mesh->pntbl[i], m1y);
+        sub_transform_buffer[i][X] = trans_pt_by_component(mesh->pntbl[i], m0x);
+		
+        /** Retrieves the result of the division **/
+		inverseZ = *DVDNTL;
+
+        /**Transform X and Y to screen space**/
+        screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
+        screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
+ 
+        //Screen Clip Flags for on-off screen decimation
+		screen_transform_buffer[i].clipFlag = ((screen_transform_buffer[i].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : screen_transform_buffer[i].clipFlag; 
+		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : screen_transform_buffer[i].clipFlag;
+		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : screen_transform_buffer[i].clipFlag;
+		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : screen_transform_buffer[i].clipFlag;
+}
 
 for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 {
@@ -605,45 +640,38 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		
 	flags = mesh->attbl[i].render_data_flags;
 		
-	for(int u = 0; u < 4; u++)
-	{
 	//////////////////////////////////////////////////////////////
 	// Load the points
 	//////////////////////////////////////////////////////////////
-		pl_pts[u][X] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][X]);
-		pl_pts[u][Y] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Y]);
-		pl_pts[u][Z] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Z]);
-	//////////////////////////////////////////////////////////////
-	// Matrix transformation of the plane's points
-	// Note: Does not yet transform to screenspace, clip by screen or portal, or push out to near plane.
-	//////////////////////////////////////////////////////////////
-        subdivided_points[u][Z] = trans_pt_by_component(pl_pts[u], m2z);
-        subdivided_points[u][Y] = trans_pt_by_component(pl_pts[u], m1y);
-        subdivided_points[u][X] = trans_pt_by_component(pl_pts[u], m0x);
+		vids[0] = mesh->pltbl[i].vertices[0];
+		vids[1] = mesh->pltbl[i].vertices[1];
+		vids[2] = mesh->pltbl[i].vertices[2];
+		vids[3] = mesh->pltbl[i].vertices[3];
+		
+		subdivided_polygons[0][0] = 0;
+		subdivided_polygons[0][1] = 1;
+		subdivided_polygons[0][2] = 2;
+		subdivided_polygons[0][3] = 3;
+		subdivided_points[0][X] = sub_transform_buffer[vids[0]][X];
+		subdivided_points[0][Y] = sub_transform_buffer[vids[0]][Y];
+		subdivided_points[0][Z] = sub_transform_buffer[vids[0]][Z];
 
-		subdivided_polygons[0][u] = u;
-	//////////////////////////////////////////////////////////////
-	// Early screenspace transform to throw out off-screen planes
-	//////////////////////////////////////////////////////////////
-		//Push to near-plane
-		ssh2VertArea[u].pnt[Z] = (subdivided_points[u][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[u][Z] : SUBDIVISION_NEAR_PLANE;
-		//Get 1/z
-		inverseZ = fxdiv(scrn_dist, ssh2VertArea[u].pnt[Z]);
-        //Transform to screen-space
-        ssh2VertArea[u].pnt[X] = fxm(subdivided_points[u][X], inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[u].pnt[Y] = fxm(subdivided_points[u][Y], inverseZ)>>SCR_SCALE_Y;
-        //Screen Clip Flags for on-off screen decimation
-		ssh2VertArea[u].clipFlag = ((ssh2VertArea[u].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[u].clipFlag; 
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[u].clipFlag;
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[u].clipFlag;
-		ssh2VertArea[u].clipFlag |= ((ssh2VertArea[u].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[u].clipFlag;
-		// clipping(&ssh2VertArea[u], USER_CLIP_INSIDE);
-	}
-		 if(ssh2VertArea[0].clipFlag
-		 & ssh2VertArea[1].clipFlag
-		 & ssh2VertArea[2].clipFlag
-		 & ssh2VertArea[3].clipFlag) continue;
+		subdivided_points[1][X] = sub_transform_buffer[vids[1]][X];
+		subdivided_points[1][Y] = sub_transform_buffer[vids[1]][Y];
+		subdivided_points[1][Z] = sub_transform_buffer[vids[1]][Z];
+		
+		subdivided_points[2][X] = sub_transform_buffer[vids[2]][X];
+		subdivided_points[2][Y] = sub_transform_buffer[vids[2]][Y];
+		subdivided_points[2][Z] = sub_transform_buffer[vids[2]][Z];
+		
+		subdivided_points[3][X] = sub_transform_buffer[vids[3]][X];
+		subdivided_points[3][Y] = sub_transform_buffer[vids[3]][Y];
+		subdivided_points[3][Z] = sub_transform_buffer[vids[3]][Z];
+
+		if(screen_transform_buffer[vids[0]].clipFlag
+		& screen_transform_buffer[vids[1]].clipFlag
+		& screen_transform_buffer[vids[2]].clipFlag
+		& screen_transform_buffer[vids[3]].clipFlag) continue;
 		 
 	///////////////////////////////////////////
 	//	Check the maximum Z of every new polygon.
@@ -657,13 +685,16 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	// Portal stuff
 	// This plane rendering really has a lot of garbage in it, doesn't it?
 	//////////////////////////////////////////////////////////////
-	if(flags & GV_FLAG_PORTAL && current_portal_count < MAX_PORTALS)
+	if(flags & GV_FLAG_PORTAL && current_portal_count < MAX_SCENE_PORTALS)
 	{
+		scene_portals[current_portal_count].type = PORTAL_TYPE_ACTIVE;
+		scene_portals[current_portal_count].type |= (flags & GV_FLAG_PORT_TYPE) ? PORTAL_OR_OCCLUDE : 0;
+		scene_portals[current_portal_count].type |= PORTAL_TYPE_DUAL;
 		for(int u = 0; u < 4; u++)
 		{
-		portals[current_portal_count].verts[u][X] = ssh2VertArea[u].pnt[X];
-		portals[current_portal_count].verts[u][Y] = ssh2VertArea[u].pnt[Y];
-		portals[current_portal_count].verts[u][Z] = ssh2VertArea[u].pnt[Z];
+		scene_portals[current_portal_count].verts[u][X] = screen_transform_buffer[vids[u]].pnt[X];
+		scene_portals[current_portal_count].verts[u][Y] = screen_transform_buffer[vids[u]].pnt[Y];
+		scene_portals[current_portal_count].verts[u][Z] = screen_transform_buffer[vids[u]].pnt[Z];
 		}
 		current_portal_count++;
 	}
@@ -674,10 +705,10 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//////////////////////////////////////////////////////////////
 	if(flags & GV_FLAG_SINGLE)
 	{
-		 int cross0 = (ssh2VertArea[1].pnt[X] - ssh2VertArea[3].pnt[X])
-							* (ssh2VertArea[0].pnt[Y] - ssh2VertArea[2].pnt[Y]);
-		 int cross1 = (ssh2VertArea[1].pnt[Y] - ssh2VertArea[3].pnt[Y])
-							* (ssh2VertArea[0].pnt[X] - ssh2VertArea[2].pnt[X]);
+		 int cross0 = (screen_transform_buffer[vids[1]].pnt[X] - screen_transform_buffer[vids[3]].pnt[X])
+							* (screen_transform_buffer[vids[0]].pnt[Y] - screen_transform_buffer[vids[2]].pnt[Y]);
+		 int cross1 = (screen_transform_buffer[vids[1]].pnt[Y] - screen_transform_buffer[vids[3]].pnt[Y])
+							* (screen_transform_buffer[vids[0]].pnt[X] - screen_transform_buffer[vids[2]].pnt[X]);
 		dual_plane = 0;
 		if(cross0 >= cross1) continue;
 	} else {
@@ -698,22 +729,32 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	// Well, technically it works, but affine warping is experienced. It looks pretty awful.
 	///////////////////////////////////////////
 		used_textures[0] = mesh->attbl[i].uv_id;
-	if(!(flags & GV_FLAG_NDIV))
-	{ 
-	//////////////////////////////////////////////////////////////
-	// Check: Find the polygon's scale and thus subdivision scale.
-	// We find the true perimeter of the polygon.
-	//////////////////////////////////////////////////////////////
+
 		subdivision_rules[0] = mesh->attbl[i].plane_information & 0x3;
 		subdivision_rules[1] = (mesh->attbl[i].plane_information>>2) & 0x3;
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
 		subdivision_rules[3] = 0;
 		
-		if(!subdivision_rules[0] || subdivision_rules[3])
+		if(!subdivision_rules[0] || subdivision_rules[3] || (flags & GV_FLAG_NDIV))
 		{
-			//In this case the polygon is too small or too large.
-			//Large polygons will be excepted by making it look obviously wrong.
-			used_textures[0] = mesh->attbl[i].uv_id;
+			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
+			ssh2VertArea[0].pnt[X] = screen_transform_buffer[vids[0]].pnt[X];
+			ssh2VertArea[0].pnt[Y] = screen_transform_buffer[vids[0]].pnt[Y];
+			ssh2VertArea[0].pnt[Z] = screen_transform_buffer[vids[0]].pnt[Z];
+			ssh2VertArea[1].pnt[X] = screen_transform_buffer[vids[1]].pnt[X];
+			ssh2VertArea[1].pnt[Y] = screen_transform_buffer[vids[1]].pnt[Y];
+			ssh2VertArea[1].pnt[Z] = screen_transform_buffer[vids[1]].pnt[Z];
+			ssh2VertArea[2].pnt[X] = screen_transform_buffer[vids[2]].pnt[X];
+			ssh2VertArea[2].pnt[Y] = screen_transform_buffer[vids[2]].pnt[Y];
+			ssh2VertArea[2].pnt[Z] = screen_transform_buffer[vids[2]].pnt[Z];
+			ssh2VertArea[3].pnt[X] = screen_transform_buffer[vids[3]].pnt[X];
+			ssh2VertArea[3].pnt[Y] = screen_transform_buffer[vids[3]].pnt[Y];
+			ssh2VertArea[3].pnt[Z] = screen_transform_buffer[vids[3]].pnt[Z];
+			ssh2VertArea[0].clipFlag = screen_transform_buffer[vids[0]].clipFlag;
+			ssh2VertArea[1].clipFlag = screen_transform_buffer[vids[1]].clipFlag;
+			ssh2VertArea[2].clipFlag = screen_transform_buffer[vids[2]].clipFlag;
+			ssh2VertArea[3].clipFlag = screen_transform_buffer[vids[3]].clipFlag;
+			//Subdivision disabled end stub
 		} else {
 			///////////////////////////////////////////
 			// The subdivision rules were pre-calculated by the converter tool.
@@ -751,8 +792,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			}
 		//Subdivision activation end stub
 		}
-	//Subdivision enabled end stub
-	}
 	///////////////////////////////////////////
 	//
 	// Z-sort Insertion & Command Arrangement of Polygons
@@ -761,10 +800,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
 
-	unsigned short usedCMDCTRL = VDP1_POLYLINE_CMDCTRL;//(flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
-	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
 		

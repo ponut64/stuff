@@ -33,12 +33,12 @@ boxDisField[5] = N_Xp;
 }
 
 
-__attribute__((always_inline)) int		edge_wind_test(POINT plane_p0, POINT plane_p1, POINT test_pt, int discard, short shift)
+
+int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift)
 {
 	
 	int left = 0;
 	int right = 0;
-	
 	/*
 	
 	Edge Winding test
@@ -61,6 +61,8 @@ __attribute__((always_inline)) int		edge_wind_test(POINT plane_p0, POINT plane_p
 	This is a 2D solution, but - it'll probably work if I drop the major axis of the normal in all the calculations.
 	
 	*/
+	int * plane_p0;
+	int * plane_p1;
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	//Using integer math. The precision of fixed point is not required, and this prevents overflows.
@@ -68,37 +70,150 @@ __attribute__((always_inline)) int		edge_wind_test(POINT plane_p0, POINT plane_p
 	switch(discard)
 	{
 	case (N_Xp):
-		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
-		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	case (N_Zp):
-		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	case (N_Yn):
-		left = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
-		right = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	case (N_Xn):
-		right = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
-		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	case (N_Zn):
-		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		left = ((test_pt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	case (N_Yp):
-		right = ((test_pt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
-		left = ((test_pt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		plane_p0 = pp0;
+		plane_p1 = pp1;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp1;
+		plane_p1 = pp2;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp2;
+		plane_p1 = pp3;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		plane_p0 = pp3;
+		plane_p1 = pp0;
+		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+		if((left-right) < 0) break;
+		return 1;
 		break;
 	}
 	// slPrint("Left:", slLocate(2, 7 + (prntidx * 2)));
 	// slPrintFX(left, slLocate(2, 8 + (prntidx * 2)));
-	
+	return 0;
 	// slPrint("Right:", slLocate(18, 7 + (prntidx * 2)));
 	// slPrintFX(right, slLocate(18, 8 + (prntidx * 2)));
 	//prntidx++;
-	return left - right;
 }
 
 Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
@@ -566,22 +681,13 @@ numBoxChecks++;
 		{
 			if(lineChecks[u])
 			{
-				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], lineEnds[u], boxDisField[i], 12) > 0)
+				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i], 12))
 				{
-					if(edge_wind_test(stator->pltbl[i][1], stator->pltbl[i][2], lineEnds[u], boxDisField[i], 12) > 0)
-					{
-						if(edge_wind_test(stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i], 12) > 0)
-						{
-							if(edge_wind_test(stator->pltbl[i][3], stator->pltbl[i][0], lineEnds[u], boxDisField[i], 12) > 0)
-							{
 								pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);
 								mover->collisionID = stator->boxID;
 								stator->collisionID = mover->boxID;
 								you.hitBox = true;
 								return true;
-							}
-						}
-					}
 				} 
 			}
 		}  

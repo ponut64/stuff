@@ -24,7 +24,7 @@
 
 #include "menu.h"
 extern Sint8 SynchConst; //SGL System Variable
-int viewInfoTxt = 0;
+int viewInfoTxt = 1;
 int baseRingMenuTexno = 0;
 int menuLayer = 0;
 

@@ -417,47 +417,38 @@ if(you.hitSurface && last_floor_entity == ent)
 	//////////////////////////////////////////////////////////////
 	if(lineChecks[Y])
 	{
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
+			you.floorNorm[X] = used_normal[X]; 
+			you.floorNorm[Y] = used_normal[Y];
+			you.floorNorm[Z] = used_normal[Z];
+			
+			if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_CLIMBABLE)
 			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
+				you.climbing = true;
+				if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_LADDER)
 				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
+					if(slCos(you.rot2[Y]) >= 0)
 					{
-						you.floorNorm[X] = used_normal[X]; 
-						you.floorNorm[Y] = used_normal[Y];
-						you.floorNorm[Z] = used_normal[Z];
-						
-						if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_CLIMBABLE)
-						{
-							you.climbing = true;
-							if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_LADDER)
-							{
-								if(slCos(you.rot2[Y]) >= 0)
-								{
-									you.rot2[Y] = 0;
-								} else {
-									you.rot2[Y] = 32768;
-								}
-								you.ladder = true;
-							}
-						}
-						standing_surface_alignment(you.floorNorm);
-						you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-						you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-						you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-						you.shadowPos[X] = lineEnds[Y][X];
-						you.shadowPos[Y] = lineEnds[Y][Y];
-						you.shadowPos[Z] = lineEnds[Y][Z];
-						
-						you.hitSurface = true;
-						you.aboveObject = true;
-						you.hitObject = true;
-						hitY = true; 
+						you.rot2[Y] = 0;
+					} else {
+						you.rot2[Y] = 32768;
 					}
+					you.ladder = true;
 				}
 			}
+			standing_surface_alignment(you.floorNorm);
+			you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+			you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+			you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+			you.shadowPos[X] = lineEnds[Y][X];
+			you.shadowPos[Y] = lineEnds[Y][Y];
+			you.shadowPos[Z] = lineEnds[Y][Z];
+			
+			you.hitSurface = true;
+			you.aboveObject = true;
+			you.hitObject = true;
+			hitY = true; 
 		}
 	}
 //End of early floor test
@@ -534,22 +525,13 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
  	if((!shadowStruck || !hitY) && (lineEnds[Y][Y] < you.pos[Y]))
 	{	
-		if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
 		{
-			if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
-			{
-				if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
-				{
-					if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
-					{
-						shadowStruck = true;
-						you.aboveObject = true;
-						you.shadowPos[X] = lineEnds[Y][X];
-						you.shadowPos[Y] = lineEnds[Y][Y];
-						you.shadowPos[Z] = lineEnds[Y][Z];
-					}
-				}
-			}
+			shadowStruck = true;
+			you.aboveObject = true;
+			you.shadowPos[X] = lineEnds[Y][X];
+			you.shadowPos[Y] = lineEnds[Y][Y];
+			you.shadowPos[Z] = lineEnds[Y][Z];
 		}
 	}
 	if(!lineChecks[0] && !lineChecks[1] && !lineChecks[2]) { continue; }
@@ -566,66 +548,58 @@ for(int i = 0; i < total_planes; i++)
 							(mesh->attbl[testing_planes[i]].render_data_flags & GV_FLAG_CLIMBABLE);
 	if(!hitY)
 	{
-		if(lineChecks[Y]){
+		if(lineChecks[Y])
+		{
 			//slPrint("Testing Y", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Y], dominant_axis, 12) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Y], dominant_axis, 12) >= 0)
+				if((dominant_axis == N_Yn && !backfaced[i]) || climder)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12) >= 0)
+					you.floorNorm[X] = used_normal[X]; 
+					you.floorNorm[Y] = used_normal[Y];
+					you.floorNorm[Z] = used_normal[Z];
+					
+					if(climder & GV_FLAG_CLIMBABLE)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Y], dominant_axis, 12) >= 0)
+						you.climbing = true;
+						if(climder & GV_FLAG_LADDER)
 						{
-							if((dominant_axis == N_Yn && !backfaced[i]) || climder)
+							if(slCos(you.rot2[Y]) >= 0)
 							{
-								you.floorNorm[X] = used_normal[X]; 
-								you.floorNorm[Y] = used_normal[Y];
-								you.floorNorm[Z] = used_normal[Z];
-								
-								if(climder & GV_FLAG_CLIMBABLE)
-								{
-									you.climbing = true;
-									if(climder & GV_FLAG_LADDER)
-									{
-										if(slCos(you.rot2[Y]) >= 0)
-										{
-											you.rot2[Y] = 0;
-										} else {
-											you.rot2[Y] = 32768;
-										}
-										you.ladder = true;
-									}
-								} else {
-								you.shadowPos[X] = lineEnds[Y][X];
-								you.shadowPos[Y] = lineEnds[Y][Y];
-								you.shadowPos[Z] = lineEnds[Y][Z];
-								last_hit_floor = testing_planes[i];
-								last_floor_entity = ent;
-								}
-								
-								standing_surface_alignment(you.floorNorm);
-								
-								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-								
-								you.hitSurface = true;
+								you.rot2[Y] = 0;
 							} else {
-								you.wallNorm[X] = used_normal[X];
-								you.wallNorm[Y] = used_normal[Y];
-								you.wallNorm[Z] = used_normal[Z];
-								you.wallPos[X] = -lineEnds[Y][X];
-								you.wallPos[Y] = -lineEnds[Y][Y];
-								you.wallPos[Z] = -lineEnds[Y][Z];
-								
-								you.hitWall = true;
+								you.rot2[Y] = 32768;
 							}
-							you.aboveObject = true;
-							you.hitObject = true;
-							hitY = true; 
+							you.ladder = true;
 						}
+					} else {
+					you.shadowPos[X] = lineEnds[Y][X];
+					you.shadowPos[Y] = lineEnds[Y][Y];
+					you.shadowPos[Z] = lineEnds[Y][Z];
+					last_hit_floor = testing_planes[i];
+					last_floor_entity = ent;
 					}
+					
+					standing_surface_alignment(you.floorNorm);
+					
+					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					
+					you.hitSurface = true;
+				} else {
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+					you.wallPos[X] = -lineEnds[Y][X];
+					you.wallPos[Y] = -lineEnds[Y][Y];
+					you.wallPos[Z] = -lineEnds[Y][Z];
+					
+					you.hitWall = true;
 				}
+			you.aboveObject = true;
+			you.hitObject = true;
+			hitY = true; 
 			}
 		}
 	}
@@ -634,118 +608,101 @@ for(int i = 0; i < total_planes; i++)
 	//////////////////////////////////////////////////////////////
 	if(!hitXZ)
 	{
-		if(lineChecks[Z]){
+		if(lineChecks[Z])
+		{
 			//slPrint("Testing Z", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[Z], dominant_axis, 12) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Z], dominant_axis, 12))
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[Z], dominant_axis, 12) >= 0)
+				if(climder)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[Z], dominant_axis, 12) >= 0)
+					you.floorNorm[X] = used_normal[X]; 
+					you.floorNorm[Y] = used_normal[Y];
+					you.floorNorm[Z] = used_normal[Z];
+					
+					if(climder & GV_FLAG_CLIMBABLE)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[Z], dominant_axis, 12) >= 0)
+						you.climbing = true;
+						if(climder & GV_FLAG_LADDER)
 						{
-							if(climder)
+							if(slCos(you.rot2[Y]) >= 0)
 							{
-								you.floorNorm[X] = used_normal[X]; 
-								you.floorNorm[Y] = used_normal[Y];
-								you.floorNorm[Z] = used_normal[Z];
-								
-								if(climder & GV_FLAG_CLIMBABLE)
-								{
-									you.climbing = true;
-									if(climder & GV_FLAG_LADDER)
-									{
-										if(slCos(you.rot2[Y]) >= 0)
-										{
-											you.rot2[Y] = 0;
-										} else {
-											you.rot2[Y] = 32768;
-										}
-										you.ladder = true;
-									}
-								}
-								
-								standing_surface_alignment(you.floorNorm);
-								
-								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-								
-								you.hitSurface = true;
+								you.rot2[Y] = 0;
 							} else {
-								you.wallNorm[X] = used_normal[X];
-								you.wallNorm[Y] = used_normal[Y];
-								you.wallNorm[Z] = used_normal[Z];
-								you.wallPos[X] = -lineEnds[Z][X];
-								you.wallPos[Y] = -lineEnds[Z][Y];
-								you.wallPos[Z] = -lineEnds[Z][Z];
-								
-								you.hitWall = true;
+								you.rot2[Y] = 32768;
 							}
-							you.hitObject = true;
-							hitXZ = true;
+							you.ladder = true;
 						}
 					}
+					
+					standing_surface_alignment(you.floorNorm);
+					
+					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					
+					you.hitSurface = true;
+				} else {
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+					you.wallPos[X] = -lineEnds[Z][X];
+					you.wallPos[Y] = -lineEnds[Z][Y];
+					you.wallPos[Z] = -lineEnds[Z][Z];
+					
+					you.hitWall = true;
 				}
+				you.hitObject = true;
+				hitXZ = true;
 			}
 		}
-		
 	//////////////////////////////////////////////////////////////
 	// Line Checks X
 	//////////////////////////////////////////////////////////////
-		if(lineChecks[X]){
+		if(lineChecks[X])
+		{
 			//slPrint("Testing X", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], lineEnds[X], dominant_axis, 12) >= 0)
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[X], dominant_axis, 12))
 			{
-				if(edge_wind_test(plane_points[1], plane_points[2], lineEnds[X], dominant_axis, 12) >= 0)
+				if(climder)
 				{
-					if(edge_wind_test(plane_points[2], plane_points[3], lineEnds[X], dominant_axis, 12) >= 0)
+					you.floorNorm[X] = used_normal[X]; 
+					you.floorNorm[Y] = used_normal[Y];
+					you.floorNorm[Z] = used_normal[Z];
+					
+					if(climder & GV_FLAG_CLIMBABLE)
 					{
-						if(edge_wind_test(plane_points[3], plane_points[0], lineEnds[X], dominant_axis, 12) >= 0)
+						you.climbing = true;
+						if(climder & GV_FLAG_LADDER)
 						{
-							if(climder)
+							if(slCos(you.rot2[Y]) >= 0)
 							{
-								you.floorNorm[X] = used_normal[X]; 
-								you.floorNorm[Y] = used_normal[Y];
-								you.floorNorm[Z] = used_normal[Z];
-								
-								if(climder & GV_FLAG_CLIMBABLE)
-								{
-									you.climbing = true;
-									if(climder & GV_FLAG_LADDER)
-									{
-										if(slCos(you.rot2[Y]) >= 0)
-										{
-											you.rot2[Y] = 0;
-										} else {
-											you.rot2[Y] = 32768;
-										}
-										you.ladder = true;
-									}
-								}
-								
-								standing_surface_alignment(you.floorNorm);
-								
-								you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-								you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-								you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-								
-								you.hitSurface = true;
+								you.rot2[Y] = 0;
 							} else {
-							you.wallNorm[X] = used_normal[X];
-							you.wallNorm[Y] = used_normal[Y];
-							you.wallNorm[Z] = used_normal[Z];
-							you.wallPos[X] = -lineEnds[X][X];
-							you.wallPos[Y] = -lineEnds[X][Y];
-							you.wallPos[Z] = -lineEnds[X][Z];
-								
-							you.hitWall = true;
+								you.rot2[Y] = 32768;
 							}
-							you.hitObject = true;
-							hitXZ = true;
+							you.ladder = true;
 						}
 					}
+					
+					standing_surface_alignment(you.floorNorm);
+					
+					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					
+					you.hitSurface = true;
+				} else {
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+					you.wallPos[X] = -lineEnds[X][X];
+					you.wallPos[Y] = -lineEnds[X][Y];
+					you.wallPos[Z] = -lineEnds[X][Z];
+						
+					you.hitWall = true;
 				}
+				you.hitObject = true;
+				hitXZ = true;
 			}
 		}
 	}

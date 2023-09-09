@@ -212,18 +212,27 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. level adjustments
-	0. need tutorial! 
-		a. have basic level to turn into a "tutorial"
-		b. plan: streams sound clips + puts text on screen via event system to tell player:
-		there is the JUMP button, which pushes you by the surface angle
-		there is the HOP button, which will also glide
-		there is the SLIDE button, which you can use to go very fast
-		.. maybe using posters is better? i'll need to rush to implement it...
-		ah, well: a poster, if you stand near it, it puts up the event. dunno if sound is worth it.
-		the flag stand is unlocked by finding the goal stand
-	4. need to indicate the flag stand open trigger better
-	10. need to adjudicate speed rankings on gates
+a.	Performer
+	1. The plane rendering function is not fast enough.
+		To solve the vertices being retransformed for multiple planes, 
+		The vertices should be transformed once into a buffer, and then the planar subdivison would copy them out of the buffer.
+	2. Teetering VDP1 performance issue.
+		Textures clearly load the system more than no textures.
+b. The track
+		1. Once discovered, the track can't be ambiguous.
+			There is a start gate and an end gate. End of story. You start the track at that gate. No more funny business about that.
+		2. There is an *expected* sequence of gates between the start and end gate.
+			The game already has this, but it needs to be laid out with guideposts.
+			People will get lost. People do not like getting lost.
+			The gate discovery phase is where I let the players "be lost". After that, I should at least try to prevent it.
+c. The movement mechanics
+		Again, I assume that the way the game works is simpler than it is.
+		Going fast is a combination of three buttons used at specific times. This is not normal to video games.
+		So I really need to spell it out.
+		You can press L to slide. You can still direct yourself while sliding. Directing yourself down a slope is good.
+		Stuff like that. 
+		But what I also need to spend a lot of time telling the player is how the jump button works.
+		You are pushed off of the surface angle, like a perfect bounce.
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
@@ -704,40 +713,39 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	int tDist = 0;
 	int dominant_axis = 0;
 	//Order the objects so the face always has the same normal
-	
+	// A - B
+	// D - C
 	//Extrapolate a quad out of the pix given
-	//	0 - 1 // B - D
-	//	3 - 2 // A - C
 	fenceA[X] = -dWorldObjects[obj_id1].pos[X];
 	fenceA[Y] = -dWorldObjects[obj_id1].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
 	fenceA[Z] = -dWorldObjects[obj_id1].pos[Z];
 	
-	fenceB[X] = fenceA[X];
-	fenceB[Y] = fenceA[Y] - (dWorldObjects[obj_id1].type.radius[Y]<<17);
-	fenceB[Z] = fenceA[Z];
+	fenceD[X] = fenceA[X];
+	fenceD[Y] = fenceA[Y] - (dWorldObjects[obj_id1].type.radius[Y]<<17);
+	fenceD[Z] = fenceA[Z];
 	
-	fenceC[X] = -dWorldObjects[obj_id2].pos[X];
-	fenceC[Y] = -dWorldObjects[obj_id2].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
-	fenceC[Z] = -dWorldObjects[obj_id2].pos[Z];
+	fenceB[X] = -dWorldObjects[obj_id2].pos[X];
+	fenceB[Y] = -dWorldObjects[obj_id2].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
+	fenceB[Z] = -dWorldObjects[obj_id2].pos[Z];
 	
-	fenceD[X] = fenceC[X];
-	fenceD[Y] = fenceC[Y] - (dWorldObjects[obj_id2].type.radius[Y]<<17);
-	fenceD[Z] = fenceC[Z];
+	fenceC[X] = fenceB[X];
+	fenceC[Y] = fenceB[Y] - (dWorldObjects[obj_id2].type.radius[Y]<<17);
+	fenceC[Z] = fenceB[Z];
 
 	//Makes a vector from point 3 to point 1.
-	rminusb[X] = (fenceA[X] - fenceD[X]);
-	rminusb[Y] = (fenceA[Y] - fenceD[Y]);
-	rminusb[Z] = (fenceA[Z] - fenceD[Z]);
+	rminusb[X] = (fenceA[X] - fenceC[X]);
+	rminusb[Y] = (fenceA[Y] - fenceC[Y]);
+	rminusb[Z] = (fenceA[Z] - fenceC[Z]);
 	//Makes a vector from point 2 to point 0.
-	sminusb[X] = (fenceC[X] - fenceB[X]);
-	sminusb[Y] = (fenceC[Y] - fenceB[Y]);
-	sminusb[Z] = (fenceC[Z] - fenceB[Z]);
+	sminusb[X] = (fenceB[X] - fenceD[X]);
+	sminusb[Y] = (fenceB[Y] - fenceD[Y]);
+	sminusb[Z] = (fenceB[Z] - fenceD[Z]);
 	
 	fxcross(rminusb, sminusb, cross);
 	
-	cross[X] = cross[X]>>8;
-	cross[Y] = cross[Y]>>8;
-	cross[Z] = cross[Z]>>8;
+	cross[X] = cross[X]>>4;
+	cross[Y] = cross[Y]>>4;
+	cross[Z] = cross[Z]>>4;
 	
 	accurate_normalize(cross, used_normal);
 
@@ -757,31 +765,19 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	cross[X] = (fenceA[X] + fenceB[X] + fenceC[X] + fenceD[X])>>2;
 	cross[Y] = (fenceA[Y] + fenceB[Y] + fenceC[Y] + fenceD[Y])>>2;
 	cross[Z] = (fenceA[Z] + fenceB[Z] + fenceC[Z] + fenceD[Z])>>2;
-	
-	//	0 - 1 // B - D
-	//	3 - 2 // A - C
+
 	//////////////////////////////////////////////////////////////
 	// Collision Test Method: Chirality Check
 	// This first tests, line by line, if the player is inside the shape on at least two axis.
 	// Then the final axis is checked with a point-to-plane distance check.
 	// The benefits of this is that the chirality check will exit early a lot of the time.
 	//////////////////////////////////////////////////////////////
- 	if(edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis, 16) < 0)
+ 	if(edge_wind_test(fenceA, fenceB, fenceC, fenceD, you.pos, dominant_axis, 16))
 	{
-		if(edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis, 16) < 0)
+		tDist = ptalt_plane(you.pos, used_normal, cross);
+		if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
 		{
-			if(edge_wind_test(fenceD, fenceC, tgt->pos, dominant_axis, 16) < 0)
-			{
-				if(edge_wind_test(fenceC, fenceA, tgt->pos, dominant_axis, 16) < 0)
-				{	
-					tDist = realpt_to_plane(you.pos, used_normal, cross);
-					if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
-					{
-						add_to_track_timer(obj_id1, obj_id2, fenceA, fenceB, fenceC, fenceD);
-						//spr_sprintf(150,112, "bip");
-					}
-				}
-			}
+			add_to_track_timer(obj_id1, obj_id2, fenceA, fenceB, fenceC, fenceD);
 		}
 	} 
 	

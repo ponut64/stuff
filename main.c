@@ -321,6 +321,7 @@ int		validation_escape(void)
 void	hardware_validation(void)
 {
 	load_drv(ADX_MASTER_2304); 
+	load_hmap_prog();
 
 	//update_gamespeed();
 	//int start_time = get_time_in_frame();
@@ -379,7 +380,6 @@ int	main(void)
 	//
 	//
 	init_dsp_programs();
-	load_hmap_prog();
 	//Sound Driver & Hardware/Emulator Validation
 	hardware_validation();
 	//

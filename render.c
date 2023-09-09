@@ -21,15 +21,17 @@ point_light * active_lights;
 entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
-_portal __attribute__ ((aligned (8))) portals[MAX_PORTALS];
+_portal __attribute__ ((aligned (8)))	scene_portals[MAX_SCENE_PORTALS];
+_portal __attribute__ ((aligned (8)))	used_portals[MAX_USED_PORTALS];
 short current_portal_count;
 short portal_reset;
 
-int dummy[4];
+int dummy[5];
 int * ssh2SentPolys;
 int * msh2SentPolys;
 int * transVerts;
 int * transPolys;
+int * timeComm;
 int anims; //Current active animation count; increments animation control data work array.
 int scrn_dist; //Distance to projection screen surface
 
@@ -39,7 +41,6 @@ short vert_clip_x = TV_HALF_WIDTH;
 short vert_clip_nx = -TV_HALF_WIDTH;
 short vert_clip_y = TV_HALF_HEIGHT;
 short vert_clip_ny = -TV_HALF_HEIGHT;
-
 
 int send_draw_stats; //Setting for sending draw stats to screen. 0 = no stats; 1 = send by sprites; 2 = send by NBG text
 	
@@ -96,6 +97,7 @@ void	init_render_area(short desired_horizontal_fov)
 	msh2SentPolys = (int *)(((unsigned int)&dummy[1])|UNCACHE);
 	transVerts = (int *)(((unsigned int)&dummy[2])|UNCACHE);
 	transPolys = (int *)(((unsigned int)&dummy[3])|UNCACHE);
+	timeComm = (int *)(((unsigned int)&dummy[4])|UNCACHE);
 	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
 }
 
@@ -245,6 +247,7 @@ void	sort_master_polys(void)
     user_sprite->NEXT=*Zentry; //Link current polygon to last entry at that Z distance in Zbuffer [*Zentry is a pointer to the last polygon]
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry [*Zentry becomes a pointer to this polygon]
 	}
+	*timeComm = 1;
 }
 
 //If rendering a matrix-centered object (like a gun model or a third-person player model), set "negate coordinates" to Y.
