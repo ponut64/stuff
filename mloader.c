@@ -32,7 +32,12 @@ unsigned char setTextures(entity_t * model, short baseTexture)
 	{
 		smpAttr = model->pol->attbl[i];
 		
+		if(!(smpAttr.render_data_flags & GV_FLAG_ANIM))
+		{
 		model->pol->attbl[i].texno += baseTexture;
+		} else {
+		model->pol->attbl[i].texno = animated_texture_list[smpAttr.texno];
+		}
 	}
 
 	return maxTex;
@@ -148,14 +153,21 @@ void * loadGVPLY(void * startAddress, entity_t * model)
         workAddress=(void*)(workAddress + (sizeof(_quad) * model->pol->nbPolygon));
 		model->pol->nmtbl = (POINT*)workAddress;
         workAddress=(void*)(workAddress + (sizeof(POINT) * model->pol->nbPolygon));
-		model->pol->maxtbl = (unsigned char *)workAddress;
-        workAddress=(void*)(workAddress + (sizeof(unsigned char) * model->pol->nbPolygon));
-		//Padding: This has to be at least 2-bytes aligned.
-		//So in case there were an odd number of polygons, another byte is written to align it.
-		workAddress += (model->pol->nbPolygon & 1) ? 1 : 0;
         model->pol->attbl = (gvAtr*)workAddress;
         workAddress=(void*)(workAddress + (sizeof(gvAtr) * model->pol->nbPolygon));
-
+		
+		//////////////////////////////////////////////////
+		model->pol->maxtbl = (unsigned char *)workAddress;
+        workAddress=(void*)(workAddress + (sizeof(unsigned char) * model->pol->nbPolygon));
+		
+        model->pol->lumatbl = (unsigned char*)workAddress;
+		workAddress=(void*)(workAddress + (sizeof(unsigned char) * model->pol->nbPolygon));
+		
+		//Padding: This has to be 4-bytes aligned.
+		//The converter tool will write 4-bytes in case of it being misaligned here.
+		workAddress += ((unsigned int)workAddress & 1) ? 1 : 0;
+		workAddress += ((unsigned int)workAddress & 2) ? 2 : 0;
+		
     return workAddress;
 }
 
@@ -199,6 +211,12 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	model->size = (unsigned int)workAddress;
 	workAddress = loadGVPLY((workAddress), model);
 	model->size = (unsigned int)workAddress - model->size;
+	
+	//Zero out the luma table
+	for(unsigned int i = 0; i < model->pol->nbPolygon; i++)
+	{
+		model->pol->lumatbl[i] = 0;
+	}
 
 	int baseTex = numTex; //numTex is a tga.c directive
 	if(src_tex_model != NULL) 

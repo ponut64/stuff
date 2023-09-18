@@ -871,8 +871,9 @@
 		point_0,
 		polygon_0,
 		normal_0,
+		attribute_0,
 		major_axis_0,
-		attribute_0
+		major_axis_0
 		}
 	};
 

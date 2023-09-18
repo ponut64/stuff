@@ -51,9 +51,11 @@ extern animationControl run;
 extern animationControl dbound;
 extern animationControl climbIdle;
 extern animationControl climbing;
- 
 
 extern animationControl flap;
+
+extern spriteAnimation qmark;
+extern spriteAnimation arrow;
 
 #endif
 

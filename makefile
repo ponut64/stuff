@@ -7,7 +7,7 @@
 #JO_GLOBAL_MEMORY_SIZE_FOR_MALLOC = 65536
 
 
-SRCS=main.c gamespeed.c render.c 2drender.c subrender.c dspm.c hmap.c draw.c sound.c \
+SRCS=main.c gamespeed.c render.c renderAnim.c render2d.c renderSub.c dspm.c hmap.c draw.c sound.c \
 input.c ldata.c pcmsys.c mymath.c collision.c pcmstm.c bounder.c player_phy.c minimap.c \
 tga.c hmap_col.c control.c vdp2.c physobjet.c mloader.c object_col.c menu.c particle.c
 JO_ENGINE_SRC_DIR=../../jo_engine

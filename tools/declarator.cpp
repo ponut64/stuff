@@ -197,9 +197,6 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((1740 / 40) + 1, -259, (1060 / 40), 16 /*overhang*/, 0, 45, 0, 0, 0);
 		declare_object_at_cell((1660 / 40) + 1, -313, -(940 / 40), 16 /*overhang*/, 0, 90, 0, 0, 0);
 		
-		declare_object_at_cell(-(780 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 180, 0, 0, 0);
-		declare_object_at_cell(-(1020 / 40) + 1, -275, -(740 / 40), 21 /*wall1*/, 0, 0, 0, 0, 0);
-		
 		declare_object_at_cell((660 / 40) + 1, -377, (1180 / 40), 25 /*float01*/, 0, 90, 0, 0, 0);
 		
 		declare_object_at_cell(-(180 / 40) + 1, -179, -(340 / 40), 33 /*ramp01*/, 0, 0, 0, 0, 0);
@@ -250,6 +247,15 @@ void	create_objects(int levelNo)
 		
 		declare_object_at_cell(-(1140 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(-(900 / 40) + 1, -295, (1100 / 40), 34 /*hiway07*/, 0, 180, 0, 0, 0);
+		
+		declare_object_at_cell(-(1660 / 40) + 1, -301, -(140 / 40), 37 /*sign-arrow*/, 0, -45, 0, 0, 0);
+		declare_object_at_cell(-(1660 / 40) + 1, -356, (1180 / 40), 38 /*big-arrow*/, 0, 90, 0, 0, 0);
+		declare_object_at_cell(-(540 / 40) + 1, -402, (1020 / 40), 37 /*sign-arrow*/, 180, -90, 0, 0, 0);
+		declare_object_at_cell((1820 / 40) + 1, -365, (1140 / 40), 38 /*sign-arrow*/, 0, 135, 0, 0, 0);
+		declare_object_at_cell((1380 / 40) + 1, -316, -(740 / 40), 38 /*big-arrow*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((1500 / 40) + 1, -296, -(60 / 40), 37 /*sign-arrow*/, 180, 135, 0, 0, 0);
+		declare_object_at_cell(-(180 / 40) + 1, -298, (20 / 40), 37 /*sign-arrow*/, 180, 90, 0, 0, 0);
+		
 	} else if(levelNo == 2)
 	{
 		// Red Vox - There's a Place, also good action theme.

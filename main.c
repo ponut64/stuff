@@ -74,29 +74,6 @@ int game_set_res = TV_320x240;
 //////////////////////////////////////////////////////////////////////////////
 int flagIconTexno = 0;
 //////////////////////////////////////////////////////////////////////////////
-//Animation Structs
-//Why are these here?
-//////////////////////////////////////////////////////////////////////////////
-animationControl idle;
-animationControl idleB;
-animationControl stop;
-animationControl fall;
-animationControl slideIdle;
-animationControl slideLln;
-animationControl slideRln;
-animationControl airIdle;
-animationControl airLeft;
-animationControl airRight;
-animationControl jump;
-animationControl hop;
-animationControl walk;
-animationControl run;
-animationControl dbound;
-animationControl climbIdle;
-animationControl climbing;
- 
- animationControl flap;
-//////////////////////////////////////////////////////////////////////////////
 // Player data struct
 //////////////////////////////////////////////////////////////////////////////
 	_player you;
@@ -155,6 +132,10 @@ void	load_test(void)
 	puffTexno = numTex;
 	WRAP_NewTexture((Sint8*)"PUFF.TGA", (void*)dirty_buf);
 
+	animated_texture_list[0] = numTex;
+	WRAP_NewTable((Sint8*)"QMARK.TGA", (void*)dirty_buf, 16);
+	animated_texture_list[1] = numTex;
+	WRAP_NewTable((Sint8*)"ARROW.TGA", (void*)dirty_buf, 24);  
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -192,9 +173,12 @@ void	load_test(void)
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAG.GVP",			HWRAM_ldptr, &entities[57], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FFIELD.GVP",		HWRAM_ldptr, &entities[55], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SIGN.GVP",			HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"ARBOX.GVP",		HWRAM_ldptr, &entities[37], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BARBOX.GVP",		HWRAM_ldptr, &entities[38], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
+	
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -204,7 +188,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		HWRAM_ldptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		HWRAM_ldptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-
+	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		HWRAM_ldptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -224,6 +208,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		HWRAM_ldptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -373,7 +358,6 @@ int	main(void)
 	init_render_area(90 * 182);
 	initPhys();
 	init_box_handling();
-	anim_defs();
 	init_heightmap();
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
@@ -394,7 +378,7 @@ int	main(void)
 	
 	set_camera();
 	reset_player();
-
+	anim_defs();
 	add_adx_front_buffer(23040);
 	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);

@@ -51,6 +51,32 @@ int globalColorOffset;
 int glblLightApply = true;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
+//////////////////////////////////////////////////////////////////////////////
+//Animation Structs
+//////////////////////////////////////////////////////////////////////////////
+animationControl idle;
+animationControl idleB;
+animationControl stop;
+animationControl fall;
+animationControl slideIdle;
+animationControl slideLln;
+animationControl slideRln;
+animationControl airIdle;
+animationControl airLeft;
+animationControl airRight;
+animationControl jump;
+animationControl hop;
+animationControl walk;
+animationControl run;
+animationControl dbound;
+animationControl climbIdle;
+animationControl climbing;
+ 
+animationControl flap;
+
+spriteAnimation qmark;
+spriteAnimation arrow;
+
 void	computeLight(void)
 {
 
@@ -226,8 +252,8 @@ void	player_animation(void)
 			{
 				meshAnimProcessing(&flap, &wings,  false);
 			} else {
-				flap.currentFrm = flap.startFrm * 8;
-				flap.currentKeyFrm = flap.startFrm;
+				flap.curFrm = flap.startFrm * 8;
+				flap.curKeyFrm = flap.startFrm;
 				flap.reset_enable = 'Y';
 			}
 	
@@ -461,8 +487,7 @@ void	master_draw(void)
 	static int time_at_ssh2_end;
 	static int interim_time;
 	static int extra_time;
-	
-	static int math_time;
+
 	
 	time_at_start = get_time_in_frame();
 	
@@ -505,6 +530,11 @@ void	master_draw(void)
 		slSlaveFunc(sort_master_polys, 0);
 		//
 	}
+	clean_sprite_animations();
+	start_texture_animation(&qmark, &entities[36]);
+	start_texture_animation(&arrow, &entities[37]);
+	start_texture_animation(&arrow, &entities[38]);
+	operate_texture_animations();
 
 	time_at_end = get_time_in_frame();
 	//Debug stuff. Important!

@@ -361,15 +361,32 @@ _sobject Build24 = {
 	.light_bright = 0
 };
 
-_sobject Build25 = {
+_sobject SignPost = {
 	.entity_ID = 36,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD,
+	.ext_dat = OBJECT,
 	.light_bright = 0
 };
 
+_sobject ArrowBox = {
+	.entity_ID = 37,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = OBJECT,
+	.light_bright = 0
+};
+
+_sobject BigArrowBox = {
+	.entity_ID = 38,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = OBJECT,
+	.light_bright = 0
+};
 
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
@@ -540,7 +557,9 @@ void	fill_obj_list(void)
 	objList[33] = &Build22;
 	objList[34] = &Build23;
 	objList[35] = &Build24;
-	objList[36] = &Build25;
+	objList[36] = &SignPost;
+	objList[37] = &ArrowBox;
+	objList[38] = &BigArrowBox;
 	
 	objList[49] = &Sign0;
 	

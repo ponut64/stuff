@@ -69,13 +69,14 @@ typedef struct {
 } _quad;
 
 typedef struct {
-    unsigned int nbPoint;	/* Number of vertices */
-    unsigned int nbPolygon;	/* Number of polygons */
-    POINT *		pntbl;		/* Vertex position data table */
-    _quad *		pltbl;		/* Polygon definition table */
-	POINT *		nmtbl;		/* Normal definition table */
-	unsigned char * maxtbl;	/* Major axis table */
-    gvAtr *		attbl;		/* The attribute table for the polygon */
+    unsigned int nbPoint;		/* Number of vertices */
+    unsigned int nbPolygon;		/* Number of polygons */
+    POINT *		pntbl;			/* Vertex position data table */
+    _quad *		pltbl;			/* Polygon definition table */
+	POINT *		nmtbl;			/* Normal definition table */
+    gvAtr *		attbl;			/* The attribute table for the polygon */
+	unsigned char * maxtbl;		/* Major axis table */
+	unsigned char * lumatbl;	/* Lighting table, as <<9 units. */
 } GVPLY ;
 
 typedef struct

@@ -146,6 +146,7 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	newMesh->nbPoint = oldMesh->nbPoint;
 	newMesh->nbPolygon = oldMesh->nbPolygon;
 	newMesh->pltbl = oldMesh->pltbl;
+	newMesh->lumatbl = oldMesh->lumatbl;
 	//
 	HWRAM_ldptr = align_4(HWRAM_ldptr);
 	

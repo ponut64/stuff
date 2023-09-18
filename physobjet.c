@@ -212,12 +212,6 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a.	Performer
-	1. The plane rendering function is not fast enough.
-		To solve the vertices being retransformed for multiple planes, 
-		The vertices should be transformed once into a buffer, and then the planar subdivison would copy them out of the buffer.
-	2. Teetering VDP1 performance issue.
-		Textures clearly load the system more than no textures.
 b. The track
 		1. Once discovered, the track can't be ambiguous.
 			There is a start gate and an end gate. End of story. You start the track at that gate. No more funny business about that.
@@ -225,7 +219,12 @@ b. The track
 			The game already has this, but it needs to be laid out with guideposts.
 			People will get lost. People do not like getting lost.
 			The gate discovery phase is where I let the players "be lost". After that, I should at least try to prevent it.
-c. The movement mechanics
+		How should I do this?
+		1. Guides should be placed that give a fair hint at the order/direction of gates.
+		2. Some way to mark the first gate. (Adjusted model, I guess?)
+		3. Some way to mark the last gate.
+		4. Only let the track start at the first gate.
+c. Tutorial
 		Again, I assume that the way the game works is simpler than it is.
 		Going fast is a combination of three buttons used at specific times. This is not normal to video games.
 		So I really need to spell it out.
@@ -233,6 +232,11 @@ c. The movement mechanics
 		Stuff like that. 
 		But what I also need to spend a lot of time telling the player is how the jump button works.
 		You are pushed off of the surface angle, like a perfect bounce.
+d. Super-slants
+		Some surface angles force an orientation which ignores the view rotation.
+		This is due to a math error and I find it annoying.
+		I think I should try to identify what condition causes this, and make these surfaces force you to slide off.
+		It's a bit like no-run slopes in SM64.
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
@@ -606,21 +610,21 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 			((fD[Z])>>16) / CELL_SIZE_INT, 50 /*gate plane*/, brutal_angle, 0, 0, 0, 0); 
 			GVPLY * modpol = entities[dWorldObjects[objNEW-1].type.entity_ID].pol;
 			int cntr[3];
-			cntr[X] = fA[X];// + fC[X])>>1;
-			cntr[Y] = fA[Y];// + fD[Y])>>1;
-			cntr[Z] = fA[Z];// + fC[Z])>>1;
+			cntr[X] = fB[X];// + fC[X])>>1;
+			cntr[Y] = fB[Y];// + fD[Y])>>1;
+			cntr[Z] = fB[Z];// + fC[Z])>>1;
 			modpol->pntbl[0][X] = (fA[X] - cntr[X]);
 			modpol->pntbl[0][Y] = (fA[Y] - cntr[Y]);
 			modpol->pntbl[0][Z] = (fA[Z] - cntr[Z]);
 			modpol->pntbl[1][X] = (fB[X] - cntr[X]);
 			modpol->pntbl[1][Y] = (fB[Y] - cntr[Y]);
 			modpol->pntbl[1][Z] = (fB[Z] - cntr[Z]);
-			modpol->pntbl[2][X] = (fC[X] - cntr[X]);
-			modpol->pntbl[2][Y] = (fC[Y] - cntr[Y]);
-			modpol->pntbl[2][Z] = (fC[Z] - cntr[Z]);
-			modpol->pntbl[3][X] = (fD[X] - cntr[X]);
-			modpol->pntbl[3][Y] = (fD[Y] - cntr[Y]);
-			modpol->pntbl[3][Z] = (fD[Z] - cntr[Z]);
+			modpol->pntbl[2][X] = (fD[X] - cntr[X]);
+			modpol->pntbl[2][Y] = (fD[Y] - cntr[Y]);
+			modpol->pntbl[2][Z] = (fD[Z] - cntr[Z]);
+			modpol->pntbl[3][X] = (fC[X] - cntr[X]);
+			modpol->pntbl[3][Y] = (fC[Y] - cntr[Y]);
+			modpol->pntbl[3][Z] = (fC[Z] - cntr[Z]);
 			modpol->attbl[0].render_data_flags |= GV_FLAG_POLYLINE;
 			modpol->attbl[0].texno = 7 + color_rollover;
 			brutal_angle++;
@@ -772,9 +776,9 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// Then the final axis is checked with a point-to-plane distance check.
 	// The benefits of this is that the chirality check will exit early a lot of the time.
 	//////////////////////////////////////////////////////////////
- 	if(edge_wind_test(fenceA, fenceB, fenceC, fenceD, you.pos, dominant_axis, 16))
+ 	if(edge_wind_test(fenceA, fenceB, fenceC, fenceD, tgt->pos, dominant_axis, 16))
 	{
-		tDist = ptalt_plane(you.pos, used_normal, cross);
+		tDist = ptalt_plane(tgt->pos, used_normal, cross);
 		if(dWorldObjects[obj_id1].dist != 0 && (tDist ^ dWorldObjects[obj_id1].dist) < 0)
 		{
 			add_to_track_timer(obj_id1, obj_id2, fenceA, fenceB, fenceC, fenceD);

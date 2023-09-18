@@ -33,6 +33,7 @@
 #define MAX_SSH2_ENTITY_VERTICES (500)
 #define MAX_MSH2_ENTITY_VERTICES (500) //This is coming from def.h for hmap.c, but it needs to be at least this much.
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.
+#define MAX_SIMULTANEOUS_SPRITE_ANIMATIONS (64)
 // Base PMOD: Bit 12 is HSS
 #define VDP1_BASE_PMODE (0x1490)
 // CMDCTRL = Select Distorted Sprite
@@ -78,7 +79,7 @@ Render data flags:
 	  Dual-plane	Mesh	 Polyline		MSB On		Tex. flip	  		Sorting rule
 	Byte 2 of render_data_flags:
 	|	8		|	9		|	10		|	11		|	12	 -	13	|	14		|	15		|		
-	Subdivision	  Collision		Ladder	Climbable		Portal Specs	 			On/off
+	Subdivision	  Collision		Ladder	Climbable		Portal Specs	Anim 		On/off
 */
 	#define GV_FLAG_SINGLE		(0x1) // Zero, dual-plane. One, single-plane.
 	#define GV_FLAG_MESH		(0x2) // Zero, no mesh. One, mesh.
@@ -90,6 +91,7 @@ Render data flags:
 	#define GV_FLAG_CLIMBABLE	(0x800) //Boolean. 1 = Climbable. 0 = not climbable.
 	#define GV_FLAG_PORTAL		(0x1000) //Boolean. 0, not a portal. 1, is a portal.
 	#define GV_FLAG_PORT_TYPE	(0x2000) //Boolean. 0, portal OUT processing. 1, portal IN processing.
+	#define GV_FLAG_ANIM		(0x4000) //Boolean. 0, texture will not animate. 1, texture is potentially animated.
 	#define GV_FLAG_DISPLAY		(0x8000) //Boolean. 1, polygon is treated as polygon. 0, polygon is not rendered. 
 	#define GV_SORT_MAX			(0x40)
 	#define GV_SORT_CEN			(0x80)
@@ -165,17 +167,33 @@ typedef struct{
 
 
 //////////////////////////////////
-// Animation Control Struct
+// Mesh Animation Control Struct
 //////////////////////////////////
 typedef struct
 {
 	char reset_enable;
 	Uint8 arate[64];
-    Uint16 currentFrm;
-    Uint8 currentKeyFrm;
+    Uint16 curFrm;
+    Uint8 curKeyFrm;
     Uint8 startFrm;
     Uint8 endFrm;
 } animationControl;
+//////////////////////////////////
+// Texture (Sprite) Animation Control Struct
+//////////////////////////////////
+typedef struct 
+{
+	int lifetime;
+	entity_t * modEnt;
+	Uint8 * arates;
+	Uint8 * lumas;
+	Uint16 sprite_sheet_start;
+	Uint16 sprite_sheet_end;
+	Uint16 curFrm;
+	Uint16 curKeyFrm;
+	Uint16 startFrm;
+	Uint16 endFrm;
+} spriteAnimation;
 
 //////////////////////////////////
 // Basic Menu Stuff
@@ -214,6 +232,7 @@ extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;
 
+extern int anims;
 extern int scrn_dist;
 extern short vert_clip_x;
 extern short vert_clip_nx;
@@ -239,6 +258,8 @@ extern int baseAsciiTexno;
 extern int sprAsciiHeight;
 extern int sprAsciiWidth;
 
+extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
+
 //subrender.c
 void	plane_rendering_with_subdivision(entity_t * ent);
 //2drender.c
@@ -255,11 +276,18 @@ void	spr_sprintf(int xPos, int yPos, ...);
 void	nbg_sprintf(int x, int y,  ...);
 void	nbg_clear_text(void);
 short	menu_with_options(__basic_menu * mnu);
+//rednerAnim.c
+void	clean_sprite_animations(void);
+void	operate_texture_animations(void);
+void	start_texture_animation(spriteAnimation * anim, entity_t * ent);
+void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant);
+void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant);
 //render.c
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);
 void	SetFixDiv(FIXED dividend, FIXED divisor); //Defined as "dividend / divisor", for fixed points, using division unit
 void	ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl, Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr, Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty);
 void	msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdctrl, Uint16 cmdpmod, Uint16 cmdsrca, Uint16 cmdcolr, Uint16 cmdsize, Uint16 cmdgrda, FIXED drawPrty);
+int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_floor, FIXED * prematrix, char model_purpose);
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
@@ -270,8 +298,6 @@ void	clipping(vertex_t * pnt, short useClip);
 void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);
 void	ssh2DrawModel(entity_t * ent);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
-void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant);
-void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant);
 void	sort_master_polys(void);
 #endif
 
