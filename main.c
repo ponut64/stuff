@@ -94,7 +94,7 @@ void	load_test(void)
 	// File names can be no longer than 8 letters.
 	// The total length is thusly 12 characters (as there is a period).
 	////////////////////////////////////////////////
-	nbg_sprintf(0,0, "Loading sounds...");
+	nbg_sprintf(0,0, "Loading ...");
 	stmsnd[stm_win] = (Sint8*)"WIN.ADX";
 	stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
 	stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
@@ -136,6 +136,10 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"QMARK.TGA", (void*)dirty_buf, 16);
 	animated_texture_list[1] = numTex;
 	WRAP_NewTable((Sint8*)"ARROW.TGA", (void*)dirty_buf, 24);  
+	animated_texture_list[2] = numTex;
+	WRAP_NewTable((Sint8*)"CHECK.TGA", (void*)dirty_buf, 16);  
+	animated_texture_list[3] = numTex;
+	WRAP_NewTable((Sint8*)"GOAL.TGA", (void*)dirty_buf, 16);  
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -209,6 +213,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST01.GVP",		HWRAM_ldptr, &entities[39], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST02.GVP",		HWRAM_ldptr, &entities[40], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);

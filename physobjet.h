@@ -200,7 +200,7 @@ bitflag orientation for OBJECT:
 			15 : popped / visible flag
 			14-12 : "0x2000", defines gate post type object
 			11-8 : Track # specification
-			7-4 : Link specification. Two gates of a post share this number.
+			7-4 : Link specification. Two posts of a gate share this number. (Gate #)
 			3-2 : 1 for first gate, 2 for last gate, 0 for any other gate / all gates.
 			1 : Boolean collision check flag. Writes 1 when collision with gates checked, refresh to 0 on frame start.
 			0 : Boolean gate pass check. If 1, gate has been passed. Refresh to 0 when track is failed (or otherwise reset).

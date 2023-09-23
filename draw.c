@@ -76,6 +76,8 @@ animationControl flap;
 
 spriteAnimation qmark;
 spriteAnimation arrow;
+spriteAnimation check;
+spriteAnimation goal;
 
 void	computeLight(void)
 {
@@ -531,9 +533,12 @@ void	master_draw(void)
 		//
 	}
 	clean_sprite_animations();
+	start_texture_animation(&check, &entities[18]);
 	start_texture_animation(&qmark, &entities[36]);
 	start_texture_animation(&arrow, &entities[37]);
 	start_texture_animation(&arrow, &entities[38]);
+	start_texture_animation(&arrow, &entities[39]);
+	start_texture_animation(&goal, &entities[40]);
 	operate_texture_animations();
 
 	time_at_end = get_time_in_frame();

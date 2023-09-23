@@ -799,10 +799,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
-
 	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
-	flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
-
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
 		
@@ -810,7 +807,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		ptv[1] = &ssh2VertArea[subdivided_polygons[j][1]];
 		ptv[2] = &ssh2VertArea[subdivided_polygons[j][2]];
 		ptv[3] = &ssh2VertArea[subdivided_polygons[j][3]];
-		
+		flags = mesh->attbl[i].render_data_flags;
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
 		///////////////////////////////////////////
 		// Z-Sorting Stuff	
@@ -827,7 +824,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		///////////////////////////////////////////
 		specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * UV_CUT_COUNT)
 		+ mesh->attbl[i].texno + used_textures[j];
-
+		specific_texture = (flags & GV_FLAG_ANIM) ? mesh->attbl[i].texno : specific_texture;
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
 		///////////////////////////////////////////
@@ -876,6 +873,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// the color for the draw command is defined by the draw command's "texno" or texture number data.
 		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
 		// So here, we insert it into the correct place in the command table to be the drawn color.
+		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : mesh->attbl[i].texno;
 
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,

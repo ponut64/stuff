@@ -82,48 +82,48 @@ void	declare_object_at_cell(short pixX, short height, short pixY, short type, AN
 {
 		if(objNEW < MAX_WOBJS)
 		{
-	dWorldObjects[objNEW].pos[X] = -(pixX * CELL_SIZE_INT)<<16;
-	dWorldObjects[objNEW].pos[Z] = -(pixY * CELL_SIZE_INT)<<16;
-	dWorldObjects[objNEW].pos[Y] = height<<16; //Vertical offset from ground
-	dWorldObjects[objNEW].pix[X] = -(pixX);
-	dWorldObjects[objNEW].pix[Y] = -(pixY);
-	dWorldObjects[objNEW].type = *objList[type];
-	dWorldObjects[objNEW].type.ext_dat |= eeOrData;
-	dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
-	dWorldObjects[objNEW].rot[Y] = (yrot * 182);
-	dWorldObjects[objNEW].rot[Z] = (zrot * 182);
-		//Contention: Building-type is both a model-type and object-type.
-		//Smartest to use the model type.
-		if(entities[dWorldObjects[objNEW].type.entity_ID].type == MODEL_TYPE_BUILDING)
-		{
-			//Specific for building-type objects, place its entity ID in the ext_dat.
-			dWorldObjects[objNEW].type.clone_ID = dWorldObjects[objNEW].type.entity_ID;
-			if((xrot | yrot | zrot) != 0)
+			dWorldObjects[objNEW].pos[X] = -(pixX * CELL_SIZE_INT)<<16;
+			dWorldObjects[objNEW].pos[Z] = -(pixY * CELL_SIZE_INT)<<16;
+			dWorldObjects[objNEW].pos[Y] = height<<16; //Vertical offset from ground
+			dWorldObjects[objNEW].pix[X] = -(pixX);
+			dWorldObjects[objNEW].pix[Y] = -(pixY);
+			dWorldObjects[objNEW].type = *objList[type];
+			dWorldObjects[objNEW].type.ext_dat |= eeOrData;
+			dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
+			dWorldObjects[objNEW].rot[Y] = (yrot * 182);
+			dWorldObjects[objNEW].rot[Z] = (zrot * 182);
+			//Contention: Building-type is both a model-type and object-type.
+			//Smartest to use the model type.
+			if(entities[dWorldObjects[objNEW].type.entity_ID].type == MODEL_TYPE_BUILDING)
 			{
-			//For build-type objects, if any rotation is applied, we can't use the same polygon data anymore.
-			//This is because the collision system discards planes for collision early based on their normal.
-			//This will not work if the polygon is rotated without the normal also being rotated with it.
-			//So, to facilitate rotating a BUILD-type object, we must create new PDATA with the rotation built in to it.
-			//The following function jumps to such a thing.
-			generate_rotated_entity_for_object(objNEW);
+				//Specific for building-type objects, place its entity ID in the ext_dat.
+				dWorldObjects[objNEW].type.clone_ID = dWorldObjects[objNEW].type.entity_ID;
+				if((xrot | yrot | zrot) != 0)
+				{
+				//For build-type objects, if any rotation is applied, we can't use the same polygon data anymore.
+				//This is because the collision system discards planes for collision early based on their normal.
+				//This will not work if the polygon is rotated without the normal also being rotated with it.
+				//So, to facilitate rotating a BUILD-type object, we must create new PDATA with the rotation built in to it.
+				//The following function jumps to such a thing.
+				generate_rotated_entity_for_object(objNEW);
+				}
 			}
-		}
-		////////////////////////////////////////////////////
-		// If no radius was defined for the object, use the radius from the entity.
-		// Must check if the entity is loaded, or else out of bounds access may occur.
-		////////////////////////////////////////////////////
-		if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
-			dWorldObjects[objNEW].type.radius[Y] == 0 && dWorldObjects[objNEW].type.radius[Z] == 0 &&
-			entities[dWorldObjects[objNEW].type.entity_ID].file_done)
-		{
-			dWorldObjects[objNEW].type.radius[X] = entities[dWorldObjects[objNEW].type.entity_ID].radius[X];
-			dWorldObjects[objNEW].type.radius[Y] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Y];
-			dWorldObjects[objNEW].type.radius[Z] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Z];
-		}
-	dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
-	link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
-	dWorldObjects[objNEW].more_data |= more_data;
-	objNEW++;
+			////////////////////////////////////////////////////
+			// If no radius was defined for the object, use the radius from the entity.
+			// Must check if the entity is loaded, or else out of bounds access may occur.
+			////////////////////////////////////////////////////
+			if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != LDATA && dWorldObjects[objNEW].type.radius[X] == 0 &&
+				dWorldObjects[objNEW].type.radius[Y] == 0 && dWorldObjects[objNEW].type.radius[Z] == 0 &&
+				entities[dWorldObjects[objNEW].type.entity_ID].file_done)
+			{
+				dWorldObjects[objNEW].type.radius[X] = entities[dWorldObjects[objNEW].type.entity_ID].radius[X];
+				dWorldObjects[objNEW].type.radius[Y] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Y];
+				dWorldObjects[objNEW].type.radius[Z] = entities[dWorldObjects[objNEW].type.entity_ID].radius[Z];
+			}
+			dWorldObjects[objNEW].link = link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12]; //Set object's link to the current link of this type
+			link_starts[(dWorldObjects[objNEW].type.ext_dat & 0x7000)>>12] = objNEW; //Set the current link of this type to this entry
+			dWorldObjects[objNEW].more_data |= more_data;
+			objNEW++;
 		}
 }
 
@@ -637,16 +637,22 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 		return;
 	}
 
-	while(trackedLDATA != -1){
+	while(trackedLDATA != -1)
+	{
 		if( (dWorldObjects[trackedLDATA].type.ext_dat & LDATA_TYPE) == TRACK_DATA)
 		{//WE FOUND SOME TRACK DATA
 			object_track = (dWorldObjects[index].type.ext_dat & 0xF00)>>8; 
 			ldata_track = dWorldObjects[trackedLDATA].type.entity_ID; 
 	//	nbg_sprintf(2, 10, "(%i)otr", object_track);
 	//	nbg_sprintf(2, 12, "(%i)trs", ldata_track);
-			//Only add if the track numbers match, the active track is set to this track or is not set, and the track is discovered
+			//Only add if the track numbers match, and the track is discovered
 			if(ldata_track == object_track && (dWorldObjects[trackedLDATA].type.ext_dat & TRACK_DISCOVERED))
 			{
+				//If the track is NOT active and the gate number is NOT zero, do not add.
+				if(!(dWorldObjects[trackedLDATA].type.ext_dat & TRACK_ACTIVE) && (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER) != 0)
+				{
+					return;
+				}
 				//Gate flag processing
 				dWorldObjects[index].dist = 0;
 				dWorldObjects[index].type.ext_dat |= GATE_PASSED;

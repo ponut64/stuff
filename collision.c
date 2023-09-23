@@ -322,7 +322,7 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		plane_matrix[X][Z] = 0;
 		//Now the Z axis should be the cross product of Y axis and X axis
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		used_angle = (you.rot[Y]);
+		used_angle = (you.ladder) ? (you.rot2[Y]) : (you.rot[Y]);
 		//colr3 = 1;
 	} else {
 		//Find the X axis of the floor's matrix (from rotating the Y axis by Z+270)
@@ -331,7 +331,7 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		plane_matrix[X][Z] = 0;
 		//Now the Z axis should be the cross product of Y axis and X axis
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		used_angle = (you.rot2[Y]);
+		used_angle = (you.ladder) ? (you.rot2[Y]) : (you.rot[Y]);
 		//colr3 = 10;
 	}
 
@@ -347,13 +347,13 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		fxrotZ(plane_matrix[Y], plane_matrix[X], 16384);
 		plane_matrix[X][Z] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		used_angle = (you.rot2[Y] + 16384);
+		used_angle = (you.ladder) ? (you.rot2[Y] + 16384) : you.rot[Y];
 		//colr3 = 1;
 	} else {
 		fxrotZ(plane_matrix[Y], plane_matrix[X], -16384);
 		plane_matrix[X][Z] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		used_angle = (you.rot2[Y] + 16384);
+		used_angle = (you.ladder) ? (you.rot2[Y] + 16384) : (you.rot[Y] + 32768);
 		//colr3 = 10;
 	}
 	
@@ -369,12 +369,12 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 		plane_matrix[X][Y] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
 		//colr3 = 1;
-		used_angle = (you.rot2[Y]);
+		used_angle = (you.ladder) ? (you.rot2[Y]) : you.rot[Y];
 	} else {
 		fxrotY(plane_matrix[Y], plane_matrix[X], 16384);
 		plane_matrix[X][Y] = 0; //(Axis-alignment)
 		fxcross(plane_matrix[X], plane_matrix[Y], plane_matrix[Z]);
-		used_angle = (you.rot2[Y]);
+		used_angle = (you.ladder) ? (you.rot2[Y]) : (you.rot[Y] + 32768);
 		//colr3 = 10;
 	}
 
@@ -664,6 +664,7 @@ if(stator->status[3] != 'B')
 }
 
 numBoxChecks++;
+int		absN[3]  = {0, 0, 0};
 
 	for(int i = 0; i < 6; i++)
 	{
@@ -681,6 +682,20 @@ numBoxChecks++;
 		{
 			if(lineChecks[u])
 			{
+				//In case an object is rotated more than 90 degrees on any axis, we cannot assume the major axis as constant.
+				//They must be recalculated.
+				absN[X] = JO_ABS(stator->nmtbl[i][X]);
+				absN[Y] = JO_ABS(stator->nmtbl[i][Y]);
+				absN[Z] = JO_ABS(stator->nmtbl[i][Z]);
+				if(absN[X] > absN[Y] && absN[X] >= absN[Z])
+				{
+					boxDisField[i] = (stator->nmtbl[i][X] >= 0) ? N_Xp : N_Xn;
+				} else if(absN[Z] >= absN[X] && absN[Z] > absN[Y])
+				{
+					boxDisField[i] = (stator->nmtbl[i][Z] >= 0) ? N_Zp : N_Zn;
+				} else {
+					boxDisField[i] = (stator->nmtbl[i][Y] >= 0) ? N_Yp : N_Yn;
+				}
 				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i], 12))
 				{
 								pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);

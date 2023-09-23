@@ -180,6 +180,7 @@ void	anim_defs(void)
 	arrow.arates[1] = 6;
 	arrow.arates[2] = 6;
 	arrow.arates[3] = 6;
+	arrow.arates[4] = 6;
 	
 	arrow.lumas[0] = 255;
 	arrow.lumas[1] = 255;
@@ -192,5 +193,50 @@ void	anim_defs(void)
 	arrow.curKeyFrm = 0;
 	arrow.startFrm = 0;
 	arrow.endFrm = 5;
+	
+	static Uint8 check_arates[5];
+	static Uint8 check_lumas[5];
+	check.lifetime = 3000<<16;
+	check.arates = &check_arates[0];
+	check.lumas = &check_lumas[0];
+	check.arates[0] = 120;
+	check.arates[1] = 6;
+	check.arates[2] = 12;
+	check.arates[3] = 12;
+	check.arates[4] = 6;
+	
+	check.lumas[0] = 255;
+	check.lumas[1] = 255;
+	check.lumas[2] = 0;
+	check.lumas[3] = 0;
+	check.lumas[4] = 255;
+	check.sprite_sheet_start = animated_texture_list[2];
+	check.sprite_sheet_end = check.sprite_sheet_start + 5;
+	check.curFrm = 0;
+	check.curKeyFrm = 0;
+	check.startFrm = 0;
+	check.endFrm = 5;
+	
+	static Uint8 goal_arate[4];
+	static Uint8 goal_lumas[4];
+	goal.lifetime = 3000<<16;
+	goal.arates = &goal_arate[0];
+	goal.lumas = &goal_lumas[0];
+	goal.arates[0] = 120;
+	goal.arates[1] = 6;
+	goal.arates[2] = 6;
+	goal.arates[3] = 6;
+	
+	goal.lumas[0] = 255;
+	goal.lumas[1] = 64;
+	goal.lumas[2] = 0;
+	goal.lumas[3] = 64;
+	goal.sprite_sheet_start = animated_texture_list[3];
+	goal.sprite_sheet_end = goal.sprite_sheet_start + 4;
+	goal.curFrm = 0;
+	goal.curKeyFrm = 0;
+	goal.startFrm = 0;
+	goal.endFrm = 4;
+	
 
 }

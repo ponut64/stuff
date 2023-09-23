@@ -388,6 +388,24 @@ _sobject BigArrowBox = {
 	.light_bright = 0
 };
 
+_sobject Post01 = {
+	.entity_ID = 39,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = GATE_P | (3<<8),
+	.light_bright = 0
+};
+
+_sobject Post02 = {
+	.entity_ID = 40,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = GATE_P | (3<<8),
+	.light_bright = 0
+};
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -560,6 +578,8 @@ void	fill_obj_list(void)
 	objList[36] = &SignPost;
 	objList[37] = &ArrowBox;
 	objList[38] = &BigArrowBox;
+	objList[39] = &Post01;
+	objList[40] = &Post02;
 	
 	objList[49] = &Sign0;
 	

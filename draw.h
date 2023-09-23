@@ -56,6 +56,8 @@ extern animationControl flap;
 
 extern spriteAnimation qmark;
 extern spriteAnimation arrow;
+extern spriteAnimation check;
+extern spriteAnimation goal;
 
 #endif
 
