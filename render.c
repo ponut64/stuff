@@ -687,40 +687,46 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 }
 
 //Master SH2 drawing function (needs to be sorted after by slave)
-void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
+void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 {
 	if(ent->file_done != 1){return;}
 	drawn_entity_list[drawn_entity_count] = ent;
 	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
-	/**WARNING: DO NOT USE SGL MATRIX SYSTEM FOR MASTER DRAWING**/
-	/*
-	SGL matrix pointer is uncached. Matrix operations will be confused between master/slave
-	You will have to come up with your own matrix system, it's not too bad ->
-	You can capture the matrix at the start of the frame instead, before the slave does any matrix ops
-	MSH2 + SSH2 drawing is not the ideal. In other words, using 1 CPU at full tap and then only if you must spill over to the second.
-	Diminishing returns might be a better phrase. 
-	But there is no system here to do that. Using MSH2 does help; so perhaps throw a known quantity at it, rather than any dynamic entity list.
-	*/
+    static FIXED newMtx[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
+	static FIXED rootMtx[9];
+	rootMtx[0] = msMatrix[X][X];
+	rootMtx[1] = msMatrix[Y][X];
+	rootMtx[2] = msMatrix[Z][X];
+	
+	rootMtx[3] = msMatrix[X][Y];
+	rootMtx[4] = msMatrix[Y][Y];
+	rootMtx[5] = msMatrix[Z][Y];
+	
+	rootMtx[6] = msMatrix[X][Z];
+	rootMtx[7] = msMatrix[Y][Z];
+	rootMtx[8] = msMatrix[Z][Z];
+	fxMatrixMul(&rootMtx[0], ent->prematrix, &newMtx[0]);
+
 	static FIXED m0x[4];
 	static FIXED m1y[4];
 	static FIXED m2z[4];
 	
-	m0x[0] = msMatrix[X][X];
-	m0x[1] = msMatrix[Y][X];
-	m0x[2] = msMatrix[Z][X];
+	m0x[0] = newMtx[0];
+	m0x[1] = newMtx[1];
+	m0x[2] = newMtx[2];
 	m0x[3] = msMatrix[3][X];
 	
-	m1y[0] = msMatrix[X][Y];
-	m1y[1] = msMatrix[Y][Y];
-	m1y[2] = msMatrix[Z][Y];
+	m1y[0] = newMtx[3];
+	m1y[1] = newMtx[4];
+	m1y[2] = newMtx[5];
 	m1y[3] = msMatrix[3][Y];
 	
-	m2z[0] = msMatrix[X][Z];
-	m2z[1] = msMatrix[Y][Z];
-	m2z[2] = msMatrix[Z][Z];
+	m2z[0] = newMtx[6];
+	m2z[1] = newMtx[7];
+	m2z[2] = newMtx[8];
 	m2z[3] = msMatrix[3][Z];
-	
+
     GVPLY * model = ent->pol;
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
     if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
@@ -736,10 +742,22 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 		usrClp = 0x600;
 	}
 	
+	VECTOR lightAngle = {0, -65535, 0};
+	VECTOR ambient_light = {0, -65535, 0};
+	int ambient_bright = 0;
+	
+	int bright = 0;
+	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
+	{
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	} else {
+	ambient_bright = active_lights[0].min_bright;
+	}
+
 	FIXED luma;
 	unsigned short colorBank;
 	int inverseZ = 0;
-
+ 
 	////////////////////////////////////////////////////////////
 	// Pre-loop
 	////////////////////////////////////////////////////////////
@@ -784,6 +802,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 	unsigned short flip = 0;
 	unsigned short flags = 0;
 	unsigned short pclp = 0;
+	int zDepthTgt = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -794,6 +813,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 		ptv[3] = &msh2VertArea[model->pltbl[i].vertices[3]];
 		flags = model->attbl[i].render_data_flags;
 		flip = GET_FLIP_DATA(flags);
+		zDepthTgt = GET_SORT_DATA(flags);
 		//Components of screen-space cross-product used for backface culling.
 		//Vertice order hint:
 		// 0 - 1
@@ -803,19 +823,36 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
 		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
 							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
+		//Sorting target.
+		//Uses logic to determine sorting target per polygon. This costs some CPU time.
+		if( zDepthTgt == GV_SORT_MAX)
+		{					
+			//Sorting target. Uses max.
+			zDepthTgt = JO_MAX(
+			JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		} else if( zDepthTgt == GV_SORT_MIN) 
+		{
+			//Sort Minimum
+			zDepthTgt = JO_MIN(
+			JO_MIN(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
+			JO_MIN(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
+		} else {
 		//Sorting target. Uses average of top-left and bottom-right. 
-		//Adding logic to change sorting per-polygon can be done, but costs CPU time.
-		 int zDepthTgt = JO_MAX(
-		JO_MAX(ptv[0]->pnt[Z], ptv[2]->pnt[Z]),
-		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z]));
-		 int onScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
+			zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+		}
+		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
 		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
-		onScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		offScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
-		//Transform the polygon's normal by light source vector
-		luma = fxdot(model->nmtbl[i], lightSrc);
+		//Lighting
+		luma = fxm(-(fxdot(model->nmtbl[i], lightAngle) + 32768), bright);
+		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
+		luma += model->lumatbl[i]<<9;
+		luma += fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 		//Shift the color bank code to the appropriate bits
@@ -826,13 +863,13 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc)
 		// So here, we insert it into the correct place in the command table to be the drawn color.
 		unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : model->attbl[i].texno;
-
+		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
-
+		
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
 		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
-    }
+    } //Sort Max Endif
 		transPolys[0] += model->nbPolygon;
 
 }

@@ -212,18 +212,23 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-b. The track
-		1. Once discovered, the track can't be ambiguous.
-			There is a start gate and an end gate. End of story. You start the track at that gate. No more funny business about that.
-		2. There is an *expected* sequence of gates between the start and end gate.
-			The game already has this, but it needs to be laid out with guideposts.
-			People will get lost. People do not like getting lost.
-			The gate discovery phase is where I let the players "be lost". After that, I should at least try to prevent it.
-		How should I do this?
-		1. Guides should be placed that give a fair hint at the order/direction of gates.
-		2. Some way to mark the first gate. (Adjusted model, I guess?)
-		3. Some way to mark the last gate.
-		4. Only let the track start at the first gate.
+a. Master Occlusion / Heightmap Vertex Blanking
+	Some way I want to be able to mark certain vertices of the map as always-clipped.
+	That would pretty much be a 1bpp map; either a vertex is clipped, or not.
+	The idea here is that a vertex completely covered by objects would be clipped, always, not measured by any perspective.
+	This makes meshing objects with the heightmap much easier, as you can destroy polygons behind objects.
+b.	Non-heightmap mode
+	The engine should have some allowance for working if the heightmap is not present.
+	In this case, the Master SH2 needs more work to do.
+	So it should draw something.
+d.	Screenspace Culling Solutions
+	1. Transform objects location to screenspace.
+	2. Transform objects radius to screenspace (multiply by 1/z, pretty much)
+	2a. You have to check in case the object is larger than the screen at present.
+	More or less, if the object's location is off of a different side of the screen from the radius-added location.
+	3. Determine which domain the screenspace coordinate is in (X+/Y+, X-/Y+, and so on)
+	4. Add the radius to the location according to the domain (so X+/Y+ origin will add the radius with X-/Y-)
+	5. Test the radius point to see if it is inside or spans the screen. If it doesn't, do not draw the object.
 c. Tutorial
 		Again, I assume that the way the game works is simpler than it is.
 		Going fast is a combination of three buttons used at specific times. This is not normal to video games.
@@ -232,11 +237,6 @@ c. Tutorial
 		Stuff like that. 
 		But what I also need to spend a lot of time telling the player is how the jump button works.
 		You are pushed off of the surface angle, like a perfect bounce.
-d. Super-slants
-		Some surface angles force an orientation which ignores the view rotation.
-		This is due to a math error and I find it annoying.
-		I think I should try to identify what condition causes this, and make these surfaces force you to slide off.
-		It's a bit like no-run slopes in SM64.
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things

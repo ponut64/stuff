@@ -14,6 +14,7 @@ This file is compiled separately.
 _boundBox BoundBoxHost[MAX_PHYS_PROXY];
 _boundBox * RBBs; 
 _boundBox pl_RBB;
+_boundBox sl_RBB;
 _object_arguments bound_box_starter;
 Uint8 curBoxes = 0;
 
@@ -244,9 +245,6 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->Zneg[Y] = -source_data->modified_box->Zplus[Y];
 	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
-	
-	//Sort and assign X, Y, and Z maximum normals. (For macros)
-	//Warning: Sorting is GONE. :(
 
 	//Determine a velocity from the difference of current and last position
 	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
@@ -257,6 +255,10 @@ void	make2AxisBox(_object_arguments * source_data)
 	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
+	
+	source_data->modified_box->nextPos[X] = source_data->x_location + source_data->modified_box->velocity[X];
+	source_data->modified_box->nextPos[Y] = source_data->y_location + source_data->modified_box->velocity[Y];
+	source_data->modified_box->nextPos[Z] = source_data->z_location + source_data->modified_box->velocity[Z];
 	
 }
 

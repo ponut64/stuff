@@ -385,9 +385,9 @@ void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix)
 	int * iy2 = &matrix_2[3];
 	int * iz2 = &matrix_2[6];
 	
-	int trapX[3] = {ix2[X], ix2[X], ix2[X]};
-	int trapY[3] = {iy2[Y], iy2[Y], iy2[Y]};
-	int trapZ[3] = {iz2[Z], iz2[Z], iz2[Z]};
+	int trapX[3] = {ix2[X], ix2[Y], ix2[Z]};
+	int trapY[3] = {iy2[X], iy2[Y], iy2[Z]};
+	int trapZ[3] = {iz2[X], iz2[Y], iz2[Z]};
 	
 	output_matrix[0] = fxdot(ix1, trapX);
 	output_matrix[1] = fxdot(ix1, trapY);
@@ -399,7 +399,7 @@ void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix)
 	
 	output_matrix[6] = fxdot(iz1, trapX);
 	output_matrix[7] = fxdot(iz1, trapY);
-	output_matrix[9] = fxdot(iz1, trapZ);
+	output_matrix[8] = fxdot(iz1, trapZ);
 }
 
 void	zero_matrix(int * mtx)

@@ -208,15 +208,14 @@ Information about the scale and subdivision rules of the plane.
 
 	#define UV_CUT_COUNT (224)
 	#define SUBDIVISION_NEAR_PLANE (15<<16)
-	#define SUBDIVISION_SCALE (50)
 	
 	// What I know from other heightmap engines is that a CPU-efficient way to improve rendering speed
 	// is by the addition of "occlusion planes" - in other words, polygons on the other side of the plane,
 	// when viewed through the plane, are discarded.
 	// That is effectively an anti-portal...
 
-		POINT		sub_transform_buffer[256];
-		vertex_t	screen_transform_buffer[256];
+		POINT		sub_transform_buffer[512];
+		vertex_t	screen_transform_buffer[512];
 		POINT		subdivided_points[128];
 		short		subdivided_polygons[128][4]; //4 Vertex IDs of the subdivided_points
 		short		used_textures[128];
@@ -560,19 +559,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 
 	/**
 	Rendering Planes
-	With polygon subdivision based on the Z (depth)
-
-	Load up a plane.
-	Transform its vertices by the matrix, but don't explicitly screenspace transform it.
-	These vertices will be "screen-centered", so now we can subdivide the plane.
-	Check the span of the plane to see if it is large.
-	If it large in one of two particular ways, subdivide it by its longitude or its latitude (make two from one).
-	If it is large in both ways, subdivide it both ways (make four from one).
-	At this point, subdivision will occur recursively up to a limit arbitrated from the plane's Z,
-	will cease subdivision on polygons with a high Z, and continue subdivision on polygons with a low Z.
-	
-	All but the lowest subdivision of a polygon will receive a combined texture.
-	The texture is either a X*2, Y*2, or an X*2 & Y*2 combination -- the same as the subdivision pattern of the polygon.
+	Right now, this is slow. Very slow.
 	**/
 
 	int max_z = 0;
@@ -631,6 +618,7 @@ for(unsigned int i = 0; i < mesh->nbPoint; i++)
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : screen_transform_buffer[i].clipFlag;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : screen_transform_buffer[i].clipFlag;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : screen_transform_buffer[i].clipFlag;
+		transVerts[0]++;
 }
 
 for(unsigned int i = 0; i < mesh->nbPolygon; i++)
@@ -721,12 +709,12 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		sub_vert_cnt += 4;
 		sub_poly_cnt += 1;
 	
-	//min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-	//		JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	///////////////////////////////////////////
 	// Just a side note:
 	// Doing subdivision in screen-space **does not work**.
-	// Well, technically it works, but affine warping is experienced. It looks pretty awful.
+	// Well, technically it works, but warping is experienced. It looks pretty awful.
 	///////////////////////////////////////////
 		used_textures[0] = mesh->attbl[i].uv_id;
 
@@ -735,7 +723,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
 		subdivision_rules[3] = 0;
 		
-		if(!subdivision_rules[0] || subdivision_rules[3] || (flags & GV_FLAG_NDIV))
+		if(!subdivision_rules[0] || subdivision_rules[3] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 		{
 			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
 			ssh2VertArea[0].pnt[X] = screen_transform_buffer[vids[0]].pnt[X];
@@ -788,6 +776,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
 				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
 				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[v].clipFlag;
+				transVerts[0]++;
 				// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
 			}
 		//Subdivision activation end stub
@@ -802,7 +791,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
-		
+		transPolys[0]++;
 		ptv[0] = &ssh2VertArea[subdivided_polygons[j][0]];
 		ptv[1] = &ssh2VertArea[subdivided_polygons[j][1]];
 		ptv[2] = &ssh2VertArea[subdivided_polygons[j][2]];
@@ -818,7 +807,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 		((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 
-			if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
+		if(offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE) continue;
 		///////////////////////////////////////////
 		// These use UV-cut textures now, so it's like this.
 		///////////////////////////////////////////
@@ -880,8 +869,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		usedCMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
 		pcoTexDefs[specific_texture].SRCA, colorBank, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}
-    transVerts[0] += sub_vert_cnt;
-	transPolys[0] += sub_poly_cnt;
+
 }
 	//////////////////////////////////////////////////////////////
 	// Planar polygon subdivision rendering end stub

@@ -39,8 +39,6 @@ int map_tex_amt = 35;
 int map_last_combined_texno = 0;
 int map_end_of_original_textures = 0;
 _heightmap maps[4];
-Bool map_update_complete;
-Bool * sysBool;
 Bool map_chg = true;
 
 char map_tex_tbl_names[5][13] = {
@@ -67,7 +65,6 @@ void 	init_heightmap(void)
 3 - 2
 */
 
-	sysBool = (Bool *)(((unsigned int)&map_update_complete)|UNCACHE);
 }
 
 void	chg_map(_heightmap * tmap){
@@ -562,10 +559,20 @@ short preprocess_portals(void)
 	int used_pid[2];
 	used_pid[0] = 0;
 	used_pid[1] = 0;
+	unsigned short clipFlags[4];
 	for(int i = 0; i < MAX_SCENE_PORTALS; i++)
 	{
 		if(i < current_portal_count)
 		{
+			for(int k = 0; k < 4; k++)
+			{
+				clipFlags[k] = 	((scene_portals[i].verts[k][X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+				clipFlags[k] |= ((scene_portals[i].verts[k][X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : clipFlags[k];
+				clipFlags[k] |= ((scene_portals[i].verts[k][Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : clipFlags[k];
+				clipFlags[k] |= ((scene_portals[i].verts[k][Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : clipFlags[k];
+				clipFlags[k] |= ((scene_portals[i].verts[k][Z]) <= 10<<16) ? CLIP_Z : clipFlags[k];
+			}
+			
 			int szA[2] = {scene_portals[i].verts[0][X] - scene_portals[i].verts[1][X], scene_portals[i].verts[0][Y] - scene_portals[i].verts[1][Y]};
 			int szB[2] = {scene_portals[i].verts[1][X] - scene_portals[i].verts[2][X], scene_portals[i].verts[1][Y] - scene_portals[i].verts[2][Y]};
 			int szC[2] = {scene_portals[i].verts[2][X] - scene_portals[i].verts[3][X], scene_portals[i].verts[2][Y] - scene_portals[i].verts[3][Y]};
@@ -576,12 +583,8 @@ short preprocess_portals(void)
 			cursize += (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
 			scene_portals[i].depth = JO_MIN(JO_MIN(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MIN(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
 			int max_depth = JO_MAX(JO_MAX(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MAX(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
-			// scene_portals also need to be marked as inactive if they are too near the camera.
-			// In the case of the max depth being determined as less than zero, the portal is behind the camera.
-			// It shouldn't be used; we'll deactivate it.
-			if(scene_portals[i].depth < 0) scene_portals[i].depth = 0;
-			if(max_depth < 10<<16) scene_portals[i].type = 0; //Set type to zero to deactivate the portal
-			
+			// If the portal is off-screen, it should be deactivated.
+			if(clipFlags[0] & clipFlags[1] & clipFlags[2] & clipFlags[3]) scene_portals[i].type = 0;
 			//A cross-product can tell us if it's backfaced or not.
 			int cross0 = (scene_portals[i].verts[1][X] - scene_portals[i].verts[3][X])
 								* (scene_portals[i].verts[0][Y] - scene_portals[i].verts[2][Y]);
@@ -602,19 +605,23 @@ short preprocess_portals(void)
 				used_pid[1] = used_pid[0];
 				used_pid[0] = i;
 				bestsize = cursize;
+				enable_portals = 1;
 			}	
 		} else {
 			scene_portals[i].type = 0; //Set type to 0 to deactivate the portal
 		}
-	enable_portals = 1;
+	
 	}
 	if(portal_reset == 1)
 	{
 		current_portal_count = 0;
 		portal_reset = 0;
+		//Disable portals on reset
+		used_portals[0].type = 0;
+		used_portals[1].type = 0;
+		used_portals[0].backface = 0;
+		used_portals[1].backface = 0;
 	}
-	
-	//nbg_sprintf(5, 10, "(%x)", *((unsigned int *)&scene_portals[0].sectorA));
 	
 	if(enable_portals)
 	{
@@ -652,6 +659,11 @@ short preprocess_portals(void)
 	used_portals[1].sectorA = scene_portals[used_pid[1]].sectorA;
 	used_portals[1].sectorB = scene_portals[used_pid[1]].sectorB;
 	}
+	
+	
+	//nbg_sprintf(5, 10, "pb(%i)", used_portals[0].backface);
+	//nbg_sprintf(5, 11, "pt(%i)", used_portals[0].type);
+	//nbg_sprintf(5, 10, "(%x)", *((unsigned int *)&scene_portals[0].sectorA));
 
 	return enable_portals;
 }
@@ -1122,8 +1134,6 @@ void	update_hmap(MATRIX msMatrix)
 	// nbg_sprintf(5, 18, "clp(%i)", dsp_noti_addr[1]);
 		
 		transPolys[0] += LCL_MAP_PLY * LCL_MAP_PLY;
-	*sysBool = true;
-	
 	
 }
 

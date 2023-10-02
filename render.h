@@ -68,6 +68,8 @@
 #define MAX_SCENE_PORTALS	(8)
 #define MAX_USED_PORTALS	(2)
 
+#define SUBDIVISION_SCALE (50)
+
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 
@@ -297,7 +299,7 @@ void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short * pclp);
 void	clipping(vertex_t * pnt, short useClip);
 void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);
 void	ssh2DrawModel(entity_t * ent);
-void	msh2DrawModel(entity_t * ent, MATRIX msMatrix, FIXED * lightSrc);
+void	msh2DrawModel(entity_t * ent, MATRIX msMatrix);
 void	sort_master_polys(void);
 #endif
 

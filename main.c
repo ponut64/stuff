@@ -215,6 +215,9 @@ void	load_test(void)
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST01.GVP",		HWRAM_ldptr, &entities[39], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST02.GVP",		HWRAM_ldptr, &entities[40], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAP.GVP",			HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	
+	
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);

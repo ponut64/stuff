@@ -121,6 +121,7 @@ typedef struct {
 	Bool setJet;
 	
 	int surfaceHeight;
+	int distanceToMapFloor;
 	POINT	shadowPos;
 	POINT	floorPos;
 	POINT	wallPos;

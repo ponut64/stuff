@@ -79,6 +79,7 @@ void reset_player(void)
 	you.maxPower = 4;
 	you.avg_sanics = 0;
 	you.sanic_samples = 0;
+	you.distanceToMapFloor = 0;
 }
 
 
@@ -869,6 +870,9 @@ generate_cell_from_position(realCFs.yp1, &nySmp);
 //
 
 divide_cell_return_cfnorms(&nySmp, nyNearTriCF1, nyTriNorm1, nyNearTriCF2, nyTriNorm2);
+
+//Why add, and not subtract? Because coordinate systems
+you.distanceToMapFloor = sbox->pos[Y] + ((nySmp.verts[0][Y] + nySmp.verts[1][Y] + nySmp.verts[2][Y] + nySmp.verts[3][Y])>>2);
 
 FIXED ny_Dist1 =  slSquartFX(fxm(nySmp.verts[1][X] + realCFs.yp1[X], nySmp.verts[1][X] + realCFs.yp1[X]) + fxm(nySmp.verts[1][Z] + realCFs.yp1[Z], nySmp.verts[1][Z] + realCFs.yp1[Z]));
 FIXED ny_Dist2 =  slSquartFX(fxm(nySmp.verts[3][X] + realCFs.yp1[X], nySmp.verts[3][X] + realCFs.yp1[X]) + fxm(nySmp.verts[3][Z] + realCFs.yp1[Z], nySmp.verts[3][Z] + realCFs.yp1[Z]));

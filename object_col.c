@@ -11,6 +11,7 @@
 #include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
+#define MAX_COLLISION_PLANES (512)
 
 //Purpose:
 // Between loading levels, this function is ran to re-set the RAM pointer for rotated buildings.
@@ -270,8 +271,8 @@ void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, 
 		if(you.hitObject == true) return;
 
 GVPLY * mesh = ent->pol;
-static unsigned short testing_planes[128];
-static unsigned char backfaced[128];
+static unsigned short testing_planes[MAX_COLLISION_PLANES];
+static unsigned char backfaced[MAX_COLLISION_PLANES];
 static unsigned short last_hit_floor = 0;
 static entity_t * last_floor_entity = 0;
 short total_planes = 0;
@@ -306,19 +307,49 @@ Bool shadowStruck = false;
 	// Normal-based discard of planes
 	// If the plane's normal is facing away from where the player is,
 	// it will not be put into the pile of planes to collision test.
+	// This test will also discard polygons which are too far away to possibly be collided with.
+	// This assists greatly with levels made of plane data only.
 	// PDATA vector space is inverted, so we negate them
 	//////////////////////////////////////////////////////////////
 	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
 	{
+		//Need to use your *next* position, not your current, or last.
 		discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][X])
-		- mover->prevPos[X] - mesh_position[X];
+		- mover->nextPos[X] - mesh_position[X];
 		discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Y])
-		- mover->prevPos[Y] - mesh_position[Y];
+		- mover->nextPos[Y] - mesh_position[Y];
 		discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Z])
-		- mover->prevPos[Z] - mesh_position[Z];
+		- mover->nextPos[Z] - mesh_position[Z];
 
 		int normal_discard = fxdot(discard_vector, mesh->nmtbl[dst_poly]);
-				
+		//This component should not be signed (distance).
+		discard_vector[X] = JO_ABS(discard_vector[X]);
+		discard_vector[Y] = JO_ABS(discard_vector[Y]);
+		discard_vector[Z] = JO_ABS(discard_vector[Z]);
+		int max_axis = 0;
+		switch(mesh->maxtbl[dst_poly])
+		{
+			case(N_Xp):
+			case(N_Xn):
+			max_axis = JO_MAX(discard_vector[Y], discard_vector[Z])>>1;
+			break;
+			case(N_Yp):
+			case(N_Yn):
+			max_axis = JO_MAX(discard_vector[X], discard_vector[Z])>>1;
+			break;
+			case(N_Zp):
+			case(N_Zn):
+			max_axis = JO_MAX(discard_vector[Y], discard_vector[X])>>1;
+			break;
+			default:
+			break;
+		}
+		int polygon_scale = (mesh->attbl[dst_poly].plane_information & 0x3) ? SUBDIVISION_SCALE<<1 : SUBDIVISION_SCALE;
+		polygon_scale += (mesh->attbl[dst_poly].plane_information & 0xC) ? SUBDIVISION_SCALE : 0;
+		polygon_scale += (mesh->attbl[dst_poly].plane_information & 0x30) ? SUBDIVISION_SCALE : 0;
+		polygon_scale <<= 16;
+		//mesh->attbl[dst_poly].render_data_flags &= (GV_FLAG_MESH ^ 0xFFFF);
+		if(polygon_scale < normal_discard || polygon_scale < max_axis) continue;
 	// slPrint("Discard vector:", slLocate(1, 9));
 	// slPrintFX(discard_vector[X], slLocate(2, 10));
 	// slPrintFX(discard_vector[Y], slLocate(2, 11));
@@ -327,20 +358,24 @@ Bool shadowStruck = false;
 	// slPrintFX(normal_discard, slLocate(2, 14));
 			
 
-		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < MAX_COLLISION_PLANES)
 		{
 		/////////
 		// Dual-plane handling
 		/////////
+			//mesh->attbl[dst_poly].render_data_flags |= GV_FLAG_MESH;
+		
 			testing_planes[total_planes] = dst_poly;
 			backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
 			total_planes++;
 			continue;
-		} else if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < 128)
+		} else if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < MAX_COLLISION_PLANES)
 		{
 		/////////
 		// Single-plane handling
 		///////// 
+			//mesh->attbl[dst_poly].render_data_flags |= GV_FLAG_MESH;
+		
 			testing_planes[total_planes] = dst_poly;
 			backfaced[total_planes] = 0;
 			total_planes++;

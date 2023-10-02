@@ -33,6 +33,7 @@ typedef struct {
 	FIXED Zneg[XYZ];
 	//Velocities of the various center-faces & box.
 	//
+	FIXED nextPos[XYZ];
 	FIXED prevPos[XYZ];
 	FIXED velocity[XYZ];
 	FIXED veloX[XYZ];
@@ -83,6 +84,7 @@ extern _object_arguments bound_box_starter;
 extern _boundBox BoundBoxHost[MAX_PHYS_PROXY];
 extern _boundBox * RBBs;
 extern _boundBox pl_RBB;
+extern _boundBox sl_RBB;
 
 //------------------------------------------------------------------------------------
 //FUNCTION SECTIONS FOR VARIOUS FILES

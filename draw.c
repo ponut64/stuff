@@ -263,33 +263,33 @@ void	player_animation(void)
 
 void	player_draw(void)
 {
-	
-	slPushMatrix();
+	//slPushMatrix();
 	{
-
-		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Negate, because coordinate madness
-		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Negate, because coordinate madness
-		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Negate, because coordinate madness
+		//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
+		sl_RBB = pl_RBB;
+		sl_RBB.pos[X] = 0;//-sl_RBB.pos[X]; //Negate, because coordinate madness
+		sl_RBB.pos[Y] = 0;//-sl_RBB.pos[Y]; //Negate, because coordinate madness
+		sl_RBB.pos[Z] = 0;//-sl_RBB.pos[Z]; //Negate, because coordinate madness
 	
-		pl_model.prematrix = (FIXED*)&pl_RBB;
-		wings.prematrix = (FIXED*)&pl_RBB;
+		pl_model.prematrix = (FIXED*)&sl_RBB;
+		wings.prematrix = (FIXED*)&sl_RBB;
 		
-		ssh2DrawModel(&pl_model);
+		msh2DrawModel(&pl_model, perspective_root);
 
 	}
-	slPopMatrix();
+	//slPopMatrix();
 	
 	
 	if(you.setJet)
 	{
-		slPushMatrix();
-		ssh2DrawModel(&wings);
-		slPopMatrix();
+		//slPushMatrix();
+		msh2DrawModel(&wings, perspective_root);
+		//slPopMatrix();
 	}
 
-		pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
-		pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
-		pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
+		// pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
+		// pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
+		// pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
 
 }
 
@@ -353,20 +353,15 @@ void	shadow_draw(void)
 	slPushMatrix();
 
 		//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
-
-	pl_RBB.pos[X] = -you.shadowPos[X];
-	pl_RBB.pos[Y] = -(you.shadowPos[Y] - 8192);
-	pl_RBB.pos[Z] = -you.shadowPos[Z]; 
+		//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
+	sl_RBB = pl_RBB;
+	sl_RBB.pos[X] = -you.shadowPos[X];
+	sl_RBB.pos[Y] = -(you.shadowPos[Y] - 8192);
+	sl_RBB.pos[Z] = -you.shadowPos[Z]; 
 	
-	shadow.prematrix = (FIXED*)&pl_RBB;
+	shadow.prematrix = (FIXED*)&sl_RBB;
 
 	ssh2DrawModel(&shadow);
-		
-		//Just casually undo that
-		
-	pl_RBB.pos[X] = you.pos[X];
-	pl_RBB.pos[Y] = you.pos[Y];
-	pl_RBB.pos[Z] = you.pos[Z];
 	
 	slPopMatrix();
 		}
@@ -421,7 +416,7 @@ void	object_draw(void)
 						fxm(perspective_root[Z][Z], perspective_root[3][Z]);
 		//
 	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
-	player_draw();
+	//player_draw();
 	shadow_draw();
 	//times[3] = get_time_in_frame();
 	obj_draw_queue();
@@ -497,15 +492,17 @@ void	master_draw(void)
 	{
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
+
 	interim_time = get_time_in_frame();
-	flush_boxes(0);
-	light_control_loop(); //lit
-	object_control_loop(you.dispPos);
-	time_of_object_management = get_time_in_frame() - interim_time;
-	interim_time = get_time_in_frame();
+	
+	player_animation();
+	player_draw();
+
 	//
-	//
+	if(!(you.distanceToMapFloor > 768<<16))
+	{
 	map_draw();
+	}
 	map_draw_prep();
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
@@ -522,8 +519,14 @@ void	master_draw(void)
 		player_collision_test_loop();
 		collide_with_heightmap(&pl_RBB);
 		//
-	player_animation();
 	extra_time = get_time_in_frame() - interim_time;
+	
+	interim_time = get_time_in_frame();
+	flush_boxes(0);
+	light_control_loop(); //lit
+	object_control_loop(you.dispPos);
+	time_of_object_management = get_time_in_frame() - interim_time;
+	
 		//
 	} else if(you.inMenu)
 	{
