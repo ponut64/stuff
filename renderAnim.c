@@ -166,6 +166,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	int ambient_bright = 0;
 	
 	int bright = 0;
+	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
 	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
@@ -352,9 +353,11 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 
+		depth_cueing(&zDepthTgt, &cue);
+
         ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank | cue, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     }
 		transPolys[0] += model->nbPolygon;
 		

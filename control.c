@@ -8,7 +8,6 @@ This file is compiled separately.
 #include "mymath.h"
 #include "input.h"
 #include "bounder.h"
-#include "player_phy.h"
 #include "pcmsys.h"
 #include "render.h"
 
@@ -20,7 +19,7 @@ int fixPlyrRot;
 int fixCtrlRot;
 
 _controlOptions usrCntrlOption = {.followForce = 1<<16, .cameraAccel = 45, .cameraCap = 0,
-									.movementCam = 1, .facingCam = 1, .lockoutTime = 1<<16};
+									.movementCam = 1, .facingCam = 0, .lockoutTime = 1<<16};
 
 Bool holdCam = false;
 Bool usePolyLine = false;

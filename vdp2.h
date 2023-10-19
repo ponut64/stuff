@@ -12,6 +12,9 @@
 extern unsigned short * back_scrn_colr_addr;
 extern unsigned short back_color_setting;
 
+extern unsigned int *	cRAM_24bm;
+extern unsigned short *	cRAM_16bm;
+
 void	draw_vdp2_line(short x1, short y1, short x2, short y2, unsigned short color_code);
 void	draw_vdp2_pixel(short x, short y, unsigned short color_code);
 void	init_vdp2(short backColor);

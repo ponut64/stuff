@@ -1,0 +1,6 @@
+Every time I make the palettes, I seem to decide a different way to do it.
+
+Top section: -15 saturation, -40 brightness
+Second section: -20 brightness
+Third section: No change
+Fourth section: -15 saturation, +20 brightness

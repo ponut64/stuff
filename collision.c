@@ -10,7 +10,6 @@ This file is compiled separately.
 #include "mloader.h"
 #include "render.h"
 #include "physobjet.h"
-#include "object_col.h"
 #include "particle.h"
 #include "ldata.h"
 

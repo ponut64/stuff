@@ -29,12 +29,10 @@ I am sorry for the pain you had to go through.
 #include "tga.h"
 #include "ldata.h"
 #include "input.h"
-#include "object_col.h"
 #include "pcmsys.h"
 #include "pcmstm.h"
 #include "draw.h"
 #include "anidefs.h"
-#include "player_phy.h"
 #include "gamespeed.h"
 #include "menu.h"
 #include "sound.h"
@@ -82,6 +80,9 @@ int flagIconTexno = 0;
 void	load_test(void)
 {
 
+	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	set_tga_to_nbg0_palette((void*)dirty_buf);
+
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
@@ -95,16 +96,19 @@ void	load_test(void)
 	// The total length is thusly 12 characters (as there is a period).
 	////////////////////////////////////////////////
 	nbg_sprintf(0,0, "Loading ...");
-	stmsnd[stm_win] = (Sint8*)"WIN.ADX";
-	stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
-	stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
+	//stmsnd[stm_win] = (Sint8*)"WIN.ADX";
+	//stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
+	//stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
+	snd_win = load_adx((Sint8*)"WIN.ADX");
+	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
+	snd_orchit0 = load_adx((Sint8*)"ORCHIT0.ADX");
+	snd_ftake = load_adx((Sint8*)"FLAG.ADX");
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
-	snd_ftake = load_8bit_pcm((Sint8*)"FLAG.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
@@ -215,8 +219,10 @@ void	load_test(void)
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST01.GVP",		HWRAM_ldptr, &entities[39], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST02.GVP",		HWRAM_ldptr, &entities[40], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAP.GVP",			HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
+
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPA.GVP",		HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPB.GVP",		HWRAM_ldptr, &entities[42], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"LONGBOX.GVP",		HWRAM_ldptr, &entities[43], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);

@@ -415,6 +415,24 @@ _sobject Build25 = {
 	.light_bright = 0
 };
 
+_sobject MasterOccluder = {
+	.entity_ID = 42,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD | BUILD_MASTER_OCCLUDER,
+	.light_bright = 0
+};
+
+_sobject Build26 = {
+	.entity_ID = 43,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -590,6 +608,8 @@ void	fill_obj_list(void)
 	objList[39] = &Post01;
 	objList[40] = &Post02;
 	objList[41] = &Build25;
+	objList[42] = &MasterOccluder;
+	objList[43] = &Build26;
 	
 	objList[49] = &Sign0;
 	

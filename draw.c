@@ -11,8 +11,6 @@
 #include "tga.h"
 #include "physobjet.h"
 #include "hmap.h"
-#include "player_phy.h"
-#include "object_col.h"
 #include "collision.h"
 #include "pcmstm.h"
 #include "menu.h"
@@ -253,6 +251,13 @@ void	player_animation(void)
 			if(you.setJet)
 			{
 				meshAnimProcessing(&flap, &wings,  false);
+				//Flap when hitting surface.
+				if(you.hitWall)
+				{
+					flap.curFrm = flap.startFrm * 8;
+					flap.curKeyFrm = flap.startFrm;
+					flap.reset_enable = 'Y';
+				}
 			} else {
 				flap.curFrm = flap.startFrm * 8;
 				flap.curKeyFrm = flap.startFrm;
@@ -265,7 +270,7 @@ void	player_draw(void)
 {
 	//slPushMatrix();
 	{
-		//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
+		//Note that "sl_RBB" is used as a safe copy of pl_RBB to be manipulated.
 		sl_RBB = pl_RBB;
 		sl_RBB.pos[X] = 0;//-sl_RBB.pos[X]; //Negate, because coordinate madness
 		sl_RBB.pos[Y] = 0;//-sl_RBB.pos[Y]; //Negate, because coordinate madness
@@ -279,17 +284,12 @@ void	player_draw(void)
 	}
 	//slPopMatrix();
 	
-	
 	if(you.setJet)
 	{
 		//slPushMatrix();
 		msh2DrawModel(&wings, perspective_root);
 		//slPopMatrix();
 	}
-
-		// pl_RBB.pos[X] = -pl_RBB.pos[X]; //Safety un-negation
-		// pl_RBB.pos[Y] = -pl_RBB.pos[Y]; //Safety un-negation
-		// pl_RBB.pos[Z] = -pl_RBB.pos[Z]; //Safety un-negation
 
 }
 
@@ -346,25 +346,18 @@ void	obj_draw_queue(void)
 
 void	shadow_draw(void)
 {
- 	//static char first_run;
-		if(shadow.file_done == true)
-		{
-			
-	slPushMatrix();
-
-		//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
-		//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
+	//slPushMatrix();
+	//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
+	//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
 	sl_RBB = pl_RBB;
-	sl_RBB.pos[X] = -you.shadowPos[X];
-	sl_RBB.pos[Y] = -(you.shadowPos[Y] - 8192);
-	sl_RBB.pos[Z] = -you.shadowPos[Z]; 
+	sl_RBB.pos[X] = you.pos[X] - you.shadowPos[X];
+	sl_RBB.pos[Y] = you.pos[Y] - (you.shadowPos[Y] - 8192);
+	sl_RBB.pos[Z] = you.pos[Z] - you.shadowPos[Z]; 
 	
 	shadow.prematrix = (FIXED*)&sl_RBB;
 
-	ssh2DrawModel(&shadow);
-	
-	slPopMatrix();
-		}
+	msh2DrawModel(&shadow, perspective_root);
+	//slPopMatrix();
 }
 
  //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
@@ -390,7 +383,7 @@ void	prep_map_mtx(void)
 void	object_draw(void)
 {
 	*timeComm = 0;
-	//times[2] = get_time_in_frame();
+
 	computeLight();
 	slPushMatrix();
 	{	
@@ -416,24 +409,11 @@ void	object_draw(void)
 						fxm(perspective_root[Z][Z], perspective_root[3][Z]);
 		//
 	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
-	//player_draw();
-	shadow_draw();
-	//times[3] = get_time_in_frame();
+
 	obj_draw_queue();
-	//times[4] = get_time_in_frame();
+
 	}
 	slPopMatrix();
-	
-	//if(viewInfoTxt == 1)
-	//{
-	//slPrintFX(times[2], slLocate(7, 12));
-	//slPrintFX(times[3], slLocate(7, 13));
-	//slPrintFX(times[4], slLocate(7, 14));
-	//nbg_sprintf(2, 11, "SSH2:");
-	//nbg_sprintf(2, 12, "S.Beg:");
-	//nbg_sprintf(2, 13, "Plyr:");
-	//nbg_sprintf(2, 14, "Ents:");
-	//}
 	
 }
 
@@ -497,7 +477,7 @@ void	master_draw(void)
 	
 	player_animation();
 	player_draw();
-
+	shadow_draw();
 	//
 	if(!(you.distanceToMapFloor > 768<<16))
 	{
@@ -517,7 +497,7 @@ void	master_draw(void)
 		controls();
 		player_phys_affect();
 		player_collision_test_loop();
-		collide_with_heightmap(&pl_RBB);
+		collide_with_heightmap(&pl_RBB, &you.fwd_world_faces, &you.time_axis);
 		//
 	extra_time = get_time_in_frame() - interim_time;
 	

@@ -3,6 +3,7 @@
 #include "mymath.h"
 #include "render.h"
 #include "def.h"
+#include "tga.h"
 
 /*
 the biggest reason we're here is to integrate flat shaded render path using color calculation with line color screen
@@ -77,25 +78,29 @@ unsigned short * back_scrn_colr_addr = (unsigned short *)(VDP2_RAMBASE + 512);
 unsigned short	back_color_setting;
 //
 
+//Color RAM pointers (for both 16 bit mode and 24-bit mode)
+unsigned int * cRAM_24bm = (unsigned int *)0x05F00000;
+unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;
+
 //Screen Erasure Settings
 	unsigned short * VDP1_EWLR = (unsigned short *) (VDP1_VRAM + 0x100008);
 	unsigned short * VDP1_EWRR = (unsigned short *) (VDP1_VRAM + 0x10000A);
 
-void	put_pixel_in_vdp2_bitmap(unsigned short * layer_address, unsigned short x, unsigned short y, unsigned short color_code, unsigned short line_width)
+void	put_pixel_in_8bpp_layer(unsigned char * layer_address, unsigned short x, unsigned short y, unsigned char color_code, unsigned short line_width)
 {
 	int index = x + (y * line_width);
 	layer_address[index] = color_code;	
 }
 
-void	draw_vdp2_pixel(short x, short y, unsigned short color_code)
+void	draw_vdp2_pixel(short x, short y, unsigned char color_code)
 {
 		if(x < 0) x = 0;
 		if(y < 0) y = 0;
-        put_pixel_in_vdp2_bitmap((unsigned short *)VDP2_VRAM_A0, x, y, color_code, 512);
+        put_pixel_in_8bpp_layer((unsigned char *)VDP2_VRAM_A0, x, y, color_code, 512);
 }
 
 //stolen from johannes
-void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned short color_code)
+void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned char color_code)
 {
     int                         dx;
     int                         sx;
@@ -118,7 +123,7 @@ void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned short color
         err = (dx > dy ? dx>>1 : -(dy>>1));
     for (;;)
     {
-        put_pixel_in_vdp2_bitmap((unsigned short *)VDP2_VRAM_A0, x0, y0, color_code, 512);
+        put_pixel_in_8bpp_layer((unsigned char *)VDP2_VRAM_A0, x0, y0, color_code, 512);
         if (x0 == x1 && y0 == y1)
             break;
         e2 = err;
@@ -140,11 +145,17 @@ void	vblank_requirements(void)
 	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
 	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
-	vdp2_sprMode[0] = 0x4; //Sprite Data Type Mode (set to 0xF in hi-res mode, 0x4 in standard res mode)
+	//Note that sprMode also contains data which specifies the rules for color calculation on sprite-layer pixels.
+	//"0x0404" specifies sprite type #4, and sprite color calculation condition #4. Whatever that means; seriously idk.
+	//When type 4: bits 14,13 are priority. bits 12,11,10 are color calc ratio.
+	vdp2_sprMode[0] = 0x0404; //Sprite Data Type Mode (set to 0xF in hi-res mode, 0x4 in standard res mode)
 
     *VDP1_EWLR = top_left_erase_pt;
     *VDP1_EWRR = btm_rite_erase_pt;
 }
+
+extern void * nbg0_page_adr;
+extern void * nbg0_char_adr;
 
 void	init_vdp2(short backColor)
 {
@@ -152,11 +163,62 @@ void	init_vdp2(short backColor)
 	//slZoomNbg0(32768, 65536);
 	//slZoomNbg1(32768, 65536);
 	//slScrAutoDisp(NBG0ON | NBG1ON);
-	slBitMapNbg1(COL_TYPE_32768, BM_512x512, (void*)VDP2_VRAM_A0);
-	slScrAutoDisp(NBG0ON | NBG1ON);
+	slBitMapNbg1(COL_TYPE_256, BM_512x256, (void*)VDP2_VRAM_A0);
+	
+	//Clear NBG1
+	//Dunno what ends up here, but it clearly isn't important for the game. So just purge it. Maybe leftover from BIOS?
+	for(int y = 0; y < 256; y++)
+	{
+		for(int x = 0; x < 512; x++)
+		{
+			draw_vdp2_pixel(x, y, 0);
+		}
+	}
+	
+	////////////////////////////////////////////////////////////////
+	// Section to move default SGL setup of text on NBG0 to NBG2
+	////////////////////////////////////////////////////////////////
+	//These values are stand-ins for SGL's defaults for NBG0.
+	//I am using them to put in place the text whilst being able to control NBG0.
+	void * mapPtr = (void*)0x25e76000;
+	void * colPtr = (void*)0x000;
+	void * celPtr = (void*)0x25e60000;
+	slCharNbg2(COL_TYPE_256, CHAR_SIZE_1x1);
+	slMapNbg2(mapPtr, mapPtr, mapPtr, mapPtr);
+	slPlaneNbg2(PL_SIZE_1x1);
+	slPageNbg2(celPtr, colPtr, PNB_1WORD);
+	////////////////////////////////////////////////////////////////
+	
+	
+	slScrAutoDisp(NBG1ON | NBG2ON);
 	slPriorityNbg1(7); //Put NBG1 on top.
+	slPriorityNbg2(7);
 	slShadowOn(BACKON);
 	
 	back_color_setting = backColor;
 	slBack1ColSet((void*)back_scrn_colr_addr, back_color_setting);
+	
+	//Referenced from XL2's SONIC Z-TREME source code
+    slSpriteCCalcCond(CC_pr_CN);
+    slColorCalcOn(CC_RATE | CC_TOP | SPRON | BACKON);
+
+	//These have to do with the order in which color calculation is done?
+    slPrioritySpr0(5);
+    slPrioritySpr1(3);
+    slPrioritySpr2(3);
+    slPrioritySpr3(3);
+    slPrioritySpr4(3);
+    slPrioritySpr5(3);
+    slPrioritySpr6(3);
+    slPrioritySpr7(3);
+	//These are the color calculation ratios for the SPR layer, according to the CC priority set in the pixel?
+    slColRateSpr0(2);
+    slColRateSpr1(4);
+    slColRateSpr2(6);
+    slColRateSpr3(9);
+    slColRateSpr4(13);
+    slColRateSpr5(18);
+    slColRateSpr6(23);
+    slColRateSpr7(28);
+
 }

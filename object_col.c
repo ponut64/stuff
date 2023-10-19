@@ -4,11 +4,8 @@
 #include "def.h"
 #include "mymath.h"
 #include "render.h"
-#include "player_phy.h"
 #include "collision.h"
 #include "physobjet.h"
-
-#include "object_col.h"
 
 #define MATH_TOLERANCE (16384)
 #define MAX_COLLISION_PLANES (512)
@@ -267,8 +264,6 @@ void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, 
 {
 		//If the entity is not loaded, cease the test.
 		if(ent->file_done != true) return;
-		//If the player has already hit a *different* object, cease the test.
-		if(you.hitObject == true) return;
 
 GVPLY * mesh = ent->pol;
 static unsigned short testing_planes[MAX_COLLISION_PLANES];
@@ -402,7 +397,7 @@ POINT lineEnds[3];
 // nbg_sprintf(1, 7, "(%x)", last_floor_entity);
 // nbg_sprintf(1, 8, "(%x)", ent);
 //__builtin_expect((unsigned int)last_floor_entity == (unsigned int)ent, (unsigned int)NULL);
-if(you.hitSurface && last_floor_entity == ent)
+if(you.hitSurface && last_floor_entity == ent && !you.setJet)
 {
 	//slPrint("Testing Old Floor", slLocate(2, 6));
 	
@@ -589,7 +584,7 @@ for(int i = 0; i < total_planes; i++)
 			//slPrint("Testing Y", slLocate(2, 6));
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
 			{
-				if((dominant_axis == N_Yn && !backfaced[i]) || climder)
+				if((dominant_axis == N_Yn && !backfaced[i] && !you.setJet) || climder)
 				{
 					you.floorNorm[X] = used_normal[X]; 
 					you.floorNorm[Y] = used_normal[Y];

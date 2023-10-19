@@ -13,12 +13,12 @@
 #include "input.h"
 #include "control.h"
 #include "render.h"
-#include "player_phy.h"
 #include "physobjet.h"
 #include "bounder.h"
 #include "minimap.h"
 #include "hmap.h"
 #include "sound.h"
+#include "collision.h"
 
 #include <string.h>
 
@@ -703,8 +703,8 @@ void	init_hud_events(void)
 	event->spriteTime = 1<<16; //One second
 	event->screenStep = 10;
 	
-	event->soundType = ADX_STREAM;
-	event->soundNum = stm_orchit0;
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_orchit0;//stm_orchit0;
 	event->volume = 6;
 	
 	event->texno = 0;
@@ -841,8 +841,8 @@ void	init_hud_events(void)
 	event->spriteTime = 5<<16; //One second
 	event->screenStep = 10;
 	
-	event->soundType = ADX_STREAM;
-	event->soundNum = stm_win;
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
 	event->volume = 6;
 	
 	event->texno = EVENT_SHOW_TEXT;
@@ -887,8 +887,8 @@ void	init_hud_events(void)
 	event->spriteTime = 1<<16; //One second
 	event->screenStep = 10;
 	
-	event->soundType = ADX_STREAM;
-	event->soundNum = stm_freturn;
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_freturn;//stm_freturn;
 	event->volume = 5;
 	
 	event->texno = EVENT_SHOW_TEXT;
@@ -907,8 +907,8 @@ void	init_hud_events(void)
 	event->spriteTime = 5<<16;
 	event->screenStep = 10;
 	
-	event->soundType = ADX_STREAM;
-	event->soundNum = stm_win;
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
 	event->volume = 5;
 	
 	event->texno = EVENT_SHOW_TEXT;

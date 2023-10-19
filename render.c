@@ -408,6 +408,14 @@ inline void determine_colorbank(unsigned short * colorBank, int * luma)
 	*colorBank = (*luma < 8196) ? 0x203 : *colorBank; //Make really dark? use MSB shadow
 }
 
+inline	void	depth_cueing(int * depth, int * cue)
+{
+	
+		*cue = (*depth - DEPTH_CUE_OFFSET) >> 23;
+		*cue = (*cue > 7) ? 7 : (*cue < 0) ? 0 : *cue;
+		*cue |= (*depth > DEPTH_CUE_CUTOFF) ? 8 : 0;
+		*cue <<= 10;
+}
 
 inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short * pclp)
 {
@@ -559,6 +567,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	int ambient_bright = 0;
 	
 	int bright = 0;
+	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
 	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
@@ -678,9 +687,11 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		
+		depth_cueing(&zDepthTgt, &cue);
+		
         ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank | cue, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
 		transPolys[0] += model->nbPolygon;
 
@@ -693,39 +704,34 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	drawn_entity_list[drawn_entity_count] = ent;
 	drawn_entity_count++;
 	//Recommended, for performance, that large entities be placed in HWRAM.
-    static FIXED newMtx[9] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
-	static FIXED rootMtx[9];
-	rootMtx[0] = msMatrix[X][X];
-	rootMtx[1] = msMatrix[Y][X];
-	rootMtx[2] = msMatrix[Z][X];
-	
-	rootMtx[3] = msMatrix[X][Y];
-	rootMtx[4] = msMatrix[Y][Y];
-	rootMtx[5] = msMatrix[Z][Y];
-	
-	rootMtx[6] = msMatrix[X][Z];
-	rootMtx[7] = msMatrix[Y][Z];
-	rootMtx[8] = msMatrix[Z][Z];
-	fxMatrixMul(&rootMtx[0], ent->prematrix, &newMtx[0]);
+    static FIXED newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	fxMatrixMul(&msMatrix[0][0], ent->prematrix, &newMtx[0]);
 
 	static FIXED m0x[4];
 	static FIXED m1y[4];
 	static FIXED m2z[4];
 	
+	//you.pos : Representing the core (initial) translation of the scene; could be avoided?
+	//ent->prematrix : Position of the object (matrix). Hmm. Isn't quite right.
+	
+	m0x[3] = newMtx[9];
+	m1y[3] = newMtx[10];
+	m2z[3] = newMtx[11];
+	
 	m0x[0] = newMtx[0];
 	m0x[1] = newMtx[1];
 	m0x[2] = newMtx[2];
-	m0x[3] = msMatrix[3][X];
 	
 	m1y[0] = newMtx[3];
 	m1y[1] = newMtx[4];
 	m1y[2] = newMtx[5];
-	m1y[3] = msMatrix[3][Y];
 	
 	m2z[0] = newMtx[6];
 	m2z[1] = newMtx[7];
 	m2z[2] = newMtx[8];
-	m2z[3] = msMatrix[3][Z];
+	
+
 
     GVPLY * model = ent->pol;
     if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
@@ -747,6 +753,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	int ambient_bright = 0;
 	
 	int bright = 0;
+	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
 	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
@@ -866,9 +873,11 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 		
  		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		
+		depth_cueing(&zDepthTgt, &cue);
+		
         msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
-		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank | cue, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
     } //Sort Max Endif
 		transPolys[0] += model->nbPolygon;
 

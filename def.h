@@ -115,7 +115,10 @@ typedef struct {
 	int avg_sanics;
 	int sanic_samples;
 	int end_average;
+	int airTime;
 	
+	
+	short firstSurfHit;
 	short power;
 	short maxPower;
 	Bool setJet;

@@ -73,6 +73,9 @@
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 
+#define DEPTH_CUE_OFFSET (100<<16)
+#define DEPTH_CUE_CUTOFF (600<<16)
+
 /*
 Render data flags:
 	
@@ -88,7 +91,7 @@ Render data flags:
 	#define GV_FLAG_POLYLINE	(0x4) // Zero, normal polygon. One, draws with polyline. Could be somewhere else.
 	#define GV_FLAG_DARK		(0x8) // Zero, normal light. One, MSB is enabled, making the polygon dark.
 	#define GV_FLAG_NDIV		(0x100) // Zero, polygon can subdivide (in supported objects). One, no subdivision.
-	#define GV_FLAG_PHYS		(0x200) // Zero, physical plane (in supported objects). One, no collision with plane.
+	#define GV_FLAG_PHYS		(0x200) // One, physical plane (in supported objects). Zero, no collision with plane.
 	#define GV_FLAG_LADDER		(0x400) // Boolean. 1 = ladder. 0 = no ladder. Notice: all ladders are climbable.
 	#define GV_FLAG_CLIMBABLE	(0x800) //Boolean. 1 = Climbable. 0 = not climbable.
 	#define GV_FLAG_PORTAL		(0x1000) //Boolean. 0, not a portal. 1, is a portal.
@@ -103,6 +106,11 @@ Render data flags:
 	#define GV_FLIP_HV			(0x30)
 	#define GET_SORT_DATA(n)	(n & 0xC0)
 	#define GET_FLIP_DATA(n)	(n & 0x30)
+	
+	//Speicl Flags. These flags do NOT imply the combination of the individual flags.
+	//Instead, something special happens when all of these conditions are met.
+	//Case 1: Will remove polygons of the heightmap below these polygons, if they are facing Y+, on map load.
+	#define GV_SPECIAL_FLAG_UNRENDER_MAP	(GV_FLAG_DARK | GV_FLAG_MESH | GV_FLAG_POLYLINE | GV_FLAG_NDIV)
 	
 	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
 	#define PORTAL_OR_OCCLUDE	(1<<1)	//Portal IN or OUT setting (portal or occluder). 1 = portal. 0 = occluder.
@@ -295,6 +303,7 @@ void	vblank_requirements(void);
 void	frame_render_prep(void);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
+void	depth_cueing(int * depth, int * cue);
 void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short * pclp);
 void	clipping(vertex_t * pnt, short useClip);
 void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);

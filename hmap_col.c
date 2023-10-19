@@ -5,6 +5,7 @@
 #include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
+#include "mloader.h"
 #include "collision.h"
 #include "physobjet.h"
 //
@@ -16,7 +17,8 @@
 
 #define FIXED_ONE_THIRD (21845)
 
-void	generate_cell_from_position(POINT pos, _pquad * cell){
+void	generate_cell_from_position(POINT pos, _pquad * cell)
+{
 	
 	static int cellPos[XY] = {0, 0};
 	static int cellX0off = 0;

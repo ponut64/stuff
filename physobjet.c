@@ -8,7 +8,6 @@
 #include "collision.h"
 #include "ldata.h"
 #include "hmap.h"
-#include "object_col.h"
 #include "menu.h"
 #include "minimap.h"
 #include "particle.h"
@@ -212,23 +211,28 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-a. Master Occlusion / Heightmap Vertex Blanking
-	Some way I want to be able to mark certain vertices of the map as always-clipped.
-	That would pretty much be a 1bpp map; either a vertex is clipped, or not.
-	The idea here is that a vertex completely covered by objects would be clipped, always, not measured by any perspective.
-	This makes meshing objects with the heightmap much easier, as you can destroy polygons behind objects.
+1. Coats of paint 
+	Background layer. scrolling/panning background image. Clouds, mountains, whatever.
+	Change framegraph to speedgraph when not in debug mode
+f. VDP2?
+	It is time to spice up the levels more.
+	So I could add first a scrolling/parallax background layer. Somehow.
+	I think parallax is a bit too much to ask. I just want it to rotate with the camera, and pivot in/out when look up/down.
+	A flat background layer would also be appreciated. But I have to find a way to properly blend it; not easy.
+a.	Restrictions on portal usage
+	There is some issue with large portals.
+	It doesn't make a great deal of sense that there would be, considering the calculations are done in screenspace.
 b.	Non-heightmap mode
 	The engine should have some allowance for working if the heightmap is not present.
 	In this case, the Master SH2 needs more work to do.
 	So it should draw something.
-d.	Screenspace Culling Solutions
-	1. Transform objects location to screenspace.
-	2. Transform objects radius to screenspace (multiply by 1/z, pretty much)
-	2a. You have to check in case the object is larger than the screen at present.
-	More or less, if the object's location is off of a different side of the screen from the radius-added location.
-	3. Determine which domain the screenspace coordinate is in (X+/Y+, X-/Y+, and so on)
-	4. Add the radius to the location according to the domain (so X+/Y+ origin will add the radius with X-/Y-)
-	5. Test the radius point to see if it is inside or spans the screen. If it doesn't, do not draw the object.
+c.	Ski / Bounce
+		So the game's changed a lot with the auto-hop button.
+		It mostly does well, but I feel that your friction (or ability to instantly stop) is a little too strong.
+		What I want is such that at high speeds, and oblique angles of impact, you will skip or otherwise slide; lose grip.
+		Objectively, I could tweak the speed added and the friction to achieve that.
+		Or I could program in the oblique angle bounce. Hm.
+		I also need to adjust the camera such that glide/hop will not tilt the camera down so much.
 c. Tutorial
 		Again, I assume that the way the game works is simpler than it is.
 		Going fast is a combination of three buttons used at specific times. This is not normal to video games.
@@ -240,12 +244,20 @@ c. Tutorial
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
-ca. animated textures - simple thing, visual priority makes it low
 g. streaming image system ? - for memes.. -- non-essential, would rather test levels
 j. Improved asset management - allowing each level to load assets specific to it
 k. Music visualizer
 	Whether ADX stream or PCM stream.
 	In either case, just return some data unique to the frame, relative to the music being played.
+d.	Screenspace Culling Solutions
+	1. Transform objects location to screenspace.
+	2. Transform objects radius to screenspace (multiply by 1/z, pretty much)
+	2a. You have to check in case the object is larger than the screen at present.
+	More or less, if the object's location is off of a different side of the screen from the radius-added location.
+	3. Determine which domain the screenspace coordinate is in (X+/Y+, X-/Y+, and so on)
+	4. Add the radius to the location according to the domain (so X+/Y+ origin will add the radius with X-/Y-)
+	5. Test the radius point to see if it is inside or spans the screen. If it doesn't, do not draw the object.
+
 
 **/
 
@@ -269,7 +281,8 @@ void	object_control_loop(int ppos[XY])
 	objUP = 0; //Should we start this at -1, because -1 will mean there are no objects in scene?
 
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
-	for(int i = 0; i < objNEW; i++){
+	for(int i = 0; i < objNEW; i++)
+	{
 		
 		//nbg_sprintf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
 		
@@ -331,8 +344,8 @@ void	object_control_loop(int ppos[XY])
 							// Temporary, but will change levels.
 							//////////////////////////////////////////
 							dWorldObjects[i].type.ext_dat |= OBJPOP;
-							//pcm_play(snd_win, PCM_PROTECTED, 5);
-							start_adx_stream(stmsnd[stm_win], 5);
+							pcm_play(snd_win, PCM_PROTECTED, 5);
+							//start_adx_stream(stmsnd[stm_win], 5);
 							map_chg = false;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 							///////////////////////////////////////////
@@ -347,6 +360,7 @@ void	object_control_loop(int ppos[XY])
 				//Exit rendering for collected items or inactive objects
 				if((dWorldObjects[i].type.ext_dat & ETYPE) == ITEM && (dWorldObjects[i].type.ext_dat & ITEM_COLLECTED)) continue;
 				if((dWorldObjects[i].type.ext_dat & ETYPE) == OBJECT && (dWorldObjects[i].type.ext_dat & OBJECT_DISABLED)) continue;
+				if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD && (dWorldObjects[i].type.ext_dat & OBJECT_DISABLED)) continue;
 				
 				if(entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING)
 				{
@@ -396,7 +410,6 @@ void	object_control_loop(int ppos[XY])
 					objUP++; 
 				} else if(entities[dWorldObjects[i].type.entity_ID].type == MODEL_TYPE_BUILDING)
 				{
-					
 						////////////////////////////////////////////////////
 						// Generate valid matrix parameters for the building.
 						////////////////////////////////////////////////////

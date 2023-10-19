@@ -70,6 +70,10 @@ void                                    fixed_point_time(void)
 //borrowed/given by XL2 -- Frame limiter to 30 FPS. EXTREMELY USEFUL.
 void	update_gamespeed(void)
 {
+	
+	/////////////////////////////////////////////
+	// Timekeeper
+	/////////////////////////////////////////////
 	uncache_oldtime = &oldtime;
 	uncache_oldtime = (int*)((unsigned int)uncache_oldtime | UNCACHE);
 	
@@ -79,43 +83,60 @@ void	update_gamespeed(void)
 	int frmrt = delta_time>>6;
 	fixed_point_time();
 	
- 	static int lastTimes[66];
-	static int time_selector = 0;
-
-	
-	lastTimes[time_selector] = frmrt;
-	//If the frame-time is too fast or too slow, mark it as a bad frame.
-	bad_frames += (frmrt < 30 || frmrt > 35) ? 1 : 0;
-	time_selector = (time_selector > 66) ? 0 : time_selector+1;
-	
     framerate = (frmrt)>>4;
 	
     if (framerate <= 0) framerate=1;
     else if (framerate > 5) framerate=5;
 
-		//Framegraph
-	char curLine = frmrt;
-	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
-	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
+	time_delta_scale = fxdiv(65536, delta_time);
+	time_fixed_scale = framerate<<16;
 	
-	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 8, 0xC210); //(last argument is color)
-	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 0x8200);
-		if(time_selector > 1){
-	draw_vdp2_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 0xC000);
-	//draw_vdp2_line(20, 20, 40, 40, 0x800C);
-		}
-		if(time_selector > 2){
-	draw_vdp2_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 0x8010);
-		} 
-		//
-		time_delta_scale = fxdiv(65536, delta_time);
-		time_fixed_scale = framerate<<16;
 		
 	if(viewInfoTxt == 1)
 	{
 	nbg_sprintf(1, 3, "(%i) Bad Frames)", bad_frames);
 	nbg_sprintf(24, 4, "Fmrt:(%i)", frmrt);
 	}
+	
+	/////////////////////////////////////////////
+	// Framegraph
+	/////////////////////////////////////////////
+	
+ 	static int lastTimes[66];
+	static int time_selector = 0;
+	
+	lastTimes[time_selector] = frmrt;
+	
+	for(int i = 0; i < 66; i++)
+	{
+	lastTimes[i] = (lastTimes[i] < 0) ? 0 : (lastTimes[i] > 70) ? 70 : lastTimes[i];
+	}
+
+	//If the frame-time is too fast or too slow, mark it as a bad frame.
+	bad_frames += (frmrt < 30 || frmrt > 35) ? 1 : 0;
+	if(time_selector >= 66)
+	{
+		time_selector = 0;
+	}
+	time_selector++;
+
+		//Framegraph
+	char curLine = lastTimes[time_selector];
+	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
+	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
+	
+	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 5, 7); //(last argument is color)
+	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 53);
+		if(time_selector > 1)
+		{
+	draw_vdp2_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 41);
+	//draw_vdp2_line(20, 20, 40, 40, 0x800C);
+		}
+		if(time_selector > 2)
+		{
+	draw_vdp2_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 23);
+		} 
+		//
 
 }
 

@@ -50,6 +50,8 @@ extern unsigned short * mapTex;
 extern char map_tex_tbl_names[5][13];
 extern char old_tex_tbl_names[5][13];
 
+void	snargon(void);
+
 void	init_heightmap(void);
 void	chg_map(_heightmap * tmap);
 

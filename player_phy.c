@@ -14,8 +14,6 @@
 #include "particle.h"
 #include "sound.h"
 
-#include "player_phy.h"
-
 #define PLR_FWD_SPD (32768)
 #define PLR_RVS_SPD (32768)
 #define PLR_STRF_SPD (32768)
@@ -80,6 +78,8 @@ void reset_player(void)
 	you.avg_sanics = 0;
 	you.sanic_samples = 0;
 	you.distanceToMapFloor = 0;
+	you.firstSurfHit = 0;
+	you.airTime = 0;
 }
 
 
@@ -266,9 +266,16 @@ void	smart_cam(void)
 		if((JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true))
 		{
 			//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
+			//We also do not want the camera to pan down if we are gliding/hopping.
 			//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
 			//If we are climbing, proportion_x was pre-adjusted so we'll try and look at the wall.
-			you.viewRot[X] += (you.hitSurface == true || you.climbing) ? (proportion_x * framerate)>>1 : (proportion_facing_ground * framerate)>>1;
+			if(you.hitSurface == true || you.climbing || (you.setJet && you.airTime > (1<<16)))
+			{
+				you.viewRot[X] +=  (proportion_x * framerate)>>1;
+			} else {
+				you.viewRot[X] += (proportion_facing_ground * framerate)>>1;
+			}
+			
 			usrCntrlOption.lockout = true;
 		}
 	}
@@ -430,7 +437,6 @@ void	player_phys_affect(void)
 	you.dV[Y] = 0;
 	you.dV[Z] = 0;
 	
-	static short firstSurfHit = false;
 	///////////////////////////////////////////////
 	// Sanic capture for measuring speed over time
 	///////////////////////////////////////////////
@@ -527,10 +533,7 @@ void	player_phys_affect(void)
 	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
-		you.pos[X] = (you.floorPos[X]);
-		you.pos[Y] = (you.floorPos[Y]);
-		you.pos[Z] = (you.floorPos[Z]);
-		
+		you.airTime = 0;
 		you.allowJumpTimer = 0;
 		you.jumpAllowed = true;
 		
@@ -540,7 +543,7 @@ void	player_phys_affect(void)
 			you.velocity[Y] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Y]);
 			you.velocity[Z] = fxm(you.IPaccel>>1, pl_RBB.UVZ[Z]);
 			you.wasClimbing = true;
-		} else if(firstSurfHit)
+		} else if(you.firstSurfHit)
 		{
 			/*
 			My best explanation of what's happening here:
@@ -566,7 +569,7 @@ void	player_phys_affect(void)
 		
 		//Note the order of operations. This is placed after gravity is surface-deflected.
 		///It is placed here for bounce control.
-		if(firstSurfHit == false)
+		if(you.firstSurfHit == false)
 		{
 			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
 			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
@@ -575,12 +578,15 @@ void	player_phys_affect(void)
 			//It's simple and it works because the impact dot is bigger the more oblique the impact angle, AND the faster you are going.
 			//That's exactly the math I wanted but was too stupid to see how it should be implemented on the velocity.
 			deflectionFactor = fxdot(you.velocity, you.floorNorm);
+			//Plan: Rebound elasticity scales, starting at 0x4000, going all the way up to 0xFFFF.
+			//It gets higher the faster you go, with 0xFFFF happening when moving past 5 sanics.
+
 			// This is ESSENTIAL for the momentum gameplay to work properly 
 			you.velocity[X] -= fxm(you.floorNorm[X], deflectionFactor + (REBOUND_ELASTICITY)); 
 			you.velocity[Y] -= fxm(you.floorNorm[Y], deflectionFactor + (REBOUND_ELASTICITY)); 
 			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY)); 
 			//you.dV[Y] += fxm(REBOUND_ELASTICITY, you.floorNorm[Y]);
-			firstSurfHit = true;
+			you.firstSurfHit = true;
 		}
 		
 		//Stiction; low velocities will trap at zero on surface.
@@ -606,9 +612,14 @@ void	player_phys_affect(void)
 			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
 			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 		
+		you.pos[X] = (you.floorPos[X]);
+		you.pos[Y] = (you.floorPos[Y]);
+		you.pos[Z] = (you.floorPos[Z]);
+		
 	} else {
 		you.allowJumpTimer++;
-		firstSurfHit = false;
+		you.firstSurfHit = false;
+		you.airTime += delta_time;
 		
 		//Allow jump at least two frames after being released from a surface
 		if(you.allowJumpTimer > 2)
@@ -627,7 +638,7 @@ void	player_phys_affect(void)
 			you.dV[Y] -= you.wallNorm[Y]>>2;
 			you.dV[Z] -= you.wallNorm[Z]>>2;
 			/*
-	This code is a relatively direct lift from Tribes.
+	This code is inspired by/taken partly from Tribes.
 	I wouldn't have independently come up with a solution that works this well.
 	Instead, I was fixated on simply multiplying the wallNorm by velocity and subtracting that away from velocity.
 	My goal with that was to zero-out all direction towards the wall. That only mostly works.
@@ -642,7 +653,7 @@ void	player_phys_affect(void)
 		
 			you.hitWall = false;
 			
-			if(you.sanics >= 7<<16) pcm_play(snd_smack, PCM_SEMI, 7);
+			if(you.sanics >= 7<<16 && !you.setJet && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
 	} 
 
 	//Ladder/Climb Escape Sequence
@@ -834,16 +845,15 @@ void	player_phys_affect(void)
 	pl_RBB.status[2] = 'L';	
 }
 
-void	collide_with_heightmap(_boundBox * sbox)
+void	collide_with_heightmap(_boundBox * sbox, _lineTable * moverCFs, _lineTable * moverTimeAxis)
 {
-
-static _lineTable realCFs;
 
 POINT below_player = {you.pos[X], you.pos[Y] - (1<<16), you.pos[Z]};
 int len_A;
 int len_B;
 
 static _pquad nySmp;
+static int grip_loss;
 
 static POINT nyNearTriCF1 = {0, 0, 0};
 static VECTOR nyTriNorm1 = {0, 0, 0};
@@ -852,14 +862,7 @@ static VECTOR nyTriNorm2 = {0, 0, 0};
 static FIXED nyToTri1 = 0;
 static FIXED nyToTri2 = 0;
 
-realCFs.xp0[X] = sbox->Xplus[X] + sbox->pos[X]; realCFs.xp0[Y] = sbox->Xplus[Y] + sbox->pos[Y]; realCFs.xp0[Z] = sbox->Xplus[Z] + sbox->pos[Z];
-realCFs.xp1[X] = sbox->Xneg[X] + sbox->pos[X]; realCFs.xp1[Y] = sbox->Xneg[Y] + sbox->pos[Y]; realCFs.xp1[Z] = sbox->Xneg[Z] + sbox->pos[Z];
-realCFs.yp0[X] = sbox->Yplus[X] + sbox->pos[X]; realCFs.yp0[Y] = sbox->Yplus[Y] + sbox->pos[Y]; realCFs.yp0[Z] = sbox->Yplus[Z] + sbox->pos[Z];
-realCFs.yp1[X] = sbox->Yneg[X] + sbox->pos[X]; realCFs.yp1[Y] = sbox->Yneg[Y] + sbox->pos[Y]; realCFs.yp1[Z] = sbox->Yneg[Z] + sbox->pos[Z];
-realCFs.zp0[X] = sbox->Zplus[X] + sbox->pos[X]; realCFs.zp0[Y] = sbox->Zplus[Y] + sbox->pos[Y]; realCFs.zp0[Z] = sbox->Zplus[Z] + sbox->pos[Z];
-realCFs.zp1[X] = sbox->Zneg[X] + sbox->pos[X]; realCFs.zp1[Y] = sbox->Zneg[Y] + sbox->pos[Y]; realCFs.zp1[Z] = sbox->Zneg[Z] + sbox->pos[Z];
-
-generate_cell_from_position(realCFs.yp1, &nySmp);
+generate_cell_from_position(moverCFs->yp1, &nySmp);
 
 
 //
@@ -874,49 +877,75 @@ divide_cell_return_cfnorms(&nySmp, nyNearTriCF1, nyTriNorm1, nyNearTriCF2, nyTri
 //Why add, and not subtract? Because coordinate systems
 you.distanceToMapFloor = sbox->pos[Y] + ((nySmp.verts[0][Y] + nySmp.verts[1][Y] + nySmp.verts[2][Y] + nySmp.verts[3][Y])>>2);
 
-FIXED ny_Dist1 =  slSquartFX(fxm(nySmp.verts[1][X] + realCFs.yp1[X], nySmp.verts[1][X] + realCFs.yp1[X]) + fxm(nySmp.verts[1][Z] + realCFs.yp1[Z], nySmp.verts[1][Z] + realCFs.yp1[Z]));
-FIXED ny_Dist2 =  slSquartFX(fxm(nySmp.verts[3][X] + realCFs.yp1[X], nySmp.verts[3][X] + realCFs.yp1[X]) + fxm(nySmp.verts[3][Z] + realCFs.yp1[Z], nySmp.verts[3][Z] + realCFs.yp1[Z]));
+FIXED ny_Dist1 =  slSquartFX(fxm(nySmp.verts[1][X] + moverCFs->yp1[X], nySmp.verts[1][X] + moverCFs->yp1[X]) + fxm(nySmp.verts[1][Z] + moverCFs->yp1[Z], nySmp.verts[1][Z] + moverCFs->yp1[Z]));
+FIXED ny_Dist2 =  slSquartFX(fxm(nySmp.verts[3][X] + moverCFs->yp1[X], nySmp.verts[3][X] + moverCFs->yp1[X]) + fxm(nySmp.verts[3][Z] + moverCFs->yp1[Z], nySmp.verts[3][Z] + moverCFs->yp1[Z]));
 
-nyToTri1 = realpt_to_plane(realCFs.yp1, nyTriNorm1, nyNearTriCF1);
-nyToTri2 = realpt_to_plane(realCFs.yp1, nyTriNorm2, nyNearTriCF2);
+nyToTri1 = realpt_to_plane(moverCFs->yp1, nyTriNorm1, nyNearTriCF1);
+nyToTri2 = realpt_to_plane(moverCFs->yp1, nyTriNorm2, nyNearTriCF2);
 //Collision detection is using heightmap data
 
 if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
 {
 	you.hitMap = true;
-	you.hitSurface = true;
 	
-	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, lowPoint);
-	you.floorNorm[X] = -nyTriNorm2[X];
-	you.floorNorm[Y] = -nyTriNorm2[Y];
-	you.floorNorm[Z] = -nyTriNorm2[Z];
-	standing_surface_alignment(you.floorNorm);
-
-	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
-	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
-	you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]));
-	you.shadowPos[X] = lowPoint[X];
-	you.shadowPos[Y] = lowPoint[Y];
-	you.shadowPos[Z] = lowPoint[Z];
+	if(!you.setJet)
+	{
+		you.hitSurface = true;
+		
+		line_hit_plane_here(moverCFs->yp1, moverCFs->yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, lowPoint);
+		you.floorNorm[X] = -nyTriNorm2[X];
+		you.floorNorm[Y] = -nyTriNorm2[Y];
+		you.floorNorm[Z] = -nyTriNorm2[Z];
+		standing_surface_alignment(you.floorNorm);
+	
+		you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]) - moverTimeAxis->yp1[X]);
+		you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]) - moverTimeAxis->yp1[Y]);
+		you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]) - moverTimeAxis->yp1[Z]);
+		you.shadowPos[X] = lowPoint[X];
+		you.shadowPos[Y] = lowPoint[Y];
+		you.shadowPos[Z] = lowPoint[Z];
+	} else {
+		you.wallNorm[X] = -nyTriNorm1[X];
+		you.wallNorm[Y] = -nyTriNorm1[Y];
+		you.wallNorm[Z] = -nyTriNorm1[Z];
+		you.wallPos[X] = -lowPoint[X];
+		you.wallPos[Y] = -lowPoint[Y];
+		you.wallPos[Z] = -lowPoint[Z];
+		
+		you.hitWall = true;
+	}
 	
 	pl_RBB.collisionID = BOXID_MAP;
 } else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
 {
 	you.hitMap = true;
-	you.hitSurface = true;
 	
-	line_hit_plane_here(realCFs.yp1, realCFs.yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, 1<<16, lowPoint);
-	you.floorNorm[X] = -nyTriNorm1[X];
-	you.floorNorm[Y] = -nyTriNorm1[Y];
-	you.floorNorm[Z] = -nyTriNorm1[Z];
-	standing_surface_alignment(you.floorNorm);
-
-	you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]));
-	you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]));
-	you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]));
-	you.shadowPos[X] = lowPoint[X];
-	you.shadowPos[Y] = lowPoint[Y];
-	you.shadowPos[Z] = lowPoint[Z];
+	if(!you.setJet)
+	{
+		you.hitSurface = true;
+		
+		line_hit_plane_here(moverCFs->yp1, moverCFs->yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, 1<<16, lowPoint);
+		you.floorNorm[X] = -nyTriNorm1[X];
+		you.floorNorm[Y] = -nyTriNorm1[Y];
+		you.floorNorm[Z] = -nyTriNorm1[Z];
+		standing_surface_alignment(you.floorNorm);
+	
+		you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]) - moverTimeAxis->yp1[X]);
+		you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]) - moverTimeAxis->yp1[Y]);
+		you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]) - moverTimeAxis->yp1[Z]);
+		you.shadowPos[X] = lowPoint[X];
+		you.shadowPos[Y] = lowPoint[Y];
+		you.shadowPos[Z] = lowPoint[Z];
+	} else {
+		you.wallNorm[X] = -nyTriNorm1[X];
+		you.wallNorm[Y] = -nyTriNorm1[Y];
+		you.wallNorm[Z] = -nyTriNorm1[Z];
+		you.wallPos[X] = -lowPoint[X];
+		you.wallPos[Y] = -lowPoint[Y];
+		you.wallPos[Z] = -lowPoint[Z];
+		
+		you.hitWall = true;
+	}
 	
 	pl_RBB.collisionID = BOXID_MAP;
 } else {

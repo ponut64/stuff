@@ -208,11 +208,6 @@ Information about the scale and subdivision rules of the plane.
 
 	#define UV_CUT_COUNT (224)
 	#define SUBDIVISION_NEAR_PLANE (15<<16)
-	
-	// What I know from other heightmap engines is that a CPU-efficient way to improve rendering speed
-	// is by the addition of "occlusion planes" - in other words, polygons on the other side of the plane,
-	// when viewed through the plane, are discarded.
-	// That is effectively an anti-portal...
 
 		POINT		sub_transform_buffer[512];
 		vertex_t	screen_transform_buffer[512];
@@ -224,7 +219,7 @@ Information about the scale and subdivision rules of the plane.
 		short	subdivision_rules[4]	= {0, 0, 0, 0};
 		short	texture_rules[4]		= {16, 16, 16, 0};
 		// **really** trying to squeeze the performance here
-		int		z_rules[4]				= {300<<16, 66<<16, 33<<16, 0};
+		int		z_rules[4]				= {500<<16, 66<<16, 33<<16, 0};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions, short rootTex)
 {
@@ -567,6 +562,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	
 	int specific_texture = 0;
 	int dual_plane = 0;
+	int cue;
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
 	////////////////////////////////////////////////////
@@ -742,6 +738,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			ssh2VertArea[1].clipFlag = screen_transform_buffer[vids[1]].clipFlag;
 			ssh2VertArea[2].clipFlag = screen_transform_buffer[vids[2]].clipFlag;
 			ssh2VertArea[3].clipFlag = screen_transform_buffer[vids[3]].clipFlag;
+			//Because I fucked up when transcribing the texture tables, we gotta -1.
+			used_textures[0] -= 1;
 			//Subdivision disabled end stub
 		} else {
 			///////////////////////////////////////////
@@ -864,10 +862,13 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// So here, we insert it into the correct place in the command table to be the drawn color.
 		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
 		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : mesh->attbl[i].texno;
-
+		
+		//depth cueing experiments
+		depth_cueing(&zDepthTgt, &cue);
+		
       ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
-		pcoTexDefs[specific_texture].SRCA, colorBank, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
+		pcoTexDefs[specific_texture].SRCA, colorBank | cue, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}
 
 }

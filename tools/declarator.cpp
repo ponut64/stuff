@@ -872,10 +872,26 @@ void	create_objects(int levelNo)
 		texNames[2] = "DIR4A.TGA";
 		texNames[3] = "DIR4A.TGA";
 		texNames[4] = "DIR4D.TGA";
-		palName = "PAL3.TGA";
-	declare_object_at_cell((100 / 40) + 1, -2000, (340 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
+		palName = "PAL0.TGA";
+	// declare_object_at_cell((100 / 40) + 1, -120, (340 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
 	
-	declare_object_at_cell(-(0 / 40) + 1, -1800, -(160 / 40), 41 /*m-map1*/, 0, 0, 0, 0, 0);
+	// declare_object_at_cell(-(0 / 40) + 1, -70, -(160 / 40), 41 /*m-mapA*/, 0, 0, 0, 0, 0);
+	// declare_object_at_cell(-(0 / 40) + 1, -70, -(160 / 40), 42 /*m-mapB*/, 0, 0, 0, 0, 0);
+	
+	declare_object_at_cell((680 / 40) + 1, -2880, (0 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
+	
+	declare_object_at_cell((1120 / 40) + 1, -2760, (0 / 40), 43 /*longbox*/,  0, 0, 0, 0, 0);
+	declare_object_at_cell((120 / 40) + 1, -2680, (0 / 40), 43 /*longbox*/,   0, 0, -10, 0, 0);
+	declare_object_at_cell(-(840 / 40) + 1, -2480, (0 / 40), 43 /*longbox*/,  0, 0, -15, 0, 0);
+	declare_object_at_cell(-(1800 / 40) + 1, -2160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	declare_object_at_cell(-(2720 / 40) + 1, -1800, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	declare_object_at_cell(-(3640 / 40) + 1, -1480, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	
+	declare_object_at_cell(-(4560 / 40) + 1, -1160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	declare_object_at_cell(-(5440 / 40) + 1, -840, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	
+	declare_object_at_cell(-(5720 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(6240 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 30, 0, 0);
 
 	// declare_object_at_cell(-(3540 / 40) + 1, -193, (3900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	// declare_object_at_cell((2780 / 40) + 1, -164, -(1660 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);

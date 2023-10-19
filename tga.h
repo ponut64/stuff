@@ -3,9 +3,6 @@
 #ifndef __TGA_H__
 # define __TGA_H__
 
-extern unsigned int * cRAM_24bm;
-extern unsigned short * cRAM_16bm;
-
 extern unsigned char * sprPalette;
 extern unsigned int sprPaletteCopy[256];
 
@@ -16,6 +13,7 @@ extern int numTex;
 
 void	get_file_in_memory(Sint8 * filename, void * destination);
 void	set_tga_to_sprite_palette(void * file_start);
+void	set_tga_to_nbg0_palette(void * file_start);
 
 void	uv_cut(void * file_start);
 void	uv_tile(void * source_texture_data, int base_x, int base_y);

@@ -71,19 +71,6 @@
 	;	DMA -> RAM0[6] -> Clip flag applied when clipped OUT of 2 -> 3 edge of portal
 	;	DMA -> RAM0[7] -> Clip flag applied when clipped OUT of 3 -> 0 edge of portal
 	;	
-	;	Multi-portal process:
-	;	Find some free cache in the RAM banks such that ~6 portals could be stored
-	;	This being the maximum amount of portals (occluders) that may be present in a scene at once
-	;	The program then pipes in all of the portals, in order from 0-5, to the appropriate RAM regions:
-	;	RAM1[0] - RAM1[13] : Active Portal (Portal 0?)
-	;	RAM0[8] - RAM0[21] : Portal 1
-	;	RAM0[22] - RAM0[35] : Portal 2
-	;	RAM0[36] - RAM0[49] : Portal 3
-	;	RAM0[50] - RAM0[63] : Portal 4
-	;	RAM2[8] - RAM2[21] : Portal 5
-	;	RAM2[22] - RAM2[35] : Portal 6
-	;	RAM2[36] - RAM2[49] : Portal 7
-	;	RAM2[50] - RAM2[63] : Portal 8
 	;	
 	;
 	;------------------------------------------------------------------------

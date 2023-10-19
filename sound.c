@@ -44,6 +44,9 @@
  int snd_ring6;
  int snd_ring7;
  Sint8 * stmsnd[64];
+ int snd_win;
+ int snd_freturn;
+ int snd_orchit0;
  int stm_win = 0;
  int stm_freturn = 1;
  int stm_orchit0 = 2;

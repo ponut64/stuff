@@ -66,7 +66,7 @@
 	;
 	;	Communication Input Layout:
 	;	DMA -> RAM0[0] -> # of vertices to clip
-	;	DMA -> RAM0[1] -> Instruction time delay per vertex
+	;	DMA -> RAM0[1] -> # of portals to use
 	;	DMA -> RAM0[2] -> Flag applied all vertices checked
 	;	DMA -> RAM0[3] -> Clip flag when clipped IN occluder
 	;	DMA -> RAM0[4] -> Clip flag applied when clipped OUT of 0 -> 1 edge of portal

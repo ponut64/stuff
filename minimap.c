@@ -75,9 +75,9 @@ void	update_mmap_1pass(void)
 		{
 	for( ; oneLinePix < MMAP_WIDTH; oneLinePix++)
 	{
-		colorData = 32768 | (main_map[exact_map_data]>>3) | (main_map[exact_map_data]>>3)<<5 | (main_map[exact_map_data]>>3)<<10; //Encode pixel to ON | B | G | R for grayscale
+		colorData = (main_map[exact_map_data]>>1)+127;
 		draw_vdp2_pixel(MMAP_BASE_X+xDrawPos, MMAP_BASE_Y+yDrawPos, colorData); //Draw to VDP2 NBG1, displaying as bitmap mode.
-		minimap[pixCt] = colorData;										//Statement stores current data into an an array in high memory at given index [array pos = bitmap pos]
+		minimap[pixCt] = colorData;						//Statement stores current data into an an array in high memory at given index [array pos = bitmap pos]
 		raw_pix_data += MapPixWidth;									//Downsampling fixed-point math. Adds the approximate number of pixels to skip to scale PGM file to 51x51.
 		exact_map_data = raw_pix_data>>16;								//Back-sample to integers; finds the exact pixel we are going to sample.
 		approx_row = (xDrawPos < MMAP_WIDTH) ? approx_row : approx_row + MapYpixWidth; //Determines the Y image coordinate on the minimap
@@ -131,26 +131,26 @@ void	draw_minimap(void)
 	//				Xmax, Ymin, Xmin, Ymin - TOP line
 	//				Xmin, Ymin, Xmin, Ymax - LEFT line
 	//				
-	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X, MMAP_BASE_Y+51, 0xCFFF); //LEFT LINE
-	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+51, MMAP_BASE_X+51, MMAP_BASE_Y, 0xCFFF); //RIGHT LINE
-	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+50, MMAP_BASE_X, MMAP_BASE_Y+50, 0xCFFF); //BTM LINE
-	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X+51, MMAP_BASE_Y, 0xCFFF); //TOP LINE
+	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X, MMAP_BASE_Y+51, 3); //LEFT LINE
+	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+51, MMAP_BASE_X+51, MMAP_BASE_Y, 17); //RIGHT LINE
+	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+50, MMAP_BASE_X, MMAP_BASE_Y+50, 49); //BTM LINE
+	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X+51, MMAP_BASE_Y, 32); //TOP LINE
 
 
 	
 	//Draws player position pip
 	if( JO_ABS(scaledPlrPos[0]+1) < 25 && JO_ABS(scaledPlrPos[1]+1) < 25)
 	{
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 0xCC1F);
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+1+scaledPlrPos[1], 0xCC1F);
-	draw_vdp2_pixel(MMAP_CNTR_X+1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 0xCC1F);
-	draw_vdp2_pixel(MMAP_CNTR_X-1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 0xCC1F);
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y-1+scaledPlrPos[1], 0xCC1F);
+	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+1+scaledPlrPos[1], 19);
+	draw_vdp2_pixel(MMAP_CNTR_X+1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_vdp2_pixel(MMAP_CNTR_X-1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y-1+scaledPlrPos[1], 19);
 	}
 	//Draws view direction pip
 	if(JO_ABS(scaledPlrPos[0]+dirPixPos1[0]+1) < 25 && JO_ABS(scaledPlrPos[1]+dirPixPos1[1]+1) < 25)
 	{
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0]+dirPixPos1[0], MMAP_CNTR_Y+scaledPlrPos[1]+dirPixPos1[1], 0x83FF);
+	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0]+dirPixPos1[0], MMAP_CNTR_Y+scaledPlrPos[1]+dirPixPos1[1], 4);
 	}
 	
 	prevPlrPos[0] = scaledPlrPos[0];

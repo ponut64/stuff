@@ -256,9 +256,9 @@ void	make2AxisBox(_object_arguments * source_data)
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
 	
-	source_data->modified_box->nextPos[X] = source_data->x_location + source_data->modified_box->velocity[X];
-	source_data->modified_box->nextPos[Y] = source_data->y_location + source_data->modified_box->velocity[Y];
-	source_data->modified_box->nextPos[Z] = source_data->z_location + source_data->modified_box->velocity[Z];
+	source_data->modified_box->nextPos[X] = source_data->x_location + fxm(source_data->modified_box->velocity[X], time_fixed_scale);
+	source_data->modified_box->nextPos[Y] = source_data->y_location + fxm(source_data->modified_box->velocity[Y], time_fixed_scale);
+	source_data->modified_box->nextPos[Z] = source_data->z_location + fxm(source_data->modified_box->velocity[Z], time_fixed_scale);
 	
 }
 

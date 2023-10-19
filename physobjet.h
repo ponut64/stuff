@@ -29,12 +29,15 @@
 #define MAX_BUILD_OBJECTS (256)
 
 #define BUILD_PAYLOAD_LOADED (0x8000)
+#define BUILD_MASTER_OCCLUDER (0x800)
 /*
 ///////////////////////////////////////////////////////////////
 	ext_dat bitflag orientation for BUILD:
 		15 <- pop
 		14-12 <- will be 0x6 (1 1 0) for BUILD
-		11 - 0 <- unused
+		11	<- Flag for "Master Occluder" object
+		10-1 : Unused
+		0: Object enable/disable flag
 	clone_id <- Permutation series definition. Has the entity ID of the mesh (in the entity list) which this object is a permutation of.
 		If there is no permutation, this otherwise has the entity ID of the building object. 
 

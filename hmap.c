@@ -308,6 +308,7 @@ int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	return (btdata+texno) | (baseTex & (1<<15)); // ??? why 1<<15 ????
 }
 
+
 	int starting_small_crossing_texno;
 	int starting_combined_crossing_texno;
 	int starting_tiny_texno;
@@ -455,7 +456,6 @@ void	process_map_for_normals(void)
 		}
 		
 	}
-	
 	////////////////////
 	// Now that we've found what texture table everything is going to use...
 	// Let's run some logic to assign a new texture to every texture that is bordering another texture
@@ -992,6 +992,7 @@ void	update_hmap(MATRIX msMatrix)
 	unsigned short flip = 0; 
 	int texno = 0; //Ditto
 	int dither = 0;
+	int cue = 0;
 	
 	y_pix_sample = ((you.dispPos[Y]) * (main_map_x_pix-1));
 	
@@ -1020,11 +1021,11 @@ void	update_hmap(MATRIX msMatrix)
 	
 	for(int k = 0; k < LCL_MAP_PLY; k++)
 	{
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Row Selection
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//Row Selection
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		rowOffset = (k * (main_map_x_pix-1)) + poly_offset;
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		for(int v = 0; v < LCL_MAP_PLY; v++)
 		{
 				
@@ -1064,7 +1065,11 @@ void	update_hmap(MATRIX msMatrix)
 			JO_MAX(ptv[1]->pnt[Z], ptv[3]->pnt[Z])) + 
 			((ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2))>>1;
 			int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag & 0xFF);
-			if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+			if((cross0 >= cross1) || offScrn || zDepthTgt < NEAR_PLANE_DISTANCE
+			|| zDepthTgt > FAR_PLANE_DISTANCE || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS)
+			{
+				continue;
+			}
 
 			////////////////////////////////////////////////
 			//HMAP Normal/Texture Finder
@@ -1075,7 +1080,7 @@ void	update_hmap(MATRIX msMatrix)
 			texno = mapTex[src_poly] & 1023;
 			flip = (mapTex[src_poly]>>8) & 48;
 			dither = mapTex[src_poly] & DITHER_CROSS;
-
+			if(lightTbl[src_poly] == 0xF) continue;
 			////////////////////////////////////////////////
 			//If any of the Z's are less than 100, render the polygon subdivided four ways.
 			// Hold up: Don't you **only** want to do this if the polygon would otherwise cross the near-plane?
@@ -1114,10 +1119,11 @@ void	update_hmap(MATRIX msMatrix)
 			luma += lightTbl[src_poly] + active_lights[0].min_bright;
 			//Use transformed normal as shade determinant
 			determine_colorbank(&colorBank, &luma);
+			depth_cueing(&zDepthTgt, &cue);
 			////////////////////////////////////////////////
 			msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 				VDP1_BASE_CMDCTRL | (flip), ( VDP1_BASE_PMODE ) | pclp, //Reads flip value
-				pcoTexDefs[texno].SRCA, colorBank<<6, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
+				pcoTexDefs[texno].SRCA, (colorBank<<6) | cue, pcoTexDefs[texno].SIZE, 0, zDepthTgt);
 			////////////////////////////////////////////////
 		}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub

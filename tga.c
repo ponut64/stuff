@@ -10,9 +10,6 @@
 
 #include "tga.h"
 
-unsigned int * cRAM_24bm = (unsigned int *)0x05F00000;
-unsigned short * cRAM_16bm = (unsigned short *)0x05F00000;
-
 unsigned char * GLOBAL_img_addr = (unsigned char *)LWRAM;
 unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
 
@@ -98,10 +95,67 @@ void	set_tga_to_sprite_palette(void * file_start)
 		
 	}
 		//Set the text color (temporary, depends on library setting)
-		cRAM_24bm[1] = (255<<16) | (255<<8) | (255);
+		//cRAM_24bm[1] = (255<<16) | (255<<8) | (255);
 	
 	return;
 }
+void	set_tga_to_nbg0_palette(void * file_start)
+{
+	unsigned char * readByte = (unsigned char *)file_start;
+	unsigned short * readWord = (unsigned short *)file_start;
+	
+	unsigned char id_field_size = readByte[0];
+	
+	unsigned char col_map_type = readByte[1]; 
+	
+	if(col_map_type != 0){
+		slPrint("(REJECTED NON-RGB TGA)", slLocate(0,0));
+		return;
+	}
+	unsigned char data_type = readByte[2];
+	
+	if(data_type != 2) {
+		slPrint("(REJECTED RLE TGA)", slLocate(0,0));
+		return;
+	}
+	//Color Map Specification Data is ignored.
+	
+	//X / Y origin data is ignored.
+	
+	//unsigned short xSizeLoBits = readByte[12]; //unused
+	//unsigned short ySizeLoBits = readByte[14]; //unused, because the has an assumed size 
+	
+	unsigned char byteFormat = readByte[16];
+	
+	if(byteFormat != 24){
+		slPrint("(TGA NOT 24BPP)", slLocate(0,0));
+		return; //File Typing Demands 24 bpp.
+	}
+	
+	//Descriptor Bytes are skipped.
+	
+	unsigned char imdat = id_field_size + 18;
+	
+	GLOBAL_img_addr = (unsigned char*)((int)readWord + imdat);
+	
+	readByte = GLOBAL_img_addr;
+	unsigned char component[XYZ] = {0, 0, 0}; //Actually "R, G, B"
+	unsigned int final_color = 0;
+
+	for(int i = 0; i < 256; i++){
+		component[X] = readByte[(i*3)];
+		component[Y] = readByte[(i*3)+1];
+		component[Z] = readByte[(i*3)+2];
+		
+		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
+		
+		cRAM_24bm[i] = (final_color);
+		
+	}
+	
+	return;
+}
+
 
 //Note: colorCode will be signed.
 //Use: Add a color code to all of VDP1's colors.
