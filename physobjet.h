@@ -1,5 +1,4 @@
-#ifndef __PHYSOBJET_H__
-#define __PHYSOBJET_H__
+#pragma once
 
 #define CELL_CULLING_DIST_MED (10)
 #define CELL_CULLING_DIST_LONG (14)
@@ -169,8 +168,14 @@ bitflag orientation for OBJECT:
 			rot[Y] : The # of collected items registered in this manager's series
 		dist
 			Use is specified by the manager type
+			MANAGER_7RINGS: Used to count the rings collected
+			MANAGER_CTF: First, used as distance check to trigger. Then, stores completion time.
+			MANAGER_RETURN_PT: Unused
 		more_data 
 			Use is specified by the manager type
+			MANAGER_7RINGS: Unused
+			MANAGER_CTF: Flag par time
+			MANAGER_RETURN_PT: Unused
 		link
 			Links to other LDATA types
 */
@@ -241,19 +246,6 @@ bitflag orientation for OBJECT:
 // all else unused
 //
 
-#define TRACK_RESET			(0x4)
-#define TRACK_DISCOVERED	(0x2)
-#define TRACK_COMPLETE		(0x1)
-#define	TRACK_CLEAR_RESET	(0xFFFB)
-#define TRACK_UNCOMPLETE	(0xFFFE)
-#define TRACK_ACTIVE		(0x8000)
-#define TRACK_INACTIVE		(0x7FFF)
-#define TRACK_NO_CHECK		(0xFF0F)
-#define TRACK_NO_PASS		(0xFFF0)
-#define TRACK_NO_GUIDE		(0xF0FF)
-#define TRACK_GUIDE_NUMBER	(0xF00)
-#define TRACK_LAST_CHECKED	(0xF0)
-#define TRACK_LAST_PASSED	(0xF)
 /*
 	EVENT_TRIG orientation:
 	_sobject
@@ -313,13 +305,27 @@ bitflag orientation for OBJECT:
 			[X] - the number of gates in the track series that have been passed (for an active track).
 			[Y] - the total # of gates in the track series
 		more_data : 
-			7-4 : The last gate # checked.
-			0-3 : The last gate # passed.
+			7-4 : The gate # to guide towards
+			0-3 : The last gate # checked.
 		dist :
 			Silent discovery timer. Counts-down from X seconds when discovered, then enables track.
 			Also the tracks timer host when running.
 		link 
 			declared object array entry of another level change
+			**/
+#define TRACK_RESET			(0x4)
+#define TRACK_DISCOVERED	(0x2)
+#define TRACK_COMPLETE		(0x1)
+#define	TRACK_CLEAR_RESET	(0xFFFB)
+#define TRACK_UNCOMPLETE	(0xFFFE)
+#define TRACK_ACTIVE		(0x8000)
+#define TRACK_INACTIVE		(0x7FFF)
+#define TRACK_NO_CHECK		(0xFFF0)
+#define TRACK_NO_GUIDE		(0xFF0F)
+#define TRACK_PAR_TIME		(0xFF00)
+#define TRACK_GUIDE_NUMBER	(0xF0)
+#define TRACK_LAST_CHECKED	(0xF)
+/**
 //////////////////////////////////////////////////////////////////
 	LEVEL_CHNG orientation:
 	_sobject
@@ -423,5 +429,4 @@ void	ldata_manager(void);
 
 //cleaned out
 
-#endif 
 

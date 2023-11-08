@@ -5,48 +5,15 @@
 #include "def.h"
 #include "tga.h"
 
+#include "vdp2.h"
+
 /*
-the biggest reason we're here is to integrate flat shaded render path using color calculation with line color screen
-and the first way to do that, is to set up the line color screen
-and along the way, i wanted to set up other layers
-nbg0: 16bpp bitmap [sprite copy layer] [ext. color calculation with SPR layer + LNCL per pixel, or just cc with spr?] [512x256]
-nbg1: 8bpp bitmap [HUD graphic layer] [512x256]
-rbg0: 8bpp bitmap [water layer?] [512x256] --
-must implement sprite text draw library to liberate from having to use character map layer
 
-res: normal
-
-theoretical layout:
-NBG0: VRAM A0, spans into VRAM A1
-NBG1: VRAM B0 [half of it, 64KB]
-RBG0: VRAM B1 [half of it, 64KB]
-
-
-BACK screen data: in the off-screen area of NBG1 in VRAM B0 [112 KB in to B0]
-LNCL screen data: after the BACK screen data
-Coefficient Parameters A: after the LNCL screen data
-
-CYCLE PATTERN THEORIES:
-|	T0	|	T1	|	T2	|	T3	|	T4	|	T5	|	T6	|	T7	|
-////////////////////////	VRAM A0		/////////////////////////
-|	0x0	|	0x4	|	0x4	|	0x4	|	0x4	|	0x16|	0x14|	0x14| NBG0 as 512x256 16bpp
-|	N0P	|	N0B |	N0B |	N0B |	N0B |	NA |	CPU |	CPU	|
-////////////////////////	VRAM A1		/////////////////////////
-|	0x0	|	0x4	|	0x4	|	0x4	|	0x4	|	0x16|	0x14|	0x14| [spills into A1]
-|	N0P	|	N0B |	N0B |	N0B |	N0B |	NA |	CPU |	CPU	|
-////////////////////////	VRAM B0		/////////////////////////
-|	0x1	|	0x5	|	0x5	|	0x16|	0x16|	0x16|	0x14|	0x14| NBG1 as 512x256 8bpp
-|	N1P	|	N1B |	N1B |	NA |	NA |	NA |	CPU |	CPU	|
-////////////////////////	VRAM B1		/////////////////////////
-|						DOMINATED BY RBG0						| RBG0 as 512x256 8bpp [or 8bpp, tbh, no difference]
-
-pg 149, vdp2 manual, RBG0 RAM data bank select information
-ROTATION DATA BANK SELECT REGISTER SETTING: |= 192 [Use VRAM B1 for bitmap pattern, nothing else is needed.]
-													[Coefficient table will not be used per line]
 */
 
 //Write-only register! of CRAMoffset[1], bits 6,5,4 control SPR layer offset.
-unsigned short * vdp2_CRAMoffset = (unsigned short *)(0x1800E4 + VDP2_RAMBASE);
+unsigned short * vdp2_CRAMoffsetA = (unsigned short *)(0x1800E4 + VDP2_RAMBASE);
+unsigned short * vdp2_CRAMoffsetB = (unsigned short *)(0x1800E6 + VDP2_RAMBASE);
 //
 // Display System Data
 unsigned short * vdp2_TVmode = (unsigned short *)(0x180000 + VDP2_RAMBASE);
@@ -92,15 +59,15 @@ void	put_pixel_in_8bpp_layer(unsigned char * layer_address, unsigned short x, un
 	layer_address[index] = color_code;	
 }
 
-void	draw_vdp2_pixel(short x, short y, unsigned char color_code)
+void	draw_hud_pixel(short x, short y, unsigned char color_code)
 {
 		if(x < 0) x = 0;
 		if(y < 0) y = 0;
-        put_pixel_in_8bpp_layer((unsigned char *)VDP2_VRAM_A0, x, y, color_code, 512);
+        put_pixel_in_8bpp_layer((unsigned char *)NBG1_BITMAP_ADDR, x, y, color_code, 512);
 }
 
 //stolen from johannes
-void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned char color_code)
+void	draw_hud_line(short x0, short y0, short x1, short y1, unsigned char color_code)
 {
     int                         dx;
     int                         sx;
@@ -123,7 +90,7 @@ void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned char color_
         err = (dx > dy ? dx>>1 : -(dy>>1));
     for (;;)
     {
-        put_pixel_in_8bpp_layer((unsigned char *)VDP2_VRAM_A0, x0, y0, color_code, 512);
+        put_pixel_in_8bpp_layer((unsigned char *)NBG1_BITMAP_ADDR, x0, y0, color_code, 512);
         if (x0 == x1 && y0 == y1)
             break;
         e2 = err;
@@ -143,7 +110,8 @@ void	draw_vdp2_line(short x0, short y0, short x1, short y1, unsigned char color_
 void	vblank_requirements(void)
 {
 	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
-	vdp2_CRAMoffset[1] = 16; //Moves SPR layer color banks up in color RAM by 256 entries.
+	vdp2_CRAMoffsetA[0] = 0x2;	//Offsets indexed colors for NBG0 by 512 entries ((2<<10) / 4)
+	vdp2_CRAMoffsetB[0] = 0x10; //Offsets indexed colors for SPR layer by 256 entries ((1<<10) / 4)
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
 	//Note that sprMode also contains data which specifies the rules for color calculation on sprite-layer pixels.
 	//"0x0404" specifies sprite type #4, and sprite color calculation condition #4. Whatever that means; seriously idk.
@@ -160,20 +128,21 @@ extern void * nbg0_char_adr;
 void	init_vdp2(short backColor)
 {
 	slColRAMMode(2); //Set 24bpp
-	//slZoomNbg0(32768, 65536);
-	//slZoomNbg1(32768, 65536);
-	//slScrAutoDisp(NBG0ON | NBG1ON);
-	slBitMapNbg1(COL_TYPE_256, BM_512x256, (void*)VDP2_VRAM_A0);
-	
-	//Clear NBG1
+
+	slBitMapNbg0(COL_TYPE_256, BM_512x512, (void*)NBG0_BITMAP_ADDR);
+	slBitMapNbg1(COL_TYPE_256, BM_512x256, (void*)NBG1_BITMAP_ADDR);
+	//Clear VRAM A0
 	//Dunno what ends up here, but it clearly isn't important for the game. So just purge it. Maybe leftover from BIOS?
-	for(int y = 0; y < 256; y++)
+	unsigned char * writeByte = (unsigned char *)VDP2_VRAM_A0;
+	for(int y = 0; y < (512 * 256); y++)
 	{
-		for(int x = 0; x < 512; x++)
-		{
-			draw_vdp2_pixel(x, y, 0);
-		}
+		writeByte[y] = 0;
 	}
+	
+	//For NBG0, we zoom it.
+	//This zooms the screen such that a 128x128 area is displayed over the 352x224 screen.
+	//Probably not the correctess way to do things....
+	slZoomNbg0(23831, 37449);
 	
 	////////////////////////////////////////////////////////////////
 	// Section to move default SGL setup of text on NBG0 to NBG2
@@ -190,8 +159,9 @@ void	init_vdp2(short backColor)
 	////////////////////////////////////////////////////////////////
 	
 	
-	slScrAutoDisp(NBG1ON | NBG2ON);
-	slPriorityNbg1(7); //Put NBG1 on top.
+	slScrAutoDisp(NBG0ON | NBG1ON | NBG2ON);
+	slPriorityNbg0(1); //Put NBG0 just above BACK
+	slPriorityNbg1(6); //
 	slPriorityNbg2(7);
 	slShadowOn(BACKON);
 	

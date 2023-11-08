@@ -1,12 +1,9 @@
-#ifndef __COLLISION_H__
-#define __COLLISION_H__
+#pragma once
 
 #include "bounder.h"
 
 #define HIT_TOLERANCE (6553)
 #define REBOUND_ELASTICITY (0x8000)
-
-#define BOUNCE_TRANSITION_SPEED (10<<16)
 
 extern int boxDisField[6];
 
@@ -28,6 +25,4 @@ void	purge_rotated_entities(void);
 void	generate_rotated_entity_for_object(short declared_object_entry);
 void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, _lineTable * moverCFs, _lineTable * moverTimeAxis);
 
-
-#endif
 

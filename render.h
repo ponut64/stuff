@@ -1,5 +1,4 @@
-#ifndef __RENDER_H__
-# define __RENDER_H__
+#pragma once
 
 #include "mloader.h"
 #include "bounder.h"
@@ -284,6 +283,8 @@ void	draw_normal_sprite(int xPos, int yPos, unsigned short texno, unsigned short
 void	spr_print(int xPos, int yPos, char * data);
 void	spr_sprintf(int xPos, int yPos, ...);
 void	nbg_sprintf(int x, int y,  ...);
+void	nbg_sprintf_decimal(int x, int y,  int print_data);
+void	spr_sprintf_decimal(int x, int y,  int print_data);
 void	nbg_clear_text(void);
 short	menu_with_options(__basic_menu * mnu);
 //rednerAnim.c
@@ -310,5 +311,4 @@ void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);
 void	ssh2DrawModel(entity_t * ent);
 void	msh2DrawModel(entity_t * ent, MATRIX msMatrix);
 void	sort_master_polys(void);
-#endif
 

@@ -566,43 +566,43 @@ void	start_menu(void)
 		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_7RINGS)
 		{
 			const int rix = 120;
-			if(someLDATA->more_data & 0x1)
+			if(someLDATA->dist & 0x1)
 			{
 				draw_normal_sprite(rix, 172, baseRingMenuTexno, 0);
 			} else {
 				draw_normal_sprite(rix, 172, baseRingMenuTexno, 0x8003);	
 			}
-			if(someLDATA->more_data & 0x2)
+			if(someLDATA->dist & 0x2)
 			{
 				draw_normal_sprite(rix + 16, 172, baseRingMenuTexno+1, 0);	
 			} else {
 				draw_normal_sprite(rix + 16, 172, baseRingMenuTexno+1, 0x8003);
 			}
-			if(someLDATA->more_data & 0x4)
+			if(someLDATA->dist & 0x4)
 			{
 				draw_normal_sprite(rix + 32, 172, baseRingMenuTexno+2, 0);
 			} else {
 				draw_normal_sprite(rix + 32, 172, baseRingMenuTexno+2, 0x8003);
 			}
-			if(someLDATA->more_data & 0x8)
+			if(someLDATA->dist & 0x8)
 			{
 				draw_normal_sprite(rix + 48, 172, baseRingMenuTexno+3, 0);	
 			} else {
 				draw_normal_sprite(rix + 48, 172, baseRingMenuTexno+3, 0x8003);	
 			}
-			if(someLDATA->more_data & 0x10)
+			if(someLDATA->dist & 0x10)
 			{
 				draw_normal_sprite(rix + 64, 172, baseRingMenuTexno+4, 0);
 			} else {
 				draw_normal_sprite(rix + 64, 172, baseRingMenuTexno+4, 0x8003);
 			}
-			if(someLDATA->more_data & 0x20)
+			if(someLDATA->dist & 0x20)
 			{
 				draw_normal_sprite(rix + 80, 172, baseRingMenuTexno+5, 0);
 			} else {
 				draw_normal_sprite(rix + 80, 172, baseRingMenuTexno+5, 0x8003);
 			}
-			if(someLDATA->more_data & 0x40)
+			if(someLDATA->dist & 0x40)
 			{
 				draw_normal_sprite(rix + 96, 172, baseRingMenuTexno+6, 0);
 			} else {
@@ -754,7 +754,7 @@ void	init_hud_events(void)
 	event = &hudEvents[RING7_EVENT];
 	*event = hudEvents[RING1_EVENT];
 	event->texno = baseRingMenuTexno+6;
-	
+//////////////////////////////////////////////////
 	event = &hudEvents[GATE_DISCOVERY_EVENT];
 	
 	event->startPos[X] = 176;
@@ -773,7 +773,7 @@ void	init_hud_events(void)
 	static char gatediscovertxt[] = "Gate discovered!";
 	event->text = &gatediscovertxt[0];
 	event->colorBank = 1<<6;
-	
+//////////////////////////////////////////////////
 	event = &hudEvents[TRACK_DISCOVERED_EVENT];
 	
 	event->startPos[X] = 176;
@@ -792,7 +792,7 @@ void	init_hud_events(void)
 	static char trackdiscoveredtxt[] = "All gates found. Ready to go?";
 	event->text = &trackdiscoveredtxt[0];
 	event->colorBank = 1<<6;
-	
+//////////////////////////////////////////////////
 	event = &hudEvents[GATE_PASSED_EVENT];
 	
 	event->startPos[X] = 176;
@@ -811,7 +811,7 @@ void	init_hud_events(void)
 	static char gatepasstxt[] = "^^^^^";
 	event->text = &gatepasstxt[0];
 	event->colorBank = 1<<6;
-	
+//////////////////////////////////////////////////
 	event = &hudEvents[TRACK_FAILED_EVENT];
 	
 	event->startPos[X] = 176;
@@ -827,11 +827,11 @@ void	init_hud_events(void)
 	event->volume = 6;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char trackfailtxt[] = "Track failed...";
+	static char trackfailtxt[] = "Track Reset!";
 	event->text = &trackfailtxt[0];
 	event->colorBank = 1<<6;
-	
-	event = &hudEvents[TRACK_WIN_EVENT];
+//////////////////////////////////////////////////
+	event = &hudEvents[TRACK_SLOW_EVENT];
 	
 	event->startPos[X] = 176;
 	event->startPos[Y] = 0;
@@ -846,7 +846,49 @@ void	init_hud_events(void)
 	event->volume = 6;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char trackwintxt[] = "Track complete! Average Sanics: %i";
+	static char trackbadtxt[] = "Slow! Par Time: %i";
+	event->text = &trackbadtxt[0];
+	event->printedData = &you.parTime;
+	
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[TRACK_PAR_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
+	event->volume = 6;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char trackpartxt[] = "Complete! Avg Sanics: %i";
+	event->text = &trackpartxt[0];
+	event->printedData = &you.end_average;
+	
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[TRACK_GOLD_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
+	event->volume = 6;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char trackwintxt[] = "Gold! Avg Sanics: %i";
 	event->text = &trackwintxt[0];
 	event->printedData = &you.end_average;
 	
@@ -896,8 +938,8 @@ void	init_hud_events(void)
 	event->text = &flagreturntxt[0];
 	
 	event->colorBank = 1<<6;
-	
-	event = &hudEvents[FLAG_CAPTURED_EVENT];
+//////////////////////////////////////////////////
+	event = &hudEvents[FLAG_SLOW_EVENT];
 	
 	event->startPos[X] = 176;
 	event->startPos[Y] = 0;
@@ -912,12 +954,54 @@ void	init_hud_events(void)
 	event->volume = 5;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char flagwintxt[] = "Flag captured! Average Sanics: %i";
-	event->text = &flagwintxt[0];
+	static char flagfailtxt[] = "Slow! Par Time: %i";
+	event->text = &flagfailtxt[0];
+	event->printedData = &you.parTime;
+	
+	event->colorBank = 1<<6;
+	
+	event = &hudEvents[FLAG_PAR_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16;
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
+	event->volume = 5;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char flagpartxt[] = "Success! Avg Sanics: %i";
+	event->text = &flagpartxt[0];
 	event->printedData = &you.end_average;
 	
 	event->colorBank = 1<<6;
 	
+	event = &hudEvents[FLAG_GOLD_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 5<<16; 
+	event->spriteTime = 5<<16;
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;//ADX_STREAM;
+	event->soundNum = snd_win;//stm_win;
+	event->volume = 5;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char flagwintxt[] = "Gold! Avg Sanics: %i";
+	event->text = &flagwintxt[0];
+	event->printedData = &you.end_average;
+	
+	event->colorBank = 1<<6;
+//////////////////////////////////////////////////
 	event = &hudEvents[FLAG_OPEN_EVENT];
 	
 	event->startPos[X] = 176;

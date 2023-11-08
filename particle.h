@@ -1,5 +1,4 @@
-#ifndef __PARTICLE_H__
-#define __PARTICLE_H__
+#pragma once
 
 #define PARTICLE_TYPE_EMPTY		(0) //Not a particle
 #define PARTICLE_TYPE_NORMAL	(1)	//Gravity-enabled, collision-enabled particle.
@@ -32,6 +31,7 @@ extern int auraTexno;
 extern _sprite		TestSpr; 
 extern _sprite		SmallPuff;
 extern _sprite		GlowPuff;
+extern _sprite		HitPuff;
 extern _sprite		DropPuff;
 extern _sprite		HopPuff;	
 extern _particle	particle_starter;
@@ -45,4 +45,4 @@ void		object_effects(int obj_index, int box_index);
 void		particle_collision_handler(_particle * part, int * normal);
 void		operate_particles(void);
 
-#endif
+

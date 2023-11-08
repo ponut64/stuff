@@ -66,16 +66,16 @@ void	set_tga_to_sprite_palette(void * file_start)
 	//unsigned short xSizeLoBits = readByte[12]; //unused
 	//unsigned short ySizeLoBits = readByte[14]; //unused, because the has an assumed size 
 	
-	unsigned char byteFormat = readByte[16];
+	unsigned char bpp = readByte[16];
 	
-	if(byteFormat != 24){
+	if(bpp != 24){
 		slPrint("(TGA NOT 24BPP)", slLocate(0,0));
 		return; //File Typing Demands 24 bpp.
 	}
 	
 	//Descriptor Bytes are skipped.
 	
-	unsigned char imdat = id_field_size + 18;
+	unsigned char imdat = id_field_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readWord + imdat);
 	
@@ -90,7 +90,7 @@ void	set_tga_to_sprite_palette(void * file_start)
 		
 		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
 		
-		cRAM_24bm[i+256] = (final_color);
+		cRAM_24bm[i+SPRITE_PALETTE_OFFSET] = (final_color);
 		sprPaletteCopy[i] = final_color;
 		
 	}
@@ -99,7 +99,8 @@ void	set_tga_to_sprite_palette(void * file_start)
 	
 	return;
 }
-void	set_tga_to_nbg0_palette(void * file_start)
+
+void	set_tga_to_nbg1_palette(void * file_start)
 {
 	unsigned char * readByte = (unsigned char *)file_start;
 	unsigned short * readWord = (unsigned short *)file_start;
@@ -125,16 +126,16 @@ void	set_tga_to_nbg0_palette(void * file_start)
 	//unsigned short xSizeLoBits = readByte[12]; //unused
 	//unsigned short ySizeLoBits = readByte[14]; //unused, because the has an assumed size 
 	
-	unsigned char byteFormat = readByte[16];
+	unsigned char bpp = readByte[16];
 	
-	if(byteFormat != 24){
+	if(bpp != 24){
 		slPrint("(TGA NOT 24BPP)", slLocate(0,0));
 		return; //File Typing Demands 24 bpp.
 	}
 	
 	//Descriptor Bytes are skipped.
 	
-	unsigned char imdat = id_field_size + 18;
+	unsigned char imdat = id_field_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readWord + imdat);
 	
@@ -149,12 +150,146 @@ void	set_tga_to_nbg0_palette(void * file_start)
 		
 		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
 		
-		cRAM_24bm[i] = (final_color);
+		cRAM_24bm[i+HUD_PALETTE_OFFSET] = (final_color);
 		
 	}
 	
 	return;
 }
+
+void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer)
+{
+	//These files are bigger than our image buffer space (64k vs 256 - 384k).
+	//So we need a more clever way to do this.
+	// Right now, this assumes the image width is 512, because that's what the hardware expects.
+	
+	GfsHn gfs_tga;
+	Sint32 sector_count;
+	Sint32 file_size;
+
+//Open GFS
+	gfs_tga = GFS_Open((Sint32)fid);
+//Get sectors
+	GFS_GetFileSize(gfs_tga, NULL, &sector_count, NULL);
+	GFS_GetFileInfo(gfs_tga, NULL, NULL, &file_size, NULL);
+	GFS_Close(gfs_tga);
+	////////////////////////////////////////////////////////
+	// We are going to load the file in 32 sector chunks (64k).
+	////////////////////////////////////////////////////////
+	int chunk_size_sectors = 16;
+	int chunk_size_bytes = 32768;
+	int chunk_pixels = chunk_size_bytes;
+	int read_sectors = 0;
+	////////////////////////////////////////////////////////
+	// Perform the initial chunk load
+	////////////////////////////////////////////////////////
+	GFS_Load(fid, 0, buffer, chunk_size_bytes);
+	read_sectors += chunk_size_sectors;
+
+	unsigned char * readByte = (unsigned char *)buffer;
+	
+	unsigned char id_field_size = readByte[0];
+	
+	unsigned char col_map_type = readByte[1]; 
+	
+	if(col_map_type != 1){
+		slPrint("(REJECTED RGB TGA)", slLocate(0,1));
+		return;
+	}
+
+	unsigned char data_type = readByte[2];
+	
+	if(data_type != 1) {
+		slPrint("(REJECTED RLE TGA)", slLocate(0,1));
+		return;
+	}
+	
+	unsigned char bpp = readByte[16];
+	
+	if(bpp != 8) {
+		slPrint("(REJECTED >8B TGA)", slLocate(0,1));
+		return;
+	}
+	
+	short Twidth = readByte[12] | readByte[13]<<8;
+	short Theight = readByte[14] | readByte[15]<<8;
+	
+	int col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	int col_map_ct = col_map_size / 3;
+	
+	int initial_chunk_pixels = chunk_size_bytes - id_field_size - col_map_size - TGA_HEADER_GAP;
+
+	//unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
+	
+	////////////////////////////////////////////////////////
+	//We shall load the 24-bit RGB palette straight from the TGA image.
+	//The palette is located after the header and id_field.
+	//The palette will be loaded to VDP2 CRAM
+	////////////////////////////////////////////////////////
+	unsigned char paldat = id_field_size + TGA_HEADER_GAP;
+	readByte = buffer + paldat;
+	
+	unsigned char component[XYZ] = {0, 0, 0}; //Actually "R, G, B"
+	unsigned int final_color = 0;
+
+	for(int i = 0; i < (col_map_ct); i++)
+	{
+
+		component[X] = readByte[(i*3)];
+		component[Y] = readByte[(i*3)+1];
+		component[Z] = readByte[(i*3)+2];
+		
+		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
+		
+		cRAM_24bm[i+BG_PALETTE_OFFSET+1] = (final_color);
+	}
+	
+	//The first color in a bank is transparent color.
+	//I can disable it, but for some reason I want to preserve it.
+	//In such case, the image will need to have a blank color added as zero, and all colors therefore offset by 1.
+	cRAM_24bm[BG_PALETTE_OFFSET] = 0;
+	////////////////////////////////////////////////////////
+	//Now we're going to load the image to VDP2 VRAM
+	//Offset the first chunk read by the TGA header and size of TGA palette
+	////////////////////////////////////////////////////////
+	readByte  += col_map_size;
+	
+	unsigned char * image_data = (unsigned char *)NBG0_BITMAP_ADDR;
+
+	int total_pixels = Twidth * Theight;
+	int wrote_pixels = 0;
+	////////////////////////////////////////////////////////
+	// Perform the initial chunk image offload
+	// Remember we must add 1 to the color index to make room for the transparent color index
+	////////////////////////////////////////////////////////
+	for(int i = 0; i < initial_chunk_pixels && wrote_pixels < total_pixels; i++)
+	{
+		*image_data = readByte[i]+1;
+		image_data++;
+		wrote_pixels++;
+	}
+	
+	////////////////////////////////////////////////////////
+	// Load new chunks, then process their pixels, until we have done all pixels.
+	////////////////////////////////////////////////////////
+	// readByte no longer needs the offset to skip the TGA header.
+	readByte = (unsigned char *)buffer;
+	do{
+		
+		GFS_Load(fid, read_sectors, buffer, chunk_size_bytes);
+		read_sectors += chunk_size_sectors;
+		
+		for(int i = 0; i < chunk_pixels && wrote_pixels < total_pixels; i++)
+		{
+			*image_data = readByte[i]+1;
+			image_data++;
+			wrote_pixels++;
+		}
+		
+	}while(wrote_pixels < total_pixels && read_sectors <= sector_count);
+
+}
+
 
 
 //Note: colorCode will be signed.
@@ -172,7 +307,7 @@ void	color_offset_vdp1_palette(int colorCode, int * run_only_once)
 	int used_color = colorCode * sign;
 	for(int i = 0; i < 256; i++)
 	{
-		mod_color = cRAM_24bm[i+256];
+		mod_color = cRAM_24bm[i+SPRITE_PALETTE_OFFSET];
 		
 		blue_channel = (mod_color>>16) & 255;
 		mod_channel = (used_color>>16) & 255;
@@ -190,7 +325,7 @@ void	color_offset_vdp1_palette(int colorCode, int * run_only_once)
 		red_channel = (red_channel < 0) ? 0 : (red_channel > 255) ? 255 : red_channel;
 		
 		mod_color = (blue_channel << 16) | (green_channel << 8) | red_channel;
-		cRAM_24bm[i+256] = mod_color;
+		cRAM_24bm[i+SPRITE_PALETTE_OFFSET] = mod_color;
 	}
 	
 	//Also change the back screen color by this setting
@@ -222,7 +357,7 @@ void	restore_vdp1_palette(void)
 {
 	for(int i = 0; i < 256; i++)
 	{
-		cRAM_24bm[i+256] = sprPaletteCopy[i];
+		cRAM_24bm[i+SPRITE_PALETTE_OFFSET] = sprPaletteCopy[i];
 	}
 	//Also restore back color
 	*back_scrn_colr_addr = back_color_setting;
@@ -1048,7 +1183,7 @@ Bool read_pco_in_memory(void * file_start)
 		return 0;
 	}
 	
-	unsigned char imdat = id_field_size + col_map_size + 18;
+	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	
@@ -1086,7 +1221,7 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 		return 0;
 	}
 	
-	unsigned char imdat = id_field_size + col_map_size + 18;
+	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	
@@ -1132,7 +1267,7 @@ void	ReplaceTextureTable(void * file_start, int tex_height, int first_replaced_t
 		slPrint("(REJECTED >8B TGA)", slLocate(0,0));
 		return;
 	}
-	unsigned char imdat = id_field_size + col_map_size + 18;
+	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	

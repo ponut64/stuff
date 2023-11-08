@@ -64,7 +64,7 @@ void	add_position_to_minimap(int xpos, int ypos, unsigned short color)
 	
 	int tgtPix = MMAP_CTR_PIX + xSclPos + (ySclPos * 51);
 	
-	draw_vdp2_pixel(MMAP_CNTR_X+xSclPos, MMAP_CNTR_Y+ySclPos, color);
+	draw_hud_pixel(MMAP_CNTR_X+xSclPos, MMAP_CNTR_Y+ySclPos, color);
 	minimap[tgtPix] = color;
 }
 
@@ -76,7 +76,7 @@ void	update_mmap_1pass(void)
 	for( ; oneLinePix < MMAP_WIDTH; oneLinePix++)
 	{
 		colorData = (main_map[exact_map_data]>>1)+127;
-		draw_vdp2_pixel(MMAP_BASE_X+xDrawPos, MMAP_BASE_Y+yDrawPos, colorData); //Draw to VDP2 NBG1, displaying as bitmap mode.
+		draw_hud_pixel(MMAP_BASE_X+xDrawPos, MMAP_BASE_Y+yDrawPos, colorData); //Draw to VDP2 NBG1, displaying as bitmap mode.
 		minimap[pixCt] = colorData;						//Statement stores current data into an an array in high memory at given index [array pos = bitmap pos]
 		raw_pix_data += MapPixWidth;									//Downsampling fixed-point math. Adds the approximate number of pixels to skip to scale PGM file to 51x51.
 		exact_map_data = raw_pix_data>>16;								//Back-sample to integers; finds the exact pixel we are going to sample.
@@ -101,17 +101,17 @@ void	draw_minimap(void)
 	//and just draw pixels across it.
 	if( JO_ABS(scaledPlrPos[0]+1) < 25 && JO_ABS(scaledPlrPos[1]+1) < 25)
 	{
-	draw_vdp2_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + (prevPlrPos[1] * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + ( (prevPlrPos[1]+1) * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + (prevPlrPos[1] * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + (prevPlrPos[1] * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + ( (prevPlrPos[1]-1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + (prevPlrPos[1] * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + ( (prevPlrPos[1]+1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + (prevPlrPos[1] * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + (prevPlrPos[1] * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( prevPlrPos[0] + ( (prevPlrPos[1]-1) * 51))]);
 	
-	draw_vdp2_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + ( (prevPlrPos[1]-1) * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + ( (prevPlrPos[1]+1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + ( (prevPlrPos[1]-1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + ( (prevPlrPos[1]+1) * 51))]);
 	
-	draw_vdp2_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + ( (prevPlrPos[1]+1) * 51))]);
-	draw_vdp2_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + ( (prevPlrPos[1]-1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X-1+prevPlrPos[0], MMAP_CNTR_Y+1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]-1) + ( (prevPlrPos[1]+1) * 51))]);
+	draw_hud_pixel(MMAP_CNTR_X+1+prevPlrPos[0], MMAP_CNTR_Y-1+prevPlrPos[1], minimap[MMAP_CTR_PIX+( (prevPlrPos[0]+1) + ( (prevPlrPos[1]-1) * 51))]);
 	}
 	//Determine's the maps scale relative to minimap size
 
@@ -131,26 +131,26 @@ void	draw_minimap(void)
 	//				Xmax, Ymin, Xmin, Ymin - TOP line
 	//				Xmin, Ymin, Xmin, Ymax - LEFT line
 	//				
-	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X, MMAP_BASE_Y+51, 3); //LEFT LINE
-	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+51, MMAP_BASE_X+51, MMAP_BASE_Y, 17); //RIGHT LINE
-	draw_vdp2_line(MMAP_BASE_X+51, MMAP_BASE_Y+50, MMAP_BASE_X, MMAP_BASE_Y+50, 49); //BTM LINE
-	draw_vdp2_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X+51, MMAP_BASE_Y, 32); //TOP LINE
+	draw_hud_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X, MMAP_BASE_Y+51, 3); //LEFT LINE
+	draw_hud_line(MMAP_BASE_X+51, MMAP_BASE_Y+51, MMAP_BASE_X+51, MMAP_BASE_Y, 17); //RIGHT LINE
+	draw_hud_line(MMAP_BASE_X+51, MMAP_BASE_Y+50, MMAP_BASE_X, MMAP_BASE_Y+50, 49); //BTM LINE
+	draw_hud_line(MMAP_BASE_X, MMAP_BASE_Y, MMAP_BASE_X+51, MMAP_BASE_Y, 32); //TOP LINE
 
 
 	
 	//Draws player position pip
 	if( JO_ABS(scaledPlrPos[0]+1) < 25 && JO_ABS(scaledPlrPos[1]+1) < 25)
 	{
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+1+scaledPlrPos[1], 19);
-	draw_vdp2_pixel(MMAP_CNTR_X+1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
-	draw_vdp2_pixel(MMAP_CNTR_X-1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y-1+scaledPlrPos[1], 19);
+	draw_hud_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_hud_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y+1+scaledPlrPos[1], 19);
+	draw_hud_pixel(MMAP_CNTR_X+1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_hud_pixel(MMAP_CNTR_X-1+scaledPlrPos[0], MMAP_CNTR_Y+scaledPlrPos[1], 19);
+	draw_hud_pixel(MMAP_CNTR_X+scaledPlrPos[0], MMAP_CNTR_Y-1+scaledPlrPos[1], 19);
 	}
 	//Draws view direction pip
 	if(JO_ABS(scaledPlrPos[0]+dirPixPos1[0]+1) < 25 && JO_ABS(scaledPlrPos[1]+dirPixPos1[1]+1) < 25)
 	{
-	draw_vdp2_pixel(MMAP_CNTR_X+scaledPlrPos[0]+dirPixPos1[0], MMAP_CNTR_Y+scaledPlrPos[1]+dirPixPos1[1], 4);
+	draw_hud_pixel(MMAP_CNTR_X+scaledPlrPos[0]+dirPixPos1[0], MMAP_CNTR_Y+scaledPlrPos[1]+dirPixPos1[1], 4);
 	}
 	
 	prevPlrPos[0] = scaledPlrPos[0];

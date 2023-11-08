@@ -1,7 +1,11 @@
 ///tga.h
 
-#ifndef __TGA_H__
-# define __TGA_H__
+#pragma once
+
+#define TGA_HEADER_GAP	(18)
+#define SPRITE_PALETTE_OFFSET	(256)
+#define BG_PALETTE_OFFSET		(512)
+#define HUD_PALETTE_OFFSET		(0)
 
 extern unsigned char * sprPalette;
 extern unsigned int sprPaletteCopy[256];
@@ -13,7 +17,8 @@ extern int numTex;
 
 void	get_file_in_memory(Sint8 * filename, void * destination);
 void	set_tga_to_sprite_palette(void * file_start);
-void	set_tga_to_nbg0_palette(void * file_start);
+void	set_tga_to_nbg1_palette(void * file_start);
+void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer);
 
 void	uv_cut(void * file_start);
 void	uv_tile(void * source_texture_data, int base_x, int base_y);
@@ -35,6 +40,4 @@ void	WRAP_NewPalette(Sint8 * filename, void * file_start);
 Bool	WRAP_NewTexture(Sint8 * filename, void * file_start);
 int		WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height);
 void	WRAP_ReplaceTable(Sint8 * filename, void * file_start, int tex_height, int first_replaced_texno);
-
-#endif
 

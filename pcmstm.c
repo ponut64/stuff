@@ -58,6 +58,19 @@ void	new_file_request(Sint8 * filename, void * destination, void (*handler_funct
 	number_of_requests++;
 }
 
+void	new_special_request(Sint8 * filename, void * destination, void (*handler_function)(Sint32, void *))
+{
+	if(number_of_requests >= MAX_FILE_REQUESTS) return;
+	file_request_list[number_of_requests].id = GFS_NameToId(filename);
+	file_request_list[number_of_requests].destination = destination;
+	file_request_list[number_of_requests].special_handler_function = handler_function;
+	file_request_list[number_of_requests].active = 1;
+	file_request_list[number_of_requests].done = 0;
+	file_request_list[number_of_requests].immediate_or_async = HANDLE_SPECIAL;
+	number_of_requests++;
+}
+
+
 void	load_file_list_immediate(void)
 {
 	
@@ -69,21 +82,34 @@ void	load_file_list_immediate(void)
 	{
 		if(file_request_list[i].active && !file_request_list[i].done)
 		{
-			
-		//Open GFS
+			if(file_request_list[i].immediate_or_async != HANDLE_SPECIAL)
+			{
+			//Open GFS
 			gfs_ea = GFS_Open(file_request_list[i].id);
-		//Get size
+			//Get size
 			GFS_GetFileInfo(gfs_ea, NULL, NULL, &file_size, NULL);
-		//Close it again
+			//Close it again
 			GFS_Close(gfs_ea);
 			
 			GFS_Load(file_request_list[i].id, 0, (Uint32 *)file_request_list[i].destination, file_size);
 			
 			file_request_list[i].handler_function(file_request_list[i].destination);
+			} else {
+			//Special type handling	
+			file_request_list[i].special_handler_function(file_request_list[i].id, file_request_list[i].destination);
+			}
+			
+			// if(file_request_list[i].immediate_or_async == HANDLE_SPECIAL)
+			// {
+				
+				// file_request_list[i].special_handler_function(file_request_list[i].id, file_request_list[i].destination);
+
+			// }
 			
 			file_request_list[i].active = 0;
 			file_request_list[i].done = 1;
 			number_of_requests--;
+			
 		}
 	}
 }
@@ -611,7 +637,7 @@ void		pcm_stream_host(void(*game_code)(void))
 			//The parameters are set and other important parameters are re-set here, too.
 				
 			//////////////////
-				if(active_request->immediate_or_async == 1)
+				if(active_request->immediate_or_async != 0)
 				{
 					//Very tough thing.
 					stm.stopping = true;

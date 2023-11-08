@@ -7,6 +7,7 @@
 #include "mymath.h"
 #include "input.h"
 #include "control.h"
+#include "vdp2.h"
 #include "render.h"
 #include "tga.h"
 #include "physobjet.h"
@@ -455,6 +456,63 @@ void	map_draw(void)
 
 }
 
+void	background_draw(void)
+{
+	
+	//
+	// What do I want to do now with the background layer?
+	// It is 512x512. I want the screen to move to appear as if it is matching rotation on the Y axis.
+	// I also want Y-0 rotation to display the center of the background image.
+	// First: How much can the screen span in the X axis for this to be possible?
+	// So with 512 pixels as the width, one degree is 1.4222 pixels. We could abstract that so 128 units is 1 pixel.
+	// (128 being 1 pixel is achieved by 65536 (360 degrees) / 512 pixels)
+	
+	// The X rotation - Y screen axis is completely different however.
+	// The Y axis of the image will NOT rollover. It would rollover in space, but we aren't in space.
+	// It also is not a spherical projection or even a logical projection; I can't invert the image when it rolls over.
+	// There are ways to manipulate the image data itself such that rollovers are masked, but I will instead limit the rotation.
+	// The view rotation here will be limited to +/- 90 degrees.
+	// 16384 is the integer value of 90 degrees, but we allow a range of +/- 90, so our total degree range is 32768.
+	// That means the unit value of 1 pixel is (32768 units / 512 pixels) = 64 units per pixel
+	// But we end up using 85 units per pixel. For... reasons, I guess. It's what worked. No clear idea why.
+	int vrx = you.viewRot[X];
+	
+	int screen_y_to_x = 192 - ((you.viewRot[Y] / 128));
+	int screen_x_to_y = 192 - ((vrx / 85));
+	// Screen Rollover Control
+	// When the Y rotation has caused the screen to rollover (e.g. 192 + y_to_x > 512), the image is offset.
+	// So we need to get a position that corresponds to a position under 512.
+	if(JO_ABS(screen_y_to_x) > 512)
+	{
+		screen_y_to_x = screen_y_to_x % 512;
+	}
+
+	slScrPosNbg0(screen_y_to_x<<16, screen_x_to_y<<16);
+	
+	//Trying to draw something to represent the sanics
+	//Micro-project. Trying to heal brain.
+	//nbg_sprintf(1,20, "         ");
+	//nbg_sprintf(1,20, "%i", you.sanics);
+	int x0l = 8;
+	int yax = 160;
+	int x1l = 64;
+	for(int i = 0; i < 8; i++)
+	{
+		draw_hud_line(x0l, yax+i, x1l, yax+i, 7); //Black/Gray
+	}
+	//Scale sanics to 0-56
+	int sscl = fxdiv(you.sanics, 15<<16);
+	if(sscl >= 1<<16) sscl = 1<<16;
+	if(sscl < 0) sscl = 0;
+	x1l = fxm(sscl, 56<<16)>>16;
+	if(x1l < 0) x1l = 0;
+	x1l += 8;
+	for(int i = 0; i < 8; i++)
+	{
+		draw_hud_line(x0l, yax+i, x1l, yax+i, 6); //Blue
+	}
+}
+
 void	master_draw(void)
 {
 	static int time_at_start;
@@ -475,6 +533,8 @@ void	master_draw(void)
 
 	interim_time = get_time_in_frame();
 	
+	background_draw();
+	
 	player_animation();
 	player_draw();
 	shadow_draw();
@@ -490,7 +550,7 @@ void	master_draw(void)
 	//
 	operate_particles();
 	hud_menu();
-	slSlaveFunc(sort_master_polys, 0);
+
 	//
 	
 		//No Touch Order -- Affects animations/mechanics
@@ -506,7 +566,7 @@ void	master_draw(void)
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);
 	time_of_object_management = get_time_in_frame() - interim_time;
-	
+	slSlaveFunc(sort_master_polys, 0);
 		//
 	} else if(you.inMenu)
 	{
@@ -515,6 +575,10 @@ void	master_draw(void)
 		slSlaveFunc(sort_master_polys, 0);
 		//
 	}
+	
+	//Oh, right, this...
+	//I was intending on integrating some sort of process-based loop on these.
+	//Oh well...
 	clean_sprite_animations();
 	start_texture_animation(&check, &entities[18]);
 	start_texture_animation(&qmark, &entities[36]);

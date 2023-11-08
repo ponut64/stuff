@@ -1,6 +1,4 @@
-
-#ifndef __MENU_H__
-# define __MENU_H__
+#pragma once
 
 #define HUD_LAYER_START		(0)
 #define HUD_LAYER_DEBUG		(1)
@@ -34,21 +32,25 @@
 #define TRACK_DISCOVERED_EVENT	(9)
 #define GATE_PASSED_EVENT		(10)
 #define TRACK_FAILED_EVENT		(11)
-#define TRACK_WIN_EVENT			(12)
+#define TRACK_GOLD_EVENT		(12)
+#define TRACK_PAR_EVENT			(13)
+#define TRACK_SLOW_EVENT		(14)
 
-#define FLAG_TAKEN_EVENT		(13)
-#define FLAG_CAPTURED_EVENT		(14)
-#define FLAG_RETURNED_EVENT		(15)
-#define FLAG_OPEN_EVENT			(16)
+#define FLAG_TAKEN_EVENT		(15)
+#define FLAG_SLOW_EVENT			(16)
+#define FLAG_PAR_EVENT			(17)
+#define FLAG_GOLD_EVENT			(18)
+#define FLAG_RETURNED_EVENT		(19)
+#define FLAG_OPEN_EVENT			(20)
 
-#define SIGN_0					(17)
-#define	SIGN_1					(18)
-#define	SIGN_2					(19)
-#define	SIGN_3					(20)
-#define	SIGN_4					(21)
-#define	SIGN_5					(22)
-#define	SIGN_6					(23)
-#define SIGN_7					(24)
+#define SIGN_0					(21)
+#define	SIGN_1					(22)
+#define	SIGN_2					(23)
+#define	SIGN_3					(24)
+#define	SIGN_4					(25)
+#define	SIGN_5					(26)
+#define	SIGN_6					(27)
+#define SIGN_7					(28)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?
@@ -85,6 +87,4 @@ void	init_hud_events(void);
 void	start_hud_event(short eventNum);
 void	hud_menu(void);
 
-
-#endif
 

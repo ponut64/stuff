@@ -211,14 +211,6 @@ g. timed lap 2 with rings - not done, maybe not needed
 a. (optional) mode for CTF wherein it is time + speed; time spent under a minimum speed is the fail condition
 
 Immediate next steps:
-1. Coats of paint 
-	Background layer. scrolling/panning background image. Clouds, mountains, whatever.
-	Change framegraph to speedgraph when not in debug mode
-f. VDP2?
-	It is time to spice up the levels more.
-	So I could add first a scrolling/parallax background layer. Somehow.
-	I think parallax is a bit too much to ask. I just want it to rotate with the camera, and pivot in/out when look up/down.
-	A flat background layer would also be appreciated. But I have to find a way to properly blend it; not easy.
 a.	Restrictions on portal usage
 	There is some issue with large portals.
 	It doesn't make a great deal of sense that there would be, considering the calculations are done in screenspace.
@@ -227,20 +219,30 @@ b.	Non-heightmap mode
 	In this case, the Master SH2 needs more work to do.
 	So it should draw something.
 c.	Ski / Bounce
-		So the game's changed a lot with the auto-hop button.
-		It mostly does well, but I feel that your friction (or ability to instantly stop) is a little too strong.
-		What I want is such that at high speeds, and oblique angles of impact, you will skip or otherwise slide; lose grip.
-		Objectively, I could tweak the speed added and the friction to achieve that.
-		Or I could program in the oblique angle bounce. Hm.
-		I also need to adjust the camera such that glide/hop will not tilt the camera down so much.
+	4. Sound effects should be added for "Slow" and "Par".
+		Unique graphics for the end should be made for "Slow", "Par", and "Gold"
+	5. Play-testing
+		I need to establish the par times for each of the 8 available courses.
+		I also still want to add an "Extreme Ski" map.
+	6. Still need that tutorial.
 c. Tutorial
-		Again, I assume that the way the game works is simpler than it is.
-		Going fast is a combination of three buttons used at specific times. This is not normal to video games.
-		So I really need to spell it out.
-		You can press L to slide. You can still direct yourself while sliding. Directing yourself down a slope is good.
-		Stuff like that. 
-		But what I also need to spend a lot of time telling the player is how the jump button works.
-		You are pushed off of the surface angle, like a perfect bounce.
+		Need to work on a guided tutorial.
+		One of the things I believe a guided tutorial needs is multi-staged text pages.
+		One idea is like PC games did at this time, which was to have text scroll across a window area.
+		For that, I could make the text as a drawn sprite with a scrolling address, or draw it as text between two other sprites.
+		The best method will be drawing it as text and scrolling the text on VDP1.
+		So I need to pursue that.
+		But do I really have that much to say? Do I need to have that much to say?
+		I know people. They'll grump it. Always.
+		Because most people do not give a shit about your work. They want to consume it and move on.
+		A tutorial will not fix the game. But I need to at least try and show them how it is played.
+		I also need an image to overlay on the screen that displays the controls.
+		...It also might be a good idea to let people rebind the controls.
+g. Gold Times
+	0: T < 7, F < 5
+	1
+	2
+	3: T < 29, F < 10
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
@@ -690,7 +692,7 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 				}
 				
 				dWorldObjects[trackedLDATA].more_data &= TRACK_NO_GUIDE;
-				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER)<<4;
+				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER);
 				
 				//pcm_play(snd_button, PCM_PROTECTED, 5);
 				start_hud_event(GATE_PASSED_EVENT);
@@ -1087,8 +1089,8 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 				short object_track = (someRINGdata->type.ext_dat & 0xF00)>>8; //Get object track to see if it matches the level data track
 					if(ldata_track == object_track)
 					{
-						int gNum = someRINGdata->type.ext_dat & GATE_LINK_NUMBER;
-						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
+						int gNum = (someRINGdata->type.ext_dat & GATE_LINK_NUMBER)>>4;
+						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>4;
 						// Track Discovery Checking
 						if(!(someLDATA->type.ext_dat & TRACK_DISCOVERED))
 						{
@@ -1106,13 +1108,13 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 						{
 							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
-						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
+						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum) == gGuide)
 						{
 							add_to_sprite_list(someRINGdata->pos, someRINGdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 						}
 
 						someLDATA->more_data &= TRACK_NO_CHECK;
-						someLDATA->more_data |= (someRINGdata->type.ext_dat & GATE_LINK_NUMBER);
+						someLDATA->more_data |= (someRINGdata->type.ext_dat & GATE_LINK_NUMBER)>>4;
 					}
 			someRINGdata = step_linked_object_list(someRINGdata);
 			}
@@ -1130,9 +1132,9 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 				somePOSTdata->type.ext_dat &= GATE_UNCHECKED;
 					if(ldata_track == object_track)
 					{
-						int gNum = somePOSTdata->type.ext_dat & GATE_LINK_NUMBER;
-						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
-						int lastCheck = someLDATA->more_data & TRACK_LAST_CHECKED;
+						int gNum = (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER)>>4;
+						int gGuide = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>4;
+						int lastCheck = (someLDATA->more_data & TRACK_LAST_CHECKED);
 						// Track Discovery Checking
 						if(!(someLDATA->type.ext_dat & TRACK_DISCOVERED))
 						{
@@ -1155,18 +1157,18 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 						{
 							someLDATA->type.ext_dat |= TRACK_ACTIVE; 
 							someLDATA->pix[X]++;
-							if(gGuide == (gNum>>4))
+							if(gGuide == (gNum))
 							{
 								someLDATA->more_data &= TRACK_NO_GUIDE;
 								gGuide = (gGuide >= 15) ? 0 : gGuide+1;
-								someLDATA->more_data |= (gGuide)<<8;
+								someLDATA->more_data |= (gGuide)<<4;
 							}
-						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum>>4) == gGuide)
+						} else if(someLDATA->type.ext_dat & TRACK_ACTIVE && (gNum) == gGuide)
 						{
 							add_to_sprite_list(somePOSTdata->pos, somePOSTdata->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
 						}
 						someLDATA->more_data &= TRACK_NO_CHECK;
-						someLDATA->more_data |= (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER);
+						someLDATA->more_data |= (somePOSTdata->type.ext_dat & GATE_LINK_NUMBER)>>4;
 					}
 			somePOSTdata = step_linked_object_list(somePOSTdata);
 			}
@@ -1210,7 +1212,12 @@ void	manage_track_data(_declaredObject * someLDATA)
 			//
 			//someLDATA->dist -= delta_time;
 			someLDATA->dist += delta_time;
-			slPrintFX(someLDATA->dist, slLocate(0, 7));
+			
+			you.parTime = someLDATA->more_data>>8;
+			spr_sprintf(10, 24, "Time:");
+			spr_sprintf_decimal(10, 36, someLDATA->dist);
+			spr_sprintf(10, 48, "Par:%i", you.parTime);
+			
 			set_music_track = 1;
 			stm.times_to_loop = 1;
 				if(someLDATA->dist < 0 || you.cancelTimers) //If timer expired, or request cancel on timers...
@@ -1222,12 +1229,10 @@ void	manage_track_data(_declaredObject * someLDATA)
 					//Sound stuff
 					//pcm_play(snd_alarm, PCM_PROTECTED, 5);
 					//Clear screen in this zone
-			slPrint("                           ", slLocate(0, 6));
-			slPrint("                           ", slLocate(0, 7));
 				}
 				
 			//Drawing Gate Guide
-			int gateToGuideTo = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>8;
+			int gateToGuideTo = (someLDATA->more_data & TRACK_GUIDE_NUMBER)>>4;
 			if(gateToGuideTo >= someLDATA->pix[Y])
 			{
 				//In case the gate-guide number is higher than the number of gates in the track ...
@@ -1245,11 +1250,18 @@ void	manage_track_data(_declaredObject * someLDATA)
 			you.points += 10 * someLDATA->pix[X];
 			//pcm_play(snd_win, PCM_PROTECTED, 5);
 			//start_adx_stream(stmsnd[stm_win], 5);
-			start_hud_event(TRACK_WIN_EVENT);
+			if((someLDATA->dist>>16) <= (you.parTime>>1))
+			{
+				start_hud_event(TRACK_GOLD_EVENT);
+			} else if((someLDATA->dist>>16) <= you.parTime)
+			{
+				start_hud_event(TRACK_PAR_EVENT);
+			} else if((someLDATA->dist>>16) > you.parTime)
+			{
+				start_hud_event(TRACK_SLOW_EVENT);
+			}
 			//For displaying average speed on track
 			you.end_average = you.avg_sanics;
-			slPrint("                           ", slLocate(0, 6));
-			slPrint("                           ", slLocate(0, 7));
 		}
 
 		//Discovery count-down & track discovery
@@ -1321,7 +1333,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 				someLDATA->rot[Y]++;
 				if(manager_type == MANAGER_7RINGS)
 				{
-					someLDATA->more_data |= (1<<((item_type>>4)-1));
+					someLDATA->dist |= (1<<((item_type>>4)-1));
 				}
 			}
 			if(manager_type == MANAGER_7RINGS && !(*edata & ITEM_COLLECTED) && *edata & OBJPOP)
@@ -1358,6 +1370,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someLDATA->type.ext_dat |= CTF_FLAG_TAKEN;
 					//pcm_play(snd_ftake, PCM_PROTECTED, 5);
 					start_hud_event(FLAG_TAKEN_EVENT);
+					you.parTime = someLDATA->more_data;
 					//For getting average speed
 					you.sanic_samples = 0;
 				}
@@ -1422,7 +1435,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 	} else if(manager_type == MANAGER_7RINGS)
 	{
-		if((someLDATA->more_data & 0x7F) == 0x7F)
+		if((someLDATA->dist & 0x7F) == 0x7F)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
 			someLDATA->type.ext_dat |= COLLECT_ALL_COMPLETE;
@@ -1435,9 +1448,10 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		{
 			//Not a great solution since it can't abstract to a different target.
 			//But right now that doesn't matter.
-			someLDATA->more_data = approximate_distance(someLDATA->pos, you.wpos)>>16;
-			if(someLDATA->more_data < someLDATA->type.radius[X])
+			someLDATA->dist = approximate_distance(someLDATA->pos, you.wpos)>>16;
+			if(someLDATA->dist < someLDATA->type.radius[X])
 			{
+			someLDATA->dist = 0;
 			someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
 			//pcm_play(snd_ffield1, PCM_PROTECTED, 6);
 			start_hud_event(FLAG_OPEN_EVENT);
@@ -1446,11 +1460,13 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 		{
 			add_to_sprite_list(someLDATA->pos, someLDATA->pix, flagIconTexno /*texno*/, 2<<6 /*colorbank*/, 0 /*mesh Bool*/, SPRITE_TYPE_UNSCALED_BILLBOARD, 0 /*no clip*/, 3000);
-			slPrintFX(someLDATA->dist, slLocate(0, 7));
-			//nbg_sprintf(0, 7, "                           ");
+
+			spr_sprintf(10, 24, "Time:");
+			spr_sprintf_decimal(10, 36, someLDATA->dist);
+			spr_sprintf(10, 48, "Par:%i", you.parTime);
+			
 			if(someLDATA->dist < 0 || you.cancelTimers)
 			{
-				nbg_sprintf(0, 7, "                           ");
 				someLDATA->type.ext_dat &= ITEM_MANAGER_ACTIVE;
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
 				someLDATA->type.ext_dat |= CTF_FLAG_OPEN;
@@ -1467,10 +1483,19 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		}
 		if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 		{
-			nbg_sprintf(0, 7, "                           ");
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
 			//start_adx_stream(stmsnd[stm_win], 5);
-			start_hud_event(FLAG_CAPTURED_EVENT);
+			if((someLDATA->dist>>16) <= (you.parTime>>1))
+			{
+				start_hud_event(FLAG_GOLD_EVENT);
+			} else if((someLDATA->dist>>16) <= you.parTime)
+			{
+				start_hud_event(FLAG_PAR_EVENT);
+			} else if((someLDATA->dist>>16) > you.parTime)
+			{
+				start_hud_event(FLAG_SLOW_EVENT);
+			}
+			
 			//For displaying average speed
 			you.end_average = you.avg_sanics;
 		}

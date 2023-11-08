@@ -5,6 +5,8 @@ This file is compiled separately.
 #include <sl_def.h>
 
 #include "def.h"
+#include "pcmsys.h"
+#include "sound.h"
 #include "mymath.h"
 #include "input.h"
 #include "bounder.h"
@@ -161,7 +163,10 @@ void controls(void)
 		you.IPaccel += spdfactr;
 	}
 		
-	if(is_key_down(DIGI_L) ){
+		
+	if(is_key_struck(DIGI_L)) pcm_play(snd_slideon, PCM_SEMI, 6);
+	if(is_key_down(DIGI_L) )
+	{
 		you.setSlide = true;
 		//you.rot[Y] = -you.viewRot[Y];
 	} else {
@@ -170,7 +175,9 @@ void controls(void)
 	static FIXED rKeyTimer = 0;
 
 	if(is_key_down(DIGI_A) ){
-		if(rKeyTimer <= (66 / framerate)){ 
+		you.setSlide = true;
+		if(rKeyTimer <= (66 / framerate))
+		{ 
 			if(you.jumpAllowed == true)
 			{
 				you.setJump = true;

@@ -19,6 +19,8 @@
 //////////////////////////////////////////////////////////////////////////////
  int snd_dash;
  int snd_lstep;
+ int snd_mstep;
+ int snd_slideon;
  int snd_wind;
  int snd_bstep;
  int snd_click;

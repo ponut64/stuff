@@ -68,9 +68,9 @@ void reset_player(void)
 	you.dV[X]=0;
 	you.dV[Y]=0;
 	you.dV[Z]=0;
-    you.Force[X]=0;
-    you.Force[Y]=0;
-    you.Force[Z]=0;
+    you.slip[X]=0;
+    you.slip[Y]=0;
+    you.slip[Z]=0;
 	you.IPaccel=0;
 	you.id = 0;
 	you.power = 0;
@@ -449,6 +449,13 @@ void	player_phys_affect(void)
 	you.viewRot[X] += you.rotState[Y] * framerate;
 	you.viewRot[Y] -= you.rotState[X] * framerate;
 	///////////////////////////////////////////////
+	// Lock-in to +- 360 degrees
+	you.viewRot[Y] = (you.viewRot[Y] < (-65536)) ? 0 : (you.viewRot[Y] > 65536) ? 0 : you.viewRot[Y];
+	you.viewRot[X] = (you.viewRot[X] < (-65536)) ? 0 : (you.viewRot[X] > 65536) ? 0 : you.viewRot[X];
+	///////////////////////////////////////////////
+	// Optional X-rotation lock to +/- 90
+	you.viewRot[X] = (you.viewRot[X] < (-16384)) ? -16384 : (you.viewRot[X] > 16384) ? 16384 : you.viewRot[X];
+	///////////////////////////////////////////////
 	// Control axis matrix
 	///////////////////////////////////////////////
 	static int slide_control_matrix[9];
@@ -488,7 +495,7 @@ void	player_phys_affect(void)
 	///////////////////////////////////////////////
 	// Jump & Jet Decisions
 	///////////////////////////////////////////////
-		if(you.setJump == true && you.jumpAllowed)
+		if(you.setJump && you.jumpAllowed)
 		{
 			pl_jump();
 			you.setJump = false;
@@ -512,19 +519,30 @@ void	player_phys_affect(void)
 		
 	////////////////////////////////////////////////////
 	//Input-speed response
+	// Need a graceful way to handle slip
 	////////////////////////////////////////////////////
 	if(you.setSlide != true && you.hitSurface == true)
 	{
+		
 		you.dV[X] += fxm(you.IPaccel, you.ControlUV[X]);
 		you.dV[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
 		you.dV[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
+		
+		you.accel[X] = you.dV[X];
+		you.accel[Y] = you.dV[Y];
+		you.accel[Z] = you.dV[Z];
 	} else { 
 	//If sliding or in the air
 	//I don't want this to enable going faster, but I do want it to help you turn?
 	//I also want to increase turning authority at higher speeds?
+	
 		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
 		you.dV[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
 		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
+
+		you.accel[X] = you.dV[X];
+		you.accel[Y] = you.dV[Y];
+		you.accel[Z] = you.dV[Z];
 	}
 
 	////////////////////////////////////////////////////
@@ -533,6 +551,7 @@ void	player_phys_affect(void)
 	static int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
+		//These conditions force ground contact to occur when jumping repeatedly
 		you.airTime = 0;
 		you.allowJumpTimer = 0;
 		you.jumpAllowed = true;
@@ -569,8 +588,16 @@ void	player_phys_affect(void)
 		
 		//Note the order of operations. This is placed after gravity is surface-deflected.
 		///It is placed here for bounce control.
-		if(you.firstSurfHit == false)
+		if(!you.firstSurfHit)
 		{
+			
+			if(you.sanics >= 3<<16)
+			{
+			pcm_play(snd_mstep, PCM_SEMI, 6);
+			int nFloorPos[3] = {-you.floorPos[X], -you.floorPos[Y], -you.floorPos[Z]};
+			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, nFloorPos, you.floorNorm, 8<<16, 8192, 4);
+			}
+			
 			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.
 			//At first, I tried deflection formulas. Or just scaling the normal into the velocity.
 			//Or scaling the velocity by some half and not-half of the normal.
@@ -587,10 +614,33 @@ void	player_phys_affect(void)
 			you.velocity[Z] -= fxm(you.floorNorm[Z], deflectionFactor + (REBOUND_ELASTICITY)); 
 			//you.dV[Y] += fxm(REBOUND_ELASTICITY, you.floorNorm[Y]);
 			you.firstSurfHit = true;
+			
+		}
+		
+		///Take note that friction is done last in order to not corrupt the basis vector of floor bounce.
+		///Also note this is a really big part of how you stick to the floor.
+		//If normally on surface without modifier, high friction
+		you.surfFriction = (19660); //33%, high friction				
+		//Skiing Decisions
+		if(you.setSlide == true)
+		{
+			you.surfFriction = 155; //very very low friction
+		}		
+		
+		//Special Condition - no friction on surface contact + jump
+		if(!you.setJump)
+		{
+			you.accel[X] -= fxm(you.velocity[X], (you.surfFriction));
+			you.accel[Y] -= fxm(you.velocity[Y], (you.surfFriction));
+			you.accel[Z] -= fxm(you.velocity[Z], (you.surfFriction));
+			//Friction decisions
+			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
+			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
+			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 		}
 		
 		//Stiction; low velocities will trap at zero on surface.
-		if(!you.dirInp && !you.setSlide)
+		if(!you.dirInp && !you.setSlide && !you.setJump)
 		{
 			you.velocity[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.velocity[X] : 0;
 			you.velocity[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.velocity[Y] : 0;
@@ -599,18 +649,6 @@ void	player_phys_affect(void)
 			you.dV[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.dV[Y] : 0;
 			you.dV[Z] = (JO_ABS(you.velocity[Z]) > 6553) ? you.dV[Z] : 0;
 		}
-		
-		///Take note that friction is done last in order to not corrupt the basis vector of floor bounce.
-		//If normally on surface without modifier, high friction
-		you.surfFriction = (19660); //33%, high friction				
-		//Skiing Decisions
-		if(you.setSlide == true){
-			you.surfFriction = 155; //very very low friction
-		}		
-		//Friction decisions
-			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
-			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
-			you.dV[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 		
 		you.pos[X] = (you.floorPos[X]);
 		you.pos[Y] = (you.floorPos[Y]);
@@ -654,6 +692,12 @@ void	player_phys_affect(void)
 			you.hitWall = false;
 			
 			if(you.sanics >= 7<<16 && !you.setJet && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
+			
+			if(you.sanics >= 3<<16)
+			{
+			pcm_play(snd_mstep, PCM_SEMI, 6);
+			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, you.wallPos, you.wallNorm, 8<<16, 8192, 4);
+			}
 	} 
 
 	//Ladder/Climb Escape Sequence
@@ -793,7 +837,8 @@ void	player_phys_affect(void)
 				you.hitSurface = false;
 				you.hitWall = false;
 				you.aboveObject = false;
-		if(pl_RBB.status[0] == 'A'){
+		if(pl_RBB.status[0] == 'A')
+		{
 		finalize_alignment(bound_box_starter.modified_box);
 		}
 		//The player's velocity is calculated independent of an actual value, so use it here instead.
@@ -853,7 +898,6 @@ int len_A;
 int len_B;
 
 static _pquad nySmp;
-static int grip_loss;
 
 static POINT nyNearTriCF1 = {0, 0, 0};
 static VECTOR nyTriNorm1 = {0, 0, 0};

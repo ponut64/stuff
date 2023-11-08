@@ -1,5 +1,4 @@
-#ifndef __BOUNDER_H__
-#define __BOUNDER_H__
+#pragma once
 
 
 #define MAX_PHYS_PROXY (32)
@@ -98,5 +97,4 @@ void	apply_box_scale(_boundBox * box);
 void	initPhys(void);
 void	flush_boxes(int start);
 
-#endif
 

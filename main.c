@@ -81,8 +81,8 @@ void	load_test(void)
 {
 
 	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	set_tga_to_nbg0_palette((void*)dirty_buf);
-
+	set_tga_to_nbg1_palette((void*)dirty_buf);
+	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
@@ -105,6 +105,8 @@ void	load_test(void)
 	snd_ftake = load_adx((Sint8*)"FLAG.ADX");
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
+	snd_mstep = load_8bit_pcm((Sint8*)"MSTEP.PCM", 15360);
+	snd_slideon = load_8bit_pcm((Sint8*)"SLIDEON.PCM", 15360);
 	snd_wind = load_8bit_pcm((Sint8*)"WND.PCM", 15360);
 	snd_bstep = load_8bit_pcm((Sint8*)"STEP.PCM", 15360);
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);

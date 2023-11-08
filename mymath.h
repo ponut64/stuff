@@ -1,5 +1,4 @@
-#ifndef __MYMATH_H__
-# define __MYMATH_H__
+#pragma once
 
 //I'm not renaming these because Jo Engine *is* where I got them. ... but its pretty basic stuff.
 
@@ -58,6 +57,4 @@ Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED *
 void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY);
 
 void *	align_4(void * ptr);
-
-#endif
 

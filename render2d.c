@@ -511,6 +511,39 @@ do {
 va_end(vmlist);
 }
 
+void	nbg_sprintf_decimal(int x, int y,  int print_data)
+{
+	static unsigned int decimal = 0;
+	static int whole_number = 0;
+	decimal = print_data & 0xFFFF;
+	whole_number = print_data >> 16;
+	//Trying to convert to decimals
+	// 42949 = (65536) * (65536 / 100,000)
+	// magic number: 42949
+	// process: (number << 16)
+	//			number / (int)(42949).
+	decimal<<=16;
+	decimal = decimal / 42949;
+	nbg_sprintf(x, y, "(%i.%i)", whole_number, decimal);
+}
+
+void	spr_sprintf_decimal(int x, int y,  int print_data)
+{
+	static unsigned int decimal = 0;
+	static int whole_number = 0;
+	decimal = print_data & 0xFFFF;
+	whole_number = print_data >> 16;
+	//Trying to convert to decimals
+	// 42949 = (65536) * (65536 / 100,000)
+	// magic number: 42949
+	// process: (number << 16)
+	//			number / (int)(42949).
+	decimal<<=16;
+	decimal = decimal / 42949;
+	spr_sprintf(x, y, "(%i.%i)", whole_number, decimal);
+}
+
+
 void	nbg_clear_text(void)
 {
 	for(int y = 0; y < 30; y++)

@@ -1,5 +1,4 @@
-#ifndef __MLOADER_H__
-# define __MLOADER_H__
+#pragma once
 
 #define MAX_MODELS (64)
 #define MODEL_TYPE_NORMAL ('N')
@@ -114,7 +113,5 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 
 
 void	init_entity_list(void);
-
-#endif 
 
 

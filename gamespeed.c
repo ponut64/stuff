@@ -107,6 +107,7 @@ void	update_gamespeed(void)
 	
 	lastTimes[time_selector] = frmrt;
 	
+	//Clean the times so they fit within the graph
 	for(int i = 0; i < 66; i++)
 	{
 	lastTimes[i] = (lastTimes[i] < 0) ? 0 : (lastTimes[i] > 70) ? 70 : lastTimes[i];
@@ -125,16 +126,15 @@ void	update_gamespeed(void)
 	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
 	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
 	
-	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 5, 7); //(last argument is color)
-	draw_vdp2_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 53);
+	draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 5, 7); //(last argument is color)
+	draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 53);
 		if(time_selector > 1)
 		{
-	draw_vdp2_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 41);
-	//draw_vdp2_line(20, 20, 40, 40, 0x800C);
+	draw_hud_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 41);
 		}
 		if(time_selector > 2)
 		{
-	draw_vdp2_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 23);
+	draw_hud_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 23);
 		} 
 		//
 

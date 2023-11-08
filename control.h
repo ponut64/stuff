@@ -1,9 +1,7 @@
 //
 //control.h 
 //include for use of control functions
-
-#ifndef __CONTROL_H__
-#define __CONTROL_H__
+#pragma once
 
 #define MAX_SPEED_FACTOR	(300)
 #define STICK_MAX			(122)
@@ -31,5 +29,4 @@ extern Bool holdCam;
 
 void	controls(void);
 
-#endif
 

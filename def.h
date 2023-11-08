@@ -1,6 +1,5 @@
 
-#ifndef __DEF_H__
-# define __DEF_H__
+#pragma once
 
 //def.h -- the catch-all "i dunno where else this goes" files
 #define true	(1)
@@ -85,14 +84,14 @@ typedef struct {
 	int rot[XYZ]; //It needs to be an INT... NO IDEA WHY...
 	int rot2[XYZ];
 	int renderRot[XYZ];
-	ANGLE viewRot[XYZ];
+	int viewRot[XYZ];
 	int rotState[XYZ];
 	FIXED velocity[XYZ];
 	int wvel[XYZ];
 	int		dV[XYZ]; //Delta velocity (to be timescaled)
 	FIXED gravAccel;
-	FIXED Accel[XYZ];
-	FIXED Force[XYZ];
+	int accel[XYZ];
+	int slip[XYZ];
 	FIXED ControlUV[XYZ];
 	FIXED DirUV[XYZ];
 	FIXED SurfUV[XYZ];
@@ -116,7 +115,7 @@ typedef struct {
 	int sanic_samples;
 	int end_average;
 	int airTime;
-	
+	int parTime;
 	
 	short firstSurfHit;
 	short power;
@@ -741,7 +740,4 @@ extern volatile Uint32 * scuireg;
 	
 	*/
 
-
-
-#endif
 

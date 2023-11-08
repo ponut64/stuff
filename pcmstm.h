@@ -135,18 +135,22 @@ typedef struct {
 
 //
 //Proprietary file stream manager, in case of using dynamic file loading.
+#define HANDLE_FILE_ASYNC	(0)
+#define HANDLE_FILE_ASAP	(1)
+#define HANDLE_SPECIAL		(2)
 
 typedef struct {
 	Sint32 id; //File-system ID
 	void * destination; //Destination address
 	void (*handler_function)(void *); //Pointer to function used to handle this file
+	void (*special_handler_function)(Sint32, void *); //Pointer to alternative function used to handle this file
 	short active; // File request writes "1" when it wants this file served. Manager writes "0" when done.
 	short done; // File request writes "0" when it wants the file served. Manager writes "1" when done.
 	short immediate_or_async; // '0' specifies asynchronous. '1' specifies load immediate (stop game, load file, resume game).
 } _file_request_entry;
 
 void	new_file_request(Sint8 * filename, void * destination, void (*handler_function)(void *), short immediate_or_async);
-
+void	new_special_request(Sint8 * filename, void * destination, void (*handler_function)(Sint32, void *));
 //
 //
 

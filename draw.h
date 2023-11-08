@@ -1,6 +1,4 @@
-
-#ifndef __DRAW_H__
-#define __DRAW_H__
+#pragma once
 
 #define VIEW_OFFSET_X (0 * 65536)
 #define VIEW_OFFSET_Y (8 * 65536)
@@ -59,6 +57,5 @@ extern spriteAnimation arrow;
 extern spriteAnimation check;
 extern spriteAnimation goal;
 
-#endif
 
 

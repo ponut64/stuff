@@ -582,7 +582,7 @@ short preprocess_portals(void)
 			cursize += (szC[X] * szC[X]) + (szC[Y] * szC[Y]);
 			cursize += (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
 			scene_portals[i].depth = JO_MIN(JO_MIN(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MIN(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
-			int max_depth = JO_MAX(JO_MAX(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MAX(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
+			//int max_depth = JO_MAX(JO_MAX(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MAX(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
 			// If the portal is off-screen, it should be deactivated.
 			if(clipFlags[0] & clipFlags[1] & clipFlags[2] & clipFlags[3]) scene_portals[i].type = 0;
 			//A cross-product can tell us if it's backfaced or not.
@@ -884,7 +884,7 @@ void	update_hmap(MATRIX msMatrix)
 	unsigned short pclp = 0;
 	int inverseZ = 0;
 
-	short portal_active = preprocess_portals();
+	preprocess_portals();
 	
 	load_winder_prog();
 	//run_winder_prog();

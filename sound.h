@@ -1,5 +1,4 @@
-#ifndef __SOUND_H__
-# define __SOUND_H__
+#pragma once
 
 #define	NO_STAGE_MUSIC	(-1)
 
@@ -8,6 +7,8 @@
 //////////////////////////////////////////////////////////////////////////////
 extern int snd_dash;
 extern int snd_lstep;
+extern int snd_mstep;
+extern int snd_slideon;
 extern int snd_wind;
 extern int snd_bstep;
 extern int snd_click;
@@ -47,5 +48,4 @@ extern char music_pan;
 
 void	operate_stage_music(void);
 
-#endif
 

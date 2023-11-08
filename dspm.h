@@ -1,5 +1,4 @@
-#ifndef __DSPM_H__
-# define __DSPM_H__
+#pragma once
 
 extern volatile int * dsp_input_addr;
 extern volatile int * dsp_noti_addr;
@@ -9,6 +8,4 @@ void	load_hmap_prog(void);
 void	load_winder_prog(void);
 void	run_hmap_prog(void);
 void	run_winder_prog(void);
-
-#endif
 

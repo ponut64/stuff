@@ -65,10 +65,23 @@ _sprite		GlowPuff = {
 	.type = SPRITE_TYPE_BILLBOARD
 }; 
 
-_sprite		DropPuff = {
-	.lifetime = 16384,
+_sprite 	HitPuff = {
+	.lifetime = 24576,
 	.span[X] = 1,
-	.span[Y] = 2,
+	.span[Y] = 1,
+	.span[Z] = 1,
+	.texno = 0,
+	.colorBank = 0,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 0,
+	.type = SPRITE_TYPE_BILLBOARD
+};
+
+_sprite		DropPuff = {
+	.lifetime = 65536,
+	.span[X] = 1,
+	.span[Y] = 1,
 	.span[Z] = 1,
 	.texno = 0,
 	.colorBank = 0,
@@ -97,6 +110,7 @@ void	init_particle(void)
 {
 	HopPuff.texno = puffTexno;
 	DropPuff.texno = auraTexno;
+	HitPuff.texno = sparkTexno;
 	GlowPuff.texno = sparkTexno;
 	SmallPuff.texno = puffTexno;
 	
@@ -156,9 +170,16 @@ void	player_sliding_particles(void)
 	static int effectTimeLimit = 8192;
 	static int effectTimeCount = 0;
 	
+	int particle_pos[3];
+	particle_pos[X] = -(pl_RBB.pos[X] + pl_RBB.Yneg[X]);
+	particle_pos[Y] = -(pl_RBB.pos[Y] + pl_RBB.Yneg[Y]);
+	particle_pos[Z] = -(pl_RBB.pos[Z] + pl_RBB.Yneg[Z]);
+	
+	int p_int[3] = {-you.velocity[X], -you.velocity[Y], -you.velocity[Z]};
+	
 	if(effectTimeCount > effectTimeLimit)
 	{
-	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, you.wpos, zPt, 8<<16, 8192, 3);
+	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NORMAL, particle_pos, p_int, 2<<16, 65536, 3);
 	effectTimeCount = 0;
 	}
 	effectTimeCount += delta_time;

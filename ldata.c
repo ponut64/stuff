@@ -245,20 +245,20 @@ void	process_binary_ldata(void * source_data)
 		{
 			if(l == 0)
 			{
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0, 1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0, HANDLE_FILE_ASAP); 
 				//nbg_sprintf(2, 8, "0(%i)", parity);
 				//nbg_sprintf(2, 8, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 1){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1, 1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1, HANDLE_FILE_ASAP); 
 				//nbg_sprintf(2, 9, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 2){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2, 1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2, HANDLE_FILE_ASAP); 
 				//nbg_sprintf(2, 10, "%s", &map_tex_tbl_names[l][0]);
 			} else if(l == 3){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3, 1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3, HANDLE_FILE_ASAP); 
 				//nbg_sprintf(2, 11, "3(%i)", parity);
 			} else if(l == 4){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4, 1); 
+				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4, HANDLE_FILE_ASAP); 
 				//nbg_sprintf(2, 12, "4(%i)", parity);
 			}
 		}
@@ -282,7 +282,29 @@ void	process_binary_ldata(void * source_data)
 		}
 	}
 	
-	new_file_request((Sint8*)palname, dirty_buf, set_tga_to_sprite_palette, 1);
+	
+	new_file_request((Sint8*)palname, dirty_buf, set_tga_to_sprite_palette, HANDLE_FILE_ASAP);
+	
+	//////////////////////////////////
+	// Prepare to get the background file name out of the file
+	// First, skip over the marker "BACKTX"
+	//////////////////////////////////
+	
+	cptr += 6;
+	static char bgName[13];
+	
+	for(int i = 0; i < 12; i++)
+	{
+		if(*cptr != ' ')
+		{
+			bgName[i] = *cptr++;
+		} else {
+			bgName[i] = 0; //NUL character / string terminator
+			cptr++;
+		}
+	}
+	
+	new_special_request((Sint8*)bgName, dirty_buf, set_8bpp_tga_to_nbg0_image);
 	
 	//////////////////////////////////
 	//Prepare to load the object list

@@ -1,5 +1,4 @@
-#ifndef __HMAP_H__
-# define __HMAP_H__
+#pragma once
 
 #define HMAP_SUBDIVISION_LEVEL (120<<16)
 #define HMAP_TINY_TEX_LEVEL (400<<16)
@@ -68,5 +67,4 @@ void	hmap_cluster(void);
 void	generate_cell_from_position(POINT pos, _pquad * cell);
 void	divide_cell_return_cfnorms(_pquad * quad, POINT cf1, VECTOR norm1, POINT cf2, VECTOR norm2);
 
-#endif
 
