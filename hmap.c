@@ -219,6 +219,7 @@ void	p64MapRequest(short levelNo)
 	new_file_request(pgm_name, dirty_buf, map_parser, 0);
 	ldata_ready = false;
 
+
 }
 
 /* 		//	if(activePGM->file_done != true){

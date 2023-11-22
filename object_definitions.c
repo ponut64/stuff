@@ -433,6 +433,15 @@ _sobject Build26 = {
 	.light_bright = 0
 };
 
+_sobject Build27 = {
+	.entity_ID = 44,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -610,6 +619,7 @@ void	fill_obj_list(void)
 	objList[41] = &Build25;
 	objList[42] = &MasterOccluder;
 	objList[43] = &Build26;
+	objList[44] = &Build27;
 	
 	objList[49] = &Sign0;
 	

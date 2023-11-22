@@ -55,10 +55,11 @@ typedef struct {
 	// [0] == 'R', render,
 //	[1] == 'C', collide,
 // [2] == 'L', light,
-// [3] == 'B', collision box proxy ready,
+// [3] == 'B', collision box proxy ready
 // [4] == 'S', box is receiving a scale
+// [5] == 'r', was rendered, else 0.
 // could be bitflags tbh
-	char status[5];
+	char status[6];
 	//ID# for collision. Usually throws the object # collided with. -1 signals no collision.
 	short collisionID;
 	//ID#. Used to verify the box object #. -1 signals the box is void.
@@ -81,7 +82,9 @@ typedef struct {
 extern _object_arguments bound_box_starter;
 
 extern _boundBox BoundBoxHost[MAX_PHYS_PROXY];
+extern _boundBox BoundBoxDraw[MAX_PHYS_PROXY];
 extern _boundBox * RBBs;
+extern _boundBox * DBBs;
 extern _boundBox pl_RBB;
 extern _boundBox sl_RBB;
 

@@ -301,13 +301,13 @@ void	obj_draw_queue(void)
 	{
 		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
 		//Assuming the rest of the game code made sense up to this point. Else the game's gonna crash here.
-		if(RBBs[i].status[0] != 'R') continue;
-		if(RBBs[i].status[4] == 'S') apply_box_scale(&RBBs[i]);
+		if(DBBs[i].status[0] != 'R') continue;
+		if(DBBs[i].status[4] == 'S') apply_box_scale(&DBBs[i]);
 		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & ETYPE);
-		
+		DBBs[i].status[5] = 'r';
 	slPushMatrix();
 	
-		entities[objDRAW[i]].prematrix = (FIXED *)&RBBs[i];
+		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
 	
 		if(entities[objDRAW[i]].type == MODEL_TYPE_BUILDING)
 		{ 
@@ -383,6 +383,20 @@ void	prep_map_mtx(void)
 
 void	object_draw(void)
 {
+	/////////////////////////////////////////////
+	// Important first-step
+	// Sometimes the master will finish preparing the drawing list while the slave is working on them.
+	// That would normally break the work flow and make some entities disappear.
+	// To prevent that, we capture the to-draw lists at the start of the Slave's workflow to a list that the Master does not edit.
+	/////////////////////////////////////////////
+	for(int i = 0; i < objNEW; i++)
+	{
+		objDRAW[i] = objPREP[i];
+	}
+	for(int i = 0; i < MAX_PHYS_PROXY; i++)
+	{
+		DBBs[i] = RBBs[i];
+	}
 	*timeComm = 0;
 
 	computeLight();

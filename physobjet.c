@@ -22,7 +22,8 @@ _buildingObject * BuildingPayload;
 _declaredObject emptyObject;
 
 unsigned short objNEW = 0; //objNEW is the total number of declared objects
-unsigned short objDRAW[MAX_WOBJS]; //objDRAW is a list of the delcared objects that will be drawn
+unsigned short objPREP[MAX_WOBJS]; //objPREP is a list of the delcared objects that will be drawn
+unsigned short objDRAW[MAX_WOBJS];
 unsigned short activeObjects[MAX_WOBJS]; //activeObjects is a list of the declared objects that have some code running for them
 // Setting the link starts as -1 is what also sets that the last object in the list will link to -1.
 short link_starts[8] = {-1, -1, -1, -1,
@@ -218,13 +219,13 @@ b.	Non-heightmap mode
 	The engine should have some allowance for working if the heightmap is not present.
 	In this case, the Master SH2 needs more work to do.
 	So it should draw something.
-c.	Ski / Bounce
-	4. Sound effects should be added for "Slow" and "Par".
-		Unique graphics for the end should be made for "Slow", "Par", and "Gold"
+c.	misc
 	5. Play-testing
 		I need to establish the par times for each of the 8 available courses.
 		I also still want to add an "Extreme Ski" map.
-	6. Still need that tutorial.
+	6. Need to review tutorial.
+	1. Consider adding voice to text
+	f. disable sound when in level change procees!
 c. Tutorial
 		Need to work on a guided tutorial.
 		One of the things I believe a guided tutorial needs is multi-staged text pages.
@@ -239,7 +240,7 @@ c. Tutorial
 		I also need an image to overlay on the screen that displays the controls.
 		...It also might be a good idea to let people rebind the controls.
 g. Gold Times
-	0: T < 7, F < 5
+	0: T < 6, F < 5
 	1
 	2
 	3: T < 29, F < 10
@@ -281,6 +282,7 @@ void	object_control_loop(int ppos[XY])
 	static int difH = 0;
 	static int position_difference[XYZ] = {0,0,0};
 	objUP = 0; //Should we start this at -1, because -1 will mean there are no objects in scene?
+
 
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++)
@@ -405,7 +407,7 @@ void	object_control_loop(int ppos[XY])
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
-					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					objPREP[objUP] = dWorldObjects[i].type.entity_ID;
 					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
@@ -446,7 +448,7 @@ void	object_control_loop(int ppos[XY])
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
-					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					objPREP[objUP] = dWorldObjects[i].type.entity_ID;
 					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
@@ -486,7 +488,7 @@ void	object_control_loop(int ppos[XY])
 					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
 					dWorldObjects[i].type.ext_dat |= OBJPOP;
 					//This array is meant as a list where iterative searches find the entity type drawn.
-					objDRAW[objUP] = dWorldObjects[i].type.entity_ID;
+					objPREP[objUP] = dWorldObjects[i].type.entity_ID;
 					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
@@ -686,16 +688,20 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 				//WorldObjects[trackedLDATA].dist += dWorldObjects[trackedLDATA].type.light_y_offset<<16;
 				
 				//For getting average speed over the track
+				//Set to zero when the track starts
 				if(!(dWorldObjects[trackedLDATA].type.ext_dat & TRACK_ACTIVE))
 				{
 					you.sanic_samples = 0;
+					start_hud_event(TRACK_START_EVENT);
+				} else {
+					start_hud_event(GATE_PASSED_EVENT);
 				}
 				
 				dWorldObjects[trackedLDATA].more_data &= TRACK_NO_GUIDE;
 				dWorldObjects[trackedLDATA].more_data |= (dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER);
 				
 				//pcm_play(snd_button, PCM_PROTECTED, 5);
-				start_hud_event(GATE_PASSED_EVENT);
+
 				break;
 			}
 		}//PAST TRACK DATA
@@ -1250,13 +1256,13 @@ void	manage_track_data(_declaredObject * someLDATA)
 			you.points += 10 * someLDATA->pix[X];
 			//pcm_play(snd_win, PCM_PROTECTED, 5);
 			//start_adx_stream(stmsnd[stm_win], 5);
-			if((someLDATA->dist>>16) <= (you.parTime>>1))
+			if((someLDATA->dist) <= (you.parTime<<15))
 			{
 				start_hud_event(TRACK_GOLD_EVENT);
-			} else if((someLDATA->dist>>16) <= you.parTime)
+			} else if((someLDATA->dist) <= (you.parTime<<16))
 			{
 				start_hud_event(TRACK_PAR_EVENT);
-			} else if((someLDATA->dist>>16) > you.parTime)
+			} else if((someLDATA->dist) > (you.parTime<<16))
 			{
 				start_hud_event(TRACK_SLOW_EVENT);
 			}
@@ -1485,13 +1491,13 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 		{
 			someLDATA->type.ext_dat |= ITEM_MANAGER_INACTIVE;
 			//start_adx_stream(stmsnd[stm_win], 5);
-			if((someLDATA->dist>>16) <= (you.parTime>>1))
+			if((someLDATA->dist) <= (you.parTime<<15))
 			{
 				start_hud_event(FLAG_GOLD_EVENT);
-			} else if((someLDATA->dist>>16) <= you.parTime)
+			} else if((someLDATA->dist) <= (you.parTime<<16))
 			{
 				start_hud_event(FLAG_PAR_EVENT);
-			} else if((someLDATA->dist>>16) > you.parTime)
+			} else if((someLDATA->dist) > (you.parTime<<16))
 			{
 				start_hud_event(FLAG_SLOW_EVENT);
 			}

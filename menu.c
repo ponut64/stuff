@@ -26,6 +26,10 @@
 extern Sint8 SynchConst; //SGL System Variable
 int viewInfoTxt = 0;
 int baseRingMenuTexno = 0;
+int controlImgTexno = 0;
+int slowImgTexno = 0;
+int parImgTexno = 0;
+int goldImgTexno = 0;
 int menuLayer = 0;
 
 _hudEvent hudEvents[HUD_EVENT_TYPES];
@@ -36,15 +40,15 @@ void	debug_menu_layer(__basic_menu * mnu)
 	static short dPreview = 0;
 	
 	mnu->topLeft[X] = 120;
-	mnu->topLeft[Y] = 40;
+	mnu->topLeft[Y] = 20;
 	mnu->scale[X] = 120;
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 1;
-	mnu->option_grid[Y] = 5;
-	mnu->num_option = 5;
+	mnu->option_grid[Y] = 6;
+	mnu->num_option = 6;
 	mnu->backColor = 6 + (64 * 2);
 	mnu->optionColor = 5;
-	static char * option_list[] = {"<- Back", "Toggle Frmt", "Next Object", "Prev Object", "Tgl Info Txt"};
+	static char * option_list[] = {"<- Back", "Toggle Frmt", "Next Object", "Prev Object", "Tgl Info Txt", "Tex Viewer"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -68,6 +72,9 @@ void	debug_menu_layer(__basic_menu * mnu)
 			viewInfoTxt = (viewInfoTxt == 1) ? 2 : (viewInfoTxt == 2) ? 0 : 1;
 			nbg_clear_text();
 			break; 
+			case(5):
+			menuLayer = HUD_LAYER_TEXVIEWER;
+			mnu->selection = 0;
 			default:
 			break;
 		}
@@ -110,6 +117,36 @@ void	debug_menu_layer(__basic_menu * mnu)
 	
 }
 
+void	control_menu_layer(__basic_menu * mnu)
+{
+	mnu->topLeft[X] = 35;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 140;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 1;
+	mnu->option_grid[Y] = 1;
+	mnu->num_option = 1;
+	mnu->backColor = 6 + (64 * 2);
+	mnu->optionColor = 5;
+	static char * option_list[] = {"<- Back"};
+	mnu->option_text = option_list;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			menuLayer = HUD_LAYER_START;
+			break;
+			default:
+			break;
+		}
+	}
+	
+	draw_normal_sprite(96, 60, controlImgTexno, 1);
+}
+
 void	start_menu_layer(__basic_menu * mnu)
 {
 	mnu->topLeft[X] = 35;
@@ -123,7 +160,7 @@ void	start_menu_layer(__basic_menu * mnu)
 	mnu->optionColor = 5;
 	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Reset Time",
 									"Level Select", "Debug Menu", "Options Menu",
-									"Texture Viewer"};
+									"View Controls"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -160,7 +197,7 @@ void	start_menu_layer(__basic_menu * mnu)
 			mnu->selection = 0;
 			break;
 			case(6):
-			menuLayer = HUD_LAYER_TEXVIEWER;
+			menuLayer = HUD_LAYER_CONTROLS;
 			mnu->selection = 0;
 			break;
 			default:
@@ -285,7 +322,7 @@ void	options_menu_layer(__basic_menu * mnu)
 	option_bg_tlp[Y] = 40;
 	option_bg_brpt[X] = 350;
 	option_bg_brpt[Y] = 170;
-	draw2dSquare(option_bg_tlp, option_bg_brpt, 26 + (64 * 2), 0);
+	draw2dSquare(option_bg_tlp, option_bg_brpt, 26 + (64 * 2), 0, 5, 0);
 	
 	if(usrCntrlOption.movementCam)
 	{
@@ -406,7 +443,7 @@ void	options_menu_layer_2(__basic_menu * mnu)
 	option_bg_tlp[Y] = 40;
 	option_bg_brpt[X] = 350;
 	option_bg_brpt[Y] = 170;
-	draw2dSquare(option_bg_tlp, option_bg_brpt, 50 + (64 * 2), 0);
+	draw2dSquare(option_bg_tlp, option_bg_brpt, 50 + (64 * 2), 0, 5, 0);
 	
 
 	spr_sprintf(200, 76, "%i", usrCntrlOption.cameraAccel);
@@ -448,7 +485,7 @@ void	texviewer_menu_layer(__basic_menu * mnu)
 		switch(mnu->selection)
 		{
 			case(0):
-			menuLayer = HUD_LAYER_START;
+			menuLayer = HUD_LAYER_DEBUG;
 			break;
 			case(1):
 			texSelect++;
@@ -523,6 +560,9 @@ void	start_menu(void)
 		} else if(menuLayer == HUD_LAYER_TEXVIEWER)
 		{
 			texviewer_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_CONTROLS)
+		{
+			control_menu_layer(&mnu);
 		}
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;
 	fuckinghatesynchingkeysvblankbullshit_timer++;
@@ -543,7 +583,7 @@ void	start_menu(void)
 	gdat_bg_tlpt[Y] = 188;
 	gdat_bg_brpt[X] = 350;
 	gdat_bg_brpt[Y] = 224;
-	draw2dSquare(gdat_bg_tlpt, gdat_bg_brpt, 18 + (64 * 2), 0);
+	draw2dSquare(gdat_bg_tlpt, gdat_bg_brpt, 18 + (64 * 2), 0, 5, 0);
 	
 	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
 	while(someLDATA != &dWorldObjects[objNEW])
@@ -561,7 +601,8 @@ void	start_menu(void)
 				}
 			} else {
 				//spr_sprintf(100, 200, "Track is Complete!");
-				spr_sprintf(100, 200, "Track Time:%i", someLDATA->dist>>16);
+				spr_sprintf(100, 200, "Track Time:");
+				spr_sprintf_decimal(100 + (10 * 8), 200, someLDATA->dist);
 			}
 		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_7RINGS)
 		{
@@ -613,7 +654,8 @@ void	start_menu(void)
 			if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
 			{
 				//spr_sprintf(100, 212, "Flag Captured!");
-				spr_sprintf(100, 212, "Capture Time:%i", someLDATA->dist>>16);
+				spr_sprintf(100, 212, "Capture Time:");
+				spr_sprintf_decimal(100 + (13 *8), 212, someLDATA->dist);
 			} else if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
 			{
 				spr_sprintf(100, 212, "Flag Taken!");
@@ -711,6 +753,8 @@ void	init_hud_events(void)
 	static char ringgettxt[] = "All rings get!";
 	event->text = &ringgettxt[0];
 	event->colorBank = 3<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[RING1_EVENT];
 	
@@ -773,6 +817,8 @@ void	init_hud_events(void)
 	static char gatediscovertxt[] = "Gate discovered!";
 	event->text = &gatediscovertxt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[TRACK_DISCOVERED_EVENT];
 	
@@ -792,6 +838,8 @@ void	init_hud_events(void)
 	static char trackdiscoveredtxt[] = "All gates found. Ready to go?";
 	event->text = &trackdiscoveredtxt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[GATE_PASSED_EVENT];
 	
@@ -811,6 +859,29 @@ void	init_hud_events(void)
 	static char gatepasstxt[] = "^^^^^";
 	event->text = &gatepasstxt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
+//////////////////////////////////////////////////
+	event = &hudEvents[TRACK_START_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_gpass;
+	event->volume = 6;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char trackstarttxt[] = "Track start!";
+	event->text = &trackstarttxt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[TRACK_FAILED_EVENT];
 	
@@ -830,22 +901,24 @@ void	init_hud_events(void)
 	static char trackfailtxt[] = "Track Reset!";
 	event->text = &trackfailtxt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[TRACK_SLOW_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16; //One second
 	event->screenStep = 10;
 	
 	event->soundType = PCM_PROTECTED;//ADX_STREAM;
-	event->soundNum = snd_win;//stm_win;
+	event->soundNum = snd_tslow;//stm_win;
 	event->volume = 6;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = slowImgTexno;
 	static char trackbadtxt[] = "Slow! Par Time: %i";
 	event->text = &trackbadtxt[0];
 	event->printedData = &you.parTime;
@@ -854,19 +927,19 @@ void	init_hud_events(void)
 	
 	event = &hudEvents[TRACK_PAR_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16; //One second
 	event->screenStep = 10;
 	
-	event->soundType = PCM_PROTECTED;//ADX_STREAM;
-	event->soundNum = snd_win;//stm_win;
+	event->soundType = parImgTexno;//ADX_STREAM;
+	event->soundNum = snd_yeah;//stm_win;
 	event->volume = 6;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = parImgTexno;
 	static char trackpartxt[] = "Complete! Avg Sanics: %i";
 	event->text = &trackpartxt[0];
 	event->printedData = &you.end_average;
@@ -875,9 +948,9 @@ void	init_hud_events(void)
 	
 	event = &hudEvents[TRACK_GOLD_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16; //One second
@@ -887,7 +960,7 @@ void	init_hud_events(void)
 	event->soundNum = snd_win;//stm_win;
 	event->volume = 6;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = goldImgTexno;
 	static char trackwintxt[] = "Gold! Avg Sanics: %i";
 	event->text = &trackwintxt[0];
 	event->printedData = &you.end_average;
@@ -918,6 +991,8 @@ void	init_hud_events(void)
 	event->text = &flagtakentxt[0];
 	
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 /////////////////////////////////////////////////
 	event = &hudEvents[FLAG_RETURNED_EVENT];
 	
@@ -938,54 +1013,60 @@ void	init_hud_events(void)
 	event->text = &flagreturntxt[0];
 	
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[FLAG_SLOW_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16;
 	event->screenStep = 10;
 	
 	event->soundType = PCM_PROTECTED;//ADX_STREAM;
-	event->soundNum = snd_win;//stm_win;
+	event->soundNum = snd_tslow;//stm_win;
 	event->volume = 5;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = slowImgTexno;
 	static char flagfailtxt[] = "Slow! Par Time: %i";
 	event->text = &flagfailtxt[0];
 	event->printedData = &you.parTime;
 	
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[FLAG_PAR_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16;
 	event->screenStep = 10;
 	
 	event->soundType = PCM_PROTECTED;//ADX_STREAM;
-	event->soundNum = snd_win;//stm_win;
+	event->soundNum = snd_yeah;//stm_win;
 	event->volume = 5;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = parImgTexno;
 	static char flagpartxt[] = "Success! Avg Sanics: %i";
 	event->text = &flagpartxt[0];
 	event->printedData = &you.end_average;
 	
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[FLAG_GOLD_EVENT];
 	
-	event->startPos[X] = 176;
+	event->startPos[X] = 80;
 	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
+	event->endPos[X] = 80;
 	event->endPos[Y] = 140;
 	event->eventTime = 5<<16; 
 	event->spriteTime = 5<<16;
@@ -995,12 +1076,14 @@ void	init_hud_events(void)
 	event->soundNum = snd_win;//stm_win;
 	event->volume = 5;
 	
-	event->texno = EVENT_SHOW_TEXT;
+	event->texno = goldImgTexno;
 	static char flagwintxt[] = "Gold! Avg Sanics: %i";
 	event->text = &flagwintxt[0];
 	event->printedData = &you.end_average;
 	
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
 	event = &hudEvents[FLAG_OPEN_EVENT];
 	
@@ -1020,6 +1103,8 @@ void	init_hud_events(void)
 	static char flagopentxt[] = "Flag stand has opened!";
 	event->text = &flagopentxt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[SIGN_0];
 	
@@ -1036,9 +1121,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign0txt[] = "Find the goal stand to open the flag stand.";
+	static char sign0txt[] = "Press A to jump\nPress START to open the menu\nYou can view controls in the menu";
 	event->text = &sign0txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 33;
 	
 	event = &hudEvents[SIGN_1];
 	
@@ -1055,9 +1142,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign1txt[] = "Smash the box and touch the goal to open it.";
+	static char sign1txt[] = "Get a running start and \njump off of the slanted surface.\nYou jump in the direction you're leaning.";
 	event->text = &sign1txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 41;
 	
 	event = &hudEvents[SIGN_2];
 	
@@ -1074,9 +1163,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign2txt[] = "Discover every gate to unlock the track.";
+	static char sign2txt[] = "Get a running start and \npress R to hop the gap";
 	event->text = &sign2txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 2;
+	event->text_width = 24;
 	
 	event = &hudEvents[SIGN_3];
 	
@@ -1093,9 +1184,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign3txt[] = "Press A to jump off of the surface angle.";
+	static char sign3txt[] = "Jump and hold R to go higher";
 	event->text = &sign3txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[SIGN_4];
 	
@@ -1112,9 +1205,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign4txt[] = "Press L to slide, and go fast!";
+	static char sign4txt[] = "Press X & Z to look left-right,\nPress Y & B to look up-down";
 	event->text = &sign4txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 2;
+	event->text_width = 30;
 	
 	event = &hudEvents[SIGN_5];
 	
@@ -1131,9 +1226,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign5txt[] = "Press R to hop and glide.";
+	static char sign5txt[] = "Get a running start, then \njump and hold R to go farther";
 	event->text = &sign5txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 2;
+	event->text_width = 29;
 	
 	event = &hudEvents[SIGN_6];
 	
@@ -1150,9 +1247,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign6txt[] = "You only get a hop when on the ground.";
+	static char sign6txt[] = "This one is hard! Follow the arrow.\nGet a running start, then hold R\nand hold UP (forward)\n all the way down the slide.";
 	event->text = &sign6txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 4;
+	event->text_width = 39;
 	
 	event = &hudEvents[SIGN_7];
 	
@@ -1169,10 +1268,53 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign7txt[] = "Be sure to jump AND glide!";
+	static char sign7txt[] = "Press START to open the game menu.\nYou can change levels from there.\nYou can also view the controls there.";
 	event->text = &sign7txt[0];
 	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 38;
 	
+	event = &hudEvents[SIGN_8];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign8txt[] = ".";
+	event->text = &sign8txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
+	
+	event = &hudEvents[SIGN_9];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign9txt[] = ".";
+	event->text = &sign9txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
 	
 	
 }
@@ -1205,8 +1347,11 @@ void	hud_menu(void)
 			iterate_sprite_to_position(hudEvents[i].spr, hudEvents[i].screenStep, hudEvents[i].endPos);
 			if(hudEvents[i].texno == 0)
 			{
-				int offset = strlen(hudEvents[i].text) * 4;
-				spr_sprintf(hudEvents[i].spr->pos[X] - offset, hudEvents[i].spr->pos[Y], hudEvents[i].text, *hudEvents[i].printedData);
+				int offset_x = hudEvents[i].text_width * 4;
+				spr_sprintf(hudEvents[i].spr->pos[X] - offset_x, hudEvents[i].spr->pos[Y], hudEvents[i].text, *hudEvents[i].printedData);
+				int back_p1[2] = {hudEvents[i].spr->pos[X] - offset_x, hudEvents[i].spr->pos[Y]};
+				int back_p2[2] = {hudEvents[i].spr->pos[X] + offset_x, hudEvents[i].spr->pos[Y] + (12 * hudEvents[i].text_lines)};
+				draw2dSquare(back_p1, back_p2, 63, 0, 5, 1);
 			}
 			
 			if(hudEvents[i].spr->lifetime < hudEvents[i].eventTime && hudEvents[i].status == HUD_EVENT_RUN)

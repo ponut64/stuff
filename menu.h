@@ -6,6 +6,7 @@
 #define HUD_LAYER_OPTION_1	(3)
 #define HUD_LAYER_OPTION_2	(4)
 #define HUD_LAYER_TEXVIEWER	(5)
+#define HUD_LAYER_CONTROLS	(6)
 
 #define HUD_EVENT_TYPES (32)
 #define HUD_EVENT_START (1)
@@ -31,26 +32,29 @@
 #define GATE_DISCOVERY_EVENT	(8)
 #define TRACK_DISCOVERED_EVENT	(9)
 #define GATE_PASSED_EVENT		(10)
-#define TRACK_FAILED_EVENT		(11)
-#define TRACK_GOLD_EVENT		(12)
-#define TRACK_PAR_EVENT			(13)
-#define TRACK_SLOW_EVENT		(14)
+#define TRACK_START_EVENT		(11)
+#define TRACK_FAILED_EVENT		(12)
+#define TRACK_GOLD_EVENT		(13)
+#define TRACK_PAR_EVENT			(14)
+#define TRACK_SLOW_EVENT		(15)
 
-#define FLAG_TAKEN_EVENT		(15)
-#define FLAG_SLOW_EVENT			(16)
-#define FLAG_PAR_EVENT			(17)
-#define FLAG_GOLD_EVENT			(18)
-#define FLAG_RETURNED_EVENT		(19)
-#define FLAG_OPEN_EVENT			(20)
+#define FLAG_TAKEN_EVENT		(16)
+#define FLAG_SLOW_EVENT			(17)
+#define FLAG_PAR_EVENT			(18)
+#define FLAG_GOLD_EVENT			(19)
+#define FLAG_RETURNED_EVENT		(20)
+#define FLAG_OPEN_EVENT			(21)
 
-#define SIGN_0					(21)
-#define	SIGN_1					(22)
-#define	SIGN_2					(23)
-#define	SIGN_3					(24)
-#define	SIGN_4					(25)
-#define	SIGN_5					(26)
-#define	SIGN_6					(27)
-#define SIGN_7					(28)
+#define SIGN_0					(22)
+#define	SIGN_1					(23)
+#define	SIGN_2					(24)
+#define	SIGN_3					(25)
+#define	SIGN_4					(26)
+#define	SIGN_5					(27)
+#define	SIGN_6					(28)
+#define SIGN_7					(29)
+#define	SIGN_8					(30)
+#define	SIGN_9					(31)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?
@@ -73,6 +77,8 @@ typedef struct {
 	unsigned short strobe_interval; //Note: Being a short, it rolls over before 1 second (65535). Use ~62,000 as 1s.
 	short texno;
 	short colorBank;
+	short text_lines; //# of lines printed in case of text
+	short text_width; //Used as text position offset (if desired), can typically be calculated with strlen for one-liners.
 	int * printedData;
 	char * text;
 	_sprite * spr;
@@ -80,6 +86,10 @@ typedef struct {
 
 extern int viewInfoTxt;
 extern int baseRingMenuTexno;
+extern int controlImgTexno;
+extern int slowImgTexno;
+extern int parImgTexno;
+extern int goldImgTexno;
 extern _hudEvent hudEvents[HUD_EVENT_TYPES];
 
 void	start_menu(void);

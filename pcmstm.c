@@ -73,7 +73,8 @@ void	new_special_request(Sint8 * filename, void * destination, void (*handler_fu
 
 void	load_file_list_immediate(void)
 {
-	
+	//To mute any... strangeness.
+	*master_volume = 0x200;
 
 	GfsHn gfs_ea;
 	Sint32 file_size;
@@ -112,6 +113,8 @@ void	load_file_list_immediate(void)
 			
 		}
 	}
+
+	set_master_volume(driver_master_volume);
 }
 
 void	finish_file_request(void)
@@ -329,7 +332,7 @@ void	start_adx_stream(Sint8 * filename, short volume)
 	//That's a problem if it's old data, from the wrong ADX stream.
 	//So we have to purge it. We shouldn't have to; the data is copied here before the stream is commanded to play... but we do.
 	unsigned short * writedummy = (unsigned short *)adx_stream.back_buffer[0];
-	for(int i = 0; i < m68k_com->pcmCtrl[adx_stream.pcm_number].bytes_per_blank; i++)
+	for(int i = 0; i < (m68k_com->pcmCtrl[adx_stream.pcm_number].bytes_per_blank<<2); i++)
 	{
 		*writedummy++ = 0;
 	}

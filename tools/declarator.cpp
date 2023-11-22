@@ -909,20 +909,54 @@ void	create_objects(int levelNo)
 	// declare_object_at_cell(-(0 / 40) + 1, -70, -(160 / 40), 41 /*m-mapA*/, 0, 0, 0, 0, 0);
 	// declare_object_at_cell(-(0 / 40) + 1, -70, -(160 / 40), 42 /*m-mapB*/, 0, 0, 0, 0, 0);
 	
-	declare_object_at_cell((680 / 40) + 1, -2880, (0 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((0 / 40) + 1, -2000, (0 / 40), 44 /*Tuti*/,  0, 0, 0, 0, 0);
 	
-	declare_object_at_cell((1120 / 40) + 1, -2760, (0 / 40), 43 /*longbox*/,  0, 0, 0, 0, 0);
-	declare_object_at_cell((120 / 40) + 1, -2680, (0 / 40), 43 /*longbox*/,   0, 0, -10, 0, 0);
-	declare_object_at_cell(-(840 / 40) + 1, -2480, (0 / 40), 43 /*longbox*/,  0, 0, -15, 0, 0);
-	declare_object_at_cell(-(1800 / 40) + 1, -2160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
-	declare_object_at_cell(-(2720 / 40) + 1, -1800, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
-	declare_object_at_cell(-(3640 / 40) + 1, -1480, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(83 + 2000), -(360 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(83 + 2000), -(360 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 22, 0);
 	
-	declare_object_at_cell(-(4560 / 40) + 1, -1160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
-	declare_object_at_cell(-(5440 / 40) + 1, -840, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(107 + 2000), -(120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(107 + 2000), -(120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 23, 0);
 	
-	declare_object_at_cell(-(5720 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(6240 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 30, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(123 + 2000), (160 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(123 + 2000), (160 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 24, 0);
+	
+	declare_object_at_cell((920 / 40) + 1, -(123 + 2000), (320 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(123 + 2000), (320 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 25, 0);
+	
+	declare_object_at_cell((920 / 40) + 1, -(203 + 2000), (480 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(203 + 2000), (480 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 26, 0);
+	
+	declare_object_at_cell((920 / 40) + 1, -(264 + 2000), (200 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(264 + 2000), (200 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 27, 0);
+	
+	declare_object_at_cell((960 / 40) + 1, -(279 + 2000), -(120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(279 + 2000), -(120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 28, 0);
+	
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 29, 0);
+	
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(0 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(0 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 30, 0);
+	
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), (120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), (120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 31, 0);
+	
+	declare_object_at_cell((880 / 40) + 1, -(240 + 2000), (480 / 40), 37 /*sign-arrow*/, 0, 180, 0, 0, 0);
+	declare_object_at_cell((960 / 40) + 1, -(306 + 2000), -(240 / 40), 37 /*sign-arrow*/, 0, -90, 0, 0, 0);
+	declare_object_at_cell(-(960 / 40) + 1, -(2000 - 280), -(280 / 40), 37 /*sign-arrow*/, 0, 0, 0, 0, 0);
+
+	//declare_object_at_cell((680 / 40) + 1, -2880, (0 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell((120 / 40) + 1, -2680, (0 / 40), 43 /*longbox*/,   0, 0, -10, 0, 0);
+	//declare_object_at_cell(-(840 / 40) + 1, -2480, (0 / 40), 43 /*longbox*/,  0, 0, -15, 0, 0);
+	//declare_object_at_cell(-(1800 / 40) + 1, -2160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	//declare_object_at_cell(-(2720 / 40) + 1, -1800, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	//declare_object_at_cell(-(3640 / 40) + 1, -1480, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	//
+	//declare_object_at_cell(-(4560 / 40) + 1, -1160, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	//declare_object_at_cell(-(5440 / 40) + 1, -840, (0 / 40), 43 /*longbox*/, 0, 0, -20, 0, 0);
+	//
+	//declare_object_at_cell(-(5720 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell(-(6240 / 40) + 1, -640, (0 / 40), 43 /*longbox*/, 0, 0, 30, 0, 0);
 
 	// declare_object_at_cell(-(3540 / 40) + 1, -193, (3900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	// declare_object_at_cell((2780 / 40) + 1, -164, -(1660 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);

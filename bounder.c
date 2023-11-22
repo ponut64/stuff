@@ -12,7 +12,9 @@ This file is compiled separately.
 #include "bounder.h"
 
 _boundBox BoundBoxHost[MAX_PHYS_PROXY];
-_boundBox * RBBs; 
+_boundBox BoundBoxDraw[MAX_PHYS_PROXY];
+_boundBox * RBBs;
+_boundBox * DBBs;
 _boundBox pl_RBB;
 _boundBox sl_RBB;
 _object_arguments bound_box_starter;
@@ -394,6 +396,10 @@ void	flush_boxes(int start)
 //Flush boxes
 //Very important for making sure things don't render when they aren't supposed to.
 ////////////////////////////////////////////////////
+// First step: Copy the master's working RBB to the slave's working DBB.
+////////////////////////////////////////////////////
+//Afterwards, purge the boxes and proceed with the rest of the code which will update the boxes.
+////////////////////////////////////////////////////
 	for(int i = start; i < MAX_PHYS_PROXY; i++)
 	{
 		//If you reach a box marked as void, stop. Don't need to go any further.
@@ -405,6 +411,7 @@ void	flush_boxes(int start)
 		RBBs[i].status[2] = 'N';
 		RBBs[i].status[3] = 'N';
 		RBBs[i].status[4] = 'N';
+		RBBs[i].status[5] = 'N';
 	}
 ////////////////////////////////////////////////////
 	
@@ -413,7 +420,8 @@ void	flush_boxes(int start)
 void	initPhys(void){
 		//The bound box / matrix parameter struct has to be uncached, since it is shared between master & slave.
 		// But don't be stupid like I was for a long time. See, I used to put it in LWRAM. LWRAM is SLOW!!!!
-		RBBs = (_boundBox *)((unsigned int)(&BoundBoxHost[0]) | UNCACHE);
+		RBBs = (_boundBox *)((unsigned int)(&BoundBoxHost[0]));
+		DBBs = (_boundBox *)((unsigned int)(&BoundBoxDraw[0]));
 	for(Uint8 x = 0; x<MAX_PHYS_PROXY; x++){
 		RBBs[x].status[0] = 'N';
 		RBBs[x].status[1] = 'N';

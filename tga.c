@@ -75,7 +75,7 @@ void	set_tga_to_sprite_palette(void * file_start)
 	
 	//Descriptor Bytes are skipped.
 	
-	unsigned char imdat = id_field_size + TGA_HEADER_GAP;
+	int imdat = id_field_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readWord + imdat);
 	
@@ -135,7 +135,7 @@ void	set_tga_to_nbg1_palette(void * file_start)
 	
 	//Descriptor Bytes are skipped.
 	
-	unsigned char imdat = id_field_size + TGA_HEADER_GAP;
+	int imdat = id_field_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readWord + imdat);
 	
@@ -218,8 +218,6 @@ void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer)
 	int col_map_ct = col_map_size / 3;
 	
 	int initial_chunk_pixels = chunk_size_bytes - id_field_size - col_map_size - TGA_HEADER_GAP;
-
-	//unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	////////////////////////////////////////////////////////
 	//We shall load the 24-bit RGB palette straight from the TGA image.
@@ -1174,7 +1172,7 @@ Bool read_pco_in_memory(void * file_start)
 		return 0;
 	}
 	
-	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	int col_map_size = (readByte[5] | readByte[6]<<8) * 3;
 	
 	unsigned char bpp = readByte[16];
 	
@@ -1183,7 +1181,7 @@ Bool read_pco_in_memory(void * file_start)
 		return 0;
 	}
 	
-	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
+	int imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	
@@ -1213,7 +1211,7 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 		return 0;
 	}
 	
-	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	int col_map_size = (readByte[5] | readByte[6]<<8) * 3;
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
@@ -1221,7 +1219,7 @@ int read_tex_table_in_memory(void * file_start, int tex_height)
 		return 0;
 	}
 	
-	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
+	int imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	
@@ -1260,14 +1258,14 @@ void	ReplaceTextureTable(void * file_start, int tex_height, int first_replaced_t
 		return;
 	}
 	
-	unsigned char col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	int col_map_size = (readByte[5] | readByte[6]<<8) * 3;
 	unsigned char bpp = readByte[16];
 	
 	if(bpp != 8) {
 		slPrint("(REJECTED >8B TGA)", slLocate(0,0));
 		return;
 	}
-	unsigned char imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
+	int imdat = id_field_size + col_map_size + TGA_HEADER_GAP;
 	
 	GLOBAL_img_addr = (unsigned char*)((int)readByte + imdat);
 	

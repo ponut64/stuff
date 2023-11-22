@@ -75,7 +75,8 @@ void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 }
 
 //solid_or_border : 0 for solid, 1 for border
-void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border)
+//mesh: 0 for solid, 1 for mesh
+void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border, unsigned short depth, unsigned short mesh)
 {
 	//
 	// Draw a 2D square.
@@ -95,9 +96,9 @@ void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigne
 	int topRight[2] = {btmRight[X], topLeft[Y]};
 	int bottomLeft[2] = {topLeft[X], btmRight[Y]};
 	msh2SetCommand(topLeft, topRight, btmRight, bottomLeft,
-	4 + (solid_or_border & 1) /*Polygon or Polyline Draw Command*/, 0x8E8 /* manual specifies 0xC0 for polygon, DO NOT CHANGE BITS 7-6*/,
+	4 + (solid_or_border & 1) /*Polygon or Polyline Draw Command*/, 0x8E8 | (mesh << 8) /* manual specifies 0xC0 for polygon, DO NOT CHANGE BITS 7-6*/,
 	0 /* No source data, is untextured */, colorData,
-	0 /*no cmdsize, is untextured*/, 0 /* no gouraud */, 2<<16 /* z */);
+	0 /*no cmdsize, is untextured*/, 0 /* no gouraud */, depth<<16 /* z */);
 }
 
 
@@ -491,7 +492,7 @@ va_list vmlist;
 va_start(vmlist, NULL);
 
 do {
-	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
+	snprintf(sprintf_buffer, 255, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
 	spr_print(xPos, yPos, sprintf_buffer); 
 	} while(0);
 	
@@ -504,7 +505,7 @@ va_list vmlist;
 va_start(vmlist, NULL);
 
 do {
-	sprintf(sprintf_buffer, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
+	snprintf(sprintf_buffer, 255, va_arg(vmlist, char *), va_arg(vmlist, int), va_arg(vmlist, int), va_arg(vmlist, int));
 	slPrint(sprintf_buffer, slLocate(x,y)); 
 	} while(0);
 	
@@ -569,7 +570,7 @@ short		menu_with_options(__basic_menu * mnu)
 	btmRight[X] = (mnu->scale[X] * mnu->option_grid[X]) + 8 + mnu->topLeft[X];
 	btmRight[Y] = (mnu->scale[Y] * mnu->option_grid[Y]) + 8 + mnu->topLeft[Y];
 	
-	draw2dSquare(mnu->topLeft, btmRight, mnu->backColor, 0);
+	draw2dSquare(mnu->topLeft, btmRight, mnu->backColor, 0, 5, 0);
 	
 	int topLeftSelBox[2] = {0,0};
 	int btmRiteSelBox[2] = {0,0};
@@ -590,7 +591,7 @@ short		menu_with_options(__basic_menu * mnu)
 		topLeftSelBox[Y] = (position_of_option[Y]);
 		btmRiteSelBox[X] = position_of_option[X] + (mnu->scale[X]);
 		btmRiteSelBox[Y] = (position_of_option[Y] + 12);
-		draw2dSquare(topLeftSelBox, btmRiteSelBox, mnu->optionColor, 1);
+		draw2dSquare(topLeftSelBox, btmRiteSelBox, mnu->optionColor, 1, 5, 0);
 		}
 		offset_option[X] = (position_of_option[X] + (mnu->scale[X]>>1)) - (((strlen(mnu->option_text[this_option])-1) * 8)>>1) - 4;
 		spr_sprintf(offset_option[X], position_of_option[Y], mnu->option_text[this_option]);

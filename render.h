@@ -274,7 +274,7 @@ void	plane_rendering_with_subdivision(entity_t * ent);
 //2drender.c
 short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, unsigned char mesh, char type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
-void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border);
+void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border, unsigned short depth, unsigned short mesh);
 void	ssh2BillboardScaledSprite(_sprite * spr);
 void	ssh2Line(_sprite * spr);
 void	ssh2NormalSprite(_sprite * spr);

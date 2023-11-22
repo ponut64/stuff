@@ -394,6 +394,7 @@ typedef struct {
 extern _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
 extern _sobject * objList[64];
 extern unsigned short objNEW;
+extern unsigned short objPREP[MAX_WOBJS];
 extern unsigned short objDRAW[MAX_WOBJS];
 extern unsigned short activeObjects[MAX_WOBJS];
 extern _buildingObject * BuildingPayload; //In LWRAM

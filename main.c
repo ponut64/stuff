@@ -86,7 +86,7 @@ void	load_test(void)
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
-	sprAsciiWidth = WRAP_NewTable((Sint8*)"FONT.TGA", dirty_buf, sprAsciiHeight); //last argument, tex height
+	sprAsciiWidth = WRAP_NewTable((Sint8*)"FONT2.TGA", dirty_buf, sprAsciiHeight); //last argument, tex height
 	//
 	HWRAM_ldptr = (void *)(&hwram_model_data[0]);
 	////////////////////////////////////////////////
@@ -100,9 +100,12 @@ void	load_test(void)
 	//stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
 	//stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
 	snd_win = load_adx((Sint8*)"WIN.ADX");
+	snd_yeah = load_adx((Sint8*)"YEAH.ADX");
 	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
 	snd_orchit0 = load_adx((Sint8*)"ORCHIT0.ADX");
 	snd_ftake = load_adx((Sint8*)"FLAG.ADX");
+	snd_tslow = load_adx((Sint8*)"TSLOW.ADX");
+	snd_gpass = load_adx((Sint8*)"GPASS.ADX");
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_mstep = load_8bit_pcm((Sint8*)"MSTEP.PCM", 15360);
@@ -137,6 +140,14 @@ void	load_test(void)
 	WRAP_NewTexture((Sint8*)"AURA.TGA", (void*)dirty_buf);
 	puffTexno = numTex;
 	WRAP_NewTexture((Sint8*)"PUFF.TGA", (void*)dirty_buf);
+	controlImgTexno = numTex;
+	WRAP_NewTexture((Sint8*)"CONTROL2.TGA", (void*)dirty_buf);
+	slowImgTexno = numTex;
+	WRAP_NewTexture((Sint8*)"SLOW.TGA", (void*)dirty_buf);
+	parImgTexno = numTex;
+	WRAP_NewTexture((Sint8*)"PAR.TGA", (void*)dirty_buf);
+	goldImgTexno = numTex;
+	WRAP_NewTexture((Sint8*)"GOLD.TGA", (void*)dirty_buf);
 
 	animated_texture_list[0] = numTex;
 	WRAP_NewTable((Sint8*)"QMARK.TGA", (void*)dirty_buf, 16);
@@ -225,7 +236,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPA.GVP",		HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPB.GVP",		HWRAM_ldptr, &entities[42], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"LONGBOX.GVP",		HWRAM_ldptr, &entities[43], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUTI.GVP",			HWRAM_ldptr, &entities[44], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -233,7 +245,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
-	p64MapRequest(0);
+	p64MapRequest(8);
 	//
 	
 }
