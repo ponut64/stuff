@@ -654,7 +654,7 @@ bigDif = JO_MAX(JO_MAX(JO_ABS(centerDif[X]), JO_ABS(centerDif[Y])),JO_ABS(center
 	{
 	player_shadow_object(stator, centerDif);
 	}
-if(bigDif > (bigRadius + (20<<16))) return false;
+if(bigDif > (bigRadius<<1)) return false;
 
 //If the collision proxy is not ready for this frame, make it.
 if(stator->status[3] != 'B')

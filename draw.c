@@ -48,6 +48,7 @@ FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
 //Note: global light is in order of BLUE, GREEN, RED. [BGR]
 int globalColorOffset;
 int glblLightApply = true;
+int drawModeSwitch = DRAW_MASTER;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -267,29 +268,39 @@ void	player_animation(void)
 	
 }
 
-void	player_draw(void)
+void	player_draw(int draw_mode)
 {
-	//slPushMatrix();
-	{
-		//Note that "sl_RBB" is used as a safe copy of pl_RBB to be manipulated.
-		sl_RBB = pl_RBB;
-		sl_RBB.pos[X] = 0;//-sl_RBB.pos[X]; //Negate, because coordinate madness
-		sl_RBB.pos[Y] = 0;//-sl_RBB.pos[Y]; //Negate, because coordinate madness
-		sl_RBB.pos[Z] = 0;//-sl_RBB.pos[Z]; //Negate, because coordinate madness
 	
-		pl_model.prematrix = (FIXED*)&sl_RBB;
-		wings.prematrix = (FIXED*)&sl_RBB;
-		
-		msh2DrawModel(&pl_model, perspective_root);
 
+	//Note that "sl_RBB" is used as a safe copy of pl_RBB to be manipulated.
+	sl_RBB = pl_RBB;
+	sl_RBB.pos[X] = 0;//-sl_RBB.pos[X]; //Negate, because coordinate madness
+	sl_RBB.pos[Y] = 0;//-sl_RBB.pos[Y]; //Negate, because coordinate madness
+	sl_RBB.pos[Z] = 0;//-sl_RBB.pos[Z]; //Negate, because coordinate madness
+	
+	pl_model.prematrix = (FIXED*)&sl_RBB;
+	wings.prematrix = (FIXED*)&sl_RBB;
+	if(draw_mode == DRAW_MASTER)
+	{
+		msh2DrawModel(&pl_model, perspective_root);
+	} else if(draw_mode == DRAW_SLAVE)
+	{
+		slPushMatrix();
+		ssh2DrawModel(&pl_model);
+		slPopMatrix();
 	}
-	//slPopMatrix();
 	
 	if(you.setJet)
 	{
-		//slPushMatrix();
-		msh2DrawModel(&wings, perspective_root);
-		//slPopMatrix();
+		if(draw_mode == DRAW_MASTER)
+		{
+			msh2DrawModel(&wings, perspective_root);
+		} else if(draw_mode == DRAW_SLAVE)
+		{
+			slPushMatrix();
+			ssh2DrawModel(&wings);
+			slPopMatrix();
+		}
 	}
 
 }
@@ -345,9 +356,9 @@ void	obj_draw_queue(void)
 	
 }
 
-void	shadow_draw(void)
+void	shadow_draw(int draw_mode)
 {
-	//slPushMatrix();
+	
 	//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
 	//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
 	sl_RBB = pl_RBB;
@@ -357,8 +368,16 @@ void	shadow_draw(void)
 	
 	shadow.prematrix = (FIXED*)&sl_RBB;
 
-	msh2DrawModel(&shadow, perspective_root);
-	//slPopMatrix();
+	if(draw_mode == DRAW_MASTER)
+	{
+		msh2DrawModel(&shadow, perspective_root);
+	} else if(draw_mode == DRAW_SLAVE)
+	{
+		slPushMatrix();
+		ssh2DrawModel(&shadow);
+		slPopMatrix();
+	}
+	
 }
 
  //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
@@ -408,6 +427,11 @@ void	object_draw(void)
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
 	slGetMatrix(perspective_root);
+	if(drawModeSwitch == DRAW_MASTER)
+	{
+		player_draw(DRAW_SLAVE);
+		shadow_draw(DRAW_SLAVE);
+	}
 	//////////////////////////////////////////////////////////////
 	// "viewpoint" is the point from which the perspective will originate (contains view translation/rotation).
 	//////////////////////////////////////////////////////////////
@@ -537,25 +561,28 @@ void	master_draw(void)
 	static int interim_time;
 	static int extra_time;
 
-	
 	time_at_start = get_time_in_frame();
-	
+
+	drawModeSwitch = (you.distanceToMapFloor < 768<<16) ? DRAW_MASTER : DRAW_SLAVE;
+
 	if(!you.inMenu)
 	{
+		
 	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 
 	interim_time = get_time_in_frame();
 	
 	background_draw();
-	
 	player_animation();
-	player_draw();
-	shadow_draw();
+
 	//
-	if(!(you.distanceToMapFloor > 768<<16))
+	if(drawModeSwitch == DRAW_MASTER)
 	{
 	map_draw();
+	} else {
+	player_draw(DRAW_MASTER);
+	shadow_draw(DRAW_MASTER);
 	}
 	map_draw_prep();
 	//
@@ -607,11 +634,11 @@ void	master_draw(void)
 	
 	if(viewInfoTxt == 1)
 	{
-	slPrintFX(time_at_start, slLocate(7, 7));
-	slPrintFX(time_of_master_draw, slLocate(7, 8));
-	slPrintFX(time_of_object_management, slLocate(7, 9));
-	slPrintFX(extra_time, slLocate(7, 10));
-	slPrintFX(time_at_end, slLocate(7, 11));
+	nbg_sprintf_decimal(7, 7, time_at_start);
+	nbg_sprintf_decimal(7, 8, time_of_master_draw);
+	nbg_sprintf_decimal(7, 9, time_of_object_management);
+	nbg_sprintf_decimal(7, 10, extra_time);
+	nbg_sprintf_decimal(7, 11, time_at_end);
 	nbg_sprintf(2, 6, "MSH2:");
 	nbg_sprintf(2, 7, "Strt:");
 	nbg_sprintf(2, 8, "Map:");
@@ -623,7 +650,7 @@ void	master_draw(void)
 		if(get_time_in_frame() >= (50<<16)) break;
 	};
 	time_at_ssh2_end = get_time_in_frame();
-	slPrintFX(time_at_ssh2_end, slLocate(7, 12));
+	nbg_sprintf_decimal(7, 12, time_at_ssh2_end);
 	nbg_sprintf(2, 12, "SSH2:");
 	}
 }

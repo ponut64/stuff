@@ -226,7 +226,6 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
-	static int max_z;
 	static char new_rule;
 
 	ptv[0] = &subdivided_points[subdivided_polygons[overwritten_polygon][0]][X];
@@ -234,7 +233,7 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	ptv[2] = &subdivided_points[subdivided_polygons[overwritten_polygon][2]][X];
 	ptv[3] = &subdivided_points[subdivided_polygons[overwritten_polygon][3]][X];
 	
-	//if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
+	if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
 	new_rule = subdivision_rules[total_divisions];
 	rootTex = rootTex-1;
 	used_textures[overwritten_polygon] = rootTex;
@@ -269,8 +268,9 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	short poly_c = sub_poly_cnt+1;
 	short poly_d = sub_poly_cnt+2;
 	
-	if(new_rule == SUBDIVIDE_XY) 
+	switch(new_rule)
 	{
+	case(SUBDIVIDE_XY):
 	//////////////////////////////////////////////////////////////////
 	// Subdivide by all rules / Subdivide polygon into four new quads
 	//Turn 4 points into 9 points
@@ -347,40 +347,18 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	sub_vert_cnt = tgt_pnt;
 	sub_poly_cnt += 3; //Only add 3, as there was already 1 polygon. It was split into four.
 	
-		if(num_divisions > 0)
-		{
-		///////////////////////////////////////////
-		//	Recursively subdivide the polygon.
-		//	Check the maximum Z of every new polygon.
-		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-		///////////////////////////////////////////
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-			
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-			
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_c][0]][Z], subdivided_points[subdivided_polygons[poly_c][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_c][2]][Z], subdivided_points[subdivided_polygons[poly_c][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_c, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][2]);
-			
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_d][0]][Z], subdivided_points[subdivided_polygons[poly_d][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_d][2]][Z], subdivided_points[subdivided_polygons[poly_d][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_d, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][3]);
-		}
-	
-	} else if(new_rule == SUBDIVIDE_Y) 
-	{
+	///////////////////////////////////////////
+	//	Recursively subdivide the polygon.
+	//	Check the maximum Z of every new polygon.
+	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
+	subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
+	subdivide_plane(sub_vert_cnt, poly_c, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][2]);
+	subdivide_plane(sub_vert_cnt, poly_d, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][3]);
+		
+	break;
+	case(SUBDIVIDE_Y):
 	//////////////////////////////////////////////////////////////////
 	// Subdivide between the edges 0->1 and 3->2 (""Vertically"")
 	// (Splits the polygon such that new vertices are created between 0->3 and 1->2)
@@ -421,28 +399,16 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	sub_vert_cnt = tgt_pnt;
 	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
 	
-		if(num_divisions > 0)
-		{
-		///////////////////////////////////////////
-		//	Recursively subdivide the polygon.
-		//	Check the maximum Z of every new polygon.
-		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-		///////////////////////////////////////////
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-			
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-		}
-		
-	} else if(new_rule == SUBDIVIDE_X)
-	{
+	///////////////////////////////////////////
+	//	Recursively subdivide the polygon.
+	//	Check the maximum Z of every new polygon.
+	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
+	subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
+
+	break;
+	case(SUBDIVIDE_X):
 	//////////////////////////////////////////////////////////////////
 	// Subdivide between the edges 0->3 and 1->2 (""Horizontally"")
 	// (Splits the polygon such that new vertices are created between 0->1 and 3->2)
@@ -482,27 +448,18 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	sub_vert_cnt = tgt_pnt;
 	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
 	
-		if(num_divisions > 0)
-		{
-		///////////////////////////////////////////
-		//	Recursively subdivide the polygon.
-		//	Check the maximum Z of every new polygon.
-		// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-		///////////////////////////////////////////
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][0]][Z], subdivided_points[subdivided_polygons[poly_a][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_a][2]][Z], subdivided_points[subdivided_polygons[poly_a][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-			
-			max_z = JO_MAX(
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][0]][Z], subdivided_points[subdivided_polygons[poly_b][1]][Z]),
-	JO_MAX(subdivided_points[subdivided_polygons[poly_b][2]][Z], subdivided_points[subdivided_polygons[poly_b][3]][Z])
-					);
-			if(max_z > 0) subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-		}
+	///////////////////////////////////////////
+	//	Recursively subdivide the polygon.
+	//	Check the maximum Z of every new polygon.
+	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
+	///////////////////////////////////////////
+	subdivide_plane(sub_vert_cnt, poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
+	subdivide_plane(sub_vert_cnt, poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
+
+	break;
+	default:
+	break;
 	}
-	
 }
 
 void	plane_rendering_with_subdivision(entity_t * ent)
@@ -557,7 +514,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	Right now, this is slow. Very slow.
 	**/
 
-	int max_z = 0;
+	//int max_z = 0;
 	//int min_z = 0;
 	
 	int specific_texture = 0;
@@ -661,9 +618,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//	Check the maximum Z of every new polygon.
 	// 	This is the first polygon. So, if its maximum Z is too low, just discard it.
 	///////////////////////////////////////////
-	max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
-	if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
+	// max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			// JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+	// if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
 	
 	//////////////////////////////////////////////////////////////
 	// Portal stuff
@@ -786,6 +743,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//
 	///////////////////////////////////////////
 	if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
+	//Used to account for the texture # being offset when UV cut textures are generated
+	int texno_offset = ((mesh->attbl[i].texno - ent->base_texture) * UV_CUT_COUNT) + mesh->attbl[i].texno;
 	unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
@@ -809,8 +768,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		///////////////////////////////////////////
 		// These use UV-cut textures now, so it's like this.
 		///////////////////////////////////////////
-		specific_texture = ((mesh->attbl[i].texno - ent->base_texture) * UV_CUT_COUNT)
-		+ mesh->attbl[i].texno + used_textures[j];
+		specific_texture = texno_offset + used_textures[j];
 		specific_texture = (flags & GV_FLAG_ANIM) ? mesh->attbl[i].texno : specific_texture;
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping

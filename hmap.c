@@ -578,10 +578,10 @@ short preprocess_portals(void)
 			int szB[2] = {scene_portals[i].verts[1][X] - scene_portals[i].verts[2][X], scene_portals[i].verts[1][Y] - scene_portals[i].verts[2][Y]};
 			int szC[2] = {scene_portals[i].verts[2][X] - scene_portals[i].verts[3][X], scene_portals[i].verts[2][Y] - scene_portals[i].verts[3][Y]};
 			int szD[2] = {scene_portals[i].verts[3][X] - scene_portals[i].verts[0][X], scene_portals[i].verts[3][Y] - scene_portals[i].verts[0][Y]};
-			cursize =  (szA[X] * szA[X]) + (szA[Y] * szA[Y]);
-			cursize += (szB[X] * szB[X]) + (szB[Y] * szB[Y]);
-			cursize += (szC[X] * szC[X]) + (szC[Y] * szC[Y]);
-			cursize += (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
+			cursize =  (clipFlags[0] && clipFlags[1]) ? 0 : (szA[X] * szA[X]) + (szA[Y] * szA[Y]);
+			cursize += (clipFlags[1] && clipFlags[2]) ? 0 : (szB[X] * szB[X]) + (szB[Y] * szB[Y]);
+			cursize += (clipFlags[2] && clipFlags[3]) ? 0 : (szC[X] * szC[X]) + (szC[Y] * szC[Y]);
+			cursize += (clipFlags[3] && clipFlags[0]) ? 0 : (szD[X] * szD[X]) + (szD[Y] * szD[Y]);
 			scene_portals[i].depth = JO_MIN(JO_MIN(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MIN(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
 			//int max_depth = JO_MAX(JO_MAX(scene_portals[i].verts[0][Z], scene_portals[i].verts[1][Z]), JO_MAX(scene_portals[i].verts[2][Z], scene_portals[i].verts[3][Z]));
 			// If the portal is off-screen, it should be deactivated.
@@ -677,7 +677,7 @@ int new_vertices[6][3];
 vertex_t * new_polygons[4][4];
 vertex_t scrnsub[5];
 
-int		unmath_center[3];
+//int		unmath_center[3];
 
 ////////////////////////////
 // Takes a polygon from the map & its associated data from the precompiled tables and subdivides it four-ways.
@@ -687,7 +687,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 {
 	//Shorthand Point Data
 	FIXED * pnts[4];
-	FIXED * umpt[4];
+	//FIXED * umpt[4];
 	int luma = 0;
 	unsigned short used_flip = *flip;
 	unsigned short colorBank = 0;
@@ -697,10 +697,10 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	pnts[1] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[1]][0];
 	pnts[2] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[2]][0];
 	pnts[3] = &verts_without_inverse_z[polymap->pltbl[*dst_poly].vertices[3]][0];
-	umpt[0] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[0]][0];
-	umpt[1] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[1]][0];
-	umpt[2] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[2]][0];
-	umpt[3] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[3]][0];
+	//umpt[0] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[0]][0];
+	//umpt[1] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[1]][0];
+	//umpt[2] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[2]][0];
+	//umpt[3] = &polymap->pntbl[polymap->pltbl[*dst_poly].vertices[3]][0];
 	/*
 	0A			1A | 0B			1B
 							
@@ -719,9 +719,9 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 	// This is created to do lighting effects on each polygon in the proper vector space.
 	// The other points that are rendered are created from post-matrix transformed points.
 	// This one is made from points of the PDATA, without any transformation.
-	unmath_center[X] = (umpt[0][X] + umpt[1][X] + umpt[2][X] + umpt[3][X])>>2;
-	unmath_center[Y] = (umpt[0][Y] + umpt[1][Y] + umpt[2][Y] + umpt[3][Y])>>2;
-	unmath_center[Z] = (umpt[0][Z] + umpt[1][Z] + umpt[2][Z] + umpt[3][Z])>>2;
+	//unmath_center[X] = (umpt[0][X] + umpt[1][X] + umpt[2][X] + umpt[3][X])>>2;
+	//unmath_center[Y] = (umpt[0][Y] + umpt[1][Y] + umpt[2][Y] + umpt[3][Y])>>2;
+	//unmath_center[Z] = (umpt[0][Z] + umpt[1][Z] + umpt[2][Z] + umpt[3][Z])>>2;
 	
 	
 	//Initial State
@@ -800,7 +800,7 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 		ptv[1] = new_polygons[q][1];
 		ptv[2] = new_polygons[q][2];
 		ptv[3] = new_polygons[q][3];
-		 int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
+		int offScrn = (ptv[0]->clipFlag & ptv[2]->clipFlag & ptv[1]->clipFlag & ptv[3]->clipFlag);
 		
 		if(offScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		used_flip = *flip;
@@ -839,7 +839,6 @@ void	render_map_subdivided_polygon(int * dst_poly, int * texno, unsigned short *
 		}	
 		luma = (luma < 0) ? 0 : luma; //We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
  */		luma += *baseLight + active_lights[0].min_bright;
-		//In normal "vision" however, bright light would do that..
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -885,11 +884,11 @@ void	update_hmap(MATRIX msMatrix)
 	unsigned short pclp = 0;
 	int inverseZ = 0;
 
-	preprocess_portals();
+	short using_portal = preprocess_portals();
 	
 	load_winder_prog();
 	//run_winder_prog();
-	int clipct = 0;
+
 	//Loop Concept:
 	//SO just open Paint.NET make a 255x255 image.
 	//Then with the selection tool, drag a box exactly 25x25 in size.
@@ -960,25 +959,8 @@ void	update_hmap(MATRIX msMatrix)
 
 	//	}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub
-	// nbg_sprintf(0, 15, "max(%i),(%i)", used_portal->max[X], used_portal->max[Y]);
-	// nbg_sprintf(0, 16, "min(%i),(%i)", used_portal->min[X], used_portal->min[Y]);	
 	
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
-
-	//Loop explanation:
-	//The map is forced to be odd in both dimensions (X and Y) to force there to be an objective "center" pixel. This is necessary so we can find our place in the map,
-	//for the above loop.
-	//However, this complicates assigning our "compressed" normals to polygons.
-	//The local map is an odd number too (e.g. 25x25).
-	//The polygon maps are always even then, the local polymap being 24x24 and the big map being (map_dimension-1)^2.
-	//So we have to do some mathematical gymnastics to find something we can represent as the center of the polygonal map.
-	//Very important is to find the local polygon 0 ("top left") to use as the offset for our pos.
-	//So how do we define the integer center of even numbers? Well, we can't but we do have a guide:
-	//The vertice map does have a center. So we define our center as the polygon which has the center vertice (of the main map)
-	// as its first vertice [vertice 0 of 0-1-2-3].
-	// currently, 12 represents the polymap_width>>1
-			
-	//We also draw the polygons here.
 	
 	//This polygon contains the center pixel (main_map_total_pix>>1)
 	int poly_center = ((main_map_total_poly>>1) + 1 + ((main_map_x_pix-1)>>1)); 
@@ -988,7 +970,6 @@ void	update_hmap(MATRIX msMatrix)
 	int src_poly = 0; //(Source polygon # for texture data)
 
 	vertex_t * ptv[5] = {0, 0, 0, 0, 0}; //5th value used as temporary vert ID
-	//volatile int * uclip[4] = {0, 0, 0, 0};
 	//Temporary flip value used as the texture's flip characteristic so we don't have to write it back to memory
 	unsigned short flip = 0; 
 	int texno = 0; //Ditto
@@ -999,25 +980,49 @@ void	update_hmap(MATRIX msMatrix)
 	
 	int subbed_polys = 0;
 	
+	if(using_portal)
+	{
 	//Dumb solution: While DSP is crunching the clipping, don't let the SH2 process any polygons.
-	// **IDEALLY** the SH2 could continue crunching polygons,
-	// and just wait for the DSP to catch up when it finds vertices that the DSP hasn't crunched yet.
-	// However, while the DSP does mark a vertex when it checks whether clipped or not, 
-	// I was unable to get the SH2 to wait when it sees one that isn't clipped.
-	// Because, you know, it's waiting for a number to magically change without its knowledge.
-	while(dsp_noti_addr[0] == 0){}
+	// **IDEALLY** the SH2 could continue crunching polygons.
+	//while(dsp_noti_addr[0] == 0){}
 	//	Another dumb solution:
 	// Whereby the DSP is in progress working on clip flags, the SH2 cannot write any clip flags lest the DSP overwrite them.
 	// Thus we have to have SH2 do screen clipping only after DSP is done.
 	// If my DSP code had program RAM left in it, I'd have it do this.
+	
+	volatile int npct = 0;
 	for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
 	{
 	       //Screen Clip Flags for on-off screen decimation
+		//Hammertime: If the DSP hasn't checked this vertex yet, wait until it has.
+		int * clipFlag = (int *)(((unsigned int)&msh2VertArea[dst_pix].clipFlag)|UNCACHE);
+		npct = 0;
+		while(!(*clipFlag & DSP_CLIP_CHECK) && npct < 1000)
+		{
+			//If you remove this asm, it doesn't work. NO IDEA WHY.
+			__asm__("nop;");
+			npct++;
+		}
+		   
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
 		msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
+	}
+	
+	} else {
+		
+		for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
+		{
+			
+			msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+			msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : msh2VertArea[dst_pix].clipFlag; 
+			msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : msh2VertArea[dst_pix].clipFlag;
+			msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : msh2VertArea[dst_pix].clipFlag;
+			msh2VertArea[dst_pix].clipFlag |= ((msh2VertArea[dst_pix].pnt[Z]) <= 15<<16) ? CLIP_Z : msh2VertArea[dst_pix].clipFlag;
+		}
+		
 	}
 	
 	for(int k = 0; k < LCL_MAP_PLY; k++)
@@ -1036,14 +1041,6 @@ void	update_hmap(MATRIX msMatrix)
 			ptv[1] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[1]];
 			ptv[2] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[2]];
 			ptv[3] = &msh2VertArea[polymap->pltbl[dst_poly].vertices[3]];
-			// if(!(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag & DSP_CLIP_CHECK))
-			// {
-				// uclip[0] = (volatile int *)((unsigned int)&ptv[0]->clipFlag | UNCACHE);
-				// uclip[1] = (volatile int *)((unsigned int)&ptv[1]->clipFlag | UNCACHE);
-				// uclip[2] = (volatile int *)((unsigned int)&ptv[2]->clipFlag | UNCACHE);
-				// uclip[3] = (volatile int *)((unsigned int)&ptv[3]->clipFlag | UNCACHE);
-				// while(!(*uclip[0] & *uclip[1] & *uclip[2] & *uclip[3] & DSP_CLIP_CHECK)){};
-			// }
 			////////////////////////////////////////////////
 			//Backface & Screenspace Culling Section
 			////////////////////////////////////////////////
@@ -1129,11 +1126,13 @@ void	update_hmap(MATRIX msMatrix)
 		}	// Row Filler Loop End Stub
 	} // Row Selector Loop End Stub
 	
+	//int clipct = 0;
 	//Purge clip flags
 	//Necessary process for DSP use
 	for(int i = 0; i < (LCL_MAP_PIX * LCL_MAP_PIX); i++)
 	{
-		if(msh2VertArea[i].clipFlag & DSP_CLIP_CHECK) clipct++;
+		//if(msh2VertArea[i].clipFlag & DSP_CLIP_CHECK) clipct++;
+		//Not sure why I have to do this specifically here; waste of performance...
 		msh2VertArea[i].clipFlag = 0;
 	}
 	

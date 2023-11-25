@@ -28,7 +28,7 @@
 #define INTERNAL_MAX_POLY 2600 //Slave only 1700
 #define INTERNAL_MAX_VERTS 2800 //Slave only 2800
 #define MAX_SSH2_SENT_POLYS (750) //SpriteBuf size limitation 
-#define MAX_MSH2_SENT_POLYS (450) //SpriteBuf size limitation 
+#define MAX_MSH2_SENT_POLYS (550) //SpriteBuf size limitation 
 #define MAX_SSH2_ENTITY_VERTICES (500)
 #define MAX_MSH2_ENTITY_VERTICES (500) //This is coming from def.h for hmap.c, but it needs to be at least this much.
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.

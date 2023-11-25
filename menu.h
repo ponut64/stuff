@@ -8,7 +8,7 @@
 #define HUD_LAYER_TEXVIEWER	(5)
 #define HUD_LAYER_CONTROLS	(6)
 
-#define HUD_EVENT_TYPES (32)
+#define HUD_EVENT_TYPES (64)
 #define HUD_EVENT_START (1)
 #define HUD_EVENT_RUN	(2)
 #define HUD_EVENT_DONE	(3)
@@ -55,6 +55,12 @@
 #define SIGN_7					(29)
 #define	SIGN_8					(30)
 #define	SIGN_9					(31)
+#define SIGN_10					(32)
+#define SIGN_11					(33)
+#define SIGN_12					(34)
+#define SIGN_13					(35)
+#define SIGN_14					(36)
+#define SIGN_15					(37)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

@@ -3,6 +3,8 @@
 #define VIEW_OFFSET_X (0 * 65536)
 #define VIEW_OFFSET_Y (8 * 65536)
 #define VIEW_OFFSET_Z (-22 * 65536)
+#define DRAW_MASTER (1)
+#define DRAW_SLAVE	(2)
 
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
 extern _quad polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];

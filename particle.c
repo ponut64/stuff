@@ -177,9 +177,13 @@ void	player_sliding_particles(void)
 	
 	int p_int[3] = {-you.velocity[X], -you.velocity[Y], -you.velocity[Z]};
 	
+	p_int[X] -= pl_RBB.UVY[X];
+	p_int[Y] -= pl_RBB.UVY[Y];
+	p_int[Z] -= pl_RBB.UVY[Z];
+	
 	if(effectTimeCount > effectTimeLimit)
 	{
-	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NORMAL, particle_pos, p_int, 2<<16, 65536, 3);
+	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, particle_pos, p_int, 2<<16, 65536, 3);
 	effectTimeCount = 0;
 	}
 	effectTimeCount += delta_time;

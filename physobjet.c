@@ -225,7 +225,6 @@ c.	misc
 		I also still want to add an "Extreme Ski" map.
 	6. Need to review tutorial.
 	1. Consider adding voice to text
-	f. disable sound when in level change procees!
 c. Tutorial
 		Need to work on a guided tutorial.
 		One of the things I believe a guided tutorial needs is multi-staged text pages.

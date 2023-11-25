@@ -1289,11 +1289,11 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign8txt[] = ".";
+	static char sign8txt[] = "Welcome to game!\nThis is a simple introductory level.\nGive the minimap a glance.";
 	event->text = &sign8txt[0];
 	event->colorBank = 1<<6;
-	event->text_lines = 1;
-	event->text_width = strlen(event->text);
+	event->text_lines = 3;
+	event->text_width = 36;
 	
 	event = &hudEvents[SIGN_9];
 	
@@ -1310,12 +1310,137 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign9txt[] = ".";
+	static char sign9txt[] = "This is the flag stand.\nYou need to find the goal stand to open it.";
 	event->text = &sign9txt[0];
 	event->colorBank = 1<<6;
-	event->text_lines = 1;
-	event->text_width = strlen(event->text);
+	event->text_lines = 2;
+	event->text_width = 43;
 	
+	event = &hudEvents[SIGN_10];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign10txt[] = "You can hold the L button to slide.\nIt's not as good for speed as holding R.\nIt's good if you don't want to bounce.\nMostly, it's for advanced players.";
+	event->text = &sign10txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 4;
+	event->text_width = 38;
+	
+	event = &hudEvents[SIGN_11];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign11txt[] = "You can queue a jump mid-air\nby releasing then holding A.\nJumping is a powerful tool for speed.\nRemember, you jump where you're leaning.";
+	event->text = &sign11txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 4;
+	event->text_width = 42;
+	
+	event = &hudEvents[SIGN_12];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign12txt[] = "This is the goal stand.\nJump in the block to crack it open.\nThen, stand on the center.";
+	event->text = &sign12txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 35;
+	
+	event = &hudEvents[SIGN_13];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign13txt[] = "These checkered posts are the start gate.\nYou have to start the track from these.";
+	event->text = &sign13txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 2;
+	event->text_width = 41;
+	
+	event = &hudEvents[SIGN_14];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign14txt[] = "This is a regular gate.\nYou have to discover all gates\nbefore you can complete the track.\nGates show up on the minimap.";
+	event->text = &sign14txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 4;
+	event->text_width = 34;
+	
+	event = &hudEvents[SIGN_15];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign15txt[] = "This is the goal gate.\nYou should plan to end your run\nof the track at these gates.";
+	event->text = &sign15txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 31;
 	
 }
 

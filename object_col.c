@@ -277,14 +277,15 @@ Bool hitY = false;
 Bool hitXZ = false;
 Bool shadowStruck = false;
 
-	discard_vector[X] = JO_ABS(mesh_position[X] + mover->pos[X]);
-	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->pos[Y]);
-	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->pos[Z]);
+	discard_vector[X] = JO_ABS(mesh_position[X] + mover->nextPos[X]);
+	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->nextPos[Y]);
+	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->nextPos[Z]);
 
-	//If the player is farther away from the object than twice its radius, cease the test.
-	if(discard_vector[X] > (ent->radius[X]<<17) ||
-	discard_vector[Y] > (ent->radius[Y]<<17) ||
-	discard_vector[Z] > (ent->radius[Z]<<17)) return;
+	//If the player is farther away from the object than its radius, cease the test.
+	//Why +10? To account for player being *just* outside of it, like standing on top of it.
+	if(discard_vector[X] > ((ent->radius[X]+10)<<16) ||
+	discard_vector[Y] > ((ent->radius[Y]+10)<<16) ||
+	discard_vector[Z] > ((ent->radius[Z]+10)<<16)) return;
 	
 	/**
 	This test can only be performed on un-rotated meshes.
@@ -467,17 +468,20 @@ if(you.hitSurface && last_floor_entity == ent && !you.setJet)
 					}
 					you.ladder = true;
 				}
+			} else {
+			you.shadowPos[X] = lineEnds[Y][X];
+			you.shadowPos[Y] = lineEnds[Y][Y];
+			you.shadowPos[Z] = lineEnds[Y][Z];
+			you.aboveObject = true;
 			}
 			standing_surface_alignment(you.floorNorm);
 			you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
 			you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
 			you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-			you.shadowPos[X] = lineEnds[Y][X];
-			you.shadowPos[Y] = lineEnds[Y][Y];
-			you.shadowPos[Z] = lineEnds[Y][Z];
+			
+
 			
 			you.hitSurface = true;
-			you.aboveObject = true;
 			you.hitObject = true;
 			hitY = true; 
 		}
@@ -662,14 +666,15 @@ for(int i = 0; i < total_planes; i++)
 								you.rot2[Y] = 32768;
 							}
 							you.ladder = true;
+							you.IPaccel = 0;
 						}
 					}
 					
 					standing_surface_alignment(you.floorNorm);
 					
-					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					you.floorPos[X] = (lineEnds[Z][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Z][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Z][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 					
 					you.hitSurface = true;
 				} else {
@@ -712,14 +717,15 @@ for(int i = 0; i < total_planes; i++)
 								you.rot2[Y] = 32768;
 							}
 							you.ladder = true;
+							you.IPaccel = 0;
 						}
 					}
 					
 					standing_surface_alignment(you.floorNorm);
 					
-					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					you.floorPos[X] = (lineEnds[X][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[X][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[X][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 					
 					you.hitSurface = true;
 				} else {

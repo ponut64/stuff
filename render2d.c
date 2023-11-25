@@ -78,6 +78,7 @@ void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 //mesh: 0 for solid, 1 for mesh
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border, unsigned short depth, unsigned short mesh)
 {
+	if(msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) return;
 	//
 	// Draw a 2D square.
 	// Draws using VDP1 single-color polygon.
@@ -431,6 +432,7 @@ void	drawAxis(POINT size)
 
 void	draw_normal_sprite(int xPos, int yPos, unsigned short texno, unsigned short colrBank)
 {
+	if(msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) return;
 	int ptv[XY] = {xPos - TV_HALF_WIDTH, yPos - TV_HALF_HEIGHT};
 	msh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 /*COMMAND MODES*/, 
 				pcoTexDefs[texno].SRCA /*SRCA*/, colrBank /*COLOR BANK CODE*/,
@@ -473,12 +475,13 @@ void	spr_print(int xPos, int yPos, char * data)
 	}
 	// "baseAsciiTexno" is supplied by setting "baseAsciiTexno = numTex" then loading the ASCII texture table (WRAP_NewTable).
 	texIndex = (baseAsciiTexno + nextChar)-32;
-
+	if(msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) return;
 	msh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 /*COMMAND MODES*/, 
 				pcoTexDefs[(unsigned char)texIndex].SRCA /*SRCA*/, 2 /*COLOR BANK CODE*/,
 				pcoTexDefs[(unsigned char)texIndex].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
 				);
 	ptv[X] += sprAsciiWidth; //Some number added to xPos to distance the characters
+	
 	}
 
 }	

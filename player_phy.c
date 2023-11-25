@@ -704,9 +704,9 @@ void	player_phys_affect(void)
 	//At least in one test, this was pretty much perfect!
 	if(!you.climbing && you.wasClimbing)
 	{
-		you.dV[X] += fxm(you.floorNorm[X], 1<<16);
+		you.dV[X] += fxm(you.floorNorm[X], 32768);
         you.dV[Y] += 32768;
-        you.dV[Z] += fxm(you.floorNorm[Z], 1<<16);
+        you.dV[Z] += fxm(you.floorNorm[Z], 32768);
 		you.wasClimbing = false;
 	}
 	///////////////////////////////////////////////

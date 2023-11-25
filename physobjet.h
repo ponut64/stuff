@@ -1,7 +1,7 @@
 #pragma once
 
 #define CELL_CULLING_DIST_MED (10)
-#define CELL_CULLING_DIST_LONG (14)
+#define CELL_CULLING_DIST_LONG (11)
 #define HEIGHT_CULLING_DIST	(512<<16)
 
 #define OBJPOP	(0x8000) //Is populated?
