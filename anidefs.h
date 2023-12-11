@@ -238,5 +238,47 @@ void	anim_defs(void)
 	goal.startFrm = 0;
 	goal.endFrm = 4;
 	
+	static Uint8 Leye_arates[4];
+	static Uint8 Leye_lumas[4];
+	LeyeAnim.lifetime = 3000<<16;
+	LeyeAnim.arates = &Leye_arates[0];
+	LeyeAnim.lumas = &Leye_lumas[0];
+	LeyeAnim.arates[0] = 180;
+	LeyeAnim.arates[1] = 1;
+	LeyeAnim.arates[2] = 1;
+	LeyeAnim.arates[3] = 1;
+
+	LeyeAnim.lumas[0] = 0;
+	LeyeAnim.lumas[1] = 0;
+	LeyeAnim.lumas[2] = 0;
+	LeyeAnim.lumas[3] = 0;
+	LeyeAnim.sprite_sheet_start = animated_texture_list[4];
+	LeyeAnim.sprite_sheet_end = LeyeAnim.sprite_sheet_start + 4;
+	LeyeAnim.curFrm = 0;
+	LeyeAnim.curKeyFrm = 0;
+	LeyeAnim.startFrm = 0;
+	LeyeAnim.endFrm = 4;
+	
+	static Uint8 Reye_arates[4];
+	static Uint8 Reye_lumas[4];
+	ReyeAnim.lifetime = 3000<<16;
+	ReyeAnim.arates = &Reye_arates[0];
+	ReyeAnim.lumas = &Reye_lumas[0];
+	ReyeAnim.arates[0] = 180;
+	ReyeAnim.arates[1] = 1;
+	ReyeAnim.arates[2] = 1;
+	ReyeAnim.arates[3] = 1;
+
+	ReyeAnim.lumas[0] = 0;
+	ReyeAnim.lumas[1] = 0;
+	ReyeAnim.lumas[2] = 0;
+	ReyeAnim.lumas[3] = 0;
+	ReyeAnim.sprite_sheet_start = animated_texture_list[5];
+	ReyeAnim.sprite_sheet_end = ReyeAnim.sprite_sheet_start + 4;
+	ReyeAnim.curFrm = 0;
+	ReyeAnim.curKeyFrm = 0;
+	ReyeAnim.startFrm = 0;
+	ReyeAnim.endFrm = 4;
+	
 
 }

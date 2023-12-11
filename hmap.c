@@ -313,57 +313,49 @@ int		texture_angle_resolver(int baseTex, FIXED * norm, unsigned short * flip){
 	int starting_small_crossing_texno;
 	int starting_combined_crossing_texno;
 	int starting_tiny_texno;
-	int crossing_small_dither_texno[4][7];
-	int crossing_combined_dither_texno[4][7];
+	int crossing_small_dither_texno[5][7];
+	int crossing_combined_dither_texno[5][7];
 	int ultra_downscale_texno[5][7];
 
 void	make_dithered_textures_for_map(short regenerate)
 {
 	
 	/*
-		Dithers from table A to table B are done with the crossing dither table.
-		In this case, a texture is dithered with its equivalent in the nearest table.
-		In the angular dither table, we intend to dither:
-
-			0	1	2	3	4	5	6
-		0	X	+	+	+	+	+	+
-		1	+	X	-	-	+	-	-
-		2	+	-	X	-	-	+	-
-		3	+	-	-	X	-	-	+
-		4	+	+	-	-	X	-	-
-		5	+	-	+	-	-	X	-
-		6	+	-	-	+	-	-	X
-		
-		01, 02, 03, 04, 05, 06, 14, 25, 36
-		9 results
+		Dithers are generated from texture table A to texture table A+1.
+		That means texture table 0 dithers with 1, 1 with 2, 2 with 3, and 3 with 4.
+		4 however does not have a linear dither.
+		Let's dither 4 with 0, just to make it circular.
 	*/
 	
 		if(!regenerate) starting_combined_crossing_texno = numTex;
 	//Loop to ensure the crossing small textures are in series with one another (no other textures between them).
-	for(int t = 0; t < 4; t++)
+	int ofs = 1;
+	for(int t = 0; t < 5; t++)
 	{
 		for(int p = 0; p < 7; p++)
 		{
+			ofs = (t < 4) ? 1 : -4;
 			if(!regenerate)
 			{
-			crossing_small_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p, 0);
+			crossing_small_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+ofs]+p, 0);
 			} else {
-			new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+1]+p, crossing_small_dither_texno[t][p]);
+			new_dithered_texture(map_texture_table_numbers[t]+p, map_texture_table_numbers[t+ofs]+p, crossing_small_dither_texno[t][p]);
 			}
 		}
 	}
 	
 		if(!regenerate) starting_small_crossing_texno = numTex;
 	//Loop to ensure the crossing large textures are in series with one another (no other textures between them).
-	for(int t = 0; t < 4; t++)
+	for(int t = 0; t < 5; t++)
 	{
 		for(int p = 0; p < 7; p++)
 		{
+			ofs = (t < 4) ? 1 : -4;
 			if(!regenerate)
 			{
-			crossing_combined_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt, 0);
+			crossing_combined_dither_texno[t][p] = new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+ofs]+p+map_tex_amt, 0);
 			} else {
-			new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+1]+p+map_tex_amt, crossing_combined_dither_texno[t][p]);
+			new_dithered_texture(map_texture_table_numbers[t]+map_tex_amt+p, map_texture_table_numbers[t+ofs]+p+map_tex_amt, crossing_combined_dither_texno[t][p]);
 			}
 		}
 	}
@@ -445,7 +437,6 @@ void	process_map_for_normals(void)
 			// Assignment of tables by height
 			/////////////////////
 			mapTex[main_map_total_poly] = texture_table_by_height(&ys[0]);
-			
 			///////////////////////////////////////////////
 			// This part assigns textures and texture orientation to slopes.
 			///////////////////////////////////////////////
@@ -462,6 +453,7 @@ void	process_map_for_normals(void)
 	// Let's run some logic to assign a new texture to every texture that is bordering another texture
 	////////////////////
 	//static int tex_near[4] = {0, 0, 0, 0};
+	//int counted_poly = 0;
 	//
 	//	A _bitflag_ will be added to textures with detected borders.
 	//
@@ -473,31 +465,32 @@ void	process_map_for_normals(void)
 	/// There is a bug in this code segment causing an improperly sized texture to be used:
 	/// It will use the four-way combined texture both far and near, this is incorrect.
 	/// I am unsure of the cause.
-/* 	for(int k = 0; k < (main_map_y_pix-1); k++){
-		for(int v = 0; v < (main_map_x_pix-1); v++){
-
-  			int this_texture = mapTex[counted_poly];
-			tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
-			tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
-			tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
-			tex_near[3] = ((counted_poly - (main_map_x_pix-1)) > 0) ? mapTex[counted_poly-(main_map_x_pix-1)] : this_texture;
-
-				for(int h = 0; h < 4; h++)
-				{
-					if(this_texture != tex_near[h] && !(tex_near[h] & DITHER_CROSS))
-					{
-						tex_near[h] &= 1023;
-						this_texture &= 1023;
-			 			if(this_texture < tex_near[h])
-						{
-							mapTex[counted_poly] |= DITHER_CROSS;
-							break;
-						}
-					}
-				}
-
-		}
-	} */
+ 	//for(int k = 0; k < (main_map_y_pix-1); k++)
+	//{
+	//	for(int v = 0; v < (main_map_x_pix-1); v++)
+	//	{
+  	//		int this_texture = mapTex[counted_poly];
+	//		tex_near[0] = ((counted_poly + 1) <= main_map_total_poly) ?  mapTex[counted_poly+1] : this_texture;
+	//		tex_near[1] = ((counted_poly - 1) > 0) ?  mapTex[counted_poly-1] : this_texture;
+	//		tex_near[2] = ((counted_poly + (main_map_x_pix-1)) <= main_map_total_poly) ?  mapTex[counted_poly+(main_map_x_pix-1)] : this_texture;
+	//		tex_near[3] = ((counted_poly - (main_map_x_pix-1)) > 0) ? mapTex[counted_poly-(main_map_x_pix-1)] : this_texture;
+	//
+	//			for(int h = 0; h < 4; h++)
+	//			{
+	//				if(this_texture != tex_near[h] && !(tex_near[h] & DITHER_CROSS))
+	//				{
+	//					tex_near[h] &= 1023;
+	//					this_texture &= 1023;
+	//		 			if(this_texture < tex_near[h])
+	//					{
+	//						mapTex[counted_poly] |= DITHER_CROSS;
+	//						break;
+	//					}
+	//				}
+	//			}
+	//		counted_poly++;
+	//	}
+	//}
 	
 
 }
@@ -857,8 +850,6 @@ void	update_hmap(MATRIX msMatrix)
 	static int x_pix_sample;
 	static int y_pix_sample;
 	static int dst_pix;
-	
-	register int dspReturnTgt = 0;
 
 	static FIXED m0x[4];
 	static FIXED m1y[4];
@@ -925,40 +916,49 @@ void	update_hmap(MATRIX msMatrix)
 			// }
 		// }
 	// }
-
+	
+	//If i were going to do strips...
+	// X: Starts 400, goes to -400 (goes negative, then:
+	// Z: starts -400, goes to 400 (goes positive)
+	// +X -> -X		-Z
+	// +X -> -X		 |
+	//	+X -> -X	\/
+	//	+X -> -X	+Z
+	// However, stripping this is impossible.
+	// It is impossible because the DSP requires that the SH2 intervene and write the Y axis values of the vertices to the pntbl.
+	// You can eliminate access for the X and Z values, but at that point, the bottleneck is execution time.
 	for(dst_pix = 0; dst_pix < (LCL_MAP_PIX * LCL_MAP_PIX); dst_pix++)
 	{
-		dspReturnTgt = dsp_output_addr[dst_pix];
-		if(dspReturnTgt >= 0){
-		polymap->pntbl[dst_pix][Y] = -(main_map[dspReturnTgt]<<(MAP_V_SCALE));
-			} else { //Fill Set Value if outside of map area
-		polymap->pntbl[dst_pix][Y] = -(127<<(MAP_V_SCALE));
-			}
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Vertice 3D Transformation
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//Quirk: The DSP is outputting -1 when the pixel/location is out-of-bounds.
+		//This means we would be doing negative pointer deference here.
+		//So let's sanity check against that.
+		int tyVal = -(main_map[dsp_output_addr[dst_pix]]<<(MAP_V_SCALE));
+		tyVal = (dsp_output_addr[dst_pix] < 0) ? -(127<<MAP_V_SCALE) : tyVal;
+		
+		polymap->pntbl[dst_pix][Y] = tyVal;
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//Vertice 3D Transformation
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         /**calculate z**/
         msh2VertArea[dst_pix].pnt[Z] = trans_pt_by_component(polymap->pntbl[dst_pix], m2z);
 		msh2VertArea[dst_pix].pnt[Z] = (msh2VertArea[dst_pix].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[dst_pix].pnt[Z] : NEAR_PLANE_DISTANCE;
 		verts_without_inverse_z[dst_pix][Z] = msh2VertArea[dst_pix].pnt[Z];
          /**Starts the division**/
         SetFixDiv(scrn_dist, msh2VertArea[dst_pix].pnt[Z]);
-
+	
         /**Calculates X and Y while waiting for screenDist/z **/
         verts_without_inverse_z[dst_pix][Y] = trans_pt_by_component(polymap->pntbl[dst_pix], m1y);
         verts_without_inverse_z[dst_pix][X] = trans_pt_by_component(polymap->pntbl[dst_pix], m0x);
 		
         /** Retrieves the result of the division **/
 		inverseZ = *DVDNTL;
-
+	
         /**Transform X and Y to screen space**/
         msh2VertArea[dst_pix].pnt[X] = fxm(verts_without_inverse_z[dst_pix][X], inverseZ)>>SCR_SCALE_X;
         msh2VertArea[dst_pix].pnt[Y] = fxm(verts_without_inverse_z[dst_pix][Y], inverseZ)>>SCR_SCALE_Y;
- 
+	
 		if(dst_pix == 1) run_winder_prog();
-
-	//	}	// Row Filler Loop End Stub
-	} // Row Selector Loop End Stub
+	}
 	
     transVerts[0] += LCL_MAP_PIX * LCL_MAP_PIX;
 	
@@ -1086,7 +1086,11 @@ void	update_hmap(MATRIX msMatrix)
 			////////////////////////////////////////////////	
 			if(zDepthTgt < HMAP_SUBDIVISION_LEVEL)
 			{	
-				texno += (dither & DITHER_CROSS) ? starting_small_crossing_texno : 0;
+				if(dither)
+				{
+					texno -= map_texture_table_numbers[0];
+					texno = crossing_small_dither_texno[0][0] + texno;
+				}
 				subbed_polys++;
 				render_map_subdivided_polygon(&dst_poly, &texno, &flip, &lightTbl[src_poly], &zDepthTgt);
 				continue;
@@ -1099,8 +1103,12 @@ void	update_hmap(MATRIX msMatrix)
 			{
 				texno -= map_texture_table_numbers[0];
 				texno = ultra_downscale_texno[0][0] + texno;
+			} else if(dither)
+			{
+				texno -= map_texture_table_numbers[0];
+				texno = crossing_combined_dither_texno[0][0] + texno;
 			} else {
-				texno += (dither & DITHER_CROSS) ? starting_combined_crossing_texno : map_tex_amt;
+				texno += map_tex_amt;
 			}
 			////////////////////////////////////////////////
 			// You'd think this doesn't need to be here, because otherwise everything would be subdivided or small.

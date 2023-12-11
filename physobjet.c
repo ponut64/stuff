@@ -220,29 +220,41 @@ b.	Non-heightmap mode
 	In this case, the Master SH2 needs more work to do.
 	So it should draw something.
 c.	misc
+	1. Fix dither textures
+		Well I fixed them, but their application is kinda shit.
+		I think I should go back to it later....
 	5. Play-testing
-		I need to establish the par times for each of the 8 available courses.
 		I also still want to add an "Extreme Ski" map.
-	6. Need to review tutorial.
-	1. Consider adding voice to text
-c. Tutorial
-		Need to work on a guided tutorial.
-		One of the things I believe a guided tutorial needs is multi-staged text pages.
-		One idea is like PC games did at this time, which was to have text scroll across a window area.
-		For that, I could make the text as a drawn sprite with a scrolling address, or draw it as text between two other sprites.
-		The best method will be drawing it as text and scrolling the text on VDP1.
-		So I need to pursue that.
-		But do I really have that much to say? Do I need to have that much to say?
-		I know people. They'll grump it. Always.
-		Because most people do not give a shit about your work. They want to consume it and move on.
-		A tutorial will not fix the game. But I need to at least try and show them how it is played.
-		I also need an image to overlay on the screen that displays the controls.
-		...It also might be a good idea to let people rebind the controls.
+		Should I finish the Mario 64 level?
+		... No, I don't think so.
+		I think I should stick to the Extreme Ski idea.
+		It probably won't work well but I don't have much time.
+	3. Extrme Ski?
+		For Xtrme Ski, i would want boost pads. 
+	2. Memes?
+		My original pitch was for the game to include memes.
+		The sound effects that play when collecting rings are also still placeholders.
+		I could add references to them...
+		Which means I'd <want> a streaming image implementation: not that hard, if done right.
+	e. need to buy those amtrak tickets
+	The memes is obviously silly. I'd have to find 7 (8?) memes, and get image streaming.
+	Image streaming is dependent on getting the NBG0 palette into a palette file which I can apply to another image.
+	Which is dependent on me finding a tool where I can easily just use an image as the color map.
+	As for a new level, I could do that.
+	
+	Or I could just move on to first-person game.
+d. RAM Optimization
+	Support for cutting and tiling 32x32 textures is enabled.
+	So now I have much more VRAM to work with.
 g. Gold Times
 	0: T < 6, F < 5
-	1
-	2
-	3: T < 29, F < 10
+	1: T < 40, F < 14
+	2: T < 67, F < 25
+	3: T < 25, F < 10
+	4: T < 35, F < 25
+	5: T < 52, F < 15
+	6: T < 75, F < 10
+	7: T < 65, F < 23
 blue fast - sanic, red fast - merio, green fast - carol?, purple fast - lilac, italian fast - peppino, glitch fast - vinny
 
 4 - other things
@@ -614,11 +626,22 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 	if(!(dWorldObjects[index].more_data & GATE_DISCOVERED))
 	{
 		dWorldObjects[index].more_data |= GATE_DISCOVERED;
-		add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 0x83E0);
+		if((dWorldObjects[index].type.ext_dat & GATE_LINK_NUMBER) != 0)
+		{
+			add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 44, MINIMAP_ONE_PIXEL);
+		} else {
+			add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 19, MINIMAP_X_PATTERN);
+		}
+		
 		if(index2 >= 0) 
 		{
 			dWorldObjects[index2].more_data |= GATE_DISCOVERED;
-			add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0x83E0);
+			if((dWorldObjects[index2].type.ext_dat & GATE_LINK_NUMBER) != 0)
+			{
+				add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 44, MINIMAP_ONE_PIXEL);
+			} else {
+				add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 19, MINIMAP_X_PATTERN);
+			}
 			
 			//Add an object specific to this gate, to represent the wall between the two posts
 			declare_object_at_cell(((fD[X])>>16) / CELL_SIZE_INT,
@@ -672,11 +695,11 @@ void	add_to_track_timer(int index, int index2, int * fA, int * fB, int * fC, int
 				//Gate flag processing
 				dWorldObjects[index].dist = 0;
 				dWorldObjects[index].type.ext_dat |= GATE_PASSED;
-				add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 0xFC00);
+				add_position_to_minimap(dWorldObjects[index].pix[X], dWorldObjects[index].pix[Y], 16, MINIMAP_ONE_PIXEL);
 				if(index2 >= 0)
 				{
 					dWorldObjects[index2].type.ext_dat |= GATE_PASSED;
-					add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 0xFC00);
+					add_position_to_minimap(dWorldObjects[index2].pix[X], dWorldObjects[index2].pix[Y], 16, MINIMAP_ONE_PIXEL);
 				}
 				//
 				// Temporary / Testing Change:
@@ -961,7 +984,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING1)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0xB3E0);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 3, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring1, PCM_SEMI, 6);
 		you.points += 2;
 		start_hud_event(RING1_EVENT);
@@ -969,7 +992,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING2)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0xE7E0);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 14, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring2, PCM_SEMI, 6);
 		you.points += 4;
 		start_hud_event(RING2_EVENT);
@@ -977,7 +1000,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING3)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0xCC0C);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 52, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring3, PCM_SEMI, 6);
 		you.points += 8;
 		start_hud_event(RING3_EVENT);
@@ -985,7 +1008,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING4)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0x819F);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 59, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring4, PCM_SEMI, 6);
 		you.points += 16;
 		start_hud_event(RING4_EVENT);
@@ -993,7 +1016,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING5)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0xFFEC);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 17, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring5, PCM_SEMI, 6);
 		you.points += 32;
 		start_hud_event(RING5_EVENT);
@@ -1001,7 +1024,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING6)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0x83F3);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 39, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring6, PCM_SEMI, 6);
 		you.points += 64;
 		start_hud_event(RING6_EVENT);
@@ -1009,7 +1032,7 @@ void	item_by_type_processing(_declaredObject * item, unsigned short type)
 	if(type == ITEM_TYPE_RING7)
 	{
 		item->type.ext_dat |= ITEM_COLLECTED;
-		add_position_to_minimap(item->pix[X], item->pix[Y], 0x801F);
+		add_position_to_minimap(item->pix[X], item->pix[Y], 35, MINIMAP_ONE_PIXEL);
 		pcm_play(snd_ring7, PCM_SEMI, 6);
 		you.points += 128;
 		start_hud_event(RING7_EVENT);
@@ -1107,7 +1130,7 @@ void	track_data_manage_rings(_declaredObject * someLDATA, _declaredObject * some
 						//Reset if track reset enabled
 						if(someLDATA->type.ext_dat & TRACK_RESET)
 						{
-							add_position_to_minimap(someRINGdata->pix[X], someRINGdata->pix[Y], 0x83E0);
+							add_position_to_minimap(someRINGdata->pix[X], someRINGdata->pix[Y], 11, MINIMAP_ONE_PIXEL);
 							someRINGdata->type.ext_dat &= GATE_UNPASSED; 
 						} else if(someRINGdata->type.ext_dat & GATE_PASSED)
 						{
@@ -1156,7 +1179,7 @@ void	track_data_manage_posts(_declaredObject * someLDATA, _declaredObject * some
 						//Reset if track reset enabled
 						if(someLDATA->type.ext_dat & TRACK_RESET)
 						{
-							add_position_to_minimap(somePOSTdata->pix[X], somePOSTdata->pix[Y], 0x83E0);
+							add_position_to_minimap(somePOSTdata->pix[X], somePOSTdata->pix[Y], 11, MINIMAP_ONE_PIXEL);
 							somePOSTdata->type.ext_dat &= GATE_UNPASSED; 
 						} else if(somePOSTdata->type.ext_dat & GATE_PASSED && lastCheck != gNum)
 						{
@@ -1225,12 +1248,12 @@ void	manage_track_data(_declaredObject * someLDATA)
 			
 			set_music_track = 1;
 			stm.times_to_loop = 1;
-				if(someLDATA->dist < 0 || you.cancelTimers) //If timer expired, or request cancel on timers...
+				if(someLDATA->dist < 0 || you.resetTimers || (you.cancelTimers && someLDATA->dist > 0)) //If timer expired, or request cancel on timers...
 				{
 					someLDATA->type.ext_dat &= TRACK_INACTIVE;
 					someLDATA->type.ext_dat |= TRACK_RESET; //Reset tracks; timer expired
 					someLDATA->dist = 0;
-					start_hud_event(TRACK_FAILED_EVENT);
+					if(!you.resetTimers) start_hud_event(TRACK_FAILED_EVENT);
 					//Sound stuff
 					//pcm_play(snd_alarm, PCM_PROTECTED, 5);
 					//Clear screen in this zone
@@ -1286,7 +1309,7 @@ void	manage_track_data(_declaredObject * someLDATA)
 		{
 			someLDATA->dist = 2<<16; //Set track discovery timer
 		}
-	} else if(you.cancelTimers)
+	} else if(you.resetTimers || you.cancelTimers)
 	{
 		//Reset the timer & track
 		someLDATA->dist = 0;
@@ -1383,7 +1406,8 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			
 			if(manager_type == MANAGER_RETURN_PT)
 			{
-				if((item_type == ITEM_TYPE_FLAG && *edata & FLAG_RETURN) || you.cancelTimers)
+				if((item_type == ITEM_TYPE_FLAG && *edata & FLAG_RETURN) || you.resetTimers ||
+				(you.cancelTimers && item_type == ITEM_TYPE_FLAG && *edata & FLAG_GRABBED))
 				{
 					*edata &= ITEM_NO_FLAGS;
 					someITEMdata->pix[X] = someLDATA->pix[X];
@@ -1397,7 +1421,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 					someITEMdata->more_data = 0;
 					//pcm_play(snd_freturn, PCM_PROTECTED, 6);
 					//start_adx_stream(stmsnd[stm_freturn], 5);
-					start_hud_event(FLAG_RETURNED_EVENT);
+					if(!you.resetTimers) start_hud_event(FLAG_RETURNED_EVENT);
 				}
 			}
 		
@@ -1418,9 +1442,10 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			if(manager_type == MANAGER_CTF && item_type == FORCEFIELD_REMOTE
 			&& someLDATA->type.ext_dat & CTF_FLAG_OPEN && !(*edata & OBJECT_DISABLED))
 			{
+				//"Open" the flag stand
 				*edata |= OBJECT_DISABLED;
-				add_position_to_minimap(someOBJECTdata->pix[X], someOBJECTdata->pix[Y], 0xFFEC);
-				add_position_to_minimap((someLDATA->pos[X]>>16) / CELL_SIZE_INT, (someLDATA->pos[Z]>>16) / CELL_SIZE_INT, 0xFFEC);
+				add_position_to_minimap(someOBJECTdata->pix[X], someOBJECTdata->pix[Y], 54, MINIMAP_P_PATTERN);
+				add_position_to_minimap((someLDATA->pos[X]>>16) / CELL_SIZE_INT, (someLDATA->pos[Z]>>16) / CELL_SIZE_INT, 54, MINIMAP_P_PATTERN);
 			}
 		}
 		
@@ -1470,7 +1495,7 @@ void	run_an_item_manager(_declaredObject * someLDATA)
 			spr_sprintf_decimal(10, 36, someLDATA->dist);
 			spr_sprintf(10, 48, "Par:%i", you.parTime);
 			
-			if(someLDATA->dist < 0 || you.cancelTimers)
+			if(someLDATA->dist < 0 || you.resetTimers || (you.cancelTimers && someLDATA->dist > 0))
 			{
 				someLDATA->type.ext_dat &= ITEM_MANAGER_ACTIVE;
 				someLDATA->type.ext_dat &= CLEAR_MANAGER_FLAGS;
@@ -1601,7 +1626,7 @@ void	ldata_manager(void)
 					//If you have enough points and crossed all the tracks, enable the level changer.
 					someLDATA->type.ext_dat |= 0x80;
 			//	}
-		} else if(you.cancelTimers ||
+		} else if(you.resetTimers || you.cancelTimers ||
 		((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER &&
 		!(someLDATA->type.ext_dat & ITEM_MANAGER_INACTIVE)))
 		{
@@ -1614,6 +1639,8 @@ void	ldata_manager(void)
 	
 	//User-option to cancel timers. After set true, has to be set false somewhere.
 	//So we set it false here, after all of its actions of consequence have taken place.
+	if(you.resetTimers) start_hud_event(RESET_TIMERS_EVENT);
+	you.resetTimers = false;
 	you.cancelTimers = false;
 	//slPrintHex(someLDATA->type.ext_dat, slLocate(13, 12));
 	//nbg_sprintf(13, 12, "ac_trk(%i)", activeTrack);

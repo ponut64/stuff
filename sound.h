@@ -40,6 +40,7 @@ extern int snd_orchit0;
 extern int snd_tslow;
 extern int snd_gpass;
 extern int snd_yeah;
+extern int snd_rlap;
 extern int stm_win;
 extern int stm_freturn;
 extern int stm_orchit0;

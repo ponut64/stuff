@@ -37,6 +37,7 @@
 #define TRACK_GOLD_EVENT		(13)
 #define TRACK_PAR_EVENT			(14)
 #define TRACK_SLOW_EVENT		(15)
+#define RESET_TIMERS_EVENT		(41)
 
 #define FLAG_TAKEN_EVENT		(16)
 #define FLAG_SLOW_EVENT			(17)
@@ -61,6 +62,10 @@
 #define SIGN_13					(35)
 #define SIGN_14					(36)
 #define SIGN_15					(37)
+#define SIGN_16					(38)
+#define SIGN_17					(39)
+#define SIGN_18					(40)
+#define SIGN_19					(42)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

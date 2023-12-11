@@ -119,10 +119,10 @@ void	debug_menu_layer(__basic_menu * mnu)
 
 void	control_menu_layer(__basic_menu * mnu)
 {
-	mnu->topLeft[X] = 35;
-	mnu->topLeft[Y] = 40;
-	mnu->scale[X] = 140;
-	mnu->scale[Y] = 24;
+	mnu->topLeft[X] = 25;
+	mnu->topLeft[Y] = 20;
+	mnu->scale[X] = 100;
+	mnu->scale[Y] = 20;
 	mnu->option_grid[X] = 1;
 	mnu->option_grid[Y] = 1;
 	mnu->num_option = 1;
@@ -144,7 +144,14 @@ void	control_menu_layer(__basic_menu * mnu)
 		}
 	}
 	
-	draw_normal_sprite(96, 60, controlImgTexno, 1);
+	//draw_normal_sprite(96, 60, controlImgTexno, 1);
+	int point0[3] = {50 - TV_HALF_WIDTH, 48 - TV_HALF_HEIGHT, 0};
+	int point1[3] = {300 - TV_HALF_WIDTH,48 - TV_HALF_HEIGHT, 0};
+	int point2[3] = {300 - TV_HALF_WIDTH,173 - TV_HALF_HEIGHT, 0};
+	int point3[3] = {50 - TV_HALF_WIDTH, 173 - TV_HALF_HEIGHT, 0};
+	msh2SetCommand(point0, point1, point2, point3,
+	VDP1_BASE_CMDCTRL, (VDP1_BASE_PMODE),
+	pcoTexDefs[controlImgTexno].SRCA, 1<<6, pcoTexDefs[controlImgTexno].SIZE, 0, 2<<16);
 }
 
 void	start_menu_layer(__basic_menu * mnu)
@@ -175,7 +182,6 @@ void	start_menu_layer(__basic_menu * mnu)
 			you.startPos[X] = you.pos[X];
 			you.startPos[Y] = you.pos[Y];
 			you.startPos[Z] = you.pos[Z];
-			you.cancelTimers = true;
 			}
 			break;
 			case(1):
@@ -183,7 +189,7 @@ void	start_menu_layer(__basic_menu * mnu)
 			you.inMenu = false;
 			break;
 			case(2):
-			you.cancelTimers = true;
+			you.resetTimers = true;
 			you.inMenu = false;
 			break;
 			case(3):
@@ -883,6 +889,27 @@ void	init_hud_events(void)
 	event->text_lines = 1;
 	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
+	event = &hudEvents[RESET_TIMERS_EVENT];
+	
+	event->startPos[X] = 176;
+	event->startPos[Y] = 0;
+	event->endPos[X] = 176;
+	event->endPos[Y] = 140;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = PCM_PROTECTED;
+	event->soundNum = snd_rlap;
+	event->volume = 6;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char timeresetevent[] = "Track & Flag Reset!";
+	event->text = &timeresetevent[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 1;
+	event->text_width = strlen(event->text);
+//////////////////////////////////////////////////
 	event = &hudEvents[TRACK_FAILED_EVENT];
 	
 	event->startPos[X] = 176;
@@ -1127,6 +1154,27 @@ void	init_hud_events(void)
 	event->text_lines = 3;
 	event->text_width = 33;
 	
+	event = &hudEvents[SIGN_16];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign16txt[] = "Tap C to reset the camera \nHold C to enter strafe mode";
+	event->text = &sign16txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 2;
+	event->text_width = 27;
+	
 	event = &hudEvents[SIGN_1];
 	
 	event->startPos[X] = 352>>1;
@@ -1184,7 +1232,7 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign3txt[] = "Jump and hold R to go higher";
+	static char sign3txt[] = "Jump and immediately hold R to go higher";
 	event->text = &sign3txt[0];
 	event->colorBank = 1<<6;
 	event->text_lines = 1;
@@ -1253,6 +1301,27 @@ void	init_hud_events(void)
 	event->text_lines = 4;
 	event->text_width = 39;
 	
+	event = &hudEvents[SIGN_19];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign19txt[] = "This texture is for a ladder.\nTouch it to climb it.\nThere aren't many of these.";
+	event->text = &sign19txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 30;
+	
 	event = &hudEvents[SIGN_7];
 	
 	event->startPos[X] = 352>>1;
@@ -1268,7 +1337,7 @@ void	init_hud_events(void)
 	event->volume = 0;
 	
 	event->texno = EVENT_SHOW_TEXT;
-	static char sign7txt[] = "Press START to open the game menu.\nYou can change levels from there.\nYou can also view the controls there.";
+	static char sign7txt[] = "Press START to open the game menu.\nYou can change levels from there.\nPlease go to level 0 next!";
 	event->text = &sign7txt[0];
 	event->colorBank = 1<<6;
 	event->text_lines = 3;
@@ -1294,6 +1363,27 @@ void	init_hud_events(void)
 	event->colorBank = 1<<6;
 	event->text_lines = 3;
 	event->text_width = 36;
+	
+	event = &hudEvents[SIGN_17];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign17txt[] = "You can reset your times in the menu\nThe option is called Reset Times\nIt re-set the flag & track";
+	event->text = &sign17txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 33;
 	
 	event = &hudEvents[SIGN_9];
 	
@@ -1378,6 +1468,27 @@ void	init_hud_events(void)
 	event->colorBank = 1<<6;
 	event->text_lines = 3;
 	event->text_width = 35;
+	
+	event = &hudEvents[SIGN_18];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 224>>1;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 224>>1;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char sign18txt[] = "You can set/go to a recall point anywhere.\nThey are set from the start menu.\nRecalling will cancel an active event.";
+	event->text = &sign18txt[0];
+	event->colorBank = 1<<6;
+	event->text_lines = 3;
+	event->text_width = 42;
 	
 	event = &hudEvents[SIGN_13];
 	

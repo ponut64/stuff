@@ -45,7 +45,7 @@ I am sorry for the pain you had to go through.
 //
 // Game data //
 //Be very careful with uninitialized pointers. [In other words, INITIALIZE POINTERS!]
-// SGL Work Area is using the last 200KB of High Work RAM. The game binary is using about 200KB.
+// SGL Work Area is using the last 200KB of High Work RAM. The game binary is using about 250KB.
 unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
 void * HWRAM_ldptr;
 void * HWRAM_hldptr;
@@ -83,6 +83,9 @@ void	load_test(void)
 	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
 	set_tga_to_nbg1_palette((void*)dirty_buf);
 	
+	Uint32 fid = GFS_NameToId((Sint8*)"SPLASH_4.TGA");
+	set_8bpp_tga_to_nbg0_image(fid, dirty_buf);
+	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
@@ -106,6 +109,7 @@ void	load_test(void)
 	snd_ftake = load_adx((Sint8*)"FLAG.ADX");
 	snd_tslow = load_adx((Sint8*)"TSLOW.ADX");
 	snd_gpass = load_adx((Sint8*)"GPASS.ADX");
+	snd_rlap = load_adx((Sint8*)"RLAP.ADX");
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_mstep = load_8bit_pcm((Sint8*)"MSTEP.PCM", 15360);
@@ -157,6 +161,10 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"CHECK.TGA", (void*)dirty_buf, 16);  
 	animated_texture_list[3] = numTex;
 	WRAP_NewTable((Sint8*)"GOAL.TGA", (void*)dirty_buf, 16);  
+	animated_texture_list[4] = numTex;
+	WRAP_NewTable((Sint8*)"LEYEANIM.TGA", (void*)dirty_buf, 24);  
+	animated_texture_list[5] = numTex;
+	WRAP_NewTable((Sint8*)"REYEANIM.TGA", (void*)dirty_buf, 24);  
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -233,7 +241,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST01.GVP",		HWRAM_ldptr, &entities[39], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST02.GVP",		HWRAM_ldptr, &entities[40], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPA.GVP",		HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE0.GVP",		HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPB.GVP",		HWRAM_ldptr, &entities[42], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"LONGBOX.GVP",		HWRAM_ldptr, &entities[43], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUTI.GVP",			HWRAM_ldptr, &entities[44], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -310,10 +318,14 @@ void	attributions(void)
 	slPrint("also by Ponut64", slLocate(3, 24));
 	
 	//testing_level_data((Sint8*)"LIST0.REM", (void*)dirty_buf);
-	
+	slZoomNbg0(65536, 65536);
 	load_test();
 	
 	nbg_clear_text();
+	//For NBG0, we zoom it.
+	//This zooms the screen such that a 128x128 area is displayed over the 352x224 screen.
+	//This is for th zoom on in-game backgrounds. Before this point, the zoom is set for the splash screen.
+	slZoomNbg0(23831, 37449);
 }
 
 int		validation_escape(void)
@@ -336,7 +348,7 @@ void	hardware_validation(void)
 {
 	load_drv(ADX_MASTER_1536); 
 	load_hmap_prog();
-
+	//sdrv_vblank_rq();
 	//update_gamespeed();
 	//int start_time = get_time_in_frame();
 	run_hmap_prog(); //Dry-run the DSP to get it to flag done
@@ -347,19 +359,23 @@ void	hardware_validation(void)
 	//
 	//int time_at_end = get_time_in_frame();
 	//
-	//while(m68k_com->start != 0){
+	//while(m68k_com->start != 0)
+	//{
 	//	if(validation_escape()) break;
 	//}; //68K Wait
 	//
 	//int time_at_sound = get_time_in_frame();
-	//
-	//// slPrintFX(time_at_end - start_time, slLocate(5, 10));
-	//// slPrintFX(time_at_sound - start_time, slLocate(18, 10));
-	//
-	//if((time_at_end - start_time) < 111411 || ((time_at_sound - start_time) < (100<<16)))
+	
+
+	
+	//if((time_at_end - start_time) < 111411)
 	//{
+	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	//set_tga_to_nbg1_palette((void*)dirty_buf);
 	//	while(1)
 	//	{
+	//		slPrintFX(time_at_end - start_time, slLocate(4, 6));
+	//		slPrintFX(time_at_sound - start_time, slLocate(4, 8));
 	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
 	//		nbg_sprintf(5, 10, "There is something wrong with");
 	//		nbg_sprintf(5, 11, "your Saturn video game system.");
@@ -369,7 +385,26 @@ void	hardware_validation(void)
 	//		if(validation_escape()) break;
 	//	}
 	//}
-	// 
+	//
+	//if(((time_at_sound - start_time) > (50<<16)))
+	//{
+	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	//set_tga_to_nbg1_palette((void*)dirty_buf);
+	//	while(1)
+	//	{
+	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
+	//		nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
+	//		nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
+	//		nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
+	//		nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
+	//		nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
+	//		nbg_sprintf(1, 15, "But please be aware:");
+	//		nbg_sprintf(1, 16, "It's not the ideal experience.");
+	//		nbg_sprintf(1, 17, "Press START to continue!");
+	//		if(is_key_pressed(DIGI_START)) break;
+	//	}
+	//}
+	 nbg_clear_text();
 }
 
 int	main(void)
@@ -408,7 +443,7 @@ int	main(void)
 	set_camera();
 	reset_player();
 	anim_defs();
-	add_adx_front_buffer(23040);
+	add_adx_front_buffer(15360);
 	add_adx_back_buffer(dirty_buf);
 	pcm_stream_init(30720, PCM_TYPE_8BIT);
 	pcm_stream_host(game_frame);

@@ -3,6 +3,7 @@
 	NOTI = 12584960	; End stat DMA address
 	LINE_PIX = 21 ;Pixels in a line of the local map
 	LINE_DIST = LINE_PIX >> 1 ;
+	OUT_OF_BOUNDS_VALUE = -1;
 	;------------------------------------------------------------------------ P64 PROGRAM DMA HEADER
 	MVI INPUT,PL															; SH2 sets "PREAD" and "WRITE" constants before program load.
 	ADD				NOP					MOV ALU,A		MOV 62,CT3			; MVI is 25-bit signed data. So it requires 3 shifts right to get high memory address in that bit depth.
@@ -274,16 +275,16 @@
 															mov 10,ct0	; CT0 = 10
 				mov m0,p			mov m2,a							;
 	sub								clr a								;
-	MVI -1,mc0,zs														; if main_map_total_pix - temp_pix is zero or negative...
+	MVI OUT_OF_BOUNDS_VALUE,mc0,zs										; if main_map_total_pix - temp_pix is zero or negative...
 	ad2								clr a					mov 10,ct0	; We need to reset CT0 as the MVI makes the state uncertain.
-	MVI -1,mc0,s														; if temp_pix + 0 is negative...
+	MVI OUT_OF_BOUNDS_VALUE,mc0,s										; if temp_pix + 0 is negative...
 															mov 1,ct2	; CT2 = 1
 															mov 9,ct0	; CT0 = 9
 				mov mc0,p			mov m2,a							; CT0 = 10
 	sub								clr a								; 
-	MVI -1,mc0,zs														; if main_map_x_pix - RightBoundPixel is zero or negative...
+	MVI OUT_OF_BOUNDS_VALUE,mc0,zs										; if main_map_x_pix - RightBoundPixel is zero or negative...
 	ad2								mov alu,a				mov 10,ct0
-	MVI -1,mc0,s
+	MVI OUT_OF_BOUNDS_VALUE,mc0,s
 									clr a					mov 10,ct0
 															mov mc0,mc3	; src_pix = temp_pix
 	;-------------------------------------------------------------------------------------------------------------------------

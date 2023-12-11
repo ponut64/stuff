@@ -415,17 +415,8 @@ _sobject Build25 = {
 	.light_bright = 0
 };
 
-_sobject MasterOccluder = {
-	.entity_ID = 42,
-	.radius[X] = 0,
-	.radius[Y] = 0,
-	.radius[Z] = 0,
-	.ext_dat = BUILD | BUILD_MASTER_OCCLUDER,
-	.light_bright = 0
-};
-
 _sobject Build26 = {
-	.entity_ID = 43,
+	.entity_ID = 42,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
@@ -434,7 +425,7 @@ _sobject Build26 = {
 };
 
 _sobject Build27 = {
-	.entity_ID = 44,
+	.entity_ID = 43,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
@@ -443,6 +434,15 @@ _sobject Build27 = {
 };
 
 _sobject Build28 = {
+	.entity_ID = 44,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+_sobject Build29 = {
 	.entity_ID = 45,
 	.radius[X] = 0,
 	.radius[Y] = 0,
@@ -626,10 +626,10 @@ void	fill_obj_list(void)
 	objList[39] = &Post01;
 	objList[40] = &Post02;
 	objList[41] = &Build25;
-	objList[42] = &MasterOccluder;
-	objList[43] = &Build26;
-	objList[44] = &Build27;
-	objList[45] = &Build28;
+	objList[42] = &Build26;
+	objList[43] = &Build27;
+	objList[44] = &Build28;
+	objList[45] = &Build29;
 	
 	objList[49] = &Sign0;
 	

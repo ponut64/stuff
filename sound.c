@@ -52,6 +52,7 @@
  int snd_tslow;
  int snd_gpass;
  int snd_yeah;
+ int snd_rlap;
  int stm_win = 0;
  int stm_freturn = 1;
  int stm_orchit0 = 2;

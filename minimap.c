@@ -57,15 +57,71 @@ void	init_minimap(void)
 
 }
 
-void	add_position_to_minimap(int xpos, int ypos, unsigned short color)
+void	add_position_to_minimap(int xpos, int ypos, unsigned short color, short pattern)
 {
 	int xSclPos = -fxm(xpos<<16, mmapXScale)>>16;
 	int ySclPos = fxm(ypos<<16, mmapYScale)>>16;
 	
 	int tgtPix = MMAP_CTR_PIX + xSclPos + (ySclPos * 51);
+	int patPix[12];
+	int patPixPos[12][2];
 	
-	draw_hud_pixel(MMAP_CNTR_X+xSclPos, MMAP_CNTR_Y+ySclPos, color);
-	minimap[tgtPix] = color;
+	switch(pattern)
+	{
+		case(MINIMAP_ONE_PIXEL):
+		patPix[0] = tgtPix;
+		patPixPos[0][X] = MMAP_CNTR_X+xSclPos;
+		patPixPos[0][Y] = MMAP_CNTR_Y+ySclPos;
+		draw_hud_pixel(patPixPos[0][X], patPixPos[0][Y], color);
+		minimap[patPix[0]] = color;
+		break;
+		case(MINIMAP_X_PATTERN):
+		patPix[0] = tgtPix;
+		patPixPos[0][X] = MMAP_CNTR_X+xSclPos;
+		patPixPos[0][Y] = MMAP_CNTR_Y+ySclPos;
+		patPix[1] = tgtPix+MMAP_WIDTH+1;
+		patPixPos[1][X] = patPixPos[0][X] + 1;
+		patPixPos[1][Y] = patPixPos[0][Y] + 1;
+		patPix[2] = tgtPix+MMAP_WIDTH-1;
+		patPixPos[2][X] = patPixPos[0][X] - 1;
+		patPixPos[2][Y] = patPixPos[0][Y] + 1;
+		patPix[3] = tgtPix-MMAP_WIDTH+1;
+		patPixPos[3][X] = patPixPos[0][X] + 1;
+		patPixPos[3][Y] = patPixPos[0][Y] - 1;
+		patPix[4] = tgtPix-MMAP_WIDTH-1;
+		patPixPos[4][X] = patPixPos[0][X] - 1;
+		patPixPos[4][Y] = patPixPos[0][Y] - 1;
+		for(int i = 0; i < 5; i++)
+		{
+			draw_hud_pixel(patPixPos[i][X], patPixPos[i][Y], color);
+			minimap[patPix[i]] = color;
+		}
+		break;
+		case(MINIMAP_P_PATTERN):
+		patPix[0] = tgtPix;
+		patPixPos[0][X] = MMAP_CNTR_X+xSclPos;
+		patPixPos[0][Y] = MMAP_CNTR_Y+ySclPos;
+		patPix[1] = tgtPix+1;
+		patPixPos[1][X] = patPixPos[0][X] + 1;
+		patPixPos[1][Y] = patPixPos[0][Y];
+		patPix[2] = tgtPix+MMAP_WIDTH;
+		patPixPos[2][X] = patPixPos[0][X];
+		patPixPos[2][Y] = patPixPos[0][Y] + 1;
+		patPix[3] = tgtPix-1;
+		patPixPos[3][X] = patPixPos[0][X] - 1;
+		patPixPos[3][Y] = patPixPos[0][Y];
+		patPix[4] = tgtPix-MMAP_WIDTH;
+		patPixPos[4][X] = patPixPos[0][X];
+		patPixPos[4][Y] = patPixPos[0][Y] - 1;
+		for(int i = 0; i < 5; i++)
+		{
+			draw_hud_pixel(patPixPos[i][X], patPixPos[i][Y], color);
+			minimap[patPix[i]] = color;
+		}
+		break;
+		default:
+		break;
+	}
 }
 
 void	update_mmap_1pass(void)

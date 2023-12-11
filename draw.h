@@ -58,6 +58,7 @@ extern spriteAnimation qmark;
 extern spriteAnimation arrow;
 extern spriteAnimation check;
 extern spriteAnimation goal;
-
+extern spriteAnimation LeyeAnim;
+extern spriteAnimation ReyeAnim;
 
 

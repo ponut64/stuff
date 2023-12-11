@@ -78,6 +78,8 @@ spriteAnimation qmark;
 spriteAnimation arrow;
 spriteAnimation check;
 spriteAnimation goal;
+spriteAnimation LeyeAnim;
+spriteAnimation ReyeAnim;
 
 void	computeLight(void)
 {
@@ -627,6 +629,8 @@ void	master_draw(void)
 	start_texture_animation(&arrow, &entities[38]);
 	start_texture_animation(&arrow, &entities[39]);
 	start_texture_animation(&goal, &entities[40]);
+	start_texture_animation(&LeyeAnim, &pl_model);
+	start_texture_animation(&ReyeAnim, &pl_model);
 	operate_texture_animations();
 
 	time_at_end = get_time_in_frame();

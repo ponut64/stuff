@@ -139,11 +139,6 @@ void	init_vdp2(short backColor)
 		writeByte[y] = 0;
 	}
 	
-	//For NBG0, we zoom it.
-	//This zooms the screen such that a 128x128 area is displayed over the 352x224 screen.
-	//Probably not the correctess way to do things....
-	slZoomNbg0(23831, 37449);
-	
 	////////////////////////////////////////////////////////////////
 	// Section to move default SGL setup of text on NBG0 to NBG2
 	////////////////////////////////////////////////////////////////

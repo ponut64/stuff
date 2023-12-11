@@ -20,7 +20,7 @@ void	set_tga_to_sprite_palette(void * file_start);
 void	set_tga_to_nbg1_palette(void * file_start);
 void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer);
 
-void	uv_cut(void * file_start);
+void	uv_cut(void * file_start, int wx, int yh);
 void	uv_tile(void * source_texture_data, int base_x, int base_y);
 
 void	generate_downscale_texture(int img_x, int img_y, int out_img_x, int out_img_y, unsigned char * img);

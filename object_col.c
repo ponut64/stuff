@@ -282,10 +282,9 @@ Bool shadowStruck = false;
 	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->nextPos[Z]);
 
 	//If the player is farther away from the object than its radius, cease the test.
-	//Why +10? To account for player being *just* outside of it, like standing on top of it.
-	if(discard_vector[X] > ((ent->radius[X]+10)<<16) ||
-	discard_vector[Y] > ((ent->radius[Y]+10)<<16) ||
-	discard_vector[Z] > ((ent->radius[Z]+10)<<16)) return;
+	if(discard_vector[X] > ((ent->radius[X])<<17) ||
+	discard_vector[Y] > ((ent->radius[Y])<<17) ||
+	discard_vector[Z] > ((ent->radius[Z])<<17)) return;
 	
 	/**
 	This test can only be performed on un-rotated meshes.

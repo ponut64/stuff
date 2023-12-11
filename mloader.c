@@ -86,10 +86,10 @@ void * unpackTextures(void * workAddress, entity_t * model)
 		tSize = tHeight * tWidth;
 		readByte += 2; //Skip over the H x W bytes
 		GLOBAL_img_addr = readByte;
-		if(tWidth == 64)
+		if(tWidth == 64 || tWidth == 32)
 		{
 			// UV cut it
-			uv_cut(readByte);
+			uv_cut(readByte, tWidth, tHeight);
 		} else if(tWidth == 8)
 		{
 			// UV tile it (or at least try to)

@@ -109,6 +109,9 @@ void	create_objects(int levelNo)
 		declare_object_at_cell((60 / 40) + 1, -281, -(60 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell((60 / 40) + 1, -281, -(60 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 31, 0);
 		
+		declare_object_at_cell(-(60 / 40) + 1, -281, (60 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(60 / 40) + 1, -281, (60 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 39, 0);
+		
 		declare_object_at_cell((20 / 40) + 1, -235, (500 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell((20 / 40) + 1, -235, (500 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 32, 0);
 		
@@ -120,6 +123,9 @@ void	create_objects(int levelNo)
 		
 		declare_object_at_cell(-(180 / 40) + 1, -259, -(940 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(-(180 / 40) + 1, -259, -(940 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 35, 0);
+		
+		declare_object_at_cell(-(380 / 40) + 1, -270, -(960 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(-(380 / 40) + 1, -270, -(960 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 40, 0);
 		
 		declare_object_at_cell(-(220 / 40) + 1, -184, -(20 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(-(220 / 40) + 1, -184, -(20 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 36, 0);
@@ -162,7 +168,7 @@ void	create_objects(int levelNo)
 		bgName = "BG1.TGA";
 		
 		declare_object_at_cell(-(180 / 40) + 1, -120, -(620 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+		declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (80<<8), 0);
 
 		declare_object_at_cell((540 / 40) + 1, -320, -(180 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);		
 		declare_object_at_cell((540 / 40) + 1, -320, -(20 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);
@@ -187,7 +193,7 @@ void	create_objects(int levelNo)
 		
 		declare_object_at_cell(-(1820 / 40) + 1, -275, (940 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell((580 / 40) + 1, -450, -(1260 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
-		declare_object_at_cell((580 / 40) + 1, -(450 + 15), -(1260 / 40), 58 /*flag goal*/, 0, 0, 0, 20, 0);
+		declare_object_at_cell((580 / 40) + 1, -(450 + 15), -(1260 / 40), 58 /*flag goal*/, 0, 0, 0, 29, 0);
 		
 		// declare_object_at_cell((740 / 40) + 1, -204, -(260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
 		// declare_object_at_cell((540 / 40) + 1, -137, -(260 / 40), 10 /*platf00*/, 0, 0, 0, 0, 0);
@@ -283,7 +289,7 @@ void	create_objects(int levelNo)
 		palName = "PAL1.TGA";
 		bgName = "BG2.TGA";
 		
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (135<<8), 0);
 		
 	declare_object_at_cell((1540 / 40) + 1, -378, -(2940 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 	declare_object_at_cell((500 / 40) + 1, -368, -(2500 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -295,7 +301,7 @@ void	create_objects(int levelNo)
 	
 	declare_object_at_cell(-(300 / 40) + 1, -243, (3020 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(1540 / 40) + 1, -138, -(3500 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(1540 / 40) + 1, -(138 + 15), -(3500 / 40), 58 /*flag goal*/, 0, 0, 0, 20, 0);
+	declare_object_at_cell(-(1540 / 40) + 1, -(138 + 15), -(3500 / 40), 58 /*flag goal*/, 0, 0, 0, 50, 0);
 	
 		declare_object_at_cell((780 / 40) + 1, -313, -(2340 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);		
 		declare_object_at_cell((900 / 40) + 1, -317, -(2340 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);
@@ -404,7 +410,7 @@ void	create_objects(int levelNo)
 		bgName = "BG3.TGA";
 		
 	declare_object_at_cell((1060 / 40) + 1, -172, (820 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (29<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (50<<8), 0);
 	
 	declare_object_at_cell((1020 / 40) + 1, -260, -(420 / 40), 1 /*t item*/, 0, 0, 0, 		0, 0);
 	declare_object_at_cell((1180 / 40) + 1, -214, (1260 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -475,7 +481,7 @@ void	create_objects(int levelNo)
 		palName = "PAL3.TGA";
 		bgName = "BG4.TGA";
 	declare_object_at_cell((460 / 40) + 1, -350, -(5060 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (70<<8), 0);
 
 	declare_object_at_cell(-(500 / 40) + 1, -145, (1100 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
 	declare_object_at_cell(-(140 / 40) + 1, -299, (3700 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -487,7 +493,7 @@ void	create_objects(int levelNo)
 	
 	declare_object_at_cell(-(340 / 40) + 1, -301, -(3100 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((100 / 40) + 1, -153, (2940 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((100 / 40) + 1, -(153 + 15), (2940 / 40), 58 /*goal stand*/, 0, 0, 0, 20, 0);
+	declare_object_at_cell((100 / 40) + 1, -(153 + 15), (2940 / 40), 58 /*goal stand*/, 0, 0, 0, 50, 0);
 
 	declare_object_at_cell((340 / 40) + 1, -382, -(4780 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);		
 	declare_object_at_cell((540 / 40) + 1, -385, -(4780 / 40), 39 /*post01*/, 0, 0, 0, 0, 0);
@@ -569,11 +575,11 @@ void	create_objects(int levelNo)
 		palName = "PAL0.TGA";
 		bgName = "BG1.TGA";
 	declare_object_at_cell(-(280 / 40) + 1, -97, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (103<<8), 0);
 
 	declare_object_at_cell(-(1820 / 40) + 1, -360, (1900 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(60 / 40) + 1, -467, (180 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(60 / 40) + 1, -(467 + 15), (180 / 40), 58 /*flag goal*/, 0, 0, 0, 20, 0);
+	declare_object_at_cell(-(60 / 40) + 1, -(467 + 15), (180 / 40), 58 /*flag goal*/, 0, 0, 0, 30, 0);
 	
 	declare_object_at_cell(-(100 / 40) + 1, -119, (580 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
 	declare_object_at_cell((380 / 40) + 1, -401, -(20 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -662,7 +668,7 @@ void	create_objects(int levelNo)
 		palName = "PAL1.TGA";
 		bgName = "BG2.TGA";
 	declare_object_at_cell(-(380 / 40) + 1, -276, -(1620 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (150<<8), 0);
 	
 	declare_object_at_cell(-(100 / 40) + 1, -278, -(60 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell(-(1500 / 40) + 1, -59, (1540 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
@@ -773,7 +779,7 @@ void	create_objects(int levelNo)
 	} else if(levelNo == 7)
 	{
 		// MGMT Siberian Breaks ~7:40 "i hope i die before i get sold" nice
-		music1 = "SHAZFUNK.MUS";
+		music1 = "SUNSET.MUS";
 		music2 = "CHOSPITE.MUS";
 		music3 = "LONKR.MUS";
 		texNames[0] = "DIR3C.TGA";
@@ -784,11 +790,11 @@ void	create_objects(int levelNo)
 		palName = "PAL2.TGA";
 		bgName = "BG3.TGA";
 	declare_object_at_cell((20 / 40) + 1, -215, -(20 / 40), 51 /*start start*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (20<<8), 0);
+	declare_object_at_cell((0 / 40) + 1, -0, (0 / 40), 60 /*track data*/, 0, 0, 0, (130<<8), 0);
 	
 	declare_object_at_cell(-(1340 / 40) + 1, -458, (2260 / 40), 53 /*flag stand*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((2460 / 40) + 1, -102, -(1100 / 40), 54 /*goal stand*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((2460 / 40) + 1, -(102 + 15), -(1100 / 40), 58 /*flag goal*/, 0, 0, 0, 20, 0);
+	declare_object_at_cell((2460 / 40) + 1, -(102 + 15), -(1100 / 40), 58 /*flag goal*/, 0, 0, 0, 46, 0);
 	
 	declare_object_at_cell(-(300 / 40) + 1, -369, (1860 / 40), 1 /*t item*/, 0, 0, 0,   0, 0);
 	declare_object_at_cell(-(20 / 40) + 1, -545, (20 / 40), 2 /*t item*/, 0, 15, 0, 	0, 0);
@@ -919,6 +925,9 @@ void	create_objects(int levelNo)
 	declare_object_at_cell((960 / 40) + 1, -(83 + 2000), -(360 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((960 / 40) + 1, -(83 + 2000), -(360 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 22, 0);
 	
+	declare_object_at_cell((920 / 40) + 1, -(132 + 2000), -(240 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(132 + 2000), -(240 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 38, 0);
+	
 	declare_object_at_cell((960 / 40) + 1, -(107 + 2000), -(120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((960 / 40) + 1, -(107 + 2000), -(120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 23, 0);
 	
@@ -928,19 +937,22 @@ void	create_objects(int levelNo)
 	declare_object_at_cell((920 / 40) + 1, -(123 + 2000), (320 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((920 / 40) + 1, -(123 + 2000), (320 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 25, 0);
 	
-	declare_object_at_cell((920 / 40) + 1, -(203 + 2000), (480 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((920 / 40) + 1, -(203 + 2000), (480 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 26, 0);
+	declare_object_at_cell((920 / 40) + 1, -(193 + 2000), (480 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(193 + 2000), (480 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 26, 0);
 	
-	declare_object_at_cell((920 / 40) + 1, -(264 + 2000), (200 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell((920 / 40) + 1, -(264 + 2000), (200 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 27, 0);
+	declare_object_at_cell((920 / 40) + 1, -(254 + 2000), (200 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell((920 / 40) + 1, -(254 + 2000), (200 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 27, 0);
 	
 	declare_object_at_cell((960 / 40) + 1, -(279 + 2000), -(120 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
 	declare_object_at_cell((960 / 40) + 1, -(279 + 2000), -(120 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 28, 0);
 	
-	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(0 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(0 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 29, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(160 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 295), -(160 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 42, 0);
 	
-	declare_object_at_cell((880 / 40) + 1, -(240 + 2000), (480 / 40), 37 /*sign-arrow*/, 180, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 175), -(0 / 40), 36 /*sign*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(-(920 / 40) + 1, -(2000 - 175), -(0 / 40), 49 /*sign0 trigger*/, 0, 0, 0, 29, 0);
+	
+	declare_object_at_cell((880 / 40) + 1, -(225 + 2000), (480 / 40), 37 /*sign-arrow*/, 180, 0, 0, 0, 0);
 	declare_object_at_cell((960 / 40) + 1, -(306 + 2000), -(240 / 40), 37 /*sign-arrow*/, 0, -90, 0, 0, 0);
 	declare_object_at_cell(-(960 / 40) + 1, -(2000 - 280), -(280 / 40), 37 /*sign-arrow*/, 0, 0, 0, 0, 0);
 
@@ -969,6 +981,29 @@ void	create_objects(int levelNo)
 	// declare_object_at_cell(-(3220 / 40) + 1, -218, -(3700 / 40), 7 /*t item*/, 0, 120, 0, 0, 0);
 
 		
+	} else if(levelNo == 9)
+	{
+		music1 = "BATLOBBY.MUS";
+		music2 = "MOVEIT.MUS";
+		music3 = "DRONK.MUS";
+		texNames[0] = "DIR0.TGA";
+		texNames[1] = "DIR1.TGA";
+		texNames[2] = "DIR2.TGA";
+		texNames[3] = "DIR3.TGA";
+		texNames[4] = "DIR4.TGA";
+		palName = "PAL0.TGA";
+		bgName = "BG0.TGA";
+		
+		declare_object_at_cell((0 / 40) + 1, -(2000), (0 / 40), 51 /*start stand*/, 0, 0, 0, 0, 0);
+		
+		declare_object_at_cell((0 / 40) + 1, -(2000 + 40), (0 / 40), 41 /*bridge0*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 + 40), (240 / 40), 41 /*bridge0*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 0), (560 / 40), 41 /*bridge0*/, 15, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 80), (840 / 40), 41 /*bridge0*/, 15, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 190), (1120 / 40), 41 /*bridge0*/, 25, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 322), (1400 / 40), 41 /*bridge0*/, 25, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 456), (1680 / 40), 41 /*bridge0*/, 25, 0, 0, 0, 0);
+		declare_object_at_cell((0 / 40) + 1, -(2000 - 588), (1960 / 40), 41 /*bridge0*/, 25, 0, 0, 0, 0);
 	}
 	
 }

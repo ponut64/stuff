@@ -80,6 +80,8 @@ void reset_player(void)
 	you.distanceToMapFloor = 0;
 	you.firstSurfHit = 0;
 	you.airTime = 0;
+	you.cancelTimers = true;
+	you.resetTimers = false;
 }
 
 
@@ -593,7 +595,7 @@ void	player_phys_affect(void)
 			
 			if(you.sanics >= 3<<16)
 			{
-			pcm_play(snd_mstep, PCM_SEMI, 6);
+			pcm_play(snd_mstep, PCM_PROTECTED, 6);
 			int nFloorPos[3] = {-you.floorPos[X], -you.floorPos[Y], -you.floorPos[Z]};
 			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, nFloorPos, you.floorNorm, 8<<16, 8192, 4);
 			}

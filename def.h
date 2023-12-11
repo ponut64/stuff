@@ -13,7 +13,7 @@
 #define MAP_V_SCALE (17) //Map data is shifted left by this amount
 //////////////////////////////////
 #define	HIMEM	(100679680)
-#define HWRAM_MODEL_DATA_HEAP_SIZE (256 * 1024)
+#define HWRAM_MODEL_DATA_HEAP_SIZE (300 * 1024)
 //////////////////////////////////
 #define UNCACHE (0x20000000)
 #define VDP2_RAMBASE (0x25E00000)
@@ -46,7 +46,7 @@
 
 #define GRAVITY (6553)
 
-#define NUM_LEVELS	(8)
+#define NUM_LEVELS	(9)
 ///////////////////////////////////
 // Game logic timing data
 ///////////////////////////////////
@@ -99,16 +99,17 @@ typedef struct {
 	
 	FIXED moment[XYZ];
 	FIXED mass;
-	Bool dirInp;
-	Bool setJump;
-	Bool setSlide;
-	Bool okayStepSnd;
-	Bool climbing;
-	Bool ladder;
-	Bool wasClimbing;
-	Bool inMenu;
-	Bool cancelTimers;
-	Bool jumpAllowed;
+	short dirInp;
+	short setJump;
+	short setSlide;
+	short okayStepSnd;
+	short climbing;
+	short ladder;
+	short wasClimbing;
+	short inMenu;
+	short cancelTimers;
+	short resetTimers;
+	short jumpAllowed;
 	int allowJumpTimer;
 	int sanics;
 	int avg_sanics;

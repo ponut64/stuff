@@ -781,136 +781,277 @@ void	uv_tile(void * source_texture_data, int base_x, int base_y)
 	
 }
 
-void	uv_cut(void * data_start)
+void	uv_cut(void * data_start, int wx, int yh)
 {
 /*
-Successfully cuts a 64x64 texture into all of the necessary chunks for subdivision by the three rules:
+Successfully cuts a 64x64 or 32x32 texture into all of the necessary chunks for subdivision by the three rules:
 +, -, and |.
 
-While the width of 64 is fixed, the height is not.
-It should allow any height above 64x8. I could patch that in.
-Or I could just ignore that. Dunno.
+Would be possible to patch in support for arbitrary heights, but width of 64 or 32 is set in stone.
 
 */
 	unsigned char * readByte = data_start;
 
 	unsigned char * used_dirty_buf = dirty_buf;
+	unsigned char * second_dirty_buf = (unsigned char *)((unsigned int)dirty_buf + (12 * 1024));
 
 	int img_sz[2] = {0, 0};
 	int img_min[2] = {0, 0};
 	int tsl = 0;
+	int	tkd = 0;
 	
+	int size_switch = 0;
+	if(wx == 64 && yh == 64) size_switch = 1;
+	if(wx == 32 && yh == 32) size_switch = 2;
+	if(size_switch == 0) return;
+	
+	if(size_switch == 2)
+	{
+		//In this case, we need to get a 32x32 texture scaled up to 64x64.
+		//This is the second_dirty_buf.
+		//Now we have to line-double the 32x32 image.
+		for(int y = 0; y < 32; y++)
+		{
+			for(int x = 0; x < 32; x++)
+			{
+				second_dirty_buf[tsl] = readByte[x + (y * 32)];
+				tsl++;
+			}
+			for(int x2 = 0; x2 < 32; x2++)
+			{
+				second_dirty_buf[tsl] = readByte[x2 + (y * 32)];
+				tsl++;
+			}
+		}
+		//Then we have to write that new 64x32 image twice.
+		tkd = 0;
+		for(int y = 0; y < 32; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		tkd = 0;
+		for(int y = 0; y < 32; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		//Finally, we have to set the new source address.
+		readByte = second_dirty_buf;
+		
+	}
 	/* Original, downscaled */
 	generate_downscale_texture(64, 64, 32, 32, readByte);
 
 	/* Horizontal halves (32x64) -++	*/
+	//for 32x32: use first texture, then repeat
+	int swap_texno[32];
+	tsl = 0;
 	for(int x32 = 0; x32 < 2; x32++)
 	{
+		if(x32 == 1 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			numTex++;
+		} else {
 		img_sz[Y] = 64;
 		img_min[Y] = 0;
 		
 		img_sz[X] = 32;
 		img_min[X] = x32 * 32;
 		
+		swap_texno[x32] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x32, not a 32x64; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, used_dirty_buf);
+		}
 	}
 	
 	/* Vertical halves (64x32) |++	*/
+	//for 32x32: use first texture, then repeat
+	tsl = 0;
 	for(int y32 = 0; y32 < 2; y32++)
 	{
+		
+		if(y32 == 1 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			numTex++;
+		} else {
+		
 		img_sz[X] = 64;
 		img_min[X] = 0;
 		
 		img_sz[Y] = 32;
 		img_min[Y] = y32 * 32;
 		
+		swap_texno[y32] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x32, not a 64x32; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, used_dirty_buf);
+		}
 	}
 	
 
 	/* Horizontal quarters (16x64)	--+	*/
 	//The texture address of -+ CANNOT be made from these.
 	//The reason is because they are down-scaled to 16x32 to optimize VDP1 performance.
+	//for 32x32: use only the first two, then repeat
+
+	tsl = 0;
 	for(int x16 = 0; x16 < 4; x16++)
 	{
+		
+		if(x16 >= 2 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			numTex++;
+		} else {
+		
 		img_sz[Y] = 64;
 		img_min[Y] = 0;
 		
 		img_sz[X] = 16;
 		img_min[X] = x16 * 16;
 		
+		swap_texno[x16] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 16x32, not a 16x64; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 16, 32, used_dirty_buf);
+		}
 	}
 	
 	/* Vertical quarters (64x16)	||+	*/
+	//for 32x32: use only the first two, then repeat
+	tsl = 0;
 	for(int y16 = 0; y16 < 4; y16++)
 	{
+		if(y16 >= 2 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			numTex++;
+		} else {
+		
 		img_sz[X] = 64;
 		img_min[X] = 0;
 		
 		img_sz[Y] = 16;
 		img_min[Y] = y16 * 16;
 		
+		swap_texno[y16] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x16, not a 64x16; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 16, used_dirty_buf);
+		}
 	}
 	
 	/* Vertical eighths (8x64) ---	*/
 	//The texture address of -- and - CANNOT be made from these.
 	//The reason is because they are down-scaled to 8x32 to optimize VDP1 performance.
+	//for 32x32:
+	//use only the first four textures, then repeat
+	tsl = 0;
 	for(int x8 = 0; x8 < 8; x8++)
 	{
+		if(x8 >= 4 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			numTex++;
+		} else {
 		img_sz[Y] = 64;
 		img_min[Y] = 0;
 		
 		img_sz[X] = 8;
 		img_min[X] = x8 * 8;
 		
+		swap_texno[x8] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 8x32, not a 8x64; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 8, 32, used_dirty_buf);
+		}
 	}
 	
 	/* Horizontal eighths (64x8) |||	*/
+	//for 32x32:
+	// only use the first four textures, then repeat
+	tsl = 0;
 	for(int y8 = 0; y8 < 8; y8++)
 	{
+		if(y8 >= 4 && size_switch == 2)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			numTex++;
+		} else {
 		img_sz[X] = 64;
 		img_min[X] = 0;
 		
 		img_sz[Y] = 8;
 		img_min[Y] = y8 * 8;
 		
+		swap_texno[y8] = numTex;
+		
 		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 		//Cat call: This should output a 32x8, not a 64x8; down-scale to optimize RAM and performance.
 		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 8, used_dirty_buf);
+		}
 	}
-	
-	int quarter_texno[4];
-	tsl = 0;
 	
 	/* Quarters (32x32) ++	*/
 	// Order of Quarters:
 	// 1	2
 	// 3	4
+	//for 32x32:
+	// 1	1
+	// 1	1
+	// (only generate one)
+	//NOTHING ELSE CAN USE QUARTER_TEXNO!!
+	int quarter_texno[4];
+	tsl = 0;
+	tkd = 0;
 	for(int y32 = 0; y32 < 2; y32++)
 	{
 		img_sz[Y] = 32;
 		img_min[Y] = y32 * 32;
 		for(int x32 = 0; x32 < 2; x32++)
 		{
+			if(tsl > 0 && size_switch == 2)
+			{
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[quarter_texno[0]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[quarter_texno[0]].SRCA; 
+				quarter_texno[tsl] = numTex;
+				tsl++;
+				numTex++;
+			} else {
 			img_sz[X] = 32;
 			img_min[X] = x32 * 32;
 			quarter_texno[tsl] = numTex;
 			tsl++;
 			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+			}
 		}
 	}
 	
@@ -918,14 +1059,17 @@ Or I could just ignore that. Dunno.
 	// we should be able to get the addresses of: |+ and ||
 	// When shifting the address like this, be aware that the address is in /8 (or <<3) units.
 	
-	/* horizontal-half, Vertical quarter (16x32) -+ */
+	/* horizontal-quarter, Vertical half (16x32) -+ */
 	/*
 	Order:
-	1		2
-	3		4
-	5		6
-	7		8
+	1	2	3	4
+	5	6	7	8
+	for 32x32:
+	1	2	1	2
+	1	2	1	2
 	*/
+	tsl = 0;
+	tkd = 0;
 	for(int y32 = 0; y32 < 2; y32++)
 	{
 		img_sz[Y] = 32;
@@ -934,12 +1078,21 @@ Or I could just ignore that. Dunno.
 		{
 			img_sz[X] = 16;
 			img_min[X] = x16 * 16;
+			if(tsl >= 2 && size_switch == 2)
+			{
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tkd]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tkd]].SRCA; 
+				tkd = (tkd >= 1) ? 0 : tkd+1;
+				numTex++;
+			} else {
+			swap_texno[tsl] = numTex;
+			tsl++;
 			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+			}
 		}
 	}
-	
-	/* Horizontal quarters, vertical halves (32x16) |+ */
+	/* Horizontal halves, vertical quarters (32x16) |+ */
 	/*
 	ORDER:
 	1,2 -> Halves of quarter one (top left)
@@ -952,6 +1105,13 @@ Or I could just ignore that. Dunno.
 	22	44
 	55	77
 	66	88
+	for 32x32:
+	1	1
+	2	2
+	1	1
+	2	2
+	Just use halves of quarter one.
+	This shouldn't need any code adjustments for 32x32.
 	*/
 	for(int i = 0; i < 4; i++)
 	{
@@ -966,8 +1126,8 @@ Or I could just ignore that. Dunno.
 	
 	//The eighths...
 	//The textures of each individual cell can be found in here.
+	//NO OTHER SEGMENT CAN USE HORIEGHTHS
 	int horieighth_texno[16];
-	tsl = 0;
 	
 	/* Horizontal eights, vertical halves (8x32) -- */
 	/*
@@ -979,7 +1139,19 @@ Or I could just ignore that. Dunno.
 	9	10	11	12	13	14	15	16
 	9	10	11	12	13	14	15	16
 	9	10	11	12	13	14	15	16
+	for 32x32:
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	1	2	3	4	1	2	3	4
+	Repeat the top-left quadrant
 	*/
+	tsl = 0;
+	tkd = 0;
 	for(int y32 = 0; y32 < 2; y32++)
 	{
 		img_sz[Y] = 32;
@@ -989,10 +1161,20 @@ Or I could just ignore that. Dunno.
 			img_sz[X] = 8;
 			img_min[X] = x8 * 8;
 			
+			if(tsl >= 4 && size_switch == 2)
+			{
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[horieighth_texno[tkd]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[horieighth_texno[tkd]].SRCA; 
+				horieighth_texno[tsl] = numTex;
+				tsl++;
+				tkd = (tkd >= 3) ? 0 : tkd+1;
+				numTex++;
+			} else {
 			horieighth_texno[tsl] = numTex;
 			tsl++;
 			select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
 			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+			}
 		}
 	}
 	
@@ -1012,7 +1194,16 @@ Or I could just ignore that. Dunno.
 	10	14
 	11	15
 	12	16
-	
+	for 32x32:
+	1	1
+	2	2
+	3	3
+	4	4
+	1	1
+	2	2
+	3	3
+	4	4
+	Repeat the texture numbers for the top-left quadrant.
 	*/
 	for(int i = 0; i < 4; i++)
 	{
@@ -1036,9 +1227,8 @@ Or I could just ignore that. Dunno.
 	//From the texture address of the + quarters,
 	// we should be able to get the addresses of: |
 	// When shifting the address like this, be aware that the address is in /8 (or <<3) units.
-			
+	//NOTHING ELSE CAN USE EIGHTHS TEXNO
 	int eighths_texno[16];
-	tsl = 0;
 			
 	/* Eighths  +*/
 	// Remember the progression of cutting here.
@@ -1051,6 +1241,17 @@ Or I could just ignore that. Dunno.
 	// 5	6	7	8
 	// 9	10	11	12
 	// 13	14	15	16
+	// for 32x32:
+	// 1	2	1	2
+	// 5	6	5	6
+	// 1	2	1	2
+	// 5	6	5	6
+	// Repeat the textures generated for the top-left quadrant.
+	tsl = 0;
+	tkd = 0;
+	//swap_texno
+		if(size_switch == 1)
+		{
 	for(int y16 = 0; y16 < 4; y16++)
 	{
 		img_sz[Y] = 16;
@@ -1065,6 +1266,72 @@ Or I could just ignore that. Dunno.
 			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
 		}
 	}
+		} else if(size_switch == 2)
+		{
+		img_sz[Y] = 16;
+		img_sz[X] = 16;
+		//We need:
+		img_min[Y] = (0 * 16);
+		img_min[X] = (0 * 16);
+		eighths_texno[tsl] = numTex;
+		tsl++;
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+		img_min[Y] = (0 * 16);
+		img_min[X] = (1 * 16);
+		eighths_texno[tsl] = numTex;
+		tsl++;
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+		//Repeat 0
+		eighths_texno[tsl] = eighths_texno[0];
+		tsl++;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[0]].SIZE;
+		pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[0]].SRCA; 
+		numTex++;
+		//Repeat 1
+		eighths_texno[tsl] = eighths_texno[1];
+		tsl++;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[1]].SIZE;
+		pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[1]].SRCA; 
+		numTex++;
+		
+		img_min[Y] = (1 * 16);
+		img_min[X] = (0 * 16);
+		eighths_texno[tsl] = numTex;
+		tsl++;
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+		img_min[Y] = (1 * 16);
+		img_min[X] = (1 * 16);
+		eighths_texno[tsl] = numTex;
+		tsl++;
+		select_and_cut_from_64xH(img_sz, img_min, readByte, used_dirty_buf);
+		generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], used_dirty_buf);
+		//Repeat 4 
+		eighths_texno[tsl] = eighths_texno[4];
+		tsl++;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[4]].SIZE;
+		pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[4]].SRCA; 
+		numTex++;
+		//Repeat 5
+		eighths_texno[tsl] = eighths_texno[5];
+		tsl++;
+		pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[5]].SIZE;
+		pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[5]].SRCA; 
+		numTex++;
+		
+		//Then repeat first 8
+		for(int i = 0; i < 8; i++)
+		{
+			eighths_texno[tsl] = eighths_texno[i];
+			tsl++;
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[i]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[i]].SRCA; 
+			numTex++;
+		}
+			
+		}
 	
 	/* 8x16 - */
 	/*
@@ -1074,7 +1341,12 @@ Or I could just ignore that. Dunno.
 	
 	17	19	21	23	25	27	29	31
 	18	20	22	24	26	28	30	32
-	
+	for 32x32:
+	1	3	5	7	1	3	5	7
+	2	4	6	8	2	4	6	8
+	1	3	5	7	1	3	5	7
+	2	4	6	8	2	4	6	8
+	broken record, but just repeat the texture numbers for the top-left quadrant
 	*/
 	for(int i = 0; i < 16; i++)
 	{
@@ -1101,6 +1373,18 @@ Or I could just ignore that. Dunno.
 	
 	25	27	29	31
 	26	28	30	32
+	for 32x32:
+	1	3	1	3
+	2	4   2	4
+	9	11	9	11
+	10	12	10	12
+	
+	1	3	1	3
+	2	4   2	4
+	9	11	9	11
+	10	12	10	12
+	Broken record, just being careful to repeat the texno's of the top-left quadrant.
+	
 	*/
 	for(int i = 0; i < 16; i++)
 	{
@@ -1123,6 +1407,16 @@ Or I could just ignore that. Dunno.
 	34	38	42	46	50	54	58	62
 	35	39	43	47	51	55	59	63
 	36	40	44	48	52	56	60	64
+	for 32x32:
+	1	5	9	13	1	5	9	13
+	2	6	10	14  2	6	10	14
+	3	7	11	15  3	7	11	15
+	4	8	12	16  4	8	12	16
+	1	5	9	13	1	5	9	13
+	2	6	10	14  2	6	10	14
+	3	7	11	15  3	7	11	15
+	4	8	12	16  4	8	12	16
+	
 	*/
 	for(int i = 0; i < 16; i++)
 	{

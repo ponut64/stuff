@@ -68,7 +68,7 @@ void	operate_texture_animations(void)
 			//So to do this, right now, we need to check if the texno is between sprite sheet start/end.
 			for(unsigned int u = 0; u < model->nbPolygon; u++)
 			{
-				if(model->attbl[u].texno >= anim->sprite_sheet_start && model->attbl[u].texno <= anim->sprite_sheet_end)
+				if(model->attbl[u].texno >= anim->sprite_sheet_start && model->attbl[u].texno < anim->sprite_sheet_end)
 				{
 					model->attbl[u].texno = anim->sprite_sheet_start + anim->curKeyFrm;
 					model->lumatbl[u] = anim->lumas[anim->curKeyFrm];

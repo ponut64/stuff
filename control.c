@@ -142,15 +142,16 @@ void controls(void)
 	}
 	if(is_key_down(DIGI_C))
 	{
-		if(you.dirInp == true) you.rot[Y] = you.rot2[Y] - fixCamRot + fixCtrlRot;
+		if(!you.dirInp) you.rot2[Y] = 0;
+		you.rot[Y] = you.rot2[Y] - fixCamRot + fixCtrlRot;
 		you.viewRot[Y] = -fixPlyrRot;
 		you.viewRot[X] = 0;
 	} else if(you.dirInp == true)
 	{
 		you.rot[Y] = you.rot2[Y] - you.viewRot[Y];
-
 	}
-	
+	you.rot[Y] &= 0xFFFF;
+
 	if(is_key_release(DIGI_C))
 	{
 		you.rot[Y] = fixPlyrRot; 

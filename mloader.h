@@ -1,6 +1,6 @@
 #pragma once
 
-#define MAX_MODELS (64)
+#define MAX_MODELS (192)
 #define MODEL_TYPE_NORMAL ('N')
 #define MODEL_TYPE_PLAYER ('P')
 #define MODEL_TYPE_BUILDING ('B')
