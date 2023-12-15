@@ -280,5 +280,44 @@ void	anim_defs(void)
 	ReyeAnim.startFrm = 0;
 	ReyeAnim.endFrm = 4;
 	
+	static Uint8 arrow2_lumas[3];
+	static Uint8 arrow2_arates[3];
+	arrow2.lifetime = 3000<<16;
+	arrow2.arates = &arrow2_arates[0];
+	arrow2.lumas = &arrow2_lumas[0];
+	arrow2.arates[0] = 6;
+	arrow2.arates[1] = 6;
+	arrow2.arates[2] = 6;
+
+	arrow2.lumas[0] = 255;
+	arrow2.lumas[1] = 255;
+	arrow2.lumas[2] = 255;
+
+	arrow2.sprite_sheet_start = animated_texture_list[6];
+	arrow2.sprite_sheet_end = arrow2.sprite_sheet_start + 3;
+	arrow2.curFrm = 0;
+	arrow2.curKeyFrm = 0;
+	arrow2.startFrm = 0;
+	arrow2.endFrm = 3;
+	
+	static Uint8 arrow3_lumas[3];
+	static Uint8 arrow3_arates[3];
+	arrow3.lifetime = 3000<<16;
+	arrow3.arates = &arrow3_arates[0];
+	arrow3.lumas = &arrow3_lumas[0];
+	arrow3.arates[0] = 6;
+	arrow3.arates[1] = 6;
+	arrow3.arates[2] = 6;
+
+	arrow3.lumas[0] = 255;
+	arrow3.lumas[1] = 255;
+	arrow3.lumas[2] = 255;
+
+	arrow3.sprite_sheet_start = animated_texture_list[7];
+	arrow3.sprite_sheet_end = arrow3.sprite_sheet_start + 3;
+	arrow3.curFrm = 0;
+	arrow3.curKeyFrm = 0;
+	arrow3.startFrm = 0;
+	arrow3.endFrm = 3;
 
 }

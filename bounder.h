@@ -5,6 +5,9 @@
 #define BOXID_PLAYER	(-2)
 #define BOXID_MAP		(-3)
 #define BOXID_VOID		(-1)
+
+#define EULER_OPTION_XZY	(0)
+#define EULER_OPTION_XYZ	(1)
 //Structs
 
 typedef struct {
@@ -92,7 +95,7 @@ extern _boundBox sl_RBB;
 //FUNCTION SECTIONS FOR VARIOUS FILES
 //------------------------------------------------------------------------------------
 
-void	makeBoundBox(_object_arguments * source_data);
+void	makeBoundBox(_object_arguments * source_data, int euler);
 void	make2AxisBox(_object_arguments * source_data);
 void	finalize_collision_proxy(_boundBox * box);
 void	set_box_scale(_boundBox * box, int sx, int sy, int sz);

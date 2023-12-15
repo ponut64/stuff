@@ -26,7 +26,8 @@ Uint8 curBoxes = 0;
 // param source_data->x_radius, source_data->y_radius, source_data->z_radius: the X, Y, and Z radius of the box.
 //note: export models as -Y forward, Z up.
 // param bbox: the bounding box struct to be modified.
-void	makeBoundBox(_object_arguments * source_data)
+// Something's wrong with this, because X+ is the same as X-. Do not use it.
+void	makeBoundBox(_object_arguments * source_data, int euler)
 {
 	FIXED prevXpos[XYZ]; 
 	prevXpos[X] = source_data->modified_box->Xplus[X];
@@ -69,34 +70,57 @@ void	makeBoundBox(_object_arguments * source_data)
 	source_data->modified_box->brad[Y] = source_data->y_radius;
 	source_data->modified_box->brad[Z] = source_data->z_radius;
 
-	 FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
-	 FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
-	 FIXED sinY = slSin(source_data->modified_box->boxRot[Y]);
-	 FIXED cosY = slCos(source_data->modified_box->boxRot[Y]);
-	 FIXED sinZ = slSin(source_data->modified_box->boxRot[Z]);
-	 FIXED cosZ = slCos(source_data->modified_box->boxRot[Z]);
 	//SETUP UNIT VECTOR X
-	source_data->modified_box->UVX[X] = fxm(cosY, cosZ);
-	source_data->modified_box->UVX[Y] = fxm(sinZ, cosX) + fxm(fxm(sinX, sinY), cosZ);
-	source_data->modified_box->UVX[Z] = -fxm(fxm(sinY, cosZ), cosX) + fxm(sinZ, sinX);
+	int unitX[3] = {65536, 0, 0};
+	int unitY[3] = {0, 65536, 0};
+	int unitZ[3] = {0, 0, 65536};
+	//Passing vector used as some RAM to throw the vector around safely.
+	int unitP[3] = {0, 0, 0};
+	if(euler == 0)
+	{
+	///////////////////////////////////////////////////////////////////////////
+	// Matches XYZ Euler in Blender, but is actually XZY Euler.
+	// Because Y and Z are swapped.
+	///////////////////////////////////////////////////////////////////////////
+	//Calculate UVX
+	fxrotX(unitX, unitP, source_data->modified_box->boxRot[X]);
+	fxrotZ(unitP, unitX, source_data->modified_box->boxRot[Z]);
+	fxrotY(unitX, source_data->modified_box->UVX, source_data->modified_box->boxRot[Y]);
+	//Calculate UVY
+	fxrotX(unitY, unitP, source_data->modified_box->boxRot[X]);
+	fxrotZ(unitP, unitY, source_data->modified_box->boxRot[Z]);
+	fxrotY(unitY, source_data->modified_box->UVY, source_data->modified_box->boxRot[Y]);
+	//Calculate UVZ
+	fxrotX(unitZ, unitP, source_data->modified_box->boxRot[X]);
+	fxrotZ(unitP, unitZ, source_data->modified_box->boxRot[Z]);
+	fxrotY(unitZ, source_data->modified_box->UVZ, source_data->modified_box->boxRot[Y]);
+	} else if(euler == 1)
+	{
+	///////////////////////////////////////////////////////////////////////////
+	// YZX Euler
+	///////////////////////////////////////////////////////////////////////////
+	//Calculate UVX
+	fxrotY(unitX, unitP, source_data->modified_box->boxRot[Y]);
+	fxrotZ(unitP, unitX, source_data->modified_box->boxRot[Z]);
+	fxrotX(unitX, source_data->modified_box->UVX, source_data->modified_box->boxRot[X]);
+	//Calculate UVY
+	fxrotY(unitY, unitP, source_data->modified_box->boxRot[Y]);
+	fxrotZ(unitP, unitY, source_data->modified_box->boxRot[Z]);
+	fxrotX(unitY, source_data->modified_box->UVY, source_data->modified_box->boxRot[X]);
+	//Calculate UVZ
+	fxrotY(unitZ, unitP, source_data->modified_box->boxRot[Y]);
+	fxrotZ(unitP, unitZ, source_data->modified_box->boxRot[Z]);
+	fxrotX(unitZ, source_data->modified_box->UVZ, source_data->modified_box->boxRot[X]);
+	}
+	
 	
 	source_data->modified_box->Xplus[X] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[X]);
 	source_data->modified_box->Xplus[Y] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Y]);
 	source_data->modified_box->Xplus[Z] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Z]);
 
-	//SETUP UNIT VECTOR Y
-	source_data->modified_box->UVY[X] = -fxm(sinZ, cosY);
-	source_data->modified_box->UVY[Y] = fxm(cosZ, cosX) - fxm(fxm(sinX, sinY), sinZ);
-	source_data->modified_box->UVY[Z] = fxm(sinX, cosZ) + fxm(fxm(sinY, sinZ), cosX);
-
 	source_data->modified_box->Yplus[X] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[X]);
 	source_data->modified_box->Yplus[Y] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Y]);
 	source_data->modified_box->Yplus[Z] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Z]);
-	
-	//SETUP UNIT VECTOR Z
-	source_data->modified_box->UVZ[X] = (sinY);
-	source_data->modified_box->UVZ[Y] = -fxm(sinX, cosY);
-	source_data->modified_box->UVZ[Z] = fxm(cosX, cosY);
 	
 	source_data->modified_box->Zplus[X] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[X]);
 	source_data->modified_box->Zplus[Y] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Y]);
@@ -112,21 +136,18 @@ void	makeBoundBox(_object_arguments * source_data)
 	source_data->modified_box->UVNZ[Y] = -source_data->modified_box->UVZ[Y];
 	source_data->modified_box->UVNZ[Z] = -source_data->modified_box->UVZ[Z];
 	//axis given: Y (on Z axis and does not change Y axis) circle going only right/left, forward/backward
-	source_data->modified_box->Xneg[X] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[X]);
-	source_data->modified_box->Xneg[Y] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Y]);
-	source_data->modified_box->Xneg[Z] = -fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Z]);
+	source_data->modified_box->Xneg[X] = -source_data->modified_box->Xplus[X];
+	source_data->modified_box->Xneg[Y] = -source_data->modified_box->Xplus[Y];
+	source_data->modified_box->Xneg[Z] = -source_data->modified_box->Xplus[Z];
 	//axis given: X (on Y axis and does not change X axis) circle going only up/down, forward/backward
-	source_data->modified_box->Yneg[X] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[X]);
-	source_data->modified_box->Yneg[Y] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Y]);
-	source_data->modified_box->Yneg[Z] = -fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Z]);
+	source_data->modified_box->Yneg[X] = -source_data->modified_box->Yplus[X];
+	source_data->modified_box->Yneg[Y] = -source_data->modified_box->Yplus[Y];
+	source_data->modified_box->Yneg[Z] = -source_data->modified_box->Yplus[Z];
 	//axis given: Z (on X axis and does not change Z axis) Circle going only up/down, left/right
-	source_data->modified_box->Zneg[X] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[X]);
-	source_data->modified_box->Zneg[Y] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Y]);
-	source_data->modified_box->Zneg[Z] = -fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Z]);
+	source_data->modified_box->Zneg[X] = -source_data->modified_box->Zplus[X];
+	source_data->modified_box->Zneg[Y] = -source_data->modified_box->Zplus[Y];
+	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
-
-	//Sort and assign X, Y, and Z maximum normals. (For macros)
-	//Warning: Sorting is GONE. :(
 
 	//Determine a velocity from the difference of current and last position
 	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
@@ -137,7 +158,13 @@ void	makeBoundBox(_object_arguments * source_data)
 	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
 	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
 	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
+	
+	source_data->modified_box->nextPos[X] = source_data->x_location + fxm(source_data->modified_box->velocity[X], time_fixed_scale);
+	source_data->modified_box->nextPos[Y] = source_data->y_location + fxm(source_data->modified_box->velocity[Y], time_fixed_scale);
+	source_data->modified_box->nextPos[Z] = source_data->z_location + fxm(source_data->modified_box->velocity[Z], time_fixed_scale);
+	
 }
+
 
 //Usage:
 // param X, Y, Z: The location of the box (center)

@@ -119,6 +119,7 @@ void	load_test(void)
 	snd_cronch = load_8bit_pcm((Sint8*)"CRONCH.PCM", 15360);
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
+	snd_boost = load_8bit_pcm((Sint8*)"BOOST.PCM", 15360);
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
 	snd_click = load_8bit_pcm((Sint8*)"CLICK.PCM", 7680);
@@ -165,6 +166,10 @@ void	load_test(void)
 	WRAP_NewTable((Sint8*)"LEYEANIM.TGA", (void*)dirty_buf, 24);  
 	animated_texture_list[5] = numTex;
 	WRAP_NewTable((Sint8*)"REYEANIM.TGA", (void*)dirty_buf, 24);  
+	animated_texture_list[6] = numTex;
+	WRAP_NewTable((Sint8*)"ARROW2.TGA", (void*)dirty_buf, 24);  
+	animated_texture_list[7] = numTex;
+	WRAP_NewTable((Sint8*)"ARROW3.TGA", (void*)dirty_buf, 24);  
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -206,7 +211,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SIGN.GVP",			HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"ARBOX.GVP",		HWRAM_ldptr, &entities[37], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BARBOX.GVP",		HWRAM_ldptr, &entities[38], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOOSTER.GVP",		HWRAM_ldptr, &entities[46], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
@@ -253,7 +258,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
-	p64MapRequest(8);
+	p64MapRequest(9);
 	//
 	
 }

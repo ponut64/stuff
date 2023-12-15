@@ -187,8 +187,13 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	_boundBox temp_box;
 	
 	bound_box_starter.modified_box = &temp_box;
-	//... Evil function. Evil!! But I love it, so we keep it.
-	make2AxisBox(&bound_box_starter);
+
+	//Using "1" as euler option.
+	//Reason: this is happening in model-space.
+	//The froward (world-space) euler is XZY; the model space is inverted from that.
+	//That means the model space euler is YZX.
+	//I am very annoyed that this happens but it is a fact of consequence in multiple places in the code.
+	makeBoundBox(&bound_box_starter, EULER_OPTION_XYZ);
 	
 	POINT tRadius = {0, 0, 0};
 	

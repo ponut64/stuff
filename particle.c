@@ -78,6 +78,19 @@ _sprite 	HitPuff = {
 	.type = SPRITE_TYPE_BILLBOARD
 };
 
+_sprite 	ThrowPuff = {
+	.lifetime = 24576,
+	.span[X] = 16,
+	.span[Y] = 4,
+	.span[Z] = 16,
+	.texno = 0,
+	.colorBank = 0,
+	.useClip = 0,
+	.extra = 0,
+	.mesh = 1,
+	.type = SPRITE_TYPE_BILLBOARD
+};
+
 _sprite		DropPuff = {
 	.lifetime = 65536,
 	.span[X] = 1,
@@ -113,6 +126,7 @@ void	init_particle(void)
 	HitPuff.texno = sparkTexno;
 	GlowPuff.texno = sparkTexno;
 	SmallPuff.texno = puffTexno;
+	ThrowPuff.texno = puffTexno;
 	
 }
 
@@ -233,6 +247,15 @@ void	object_effects(int obj_index, int box_index)
 				set_box_scale(box, shrinkAmt, shrinkAmt, shrinkAmt);
 			}
 			return;
+		case(EFFECT_THROW_PARTICLES):
+		{
+			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
+			{
+			emit_particle_explosion(&ThrowPuff, PARTICLE_TYPE_GHOST, obj->pos, box->UVNZ, box->brad[Z], 32768, 2);
+			obj->type.effectTimeCount = 0;
+			}
+			obj->type.effectTimeCount += delta_time;
+		}
 			break;
 	}
 	

@@ -431,13 +431,6 @@ void	player_phys_affect(void)
 		// nbg_sprintf(1, 9, "hitWall: (%i)", you.hitWall);
 		// nbg_sprintf(1, 12, "hitSurface: (%i)", you.hitSurface);
 		// slPrintFX(time_in_seconds, slLocate(1, 14));
-
-	//Delta-V has been time-scaled; it can be reset before we start accumulating it.
-	//Please be aware this should be done after, not before.
-	//I'm doing it here so I can print it somewhere else in code.
-	you.dV[X] = 0;
-	you.dV[Y] = 0;
-	you.dV[Z] = 0;
 	
 	///////////////////////////////////////////////
 	// Sanic capture for measuring speed over time
@@ -798,6 +791,10 @@ void	player_phys_affect(void)
 	you.moment[Y] = fxm(you.mass, you.velocity[Y]);
 	you.moment[Z] = fxm(you.mass, you.velocity[Z]);
 	//
+	//Delta-V has been time-scaled; it can be reset before we start accumulating it.
+	you.dV[X] = 0;
+	you.dV[Y] = 0;
+	you.dV[Z] = 0;
 	
 	//you.renderRot[X] = 0;
 	//you.renderRot[Y] = 0;

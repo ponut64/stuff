@@ -624,6 +624,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	unsigned short flags = 0;
 	unsigned short pclp = 0;
 	int zDepthTgt = 0;
+	int luma_add = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -670,10 +671,12 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		preclipping(ptv, &flip, &pclp);
 		//Lighting
 		luma = fxm(-(fxdot(model->nmtbl[i], lightAngle) + 32768), bright);
+		luma = ((flags & GV_FLAG_SINGLE)) ? luma : JO_ABS(luma);
 		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
 		luma += model->lumatbl[i]<<9;
-		luma += fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		luma_add = fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		luma += ((flags & GV_FLAG_SINGLE)) ? luma_add : JO_ABS(luma_add);
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 		//Shift the color bank code to the appropriate bits
@@ -810,6 +813,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	unsigned short flags = 0;
 	unsigned short pclp = 0;
 	int zDepthTgt = 0;
+	int luma_add = 0;
 
     /**POLYGON PROCESSING**/ 
     for (unsigned int i = 0; i < model->nbPolygon; i++)
@@ -856,10 +860,12 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 		preclipping(ptv, &flip, &pclp);
 		//Lighting
 		luma = fxm(-(fxdot(model->nmtbl[i], lightAngle) + 32768), bright);
+		luma = ((flags & GV_FLAG_SINGLE)) ? luma : JO_ABS(luma);
 		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
 		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
 		luma += model->lumatbl[i]<<9;
-		luma += fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		luma_add = fxdot(model->nmtbl[i], ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		luma += ((flags & GV_FLAG_SINGLE)) ? luma_add : JO_ABS(luma_add);
 		//Use transformed normal as shade determinant
 		determine_colorbank(&colorBank, &luma);
 		//Shift the color bank code to the appropriate bits

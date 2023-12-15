@@ -32,6 +32,7 @@
  int snd_ftake;
  int snd_bwee;
  int snd_smack;
+ int snd_boost;
  int snd_khit;
  int snd_clack;
  int snd_close;

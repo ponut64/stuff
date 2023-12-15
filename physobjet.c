@@ -89,6 +89,13 @@ void	declare_object_at_cell(short pixX, short height, short pixY, short type, AN
 			dWorldObjects[objNEW].pix[Y] = -(pixY);
 			dWorldObjects[objNEW].type = *objList[type];
 			dWorldObjects[objNEW].type.ext_dat |= eeOrData;
+			if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != BUILD)
+			{
+				//why? idfk
+			xrot = -xrot;
+			yrot = -yrot;
+			zrot = -zrot;
+			}
 			dWorldObjects[objNEW].rot[X] = (xrot * 182); // deg * 182 = angle
 			dWorldObjects[objNEW].rot[Y] = (yrot * 182);
 			dWorldObjects[objNEW].rot[Z] = (zrot * 182);
@@ -230,18 +237,12 @@ c.	misc
 		I think I should stick to the Extreme Ski idea.
 		It probably won't work well but I don't have much time.
 	3. Extrme Ski?
-		For Xtrme Ski, i would want boost pads. 
+		Have boost pads.
 	2. Memes?
 		My original pitch was for the game to include memes.
 		The sound effects that play when collecting rings are also still placeholders.
 		I could add references to them...
 		Which means I'd <want> a streaming image implementation: not that hard, if done right.
-	e. need to buy those amtrak tickets
-	The memes is obviously silly. I'd have to find 7 (8?) memes, and get image streaming.
-	Image streaming is dependent on getting the NBG0 palette into a palette file which I can apply to another image.
-	Which is dependent on me finding a tool where I can easily just use an image as the color map.
-	As for a new level, I could do that.
-	
 	Or I could just move on to first-person game.
 d. RAM Optimization
 	Support for cutting and tiling 32x32 textures is enabled.
@@ -400,7 +401,7 @@ void	object_control_loop(int ppos[XY])
 					bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
 					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
 							
-					make2AxisBox(&bound_box_starter);
+					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 					RBBs[objUP].boxID = i;
 					////////////////////////////////////////////////////
 					//Set the box status. This branch of the logic dictates the box is:
@@ -445,7 +446,7 @@ void	object_control_loop(int ppos[XY])
 					bound_box_starter.y_radius = dWorldObjects[i].type.radius[Y]<<16;
 					bound_box_starter.z_radius = dWorldObjects[i].type.radius[Z]<<16;
 							
-					make2AxisBox(&bound_box_starter);
+					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 					RBBs[objUP].boxID = i;
 					
 					////////////////////////////////////////////////////
@@ -485,7 +486,7 @@ void	object_control_loop(int ppos[XY])
 					]<<(MAP_V_SCALE));*/
 					//
 					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-					make2AxisBox(&bound_box_starter);
+					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 					RBBs[objUP].boxID = i;
 						////////////////////////////////////////////////////
 						//Set the box status. This branch of the logic dictates the box is:
@@ -1104,6 +1105,15 @@ void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stato
 		someOBJECTdata->type.ext_dat |= OBJECT_DISABLED;
 		pcm_play(snd_khit, PCM_PROTECTED, 6);
 		}
+	} else if(otype == BOOST_BLOCK_OBJECT)
+	{
+		you.hitWall = false;
+		you.hitSurface = false;
+		
+		you.dV[X] += fxm(10<<16, stator->UVZ[X]);
+		you.dV[Y] += fxm(10<<16, stator->UVZ[Y]);
+		you.dV[Z] += fxm(10<<16, stator->UVZ[Z]);
+		pcm_play(snd_boost, PCM_PROTECTED, 5);
 	}
 	
 }

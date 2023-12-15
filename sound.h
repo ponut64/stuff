@@ -20,6 +20,7 @@ extern int snd_freturn;
 extern int snd_ftake;
 extern int snd_bwee;
 extern int snd_smack;
+extern int snd_boost;
 extern int snd_khit;
 extern int snd_clack;
 extern int snd_close;

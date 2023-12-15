@@ -11,6 +11,7 @@
 #define EFFECT_SPARKLE			(1)
 #define EFFECT_SHRINK			(2)
 #define EFFECT_GROW				(3)
+#define EFFECT_THROW_PARTICLES	(4)
 
 typedef struct {
 	_sprite * spr;

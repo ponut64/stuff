@@ -82,6 +82,7 @@ bitflag orientation for OBJECT:
 #define FORCEFIELD_TOUCH	(0x030)
 #define FORCEFIELD_REMOTE	(0x040)
 #define CRUSH_BLOCK_SLOW	(0x050)
+#define BOOST_BLOCK_OBJECT	(0x060)
 
 #define OBJECT_FLAGS		(0xE)
 #define OBJECT_RESET		(0x7FF0)
