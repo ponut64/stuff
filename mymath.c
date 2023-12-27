@@ -188,8 +188,10 @@ FIXED		approximate_distance(FIXED * p0, FIXED * p1)
 
 //////////////////////////////////
 // "fast inverse square root", but fixed-point
+// Newton-Raphsom root-seeking sequence
 //////////////////////////////////
-FIXED		fxisqrt(FIXED input){
+FIXED		fxisqrt(FIXED input)
+{
 	
 	FIXED xSR = 0;
 	FIXED pushrsamp = 0;
@@ -197,14 +199,16 @@ FIXED		fxisqrt(FIXED input){
 	FIXED shoffset = 0;
 	FIXED yIsqr = 0;
 	
-	if(input <= 65536){
+	if(input <= 65536)
+	{
 		return 65536;
 	}
 	
 	xSR = input>>1;
 	pushrsamp = input;
 	
-	while(pushrsamp >= 65536){
+	while(pushrsamp & 0xFFFF0000)
+	{
 		pushrsamp >>=1;
 		msb++;
 	}

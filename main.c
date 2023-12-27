@@ -251,6 +251,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"LONGBOX.GVP",		HWRAM_ldptr, &entities[43], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUTI.GVP",			HWRAM_ldptr, &entities[44], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"CLIMTOW.GVP",		HWRAM_ldptr, &entities[45], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SATRAMP.GVP",		HWRAM_ldptr, &entities[47], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
@@ -258,7 +259,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
-	p64MapRequest(9);
+	p64MapRequest(8);
 	//
 	
 }
@@ -353,62 +354,62 @@ void	hardware_validation(void)
 {
 	load_drv(ADX_MASTER_1536); 
 	load_hmap_prog();
-	//sdrv_vblank_rq();
-	//update_gamespeed();
-	//int start_time = get_time_in_frame();
+	sdrv_vblank_rq();
+	update_gamespeed();
+	int start_time = get_time_in_frame();
 	run_hmap_prog(); //Dry-run the DSP to get it to flag done
-	//
- 	//while(dsp_noti_addr[0] == 0){
-	//	if(validation_escape()) break;
-	//}; //"DSP Wait"
-	//
-	//int time_at_end = get_time_in_frame();
-	//
-	//while(m68k_com->start != 0)
-	//{
-	//	if(validation_escape()) break;
-	//}; //68K Wait
-	//
-	//int time_at_sound = get_time_in_frame();
+	
+ 	while(dsp_noti_addr[0] == 0){
+		if(validation_escape()) break;
+	}; //"DSP Wait"
+	
+	int time_at_end = get_time_in_frame();
+	
+	while(m68k_com->start != 0)
+	{
+		if(validation_escape()) break;
+	}; //68K Wait
+	
+	int time_at_sound = get_time_in_frame();
 	
 
 	
-	//if((time_at_end - start_time) < 111411)
-	//{
-	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	//set_tga_to_nbg1_palette((void*)dirty_buf);
-	//	while(1)
-	//	{
-	//		slPrintFX(time_at_end - start_time, slLocate(4, 6));
-	//		slPrintFX(time_at_sound - start_time, slLocate(4, 8));
-	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
-	//		nbg_sprintf(5, 10, "There is something wrong with");
-	//		nbg_sprintf(5, 11, "your Saturn video game system.");
-	//		nbg_sprintf(5, 12, "You can contact our associates");
-	//		nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
-	//		nbg_sprintf(5, 14, "for the necessary repairs.");
-	//		if(validation_escape()) break;
-	//	}
-	//}
-	//
-	//if(((time_at_sound - start_time) > (50<<16)))
-	//{
-	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	//set_tga_to_nbg1_palette((void*)dirty_buf);
-	//	while(1)
-	//	{
-	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
-	//		nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
-	//		nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
-	//		nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
-	//		nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
-	//		nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
-	//		nbg_sprintf(1, 15, "But please be aware:");
-	//		nbg_sprintf(1, 16, "It's not the ideal experience.");
-	//		nbg_sprintf(1, 17, "Press START to continue!");
-	//		if(is_key_pressed(DIGI_START)) break;
-	//	}
-	//}
+	if((time_at_end - start_time) < 111411)
+	{
+	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	set_tga_to_nbg1_palette((void*)dirty_buf);
+		while(1)
+		{
+			slPrintFX(time_at_end - start_time, slLocate(4, 6));
+			slPrintFX(time_at_sound - start_time, slLocate(4, 8));
+			slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
+			nbg_sprintf(5, 10, "There is something wrong with");
+			nbg_sprintf(5, 11, "your Saturn video game system.");
+			nbg_sprintf(5, 12, "You can contact our associates");
+			nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
+			nbg_sprintf(5, 14, "for the necessary repairs.");
+			if(validation_escape()) break;
+		}
+	}
+	
+	if(((time_at_sound - start_time) > (50<<16)))
+	{
+	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	set_tga_to_nbg1_palette((void*)dirty_buf);
+		while(1)
+		{
+			slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
+			nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
+			nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
+			nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
+			nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
+			nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
+			nbg_sprintf(1, 15, "But please be aware:");
+			nbg_sprintf(1, 16, "It's not the ideal experience.");
+			nbg_sprintf(1, 17, "Press START to continue!");
+			if(is_key_pressed(DIGI_START)) break;
+		}
+	}
 	 nbg_clear_text();
 }
 

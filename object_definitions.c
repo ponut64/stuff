@@ -462,6 +462,16 @@ _sobject BoostPad = {
 	.effectTimeLimit = 8192
 };
 
+_sobject Build30 = {
+	.entity_ID = 47,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD,
+	.light_bright = 0
+};
+
+
 _sobject GoToLevel0 = {
 	.entity_ID = 0,
 	.radius[X] = 25,
@@ -642,6 +652,7 @@ void	fill_obj_list(void)
 	objList[44] = &Build28;
 	objList[45] = &Build29;
 	objList[46] = &BoostPad;
+	objList[47] = &Build30;
 	
 	objList[49] = &Sign0;
 	

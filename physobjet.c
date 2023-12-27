@@ -238,11 +238,14 @@ c.	misc
 		It probably won't work well but I don't have much time.
 	3. Extrme Ski?
 		Have boost pads.
+		Launch up into loopey loop!
 	2. Memes?
 		My original pitch was for the game to include memes.
 		The sound effects that play when collecting rings are also still placeholders.
 		I could add references to them...
 		Which means I'd <want> a streaming image implementation: not that hard, if done right.
+	4. i need to check my engine oil
+		i need to add salt to the thing
 	Or I could just move on to first-person game.
 d. RAM Optimization
 	Support for cutting and tiling 32x32 textures is enabled.
@@ -1110,9 +1113,9 @@ void	subtype_collision_logic(_declaredObject * someOBJECTdata, _boundBox * stato
 		you.hitWall = false;
 		you.hitSurface = false;
 		
-		you.dV[X] += fxm(10<<16, stator->UVZ[X]);
-		you.dV[Y] += fxm(10<<16, stator->UVZ[Y]);
-		you.dV[Z] += fxm(10<<16, stator->UVZ[Z]);
+		you.dV[X] += fxm(6<<16, stator->UVZ[X]);
+		you.dV[Y] += fxm(6<<16, stator->UVZ[Y]);
+		you.dV[Z] += fxm(6<<16, stator->UVZ[Z]);
 		pcm_play(snd_boost, PCM_PROTECTED, 5);
 	}
 	

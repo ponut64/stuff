@@ -282,9 +282,9 @@ Bool hitY = false;
 Bool hitXZ = false;
 Bool shadowStruck = false;
 
-	discard_vector[X] = JO_ABS(mesh_position[X] + mover->nextPos[X]);
-	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->nextPos[Y]);
-	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->nextPos[Z]);
+	discard_vector[X] = JO_ABS(mesh_position[X] + mover->nextPos[X]) - JO_ABS(fxm(mover->velocity[X], time_fixed_scale));
+	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->nextPos[Y]) - JO_ABS(fxm(mover->velocity[Y], time_fixed_scale));
+	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->nextPos[Z]) - JO_ABS(fxm(mover->velocity[Z], time_fixed_scale));
 
 	//If the player is farther away from the object than its radius, cease the test.
 	if(discard_vector[X] > ((ent->radius[X])<<17) ||
