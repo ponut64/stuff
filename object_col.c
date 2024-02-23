@@ -257,6 +257,78 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	
 }
 
+//Exhaustive process here...
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, entity_t * ent, int * mesh_position)
+{
+	GVPLY * mesh = ent->pol;
+	
+	//To hitscan every plane, we want to minimize the amount of work done.
+	//Thus, we want to:
+	//1. Discard backfaced planes (very important!)
+	//2. Discard planes that are not collidable
+	static POINT trash = {0, 0, 0};
+	static POINT possible_hit = {0,0,0};
+	static int plane_center[3] = {0,0,0};
+	static int plane_points[4][3];
+	int hasHit = 0;
+	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	{		
+		if(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)
+		{
+			if(fxdot(ray_normal, mesh->nmtbl[i]) > 0) continue;
+		}
+		
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
+		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][X]) + mesh_position[X];
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Y]) + mesh_position[Y];
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Z]) + mesh_position[Z];
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+
+		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[i], plane_center, possible_hit);
+		
+		//It can almost work without this. Might be an investigation point to find another shortcut.
+		trash[X] = ray_pos[X] - possible_hit[X];
+		trash[Y] = ray_pos[Y] - possible_hit[Y];
+		trash[Z] = ray_pos[Z] - possible_hit[Z];
+		int scale_to_phit = fxdot(trash, ray_normal);
+		if(scale_to_phit > 0) continue;
+		
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], possible_hit, mesh->maxtbl[i], 12))
+			{
+				//Distance test "possible hit" to "ray_pos"
+				//Can be very far, must use integers.
+				trash[X] = (possible_hit[X] - ray_pos[X])>>16;
+				trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
+				unsigned int possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				trash[X] = (hit[X] - ray_pos[X])>>16;
+				trash[Y] = (hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (hit[Z] - ray_pos[Z])>>16;
+				unsigned int hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				if(possible_hit_scale < hit_scale)
+				{
+					hit[X] = possible_hit[X];
+					hit[Y] = possible_hit[Y];
+					hit[Z] = possible_hit[Z];
+					hasHit = 1;
+				}
+			}
+	}
+	return hasHit;
+}
+
 // Special notice for code observers:
 // In rendering functions, prematrix data (which includes the translation data) is used.
 // We could have simplified the function arguments here if we used the prematrix data.
@@ -310,16 +382,18 @@ Bool shadowStruck = false;
 	// This test will also discard polygons which are too far away to possibly be collided with.
 	// This assists greatly with levels made of plane data only.
 	// PDATA vector space is inverted, so we negate them
+	// Also watch out for overflows here: large polygons can cause problems.
+	// Or small polygons can cause underflows.
 	//////////////////////////////////////////////////////////////
 	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
 	{
 		//Need to use your *next* position, not your current, or last.
-		discard_vector[X] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][X])
-		- mover->nextPos[X] - mesh_position[X];
-		discard_vector[Y] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Y])
-		- mover->nextPos[Y] - mesh_position[Y];
-		discard_vector[Z] = -(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Z])
-		- mover->nextPos[Z] - mesh_position[Z];
+		discard_vector[X] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][X])
+		- mover->nextPos[X] - mesh_position[X])>>4;
+		discard_vector[Y] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Y])
+		- mover->nextPos[Y] - mesh_position[Y])>>4;
+		discard_vector[Z] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Z])
+		- mover->nextPos[Z] - mesh_position[Z])>>4;
 
 		int normal_discard = fxdot(discard_vector, mesh->nmtbl[dst_poly]);
 		//This component should not be signed (distance).

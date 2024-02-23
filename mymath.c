@@ -45,20 +45,13 @@ inline void		maintRand(void)
 	randRollover += 1;
 }
 
-inline FIXED		fxm(FIXED d1, FIXED d2) //Fixed Point Multiplication
+//this particular arrangement of C coaxes GCC into outputting dmuls.l followed by sts mach, sts macl, and xtrct
+inline int        fxm(int d1, int d2) //Fixed Point Multiplication
 {
-	register volatile FIXED rtval;
-	asm(
-	"dmuls.l %[d1],%[d2];"
-	"sts MACH,r1;"		// Store system register [sts] , high of 64-bit register MAC to r1
-	"sts MACL,%[out];"	// Low of 64-bit register MAC to the register of output param "out"
-	"xtrct r1,%[out];" 	//This whole procress gets the middle 32-bits of 32 * 32 -> (2x32 bit registers)
-    :    [out] "=r" (rtval)				//OUT
-    :    [d1] "r" (d1), [d2] "r" (d2)	//IN
-	:		"r1", "mach", "macl"		//CLOBBERS
-	);
-	return rtval;
+    unsigned long long c =  (unsigned long long)d1 * (unsigned long long)d2;
+    return c>>16;
 }
+
 
 
 inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
@@ -78,8 +71,6 @@ inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
 	);
 	return rtval;
 }
-
-
 
 inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 {
@@ -491,7 +482,7 @@ void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output)
 //////////////////////////////////
 // Checks if "point" is between "start" and "end".
 //////////////////////////////////
-Bool	isPointonSegment(FIXED point[XYZ], FIXED start[XYZ], FIXED end[XYZ], int tolerance)
+Bool	isPointonSegment(FIXED * point, FIXED * start, FIXED * end, int tolerance)
 {
 	FIXED max[XYZ];
 	FIXED min[XYZ];
@@ -544,7 +535,7 @@ int	line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB,
 	VECTOR crossAB;
 	fxcross(vC, vB, crossCB);
 	fxcross(vA, vB, crossAB);
-	int sclA = fxdiv(slInnerProduct(crossCB, crossAB), slInnerProduct(crossAB, crossAB));
+	int sclA = fxdiv(fxdot(crossCB, crossAB), fxdot(crossAB, crossAB));
 	
 	intersection[X] = ptA[X] - fxm(sclA, vA[X]);
 	intersection[Y] = ptA[Y] - fxm(sclA, vA[Y]);
@@ -662,13 +653,13 @@ Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED *
 	FIXED vector_of_line[XYZ] = {0, 0, 0};
 	FIXED vector_to_plane[XYZ] = {0, 0, 0};
 	
-	vector_of_line[X] = p0[X] - p1[X];
-	vector_of_line[Y] = p0[Y] - p1[Y];
-	vector_of_line[Z] = p0[Z] - p1[Z];
+	vector_of_line[X] = (p0[X] - p1[X]);
+	vector_of_line[Y] = (p0[Y] - p1[Y]);
+	vector_of_line[Z] = (p0[Z] - p1[Z]);
 
-	vector_to_plane[X] = (point_on_plane[X] + (offset[X])) - p0[X];
-	vector_to_plane[Y] = (point_on_plane[Y] + (offset[Y])) - p0[Y];
-	vector_to_plane[Z] = (point_on_plane[Z] + (offset[Z])) - p0[Z];
+	vector_to_plane[X] = ((point_on_plane[X] + (offset[X])) - p0[X]);
+	vector_to_plane[Y] = ((point_on_plane[Y] + (offset[Y])) - p0[Y]);
+	vector_to_plane[Z] = ((point_on_plane[Z] + (offset[Z])) - p0[Z]);
 
 	line_scalar = fxdiv(fxdot(vector_to_plane, unitNormal), fxdot(vector_of_line, unitNormal));
 	if(line_scalar > (1000<<16) || line_scalar < -(1000<<16)){
@@ -680,6 +671,17 @@ Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED *
 	output[Z] = (p0[Z] + fxm(vector_of_line[Z], line_scalar));
 
 	return isPointonSegment(output, p0, p1, tolerance);
+}
+
+
+void	ray_to_plane(int * ray_normal, int * ray_pos, int * normal_of_plane, int * point_of_plane, int * hit)
+{
+	int vector_to_plane[3] = {point_of_plane[X] - ray_pos[X], point_of_plane[Y] - ray_pos[Y], point_of_plane[Z] - ray_pos[Z]};
+	int line_scalar = fxdiv(fxdot(vector_to_plane, normal_of_plane), fxdot(ray_normal, normal_of_plane));
+	//							Vector * Normal = No compensation?	Normal * Normal = Needs no compensation
+	hit[X] = ray_pos[X] + fxm(ray_normal[X], line_scalar);
+	hit[Y] = ray_pos[Y] + fxm(ray_normal[Y], line_scalar);
+	hit[Z] = ray_pos[Z] + fxm(ray_normal[Z], line_scalar);
 }
 
 void * align_4(void * ptr)

@@ -8,6 +8,7 @@
 extern int boxDisField[6];
 
 void	init_box_handling(void);
+int		edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard);
 int		edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
@@ -23,6 +24,7 @@ void	collide_with_heightmap(_boundBox * sbox, _lineTable * moverCFs, _lineTable 
 //object_col lision
 void	purge_rotated_entities(void);
 void	generate_rotated_entity_for_object(short declared_object_entry);
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, entity_t * ent, int * mesh_position);
 void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, _lineTable * moverCFs, _lineTable * moverTimeAxis);
 
 

@@ -7,6 +7,7 @@
 //////////////////////////////////
 // Uniform grid cell information / shorthands
 //////////////////////////////////
+//The cell size needs to be increased to 64. Or even 128.
 #define CELL_SIZE (2621440) // 40 << 16
 #define INV_CELL_SIZE (1638) // 40 / 1
 #define CELL_SIZE_INT (40)
@@ -30,6 +31,9 @@
 //////////////////////////////////
 #define SQUARE_MAX (9633792) //147<<16
 //////////////////////////////////
+#define PLAYER_X_SIZE	(32<<16)
+#define PLAYER_Y_SIZE	(72<<16)
+#define PLAYER_Z_SIZE	(32<<16)
 
 //////////////////////////////////
 #define LCL_MAP_PIX (21)
@@ -45,6 +49,7 @@
 #define N_Zn (5)
 
 #define GRAVITY (6553)
+#define MOVEMENT_DECAY_RATE (6000)
 
 #define NUM_LEVELS	(9)
 ///////////////////////////////////
@@ -88,20 +93,24 @@ typedef struct {
 	int rotState[XYZ];
 	FIXED velocity[XYZ];
 	int wvel[XYZ];
-	int		dV[XYZ]; //Delta velocity (to be timescaled)
+	int	dV[XYZ]; //Delta velocity (to be timescaled)
 	FIXED gravAccel;
-	int accel[XYZ];
-	int slip[XYZ];
+	int uview[XYZ];
+	int hitscanPt[XYZ];
+	int viewPos[XYZ];
+	int shootPos[XYZ];
+	int shootDir[XYZ];
 	FIXED ControlUV[XYZ];
 	FIXED DirUV[XYZ];
 	FIXED SurfUV[XYZ];
 	FIXED IPaccel;
 	
+	int guidePos[3];//test value
+	
 	FIXED moment[XYZ];
 	FIXED mass;
 	short dirInp;
 	short setJump;
-	short setSlide;
 	short okayStepSnd;
 	short climbing;
 	short ladder;
@@ -117,6 +126,7 @@ typedef struct {
 	int end_average;
 	int airTime;
 	int parTime;
+	int hasValidAim;
 	
 	short firstSurfHit;
 	short power;

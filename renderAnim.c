@@ -198,23 +198,31 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
 
 
+	////
+	//
+	// The interpolator has 16 steps at current + ((next - current)>>4)
+	// I don't understand why the key-frames are shifted by 3, for 8 steps... but they have to be.
+	//
+	////
 	AnimArea[anims].curFrm += (localArate * framerate)>>1;
-
-   AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>3);
-    if (AnimArea[anims].curKeyFrm >= AnimArea[anims].endFrm)
+	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>3);
+	
+    if (AnimArea[anims].curKeyFrm >= (AnimArea[anims].endFrm+1))
 	{
-        AnimArea[anims].curFrm -= (AnimArea[anims].endFrm - AnimArea[anims].startFrm)<<3;
+        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<3;
         AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
-    } else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
+	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
 	{
 		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
-		AnimArea[anims].curFrm += (AnimArea[anims].endFrm-AnimArea[anims].startFrm)<<3;
+		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<3;
 	}
     nextKeyFrm = AnimArea[anims].curKeyFrm+1;
 
-    if (nextKeyFrm >= AnimArea[anims].endFrm){
+    if (nextKeyFrm >= (AnimArea[anims].endFrm+1))
+	{
         nextKeyFrm = AnimArea[anims].startFrm;
-	} else if (nextKeyFrm <= AnimArea[anims].startFrm){
+	} else if (nextKeyFrm <= AnimArea[anims].startFrm)
+	{
         nextKeyFrm = AnimArea[anims].startFrm+1;
 	}
 
@@ -239,6 +247,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
 	int inverseZ = 0;
+	register int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
 	////////////////////////////////////////////////////////////
 	// Pre-loop
 	////////////////////////////////////////////////////////////
@@ -251,7 +260,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	// ** 2 **
 	// Calculate Z for the FIRST vertex
 	ssh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
-	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > near_plane) ? ssh2VertArea[0].pnt[Z] : near_plane;
 	// ** 3 **
 	// Set the division unit to work on the FIRST vertex Z
 	SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
@@ -277,7 +286,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		// ** 4 **
         /**calculate z for the NEXT vertex**/
         ssh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
-		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > near_plane) ? ssh2VertArea[i+1].pnt[Z] : near_plane;
 		// ** 5 **
          /**Starts the division for the NEXT vertex**/
         SetFixDiv(scrn_dist, ssh2VertArea[i+1].pnt[Z]);
@@ -326,7 +335,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE ||
 		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		//Pre-clipping Function
@@ -423,18 +432,18 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	AnimArea[anims].curFrm += (localArate * framerate)>>1;
 	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>3);
 	
-    if (AnimArea[anims].curKeyFrm >= AnimArea[anims].endFrm)
+    if (AnimArea[anims].curKeyFrm >= (AnimArea[anims].endFrm+1))
 	{
-        AnimArea[anims].curFrm -= (AnimArea[anims].endFrm - AnimArea[anims].startFrm)<<3;
+        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<3;
         AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
 	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
 	{
 		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
-		AnimArea[anims].curFrm += (AnimArea[anims].endFrm-AnimArea[anims].startFrm)<<3;
+		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<3;
 	}
     nextKeyFrm = AnimArea[anims].curKeyFrm+1;
 
-    if (nextKeyFrm >= AnimArea[anims].endFrm)
+    if (nextKeyFrm >= (AnimArea[anims].endFrm+1))
 	{
         nextKeyFrm = AnimArea[anims].startFrm;
 	} else if (nextKeyFrm <= AnimArea[anims].startFrm)

@@ -66,9 +66,9 @@ void	makeBoundBox(_object_arguments * source_data, int euler)
 	source_data->modified_box->boxRot[Y] = source_data->y_rotation;
 	source_data->modified_box->boxRot[Z] = source_data->z_rotation;
 	//Give the box its radius
-	source_data->modified_box->brad[X] = source_data->x_radius;
-	source_data->modified_box->brad[Y] = source_data->y_radius;
-	source_data->modified_box->brad[Z] = source_data->z_radius;
+	source_data->modified_box->radius[X] = source_data->x_radius;
+	source_data->modified_box->radius[Y] = source_data->y_radius;
+	source_data->modified_box->radius[Z] = source_data->z_radius;
 
 	//SETUP UNIT VECTOR X
 	int unitX[3] = {65536, 0, 0};
@@ -114,17 +114,17 @@ void	makeBoundBox(_object_arguments * source_data, int euler)
 	}
 	
 	
-	source_data->modified_box->Xplus[X] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[X]);
-	source_data->modified_box->Xplus[Y] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Y]);
-	source_data->modified_box->Xplus[Z] = fxm((source_data->modified_box->brad[X]), source_data->modified_box->UVX[Z]);
+	source_data->modified_box->Xplus[X] = fxm((source_data->modified_box->radius[X]), source_data->modified_box->UVX[X]);
+	source_data->modified_box->Xplus[Y] = fxm((source_data->modified_box->radius[X]), source_data->modified_box->UVX[Y]);
+	source_data->modified_box->Xplus[Z] = fxm((source_data->modified_box->radius[X]), source_data->modified_box->UVX[Z]);
 
-	source_data->modified_box->Yplus[X] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[X]);
-	source_data->modified_box->Yplus[Y] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Y]);
-	source_data->modified_box->Yplus[Z] = fxm((source_data->modified_box->brad[Y]), source_data->modified_box->UVY[Z]);
+	source_data->modified_box->Yplus[X] = fxm((source_data->modified_box->radius[Y]), source_data->modified_box->UVY[X]);
+	source_data->modified_box->Yplus[Y] = fxm((source_data->modified_box->radius[Y]), source_data->modified_box->UVY[Y]);
+	source_data->modified_box->Yplus[Z] = fxm((source_data->modified_box->radius[Y]), source_data->modified_box->UVY[Z]);
 	
-	source_data->modified_box->Zplus[X] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[X]);
-	source_data->modified_box->Zplus[Y] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Y]);
-	source_data->modified_box->Zplus[Z] = fxm((source_data->modified_box->brad[Z]), source_data->modified_box->UVZ[Z]);
+	source_data->modified_box->Zplus[X] = fxm((source_data->modified_box->radius[Z]), source_data->modified_box->UVZ[X]);
+	source_data->modified_box->Zplus[Y] = fxm((source_data->modified_box->radius[Z]), source_data->modified_box->UVZ[Y]);
+	source_data->modified_box->Zplus[Z] = fxm((source_data->modified_box->radius[Z]), source_data->modified_box->UVZ[Z]);
 	//---------------------------------------------------------------------------------------------------------------
 	source_data->modified_box->UVNX[X] = -source_data->modified_box->UVX[X];
 	source_data->modified_box->UVNX[Y] = -source_data->modified_box->UVX[Y];
@@ -149,8 +149,6 @@ void	makeBoundBox(_object_arguments * source_data, int euler)
 	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
 
-	//Determine a velocity from the difference of current and last position
-	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
 	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
 	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
 	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
@@ -212,9 +210,9 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->boxRot[Y] = source_data->y_rotation;
 	source_data->modified_box->boxRot[Z] = source_data->z_rotation;
 	//Give the box its radius
-	source_data->modified_box->brad[X] = source_data->x_radius;
-	source_data->modified_box->brad[Y] = source_data->y_radius;
-	source_data->modified_box->brad[Z] = source_data->z_radius;
+	source_data->modified_box->radius[X] = source_data->x_radius;
+	source_data->modified_box->radius[Y] = source_data->y_radius;
+	source_data->modified_box->radius[Z] = source_data->z_radius;
 
 	 FIXED sinX = slSin(source_data->modified_box->boxRot[X]);
 	 FIXED cosX = slCos(source_data->modified_box->boxRot[X]);
@@ -275,8 +273,7 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
 
-	//Determine a velocity from the difference of current and last position
-	segment_to_vector(source_data->modified_box->prevPos, source_data->modified_box->pos, source_data->modified_box->velocity);
+	//Determine a velocity from the difference of current and last position (of each face)
 	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
 	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
 	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
@@ -336,30 +333,30 @@ X-	|	|	     |	|	X+
 	box->cftbl[4] = box->Zplus;
 	box->cftbl[5] = box->Xplus;
 	
-	box->pntbl[0][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zneg[X]		+ box->pos[X]);
-	box->pntbl[0][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zneg[Y]		+ box->pos[Y]);
-	box->pntbl[0][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zneg[Z]		+ box->pos[Z]);
-	box->pntbl[1][X] = (box->Xplus[X] + box->Yneg[X] + box->Zneg[X]		+ box->pos[X]);
-	box->pntbl[1][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zneg[Y]		+ box->pos[Y]);
-	box->pntbl[1][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zneg[Z]		+ box->pos[Z]);
-	box->pntbl[2][X] = (box->Xplus[X] + box->Yneg[X] + box->Zplus[X]	+ box->pos[X]);
-	box->pntbl[2][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zplus[Y]	+ box->pos[Y]);
-	box->pntbl[2][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zplus[Z]	+ box->pos[Z]);
-	box->pntbl[3][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zplus[X]	+ box->pos[X]);
-	box->pntbl[3][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zplus[Y]	+ box->pos[Y]);
-	box->pntbl[3][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zplus[Z]	+ box->pos[Z]);
-	box->pntbl[4][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zneg[X]	+ box->pos[X]);
-	box->pntbl[4][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zneg[Y]	+ box->pos[Y]);
-	box->pntbl[4][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zneg[Z]	+ box->pos[Z]);
-	box->pntbl[5][X] = (box->Xplus[X] + box->Yplus[X] + box->Zneg[X]	+ box->pos[X]);
-	box->pntbl[5][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zneg[Y]	+ box->pos[Y]);
-	box->pntbl[5][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zneg[Z]	+ box->pos[Z]);
-	box->pntbl[6][X] = (box->Xplus[X] + box->Yplus[X] + box->Zplus[X]	+ box->pos[X]);
-	box->pntbl[6][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zplus[Y]	+ box->pos[Y]);
-	box->pntbl[6][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zplus[Z]	+ box->pos[Z]);
-	box->pntbl[7][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zplus[X]	+ box->pos[X]);
-	box->pntbl[7][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zplus[Y]	+ box->pos[Y]);
-	box->pntbl[7][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zplus[Z]	+ box->pos[Z]);
+	box->pntbl[0][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zneg[X]		+ box->nextPos[X]);
+	box->pntbl[0][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zneg[Y]		+ box->nextPos[Y]);
+	box->pntbl[0][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zneg[Z]		+ box->nextPos[Z]);
+	box->pntbl[1][X] = (box->Xplus[X] + box->Yneg[X] + box->Zneg[X]		+ box->nextPos[X]);
+	box->pntbl[1][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zneg[Y]		+ box->nextPos[Y]);
+	box->pntbl[1][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zneg[Z]		+ box->nextPos[Z]);
+	box->pntbl[2][X] = (box->Xplus[X] + box->Yneg[X] + box->Zplus[X]	+ box->nextPos[X]);
+	box->pntbl[2][Y] = (box->Xplus[Y] + box->Yneg[Y] + box->Zplus[Y]	+ box->nextPos[Y]);
+	box->pntbl[2][Z] = (box->Xplus[Z] + box->Yneg[Z] + box->Zplus[Z]	+ box->nextPos[Z]);
+	box->pntbl[3][X] = (box->Xneg[X] +  box->Yneg[X] + box->Zplus[X]	+ box->nextPos[X]);
+	box->pntbl[3][Y] = (box->Xneg[Y] +  box->Yneg[Y] + box->Zplus[Y]	+ box->nextPos[Y]);
+	box->pntbl[3][Z] = (box->Xneg[Z] +  box->Yneg[Z] + box->Zplus[Z]	+ box->nextPos[Z]);
+	box->pntbl[4][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zneg[X]	+ box->nextPos[X]);
+	box->pntbl[4][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zneg[Y]	+ box->nextPos[Y]);
+	box->pntbl[4][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zneg[Z]	+ box->nextPos[Z]);
+	box->pntbl[5][X] = (box->Xplus[X] + box->Yplus[X] + box->Zneg[X]	+ box->nextPos[X]);
+	box->pntbl[5][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zneg[Y]	+ box->nextPos[Y]);
+	box->pntbl[5][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zneg[Z]	+ box->nextPos[Z]);
+	box->pntbl[6][X] = (box->Xplus[X] + box->Yplus[X] + box->Zplus[X]	+ box->nextPos[X]);
+	box->pntbl[6][Y] = (box->Xplus[Y] + box->Yplus[Y] + box->Zplus[Y]	+ box->nextPos[Y]);
+	box->pntbl[6][Z] = (box->Xplus[Z] + box->Yplus[Z] + box->Zplus[Z]	+ box->nextPos[Z]);
+	box->pntbl[7][X] = (box->Xneg[X] +  box->Yplus[X] + box->Zplus[X]	+ box->nextPos[X]);
+	box->pntbl[7][Y] = (box->Xneg[Y] +  box->Yplus[Y] + box->Zplus[Y]	+ box->nextPos[Y]);
+	box->pntbl[7][Z] = (box->Xneg[Z] +  box->Yplus[Z] + box->Zplus[Z]	+ box->nextPos[Z]);
 	
 	box->pltbl[0][0] = box->pntbl[3];	
 	box->pltbl[0][1] = box->pntbl[2];
@@ -385,6 +382,27 @@ X-	|	|	     |	|	X+
 	box->pltbl[5][1] = box->pntbl[2];
 	box->pltbl[5][2] = box->pntbl[6];
 	box->pltbl[5][3] = box->pntbl[5];
+	
+	//In case an object is rotated more than 90 degrees on any axis, we cannot assume the major axis as constant.
+	//They must be recalculated.
+	static int absN[3];
+
+	for(int i = 0; i < 6; i++)
+	{
+		absN[X] = JO_ABS(box->nmtbl[i][X]);
+		absN[Y] = JO_ABS(box->nmtbl[i][Y]);
+		absN[Z] = JO_ABS(box->nmtbl[i][Z]);
+		
+		if(absN[X] > absN[Y] && absN[X] >= absN[Z])
+		{
+			box->maxtbl[i] = (box->nmtbl[i][X] >= 0) ? N_Xp : N_Xn;
+		} else if(absN[Z] >= absN[X] && absN[Z] > absN[Y])
+		{
+			box->maxtbl[i] = (box->nmtbl[i][Z] >= 0) ? N_Zp : N_Zn;
+		} else {
+			box->maxtbl[i] = (box->nmtbl[i][Y] >= 0) ? N_Yp : N_Yn;
+		}
+	}
 	
 	box->status[3] = 'B';
 	

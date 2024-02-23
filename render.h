@@ -13,6 +13,7 @@
 	#define TV_HALF_HEIGHT (224)
 	
 	#define NEAR_PLANE_DISTANCE (8<<16) //The minimum Z allowed
+	#define SUPER_NEAR_PLANE	(NEAR_PLANE_DISTANCE>>2) //Eeh... just trying
 #else
 	#define TV_WIDTH (352)
 	#define TV_HALF_WIDTH (176)
@@ -20,6 +21,7 @@
 	#define TV_HALF_HEIGHT (112)
 	
 	#define NEAR_PLANE_DISTANCE (15<<16) //The minimum Z allowed
+	#define SUPER_NEAR_PLANE	(NEAR_PLANE_DISTANCE>>2) //Eeh... just trying
 #endif
 
 #define VRAM_TEXTURE_BASE (0xA000) //Matches jo engine specification
@@ -58,7 +60,7 @@
 #define CLIP_TO_SCRN_X(xcoord) ((xcoord > TV_HALF_WIDTH) ? TV_HALF_WIDTH : (xcoord < -TV_HALF_WIDTH) ? -TV_HALF_WIDTH : xcoord)
 #define CLIP_TO_SCRN_Y(ycoord) ((ycoord > TV_HALF_HEIGHT) ? TV_HALF_HEIGHT : (ycoord < -TV_HALF_HEIGHT) ? -TV_HALF_HEIGHT : ycoord)
 
-#define FAR_PLANE_DISTANCE	(1000<<16) //The maximum Z allowed
+#define FAR_PLANE_DISTANCE	(2048<<16) //The maximum Z allowed. Check with setCommand functions to verify it will fit in 1kb zbuffer.
 
 #define	MAX_DYNAMIC_LIGHTS (2)
 
@@ -67,13 +69,13 @@
 #define MAX_SCENE_PORTALS	(8)
 #define MAX_USED_PORTALS	(2)
 
-#define SUBDIVISION_SCALE (50)
+#define SUBDIVISION_SCALE (64)
 
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 
-#define DEPTH_CUE_OFFSET (100<<16)
-#define DEPTH_CUE_CUTOFF (600<<16)
+#define DEPTH_CUE_OFFSET (200<<16)
+#define DEPTH_CUE_CUTOFF (1200<<16)
 
 /*
 Render data flags:
@@ -116,6 +118,19 @@ Render data flags:
 	#define PORTAL_TYPE_BACK	(1<<2)	// Portal on back-facing only, otherwise front facing only
 	#define PORTAL_TYPE_DUAL	(1<<3)	// Portal on both front and back facing (portal always used if active)
 
+
+typedef struct {
+	union {
+		unsigned char raw;
+		struct {
+			unsigned char drawMode:4;
+			unsigned char mesh:1;
+			unsigned char drawOnce:1;
+			unsigned char sorted:1;
+			unsigned char alive:1;
+		} info;
+	};
+} _spr_type_data;
 //////////////////////////////////
 // Engine's working struct for drawing raw sprites
 ///////////// /////////////////////
@@ -127,17 +142,15 @@ typedef struct {
 	short colorBank;	//Color bank to use
 	short useClip;		//To clip by system, in user, or outside of user.
 	unsigned short extra;	//Operation-specific extra data.
-	unsigned char mesh;	//Boolean. 1 enables mesh effect drawing.
-	char type; 			//"B" for billboard, "U" for unscaled billboard, "S" for normal sprite.
+	_spr_type_data type;
 } _sprite; //28 bytes each
-#define SPRITE_TYPE_BILLBOARD			('B')
-#define SPRITE_TYPE_UNSCALED_BILLBOARD	('b')
-#define SPRITE_TYPE_3DLINE				('L')
-#define SPRITE_TYPE_UNSORTED_LINE		('l')
-#define SPRITE_TYPE_NORMAL	('S')
-#define SPRITE_MESH_STROBE	('M')
-#define SPRITE_FLASH_STROBE	('F')
-#define SPRITE_BLINK_STROBE	('O')
+#define SPRITE_TYPE_BILLBOARD			(0)
+#define SPRITE_TYPE_UNSCALED_BILLBOARD	(1)
+#define SPRITE_TYPE_3DLINE				(2)
+#define SPRITE_TYPE_NORMAL	(3)
+#define SPRITE_MESH_STROBE	(4)
+#define SPRITE_FLASH_STROBE	(5)
+#define SPRITE_BLINK_STROBE	(6)
 
 //////////////////////////////////
 // Post-transformed vertice data struct
@@ -266,13 +279,14 @@ extern point_light * active_lights;
 extern int baseAsciiTexno;
 extern int sprAsciiHeight;
 extern int sprAsciiWidth;
+extern _spr_type_data sprite_prep;
 
 extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 
 //subrender.c
 void	plane_rendering_with_subdivision(entity_t * ent);
 //2drender.c
-short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, unsigned char mesh, char type, short useClip, int lifetime);
+short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border, unsigned short depth, unsigned short mesh);
 void	ssh2BillboardScaledSprite(_sprite * spr);

@@ -5,6 +5,7 @@
 #include "def.h"
 #include "mymath.h"
 #include "render.h"
+#include "draw.h"
 
 unsigned short texIDs_cut_from_texID[225][4] = {
 	{30, 31, 32, 33}, // +++
@@ -216,10 +217,10 @@ Information about the scale and subdivision rules of the plane.
 		short		used_textures[128];
 		short	sub_poly_cnt = 0;
 		short	sub_vert_cnt = 0;
-		short	subdivision_rules[4]	= {0, 0, 0, 0};
+		short	subdivision_rules[4]	= {0, 0, 0, SUBDIVIDE_XY};
 		short	texture_rules[4]		= {16, 16, 16, 0};
 		// **really** trying to squeeze the performance here
-		int		z_rules[4]				= {500<<16, 66<<16, 33<<16, 0};
+		int		z_rules[4]				= {512<<16, 256<<16, 128<<16, 0};
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions, short rootTex)
 {
@@ -237,26 +238,17 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	new_rule = subdivision_rules[total_divisions];
 	rootTex = rootTex-1;
 	used_textures[overwritten_polygon] = rootTex;
-	if(num_divisions == 0 || subdivision_rules[total_divisions] == 0)
-	{
-		return;
-	}
-
-	//////////////////////////////////////////////////////////////////
-	// Warning: There is no extreme polygon smallness exit.
-	// It will mess with texture assignment so I got rid of it.
-	// Unfortunately I think this needs to come back in some way to handle trapezoids.
-	//////////////////////////////////////////////////////////////////
-	//if(minLen <= 50 && maxLen <= 50)
-	//{
-		//return;
-	//} 
 	//////////////////////////////////////////////////////////////////
 	// Quick check: If we are subdividing a polygon above the z level, stop further subdivision.
 	// This is mostly useful in cases where a large polygon is being recursively subdivided and parts of it may be far away.
 	//////////////////////////////////////////////////////////////////
 	int polygon_minimum = JO_MIN(JO_MIN(ptv[0][Z], ptv[1][Z]),  JO_MIN(ptv[2][Z], ptv[3][Z]));
-	if(polygon_minimum > z_rules[total_divisions])
+	///////////
+	// Don't try and add an exception to let things draw closer to the screen,
+	// even as untextured polygons.
+	// There's no solution that is compatible with the way the screen transform math works.
+	// You'd need to draw things completely differently.
+	if(num_divisions <= 0 || subdivision_rules[total_divisions] == 0 || polygon_minimum > z_rules[total_divisions])
 	{
 		return;
 	}
@@ -641,17 +633,33 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	}
 	if(!(flags & GV_FLAG_DISPLAY)) continue;
 		 
+	
+	int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	//////////////////////////////////////////////////////////////
 	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
 	//////////////////////////////////////////////////////////////
 	if(flags & GV_FLAG_SINGLE)
 	{
-		 int cross0 = (screen_transform_buffer[vids[1]].pnt[X] - screen_transform_buffer[vids[3]].pnt[X])
-							* (screen_transform_buffer[vids[0]].pnt[Y] - screen_transform_buffer[vids[2]].pnt[Y]);
-		 int cross1 = (screen_transform_buffer[vids[1]].pnt[Y] - screen_transform_buffer[vids[3]].pnt[Y])
-							* (screen_transform_buffer[vids[0]].pnt[X] - screen_transform_buffer[vids[2]].pnt[X]);
 		dual_plane = 0;
-		if(cross0 >= cross1) continue;
+		//Why does this work? What is this doing?
+		//This is pretty much following Wikipedia's article on backface culling. Note the other method used in render.c kind of also does.
+		//The difference is this is view-space, but not screenspace.
+		//In screenspace, you can use a cross product to find the normal of the polygon. This fails for polygons distorted by the near plane.
+		//Instead, we can do the math in view-space. However, doing the math in view-space requires us to transform the normal.
+		//That is why this method is technically inferior, but it is a very similar idea: is the normal facing towards or away the polygon.
+		//In screen-space, that polygon in/out vector coincides with the screen's Z axis.
+		//In view-space, that polygon in/out vector coincides with the plane of the polygon. The normal, you understand?
+		//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
+		//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
+		int t_norm[3] = {0, 0, 0};
+		t_norm[0] = fxdot(mesh->nmtbl[i], m0x);
+		t_norm[1] = fxdot(mesh->nmtbl[i], m1y);
+		t_norm[2] = fxdot(mesh->nmtbl[i], m2z);
+		int tdot = fxdot(t_norm, sub_transform_buffer[vids[0]]);
+		
+		if(tdot > 0) continue;
+
 	} else {
 		dual_plane = 1;
 	}
@@ -661,9 +669,6 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	//////////////////////////////////////////////////////////////
 		sub_vert_cnt += 4;
 		sub_poly_cnt += 1;
-	
-	int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
 	///////////////////////////////////////////
 	// Just a side note:
 	// Doing subdivision in screen-space **does not work**.
@@ -674,9 +679,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		subdivision_rules[0] = mesh->attbl[i].plane_information & 0x3;
 		subdivision_rules[1] = (mesh->attbl[i].plane_information>>2) & 0x3;
 		subdivision_rules[2] = (mesh->attbl[i].plane_information>>4) & 0x3;
-		subdivision_rules[3] = 0;
 		
-		if(!subdivision_rules[0] || subdivision_rules[3] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
+		if(!subdivision_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 		{
 			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
 			ssh2VertArea[0].pnt[X] = screen_transform_buffer[vids[0]].pnt[X];

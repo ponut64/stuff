@@ -14,9 +14,9 @@
 #include "particle.h"
 #include "sound.h"
 
-#define PLR_FWD_SPD (32768)
-#define PLR_RVS_SPD (32768)
-#define PLR_STRF_SPD (32768)
+#define PLR_FWD_SPD (65536)
+#define PLR_RVS_SPD (65536)
+#define PLR_STRF_SPD (65536)
 
 POINT alwaysLow = {0, -(1<<16), 0};
 POINT alwaysHigh = {0, (1<<16), 0};
@@ -68,9 +68,6 @@ void reset_player(void)
 	you.dV[X]=0;
 	you.dV[Y]=0;
 	you.dV[Z]=0;
-    you.slip[X]=0;
-    you.slip[Y]=0;
-    you.slip[Z]=0;
 	you.IPaccel=0;
 	you.id = 0;
 	you.power = 0;
@@ -151,160 +148,17 @@ void pl_jet(void){
 }
 
 
-void	pl_step_snd(void){
+void	pl_step_snd(void)
+{
 	
-	/*
-		HOOF POLY #
-		Changes when exporting
-		Intent:
-		First, check if we're in a moving-animated state.
-		Check a vertice from each hoof and see if it is above 294500 [approx. 4.5].
-		Use this information to play a sound whenever any hoof clears this condition.
-		If multiple hooves do, increase the volume?
-	*/
 	if(pl_model.file_done != true) return;
-	static char hoofSetBools[5];
-	static char oldHoofSetBools[5];
 	char runSnd = 0;
-	const int HoofLowValue = 300100;
-	//int printPos = 0;
-	int hf_vert[4] = {6, 28, 57, 102};
-	POINT hf_pos;
-	int partVelocity[XYZ] = {0, -1024, 0};
 
-		if(you.hitSurface == true){
-			for(int h = 0; h < 4; h++)
-			{
-				if(pl_model.pol->pntbl[hf_vert[h]][Y] > HoofLowValue)
-				{
-					hoofSetBools[h] = true;
-				if(hoofSetBools[h] != oldHoofSetBools[h])
-				{
-					runSnd = 1;
-					/*
-					Puff of smoke to display when player steps
-					*/
-					transform_mesh_point(pl_model.pol->pntbl[hf_vert[h]], hf_pos, &pl_RBB);
-					hf_pos[X] = hf_pos[X] - you.pos[X];
-					hf_pos[Y] = hf_pos[Y] - you.pos[Y];
-					hf_pos[Z] = hf_pos[Z] - you.pos[Z];
-					spawn_particle(&SmallPuff, PARTICLE_TYPE_GHOST, hf_pos, partVelocity);
-				}
-				} else {
-					hoofSetBools[h] = false;
-				}
-			}
-		}
-
-	hoofSetBools[4] = (you.hitSurface);
-	
-		runSnd = (hoofSetBools[4] != oldHoofSetBools[4]) ? 1 : runSnd;
-	
 	if(runSnd == 1)
 	{
 		pcm_play(snd_lstep, PCM_PROTECTED, 5);
 	}
-	
-	oldHoofSetBools[0] = hoofSetBools[0];
-	oldHoofSetBools[1] = hoofSetBools[1];
-	oldHoofSetBools[2] = hoofSetBools[2];
-	oldHoofSetBools[3] = hoofSetBools[3];
-	oldHoofSetBools[4] = hoofSetBools[4];
 
-}
-
-void	smart_cam(void)
-{
-	///////////////////////////////////////////
-	//Smart Camera Setup
-	///////////////////////////////////////////
-	if((you.rot2[Y] > (150 * 182) && you.rot2[Y] < (210 * 182) && you.dirInp) || usrCntrlOption.lockTimer > 0)
-	{
-		usrCntrlOption.lockout = true;
-	}
-	if(usrCntrlOption.lockTimer > 0)
-	{
-		usrCntrlOption.lockTimer -= delta_time;
-	}
-	///////////////////////////////////////////
-	// Movement-following camera
-	///////////////////////////////////////////
-	// "uview" is the discrete vector notation of the player's viewport.
-	VECTOR uview = {-slSin(you.viewRot[Y]), slSin(you.viewRot[X]), slCos(you.viewRot[Y])};
-	// proportion_y is a mathemagical value that is the positive or negative proportion of the view vector,
-	// as compared to the movement vector. While we are doing multiplication here, it's ostensibly division (these are <1 values).
-	int proportion_y;
-	//This is simply the difference between the movement vector's Y and the viewing vector's Y.
-	//prop y and prop x are shifted down to scale it as desired. Magic shift, in other words.
-	int proportion_x;
-	//angDif_y is an expression of how different the movement vector and viewing vector is,
-	//as it relates to the axis that Y view rotation controls (X and Z).
-	short angDif_y;
-	if(usrCntrlOption.movementCam)
-	{
-		if(!you.climbing)
-		{
-			proportion_y = (fxm((you.DirUV[X] - uview[X]),(you.DirUV[X] - uview[X])) + fxm((you.DirUV[Z] - uview[Z]),(you.DirUV[Z] - uview[Z])))>>7;
-			proportion_x = (you.DirUV[Y] - uview[Y])>>7;
-			angDif_y = (slAtan(you.DirUV[X], you.DirUV[Z]) - slAtan(uview[X], uview[Z]));
-		} else {
-			proportion_y = (fxm((you.floorNorm[X] - uview[X]),(you.floorNorm[X] - uview[X])) + fxm((you.floorNorm[Z] - uview[Z]),(you.floorNorm[Z] - uview[Z])))>>7;
-			proportion_x = (you.floorNorm[Y] - uview[Y])>>7;
-			angDif_y = (slAtan(you.floorNorm[X], you.floorNorm[Z]) - slAtan(uview[X], uview[Z]));
-		}
-	
-		//This angle will amount to a proportion of angle we're not yet facing towards the ground.
-		int proportion_facing_ground = (-32768 - uview[Y])>>7;
-		//Will pivot camera towards direction of motion
-		proportion_x = fxm(proportion_x, usrCntrlOption.followForce);
-		proportion_y = fxm(proportion_y, usrCntrlOption.followForce);
-		proportion_facing_ground = fxm(proportion_facing_ground, usrCntrlOption.followForce);
-		if((JO_ABS(you.velocity[X]) > 1024 || JO_ABS(you.velocity[Z]) > 1024) &&  JO_ABS(angDif_y) > 1024 && !usrCntrlOption.lockout)
-		{
-			//Determines if we want to rotate view clockwise or counterclockwise (and then does)
-			you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
-			usrCntrlOption.lockout = true;
-		}
-		if((JO_ABS(you.velocity[Y]) > 1024 || you.dirInp == true))
-		{
-			//If we are on the ground, we want a camera that'll tilt up and down if we're going up or down.
-			//We also do not want the camera to pan down if we are gliding/hopping.
-			//If we are not, we just want the camera to tilt downwards so we can see where we are going to land.
-			//If we are climbing, proportion_x was pre-adjusted so we'll try and look at the wall.
-			if(you.hitSurface == true || you.climbing || (you.setJet && you.airTime > (1<<16)))
-			{
-				you.viewRot[X] +=  (proportion_x * framerate)>>1;
-			} else {
-				you.viewRot[X] += (proportion_facing_ground * framerate)>>1;
-			}
-			
-			usrCntrlOption.lockout = true;
-		}
-	}
-	//////////////////////////////////////////////
-	// Facing-following camera
-	//////////////////////////////////////////////
-	//Push the facing-follow camera up a little bit. Just to control warping.
-	if(usrCntrlOption.facingCam)
-	{
-		uview[Y] = slSin(you.viewRot[X] + (7 * 182));
-		proportion_y = (fxm((you.ControlUV[X] - uview[X]),
-		(you.ControlUV[X] - uview[X])) + fxm((you.ControlUV[Z] - uview[Z]),
-		(you.ControlUV[Z] - uview[Z])))>>7;
-		proportion_x = (you.ControlUV[Y] - uview[Y])>>7;
-		angDif_y = (slAtan(you.ControlUV[X], you.ControlUV[Z]) - slAtan(uview[X], uview[Z]));
-		
-		proportion_x = fxm(proportion_x, usrCntrlOption.followForce);
-		proportion_y = fxm(proportion_y, usrCntrlOption.followForce);
-		
-		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
-		if(!usrCntrlOption.lockout)
-		{
-			you.viewRot[Y] += (angDif_y > 0) ? (proportion_y * framerate)>>1 : -(proportion_y * framerate)>>1; 
-			you.viewRot[X] += (proportion_x * framerate)>>1;
-		}
-	}
-	usrCntrlOption.lockout = false;
 }
 
 void	construct_line_tables(void)
@@ -421,6 +275,40 @@ void	construct_line_tables(void)
 		// nbg_sprintf(1, 8, "xz: (%i)", you.world_faces.xp0[Z]);			
 	
 }
+
+void	smart_cam(void)
+{
+	///////////////////////////////////////////
+	//Smart Camera Setup
+	///////////////////////////////////////////
+	if(usrCntrlOption.lockTimer > 0)
+	{
+		usrCntrlOption.lockout = true;
+	}
+	if(usrCntrlOption.lockTimer > 0)
+	{
+		usrCntrlOption.lockTimer -= delta_time;
+	}
+
+
+	//////////////////////////////////////////////
+	// Re-centering camera
+	//////////////////////////////////////////////
+	if(usrCntrlOption.facingCam)
+	{
+		//Determines if we want to rotate view clockwise or counterclockwise (and then does)
+		if(!usrCntrlOption.lockout)
+		{
+			if(JO_ABS(you.viewRot[X]) > 360)
+			{
+				you.viewRot[X] += (you.viewRot[X] < 0) ? (3 * 182) : -(3 * 182);
+			} else {
+				you.viewRot[X] = 0;
+			}
+		}
+	}
+	usrCntrlOption.lockout = false;
+}
  
 void	player_phys_affect(void)
 {
@@ -453,26 +341,11 @@ void	player_phys_affect(void)
 	///////////////////////////////////////////////
 	// Control axis matrix
 	///////////////////////////////////////////////
-	static int slide_control_matrix[9];
 	//The control unit vector is using the player's bound box / matrix parameters.
 	//In this case, it's the forward vector.
-	//When we are sliding, the player's orientation is locked, but the control vector is allowed to be off-axis.
-	//To facilitate this, we have to rotate about the local axis once more.
-	if(you.setSlide != true || you.climbing == true)
-	{
 	you.ControlUV[X] = pl_RBB.UVZ[X];
     you.ControlUV[Y] = pl_RBB.UVZ[Y];
     you.ControlUV[Z] = pl_RBB.UVZ[Z];
-	} else if(you.setSlide == true)
-	{
-	player_sliding_particles();
-	copy_matrix(slide_control_matrix, &pl_RBB.UVX[0]);
-	fxRotLocalAxis(slide_control_matrix, alwaysHigh, -you.rot2[Y]);
-	you.ControlUV[X] = slide_control_matrix[6];
-    you.ControlUV[Y] = slide_control_matrix[7];
-    you.ControlUV[Z] = slide_control_matrix[8];
-	you.rot[Y] = -you.viewRot[Y];
-	}
 
 	smart_cam();
 
@@ -514,18 +387,14 @@ void	player_phys_affect(void)
 		
 	////////////////////////////////////////////////////
 	//Input-speed response
-	// Need a graceful way to handle slip
 	////////////////////////////////////////////////////
-	if(you.setSlide != true && you.hitSurface == true)
+	if(you.hitSurface == true)
 	{
 		
 		you.dV[X] += fxm(you.IPaccel, you.ControlUV[X]);
 		you.dV[Y] += fxm(you.IPaccel, you.ControlUV[Y]);
 		you.dV[Z] += fxm(you.IPaccel, you.ControlUV[Z]);
-		
-		you.accel[X] = you.dV[X];
-		you.accel[Y] = you.dV[Y];
-		you.accel[Z] = you.dV[Z];
+
 	} else { 
 	//If sliding or in the air
 	//I don't want this to enable going faster, but I do want it to help you turn?
@@ -535,9 +404,6 @@ void	player_phys_affect(void)
 		you.dV[Y] += fxm(fxm(you.IPaccel, you.ControlUV[Y]), 3000);
 		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
 
-		you.accel[X] = you.dV[X];
-		you.accel[Y] = you.dV[Y];
-		you.accel[Z] = you.dV[Z];
 	}
 
 	////////////////////////////////////////////////////
@@ -616,18 +482,10 @@ void	player_phys_affect(void)
 		///Also note this is a really big part of how you stick to the floor.
 		//If normally on surface without modifier, high friction
 		you.surfFriction = (19660); //33%, high friction				
-		//Skiing Decisions
-		if(you.setSlide == true)
-		{
-			you.surfFriction = 155; //very very low friction
-		}		
 		
 		//Special Condition - no friction on surface contact + jump
 		if(!you.setJump)
 		{
-			you.accel[X] -= fxm(you.velocity[X], (you.surfFriction));
-			you.accel[Y] -= fxm(you.velocity[Y], (you.surfFriction));
-			you.accel[Z] -= fxm(you.velocity[Z], (you.surfFriction));
 			//Friction decisions
 			you.dV[X] -= fxm(you.velocity[X], (you.surfFriction));
 			you.dV[Y] -= fxm(you.velocity[Y], (you.surfFriction));
@@ -635,7 +493,7 @@ void	player_phys_affect(void)
 		}
 		
 		//Stiction; low velocities will trap at zero on surface.
-		if(!you.dirInp && !you.setSlide && !you.setJump)
+		if(!you.dirInp && !you.setJump)
 		{
 			you.velocity[X] = (JO_ABS(you.velocity[X]) > 6553) ? you.velocity[X] : 0;
 			you.velocity[Y] = (JO_ABS(you.velocity[Y]) > 6553) ? you.velocity[Y] : 0;
@@ -729,14 +587,6 @@ void	player_phys_affect(void)
 	you.prevPos[Y] = you.pos[Y];
 	you.prevPos[Z] = you.pos[Z];
 
-	//Sound that plays louder the faster you go. Only initiates at all once you are past 3 in sanics.
-	unsigned char windVol = ((you.sanics>>17) < 7) ? ((you.sanics>>17)+1) : 7;
-	if(you.sanics > (3<<16))
-	{
-	pcm_play(snd_wind, PCM_FWD_LOOP, windVol); 
-	} else {
-	pcm_cease(snd_wind);
-	}
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
 	////////////////////////////////////////////////////////////
@@ -762,10 +612,63 @@ void	player_phys_affect(void)
 	if( is_key_up(DIGI_B) && you.rotState[Y] < 0) you.rotState[Y] += fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//S
 	if( is_key_up(DIGI_Z) && you.rotState[X] > 0) you.rotState[X] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[X]), 16384));//D
 	if( is_key_up(DIGI_Y) && you.rotState[Y] > 0) you.rotState[Y] -= fxm(time_fixed_scale, fxm(JO_ABS(you.rotState[Y]), 16384));//W
+	
+	////////////////////////////////////////////////////////////
+	//Deriving the view unit vector from the final orientation
+	////////////////////////////////////////////////////////////
+	you.uview[X] = 0;
+	you.uview[Y] = 0;
+	you.uview[Z] = -(1<<16);
+	int passa[3] = {0, 0, 0};
+	fxrotX(you.uview, passa, -you.viewRot[X]);
+	fxrotY(passa, you.uview, -you.viewRot[Y]); 
+	
+	you.viewPos[X] = you.wpos[X];
+	you.viewPos[Y] = you.wpos[Y] - ((PLAYER_Y_SIZE>>1) + (2<<16));
+	you.viewPos[Z] = you.wpos[Z];
+	/////////////////////////////
+	// Set the position projectiles will emanate from
+	// Kind of difficult / not straight-forward
+	// So this has to be a point, placed at a known location, which is then sine/cosined...
+	you.shootPos[X] = -(5<<16); //Bit to the right
+	you.shootPos[Y] = 7<<16; //Bit down
+	you.shootPos[Z] = 10<<16; //Bit forward
+	fxrotX(you.shootPos, passa, -you.viewRot[X]);
+	fxrotY(passa, you.shootPos, -you.viewRot[Y]);
+	you.shootPos[X] += you.viewPos[X];
+	you.shootPos[Y] += you.viewPos[Y];
+	you.shootPos[Z] += you.viewPos[Z];
+	
+	if(you.hasValidAim)
+	{
+		passa[X] = (you.shootPos[X] - you.hitscanPt[X])>>4;
+		passa[Y] = (you.shootPos[Y] - you.hitscanPt[Y])>>4;
+		passa[Z] = (you.shootPos[Z] - you.hitscanPt[Z])>>4;
+		accurate_normalize(passa, you.shootDir);
+	} else {
+		you.shootDir[X] = -you.uview[X];
+		you.shootDir[Y] = -you.uview[Y];
+		you.shootDir[Z] = -you.uview[Z];
+		you.hitscanPt[X] = you.viewPos[X] + (you.uview[X]<<8);
+		you.hitscanPt[Y] = you.viewPos[Y] + (you.uview[Y]<<8);
+		you.hitscanPt[Z] = you.viewPos[Z] + (you.uview[Z]<<8);
+	}
+	//Initial state setting for aim point
+	you.hasValidAim = false;
+	////////////////////////////////////////////////////////////
+	// Set the crosshairs to be drawn
+	////////////////////////////////////////////////////////////
+	short sprSpan[3] = {10, 10, 10};
+	//I need this to *not* be what it is... drawn on master, no interaction with list.
+	sprite_prep.info.drawMode = SPRITE_TYPE_UNSCALED_BILLBOARD;
+	sprite_prep.info.drawOnce = 1;
+	sprite_prep.info.mesh = 0;
+	sprite_prep.info.sorted = 0;
+	add_to_sprite_list(you.hitscanPt, sprSpan, 'X', 5, sprite_prep, 0, 0);
 	////////////////////////////////////////////////////////////
 	//De-rating speed
 	////////////////////////////////////////////////////////////
-	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel -= fxm(time_fixed_scale, 1500); 
+	if(you.IPaccel > 0 && you.dirInp != true) you.IPaccel -= fxm(time_fixed_scale, MOVEMENT_DECAY_RATE); 
 	if(you.IPaccel < 0 && you.dirInp != true) you.IPaccel = 0;
 
 	if(you.hitSurface != true)
@@ -796,18 +699,6 @@ void	player_phys_affect(void)
 	you.dV[Y] = 0;
 	you.dV[Z] = 0;
 	
-	//you.renderRot[X] = 0;
-	//you.renderRot[Y] = 0;
-	//you.renderRot[Z] = 0;
-	
-	// static POINT testUnit = {0, 0, 65536};
-	// standing_surface_alignment(testUnit, you.renderRot);
-	
-	// nbg_sprintf(1, 6, "x(%i)", you.renderRot[X]);
-	// nbg_sprintf(1, 7, "y(%i)", you.renderRot[Y]);
-	// nbg_sprintf(1, 8, "z(%i)", you.renderRot[Z]);
-
-	
 	bound_box_starter.modified_box = &pl_RBB;
 	bound_box_starter.x_location = you.pos[X];
 	bound_box_starter.y_location = you.pos[Y];
@@ -817,9 +708,13 @@ void	player_phys_affect(void)
 	bound_box_starter.y_rotation = you.renderRot[Y];
 	bound_box_starter.z_rotation = you.renderRot[Z];
 	
-	bound_box_starter.x_radius = 2<<16;
-	bound_box_starter.y_radius = 5<<16;
-	bound_box_starter.z_radius = 5<<16;
+	bound_box_starter.x_radius = PLAYER_X_SIZE>>1;
+	bound_box_starter.y_radius = PLAYER_Y_SIZE>>1;
+	bound_box_starter.z_radius = PLAYER_Z_SIZE>>1;
+			
+	pl_RBB.velocity[X] = you.velocity[X];
+	pl_RBB.velocity[Y] = you.velocity[Y];
+	pl_RBB.velocity[Z] = you.velocity[Z];
 			
 		make2AxisBox(&bound_box_starter);
 		//Why is this here?
@@ -844,9 +739,6 @@ void	player_phys_affect(void)
 		you.wvel[X] = -you.velocity[X];
 		you.wvel[Y] = -you.velocity[Y];
 		you.wvel[Z] = -you.velocity[Z];
-		pl_RBB.velocity[X] = you.velocity[X];
-		pl_RBB.velocity[Y] = you.velocity[Y];
-		pl_RBB.velocity[Z] = you.velocity[Z];
 
 		you.renderRot[X] = you.rot[X];
 		you.renderRot[Y] = you.rot[Y];
@@ -863,24 +755,6 @@ void	player_phys_affect(void)
 		you.climbing = false;
 		you.ladder = false;
 
-/*
-
-		short dirZP[3] = {pl_RBB.UVZ[X]>>3,	  pl_RBB.UVZ[Y]>>3, 	 pl_RBB.UVZ[Z]>>3};
-		short dirZN[3] = {pl_RBB.UVNZ[X]>>3, pl_RBB.UVNZ[Y]>>3, 	pl_RBB.UVNZ[Z]>>3};
-		short dirXP[3] = {pl_RBB.UVX[X]>>3,	  pl_RBB.UVX[Y]>>3, 	 pl_RBB.UVX[Z]>>3};
-		short dirXN[3] = {pl_RBB.UVNX[X]>>3, pl_RBB.UVNX[Y]>>3,		pl_RBB.UVNX[Z]>>3};
-		short dirYP[3] = {pl_RBB.UVY[X]>>3,	  pl_RBB.UVY[Y]>>3, 	 pl_RBB.UVY[Z]>>3};
-		short dirYN[3] = {pl_RBB.UVNY[X]>>3, pl_RBB.UVNY[Y]>>3,		pl_RBB.UVNY[Z]>>3};
-		add_to_sprite_list(you.wpos, dirXP, 0,   16	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.xp0, dirXP, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.xp1, dirXN, 0, 16	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(you.wpos, dirYP, 0,   19	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.yp0, dirYP, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.yp1, dirYN, 0, 19	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(you.wpos, dirZP, 0,   17	+ (0 * 64), 0, 		'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.zp0, dirZP, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
-		add_to_sprite_list(you.scaled_faces.zp1, dirZN, 0, 17	+ (0 * 64), 0, 	'l', 0, 1500);
- */
 	construct_line_tables();
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;

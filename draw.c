@@ -37,6 +37,8 @@ MATRIX hmap_mtx;
 MATRIX perspective_root;
 // ???
 MATRIX unit;
+// Forward Vector. For convenience.
+int scrn_z_fwd[3] = {0, 0, 0};
 //Billboard sprite work list (world-space positions)
 //
 // Mental note: Try Rotation-16 framebuffer and alternate screen coordinate from 0,0 and 1,1 every vblank
@@ -54,34 +56,9 @@ unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //////////////////////////////////////////////////////////////////////////////
-animationControl idle;
-animationControl idleB;
-animationControl stop;
-animationControl fall;
-animationControl slideIdle;
-animationControl slideLln;
-animationControl slideRln;
-animationControl airIdle;
-animationControl airLeft;
-animationControl airRight;
-animationControl jump;
-animationControl hop;
-animationControl walk;
-animationControl run;
-animationControl dbound;
-animationControl climbIdle;
-animationControl climbing;
- 
-animationControl flap;
+animationControl reload;
 
 spriteAnimation qmark;
-spriteAnimation arrow;
-spriteAnimation check;
-spriteAnimation goal;
-spriteAnimation LeyeAnim;
-spriteAnimation ReyeAnim;
-spriteAnimation arrow2;
-spriteAnimation arrow3;
 
 void	computeLight(void)
 {
@@ -174,140 +151,69 @@ void	master_draw_stats(void)
 
 void	player_animation(void)
 {
-	
-			//Animation Chains
-					static int airTimer = 0;
-			if(pl_model.file_done == true)
-			{
-				if(you.hitSurface == true)
-				{
-				airTimer = 0;
-					if(you.setSlide != true && you.climbing != true && airTimer == 0)
-					{
-						if(you.velocity[X] == 0 && you.velocity[Y] == 0 && you.velocity[Z] == 0)
-						{
-							meshAnimProcessing(&idle, &pl_model,  false);
-						} else if( (you.velocity[X] != 0 || you.velocity[Z] != 0) && you.dirInp)
-						{
-						if(you.IPaccel <= 0){
-								meshAnimProcessing(&stop, &pl_model,  false);
-							}
-						if(you.sanics < 2<<16 && you.IPaccel > 0){
-								meshAnimProcessing(&walk, &pl_model,  true);
-							}
-						if(you.sanics < 3<<16 && you.sanics > 2<<16){
-								meshAnimProcessing(&run, &pl_model,  true);
-							}
-						if(you.sanics >= 3<<16){
-								meshAnimProcessing(&dbound, &pl_model,  true);
-							}
-						} else if((you.velocity[X] != 0 || you.velocity[Z] != 0) && !you.dirInp)
-						{
-							meshAnimProcessing(&stop, &pl_model,  false);
-						} else {
-							meshAnimProcessing(&idle, &pl_model,  false);
-						}	
-						//IF NOT SLIDE ENDIF
-					} else if(you.setSlide == true && you.climbing != true){
-						if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
-						{
-							meshAnimProcessing(&slideRln, &pl_model,  false);
-						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
-						{
-							meshAnimProcessing(&slideLln, &pl_model,  false);
-						} else {
-							meshAnimProcessing(&slideIdle, &pl_model,  false);
-						}
-						//IF SLIDE ENDIF
-					} else if(you.climbing == true)
-					{
-						if(you.sanics == 0)
-						{
-							meshAnimProcessing(&climbIdle, &pl_model,  false);
-						} else {
-							meshAnimProcessing(&climbing, &pl_model,  false);
-						}
-						//IF CLIMB ENDIF
-					}
-					//IF SURFACE ENDIF	
-				} else {
-						airTimer++;
-						if(airTimer < 8 && airTimer != 0 && you.velocity[Y] != 0)
-						{
-							if(!you.setJet){
-								meshAnimProcessing(&jump, &pl_model,  false);
-							} else {
-								meshAnimProcessing(&hop, &pl_model,  false);
-							}
-						} else if(you.rot2[Y] > (30 * 182) && you.rot2[Y]  < (150 * 182) && you.dirInp)
-						{
-							meshAnimProcessing(&airRight, &pl_model,  false);
-						} else if(you.rot2[Y] < (330 * 182) && you.rot2[Y] > (210 * 182) && you.dirInp)
-						{
-							meshAnimProcessing(&airLeft, &pl_model,  false);
-						} else {
-							meshAnimProcessing(&airIdle, &pl_model,  false);
-						}
-				}//IF AIR ENDIF
-			} //IF MODEL LOADED ENDIF
-	
-			//This plays a wing flap animation when you start 'jetting'.
-			//Due to the configuration of the animation, the wings stop after one flap.
-			//This code manually resets the flap animation when you're done jetting, so they will flap again.
-			if(you.setJet)
-			{
-				meshAnimProcessing(&flap, &wings,  false);
-				//Flap when hitting surface.
-				if(you.hitWall)
-				{
-					flap.curFrm = flap.startFrm * 8;
-					flap.curKeyFrm = flap.startFrm;
-					flap.reset_enable = 'Y';
-				}
-			} else {
-				flap.curFrm = flap.startFrm * 8;
-				flap.curKeyFrm = flap.startFrm;
-				flap.reset_enable = 'Y';
-			}
-	
+	//Empty
 }
 
 void	player_draw(int draw_mode)
 {
 	
+	//Drawing first-person model....
 
 	//Note that "sl_RBB" is used as a safe copy of pl_RBB to be manipulated.
-	sl_RBB = pl_RBB;
-	sl_RBB.pos[X] = 0;//-sl_RBB.pos[X]; //Negate, because coordinate madness
-	sl_RBB.pos[Y] = 0;//-sl_RBB.pos[Y]; //Negate, because coordinate madness
-	sl_RBB.pos[Z] = 0;//-sl_RBB.pos[Z]; //Negate, because coordinate madness
+	bound_box_starter.modified_box = &sl_RBB;
+	bound_box_starter.x_location = 0;
+	bound_box_starter.y_location = 0;
+	bound_box_starter.z_location = 0;
 	
-	pl_model.prematrix = (FIXED*)&sl_RBB;
-	wings.prematrix = (FIXED*)&sl_RBB;
+	bound_box_starter.x_rotation = -you.viewRot[X];
+	bound_box_starter.y_rotation = -you.viewRot[Y];
+	bound_box_starter.z_rotation = 0;
+	
+	bound_box_starter.x_radius = entities[0].radius[X]<<16;
+	bound_box_starter.y_radius = entities[0].radius[Y]<<16;
+	bound_box_starter.z_radius = entities[0].radius[Z]<<16;
+
+	makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
+	
+	meshAnimProcessing(&reload, &entities[1], false);
+
+	entities[1].prematrix = (FIXED*)&sl_RBB;
+	entities[1].z_plane = 1;
 	if(draw_mode == DRAW_MASTER)
 	{
-		msh2DrawModel(&pl_model, perspective_root);
+		msh2DrawModel(&entities[1], perspective_root);
 	} else if(draw_mode == DRAW_SLAVE)
 	{
 		slPushMatrix();
-		ssh2DrawModel(&pl_model);
+		ssh2DrawModel(&entities[1]);
+		slPopMatrix();
+	}
+}
+
+void	shadow_draw(int draw_mode)
+{
+	
+	//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
+	//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
+	sl_RBB = pl_RBB;
+	sl_RBB.pos[X] = you.pos[X] - you.shadowPos[X];
+	sl_RBB.pos[Y] = you.pos[Y] - (you.shadowPos[Y] - 8192);
+	sl_RBB.pos[Z] = you.pos[Z] - you.shadowPos[Z]; 
+	
+	shadow.prematrix = (FIXED*)&sl_RBB;
+
+	if(draw_mode == DRAW_MASTER)
+	{
+		msh2DrawModel(&shadow, perspective_root);
+	} else if(draw_mode == DRAW_SLAVE)
+	{
+		slPushMatrix();
+		ssh2DrawModel(&shadow);
 		slPopMatrix();
 	}
 	
-	if(you.setJet)
-	{
-		if(draw_mode == DRAW_MASTER)
-		{
-			msh2DrawModel(&wings, perspective_root);
-		} else if(draw_mode == DRAW_SLAVE)
-		{
-			slPushMatrix();
-			ssh2DrawModel(&wings);
-			slPopMatrix();
-		}
-	}
-
 }
+
 
 void	obj_draw_queue(void)
 {
@@ -336,50 +242,34 @@ void	obj_draw_queue(void)
 	}
 	
 
-	for(int s = 0; s < MAX_SPRITES; s++)
+	for(int s = MAX_SPRITES; s >= 0; s--)
 	{
-		if(sprWorkList[s].lifetime >= 0)
+		if(sprWorkList[s].lifetime >= 0 || sprWorkList[s].type.info.drawOnce)
 		{
 			sprWorkList[s].lifetime -= delta_time;
-			if(sprWorkList[s].type == SPRITE_TYPE_BILLBOARD || sprWorkList[s].type == SPRITE_TYPE_UNSCALED_BILLBOARD)
+			switch(sprWorkList[s].type.info.drawMode)
 			{
+				case(SPRITE_TYPE_BILLBOARD):
+				case(SPRITE_TYPE_UNSCALED_BILLBOARD):
 				ssh2BillboardScaledSprite(&sprWorkList[s]);
-			} else if(sprWorkList[s].type == SPRITE_TYPE_3DLINE || sprWorkList[s].type == SPRITE_TYPE_UNSORTED_LINE)
-			{
+				break;
+				case(SPRITE_TYPE_3DLINE):
 				ssh2Line(&sprWorkList[s]);
-			} else if(sprWorkList[s].type == SPRITE_TYPE_NORMAL || sprWorkList[s].type == SPRITE_MESH_STROBE
-			|| sprWorkList[s].type == SPRITE_FLASH_STROBE || sprWorkList[s].type == SPRITE_BLINK_STROBE)
-			{
+				break;
+				case(SPRITE_TYPE_NORMAL):
+				case(SPRITE_MESH_STROBE):
+				case(SPRITE_FLASH_STROBE):
+				case(SPRITE_BLINK_STROBE):
+				default:
 				ssh2NormalSprite(&sprWorkList[s]);
+				break;
 			}
+			sprWorkList[s].type.info.alive = (sprWorkList[s].type.info.drawOnce) ? 0 : 1;
+			sprWorkList[s].type.info.drawOnce = 0;
 		} else {
 			//Mark expired sprites as unused.
-			sprWorkList[s].type = 'N'; 
+			sprWorkList[s].type.info.alive = 0; 
 		}
-	}
-	
-}
-
-void	shadow_draw(int draw_mode)
-{
-	
-	//Make shadow match player rotation. I mean, it's not a perfect solution, but it mostly works.
-	//Note that "sl_RBB" is used as a slave-only copy of pl_RBB to be manipulated.
-	sl_RBB = pl_RBB;
-	sl_RBB.pos[X] = you.pos[X] - you.shadowPos[X];
-	sl_RBB.pos[Y] = you.pos[Y] - (you.shadowPos[Y] - 8192);
-	sl_RBB.pos[Z] = you.pos[Z] - you.shadowPos[Z]; 
-	
-	shadow.prematrix = (FIXED*)&sl_RBB;
-
-	if(draw_mode == DRAW_MASTER)
-	{
-		msh2DrawModel(&shadow, perspective_root);
-	} else if(draw_mode == DRAW_SLAVE)
-	{
-		slPushMatrix();
-		ssh2DrawModel(&shadow);
-		slPopMatrix();
 	}
 	
 }
@@ -393,7 +283,7 @@ void	prep_map_mtx(void)
 	set_camera();
 	slPushMatrix();
 	{
-	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
+	//slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
 	slTranslate(hmap_matrix_pos[X], you.pos[Y], hmap_matrix_pos[Z]);
@@ -406,13 +296,14 @@ void	prep_map_mtx(void)
 
 void	object_draw(void)
 {
+	*timeComm = 0;
 	/////////////////////////////////////////////
 	// Important first-step
 	// Sometimes the master will finish preparing the drawing list while the slave is working on them.
 	// That would normally break the work flow and make some entities disappear.
 	// To prevent that, we capture the to-draw lists at the start of the Slave's workflow to a list that the Master does not edit.
 	/////////////////////////////////////////////
-	for(int i = 0; i < objNEW; i++)
+	for(int i = 0; i < objUP; i++)
 	{
 		objDRAW[i] = objPREP[i];
 	}
@@ -420,12 +311,12 @@ void	object_draw(void)
 	{
 		DBBs[i] = RBBs[i];
 	}
-	*timeComm = 0;
 
 	computeLight();
 	slPushMatrix();
 	{	
-	slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
+	//(for third-person camera only)
+	//slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
 	
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
@@ -436,22 +327,12 @@ void	object_draw(void)
 		player_draw(DRAW_SLAVE);
 		shadow_draw(DRAW_SLAVE);
 	}
-	//////////////////////////////////////////////////////////////
-	// "viewpoint" is the point from which the perspective will originate (contains view translation/rotation).
-	//////////////////////////////////////////////////////////////
-	you.viewpoint[X] = fxm(perspective_root[X][X], perspective_root[3][X]) +
-						fxm(perspective_root[Y][X], perspective_root[3][Y]) +
-						fxm(perspective_root[Z][X], perspective_root[3][Z]);
-						
-	you.viewpoint[Y] = fxm(perspective_root[X][Y], perspective_root[3][X]) +
-						fxm(perspective_root[Y][Y], perspective_root[3][Y]) +
-						fxm(perspective_root[Z][Y], perspective_root[3][Z]);
-						
-	you.viewpoint[Z] = fxm(perspective_root[X][Z], perspective_root[3][X]) +
-						fxm(perspective_root[Y][Z], perspective_root[3][Y]) +
-						fxm(perspective_root[Z][Z], perspective_root[3][Z]);
-		//
-	slTranslate(you.pos[X], you.pos[Y], you.pos[Z]);
+	//Adjustments are made on the Y to account for the height of the player (in first-person camera)
+	slTranslate(you.pos[X], you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16)), you.pos[Z]);
+	slGetMatrix(unit);
+	scrn_z_fwd[X] = unit[3][X];
+	scrn_z_fwd[Y] = unit[3][Y];
+	scrn_z_fwd[Z] = unit[3][Z];
 
 	obj_draw_queue();
 
@@ -625,16 +506,7 @@ void	master_draw(void)
 	//I was intending on integrating some sort of process-based loop on these.
 	//Oh well...
 	clean_sprite_animations();
-	start_texture_animation(&check, &entities[18]);
-	start_texture_animation(&qmark, &entities[36]);
-	start_texture_animation(&arrow, &entities[37]);
-	start_texture_animation(&arrow, &entities[38]);
-	start_texture_animation(&arrow, &entities[39]);
-	start_texture_animation(&goal, &entities[40]);
-	start_texture_animation(&LeyeAnim, &pl_model);
-	start_texture_animation(&ReyeAnim, &pl_model);
-	start_texture_animation(&arrow2, &entities[46]);
-	start_texture_animation(&arrow3, &entities[46]);
+	// start_texture_animation(&check, &entities[18]);
 	operate_texture_animations();
 
 	time_at_end = get_time_in_frame();

@@ -80,6 +80,7 @@ typedef struct {
 
 typedef struct
 {
+	int z_plane;	//Boolean. 0 for far, 1 for near.
 	unsigned int size;
 	short file_done;
 	short was_loaded_from_CD;

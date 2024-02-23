@@ -1,11 +1,33 @@
 #pragma once
 
-#define PARTICLE_TYPE_EMPTY		(0) //Not a particle
-#define PARTICLE_TYPE_NORMAL	(1)	//Gravity-enabled, collision-enabled particle.
-#define PARTICLE_TYPE_NOGRAV	(2)	//Gravity-disabled, collision-enabled
+#define MAX_PARTICLE_TYPES		(64)
+#define PARTICLE_TYPE_NORMAL	(0)	//Gravity-enabled, collision-enabled particle.
+#define PARTICLE_TYPE_NOGRAV	(1)	//Gravity-disabled, collision-enabled
+#define PARTICLE_TYPE_NOCOL		(2) //Gravity-enabled, collision-disabled
 #define PARTICLE_TYPE_GHOST		(3)	//Gravity-disabled, collision-disabled
-#define PARTICLE_TYPE_NOCOL		(4) //Gravity-enabled, collision-disabled
-#define PARTICLE_HIT			(0x8000) //Bitflag to set when particle has hit something
+#define PROJ_TEST	(4)
+
+///////////////////////////////////////////////////////
+//
+//
+///////////////////////////////////////////////////////
+// Whacky system to less-than-manually pack named data into 16 bits.
+///////////////////////////////////////////////////////
+typedef struct {
+	union {
+		unsigned short raw;
+		
+		struct {
+		unsigned char garbage:1;
+		unsigned char gravity:1;
+		unsigned char collide:1;
+		unsigned char bounce:1;
+		unsigned char damage:4;
+		} info;
+	};
+} ptypes;
+
+extern ptypes particle_type_list[MAX_PARTICLE_TYPES];
 
 #define	EFFECT_NONE				(0)
 #define EFFECT_SPARKLE			(1)
@@ -18,10 +40,9 @@ typedef struct {
 	int prevPos[XYZ];
 	int velocity[XYZ];
 	int dirUV[XYZ];
-	int spd;
 	int lifetime;
 	unsigned short luma; //Light emission value (unused)
-	unsigned short type;
+	ptypes type;
 	unsigned short extra; //Type-specific data
 } _particle;
 

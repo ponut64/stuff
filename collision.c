@@ -32,6 +32,134 @@ boxDisField[5] = N_Xp;
 }
 
 
+int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard)
+{
+	
+	/*
+	Edge Projection Test
+	
+	Hitherto shall be constructed a vector from each edge of the polygon supplied as:
+	(pp0 -> pp1)
+	(pp1 -> pp2)
+	(pp2 -> pp3)
+	(pp3 -> pp0)
+
+	What does the code do now?
+	It takes the (discard) and applies the (discard) as:
+	vect_point, vect_norm, and polygon points.
+	So if N_Xp, all of those will point back to X+ face/normal/center.
+	Furthermore, the discard, to check if within the face, will proceed with (discard).
+	
+	So if we want to actually check a polygon that might face X+ but be a shape that won't collide with its center,
+	we need to do this test with Z+/- and Y+/-.
+	
+
+	*/
+	
+	if(box->status[3] != 'B') return false;
+	
+	static int intersections[4][3];
+	static int triggers[4];
+
+	int * vect_point;
+	int * vect_norm;
+	int * plpnt[4];
+
+	switch(discard)
+	{
+	case (N_Xp):
+		//Polygon #5
+		vect_point = boxAxis->xp0;
+		vect_norm = box->UVX;
+		plpnt[0] = box->pltbl[5][0];
+		plpnt[1] = box->pltbl[5][1];
+		plpnt[2] = box->pltbl[5][2];
+		plpnt[3] = box->pltbl[5][3];
+		break;
+	case (N_Zp):
+		//Polygon #4
+		vect_point = boxAxis->zp0;
+		vect_norm = box->UVZ;
+		plpnt[0] = box->pltbl[4][0];
+		plpnt[1] = box->pltbl[4][1];
+		plpnt[2] = box->pltbl[4][2];
+		plpnt[3] = box->pltbl[4][3];
+		break;
+	case (N_Yn):
+	default:
+		//Polygon #0
+		vect_point = boxAxis->yp1;
+		vect_norm = box->UVNY;
+		plpnt[0] = box->pltbl[0][0];
+		plpnt[1] = box->pltbl[0][1];
+		plpnt[2] = box->pltbl[0][2];
+		plpnt[3] = box->pltbl[0][3];
+		break;
+	case (N_Xn):
+		//Polygon #2
+		vect_point = boxAxis->xp1;
+		vect_norm = box->UVNX;
+		plpnt[0] = box->pltbl[2][0];
+		plpnt[1] = box->pltbl[2][1];
+		plpnt[2] = box->pltbl[2][2];
+		plpnt[3] = box->pltbl[2][3];
+		break;
+	case (N_Zn):
+		//Polygon #1
+		vect_point = boxAxis->zp1;
+		vect_norm = box->UVNZ;
+		plpnt[0] = box->pltbl[1][0];
+		plpnt[1] = box->pltbl[1][1];
+		plpnt[2] = box->pltbl[1][2];
+		plpnt[3] = box->pltbl[1][3];
+		break;
+	case (N_Yp):
+		//Polygon #3
+		vect_point = boxAxis->yp0;
+		vect_norm = box->UVY;
+		plpnt[0] = box->pltbl[3][0];
+		plpnt[1] = box->pltbl[3][1];
+		plpnt[2] = box->pltbl[3][2];
+		plpnt[3] = box->pltbl[3][3];
+		break;
+	}
+	
+		triggers[0] = line_hit_plane_here(pp0, pp1, vect_point, vect_norm, zPt, 16384, intersections[0]);
+		if(triggers[0])
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[0], discard, 12))
+			{
+				return true;
+			}
+		}
+		triggers[1] = line_hit_plane_here(pp1, pp2, vect_point, vect_norm, zPt, 16384, intersections[1]);
+		if(triggers[1])
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[1], discard, 12))
+			{
+				return true;
+			}
+		}
+		triggers[2] = line_hit_plane_here(pp2, pp3, vect_point, vect_norm, zPt, 16384, intersections[2]);
+		if(triggers[2])
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[2], discard, 12))
+			{
+				return true;
+			}
+		}
+		triggers[3] = line_hit_plane_here(pp3, pp0, vect_point, vect_norm, zPt, 16384, intersections[3]);
+		if(triggers[3])
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[3], discard, 12))
+			{
+				return true;
+			}
+		}
+		
+	return false;
+	
+}
 
 int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift)
 {
@@ -253,15 +381,15 @@ fmtx->UVNZ[Z] = -fmtx->UVZ[Z];
 
 //You know a really funny bug?
 //Transforming the radius instead of using it as the per-axis scalar....
-fmtx->Xplus[X] = fxm(fmtx->UVX[X], fmtx->brad[X]);
-fmtx->Xplus[Y] = fxm(fmtx->UVX[Y], fmtx->brad[X]);
-fmtx->Xplus[Z] = fxm(fmtx->UVX[Z], fmtx->brad[X]);
-fmtx->Yplus[X] = fxm(fmtx->UVY[X], fmtx->brad[Y]);
-fmtx->Yplus[Y] = fxm(fmtx->UVY[Y], fmtx->brad[Y]);
-fmtx->Yplus[Z] = fxm(fmtx->UVY[Z], fmtx->brad[Y]);
-fmtx->Zplus[X] = fxm(fmtx->UVZ[X], fmtx->brad[Z]);
-fmtx->Zplus[Y] = fxm(fmtx->UVZ[Y], fmtx->brad[Z]);
-fmtx->Zplus[Z] = fxm(fmtx->UVZ[Z], fmtx->brad[Z]);
+fmtx->Xplus[X] = fxm(fmtx->UVX[X], fmtx->radius[X]);
+fmtx->Xplus[Y] = fxm(fmtx->UVX[Y], fmtx->radius[X]);
+fmtx->Xplus[Z] = fxm(fmtx->UVX[Z], fmtx->radius[X]);
+fmtx->Yplus[X] = fxm(fmtx->UVY[X], fmtx->radius[Y]);
+fmtx->Yplus[Y] = fxm(fmtx->UVY[Y], fmtx->radius[Y]);
+fmtx->Yplus[Z] = fxm(fmtx->UVY[Z], fmtx->radius[Y]);
+fmtx->Zplus[X] = fxm(fmtx->UVZ[X], fmtx->radius[Z]);
+fmtx->Zplus[Y] = fxm(fmtx->UVZ[Y], fmtx->radius[Z]);
+fmtx->Zplus[Z] = fxm(fmtx->UVZ[Z], fmtx->radius[Z]);
 
 fmtx->Xneg[X] = -fmtx->Xplus[X];
 fmtx->Xneg[Y] = -fmtx->Xplus[Y];
@@ -439,11 +567,6 @@ aMtx[Z][Z] = -plane_matrix[Z][Z];
 // drawposF[Y] = (plane_matrix[Z][Y]>>2); 
 // drawposF[Z] = (plane_matrix[Z][Z]>>2); 
 
-// add_to_sprite_list(drawposC, drawposE, 0, colr1, 0, 'L', 0, 2184);
-// add_to_sprite_list(drawposC, drawposF, 0, colr2, 0, 'L', 0, 2184);
-// add_to_sprite_list(drawposC, drawposA, 0, colr3, 0, 'L', 0, 2184);
-
-
 }
 
 
@@ -478,6 +601,63 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 		setNormal[Z] = stator.UVNZ[Z];
 	}
 
+}
+
+int		hitscan_vector_from_position_box(int * ray_normal, int * ray_pos, int * hit, _boundBox * box)
+{
+
+	static POINT trash = {0, 0, 0};
+	static POINT possible_hit = {0,0,0};
+	int hasHit = 0;
+	//Box Populated Check
+	if(box->status[1] != 'C')
+	{
+		return 0;
+	}
+	
+	//If the collision proxy is not ready for this frame, make it.
+	if(box->status[3] != 'B')
+	{
+		finalize_collision_proxy(box);
+	}
+
+	for(int i = 0; i < 6; i++)
+	{
+   		//Backfacing Faces
+		if(fxdot(box->nmtbl[i], ray_normal) > 0) continue;
+		//Drawing lines to face
+		
+		ray_to_plane(ray_normal, ray_pos, box->nmtbl[i], box->pltbl[i][0], possible_hit);
+		
+		//It can almost work without this. Might be an investigation point to find another shortcut.
+		trash[X] = ray_pos[X] - possible_hit[X];
+		trash[Y] = ray_pos[Y] - possible_hit[Y];
+		trash[Z] = ray_pos[Z] - possible_hit[Z];
+		int scale_to_phit = fxdot(trash, ray_normal);
+		if(scale_to_phit > 0) continue;
+		
+		if(edge_wind_test(box->pltbl[i][0], box->pltbl[i][1], box->pltbl[i][2], box->pltbl[i][3], possible_hit, box->maxtbl[i], 12))
+		{
+				//Distance test "possible hit" to "ray_pos"
+				//Can be very far, must use integers.
+				trash[X] = (possible_hit[X] - ray_pos[X])>>16;
+				trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
+				unsigned int possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				trash[X] = (hit[X] - ray_pos[X])>>16;
+				trash[Y] = (hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (hit[Z] - ray_pos[Z])>>16;
+				unsigned int hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				if(possible_hit_scale < hit_scale)
+				{
+					hit[X] = possible_hit[X];
+					hit[Y] = possible_hit[Y];
+					hit[Z] = possible_hit[Z];
+					hasHit = 1;
+				}
+		} 
+	}
+	return hasHit;
 }
 
 void	pl_physics_handler(_boundBox * mover, _boundBox * stator, _lineTable * moverTimeAxis, POINT hitPt, short faceIndex, short obj_type_data)
@@ -663,7 +843,6 @@ if(stator->status[3] != 'B')
 }
 
 numBoxChecks++;
-int		absN[3]  = {0, 0, 0};
 
 	for(int i = 0; i < 6; i++)
 	{
@@ -681,27 +860,13 @@ int		absN[3]  = {0, 0, 0};
 		{
 			if(lineChecks[u])
 			{
-				//In case an object is rotated more than 90 degrees on any axis, we cannot assume the major axis as constant.
-				//They must be recalculated.
-				absN[X] = JO_ABS(stator->nmtbl[i][X]);
-				absN[Y] = JO_ABS(stator->nmtbl[i][Y]);
-				absN[Z] = JO_ABS(stator->nmtbl[i][Z]);
-				if(absN[X] > absN[Y] && absN[X] >= absN[Z])
+				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], stator->maxtbl[i], 12))
 				{
-					boxDisField[i] = (stator->nmtbl[i][X] >= 0) ? N_Xp : N_Xn;
-				} else if(absN[Z] >= absN[X] && absN[Z] > absN[Y])
-				{
-					boxDisField[i] = (stator->nmtbl[i][Z] >= 0) ? N_Zp : N_Zn;
-				} else {
-					boxDisField[i] = (stator->nmtbl[i][Y] >= 0) ? N_Yp : N_Yn;
-				}
-				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], boxDisField[i], 12))
-				{
-								pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);
-								mover->collisionID = stator->boxID;
-								stator->collisionID = mover->boxID;
-								you.hitBox = true;
-								return true;
+					pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);
+					mover->collisionID = stator->boxID;
+					stator->collisionID = mover->boxID;
+					you.hitBox = true;
+					return true;
 				} 
 			}
 		}  
@@ -715,60 +880,47 @@ void	player_collision_test_loop(void)
 	//This runs the physics workhorse stuff, but a lot of this logic is in physobjet.c -
 	//much of it has as much to do with game state as it does physics.
 	
+	you.hitscanPt[X] = 32767<<16;
+	you.hitscanPt[Y] = 32767<<16;
+	you.hitscanPt[Z] = 32767<<16;
+	
 	you.hitObject = false;
 	if(ldata_ready != true) return; //Just in case.
-	int boxtype;
+	int boxType;
 	int edata;
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
 		if(RBBs[i].status[1] != 'C') continue;
 		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
-		boxtype = edata & (0xF000);
-		 //Check if object # is a collision-approved type
-		if( boxtype == OBJPOP )
+		boxType = edata & (0xF000);
+		//Check if object # is a collision-approved type
+		switch(boxType)
+		{
+			case(OBJPOP):
+			case(SPAWNER):
+			you.hasValidAim += hitscan_vector_from_position_box(you.uview, you.viewPos, you.hitscanPt, &RBBs[i]);
+			player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
+			subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
+			break;
+			case(ITEM | OBJPOP):
+			item_collision(i, &pl_RBB);
+			break;
+			case(BUILD | OBJPOP):
+			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
+			per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
+			if(you.hitObject  == true)
 			{
-				player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
-				subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
-			} else if(boxtype == (ITEM | OBJPOP)) {
-				item_collision(i, &pl_RBB);
-			} else if(boxtype == (GATE_R | OBJPOP)) {
-				test_gate_ring(i, &pl_RBB);
-			} else if(boxtype == (GATE_P | OBJPOP)) {
-				test_gate_posts(activeObjects[i], &pl_RBB);
-				if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_BUILDING)
-				{
-					//If it was loaded as a building-type object, collision test it as such.
-					per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
-					if(you.hitObject == true){
-						RBBs[i].collisionID = pl_RBB.boxID;
-						pl_RBB.collisionID = RBBs[i].boxID;
-					}
-				} else {
-					player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
-				}
-			} else if(boxtype == (BUILD | OBJPOP))
-			{
-				per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
-				if(you.hitObject  == true){
-					RBBs[i].collisionID = pl_RBB.boxID;
-					pl_RBB.collisionID = RBBs[i].boxID;
-				}
+				RBBs[i].collisionID = pl_RBB.boxID;
+				pl_RBB.collisionID = RBBs[i].boxID;
 			}
+			break;
+			default:
+			break;
+		}
 	}
 	
 	ldata_manager();
-	
-	// slPrintHex(dWorldObjects[1].rot[Y], slLocate(0, 10));
-	// slPrintHex(dWorldObjects[2].rot[Y], slLocate(0, 11));
-	// slPrintHex(dWorldObjects[3].rot[Y], slLocate(0, 12));
-	// slPrintHex(dWorldObjects[4].rot[Y], slLocate(0, 13));
-	
-	// slPrintHex(dWorldObjects[5].type.ext_dat, slLocate(13, 12));
-	// slPrintHex(dWorldObjects[6].type.ext_dat, slLocate(13, 13));
-	
-	// slPrintHex(dWorldObjects[5].pos[Y], slLocate(0, 15));
-	// slPrintHex(dWorldObjects[6].pos[Y], slLocate(0, 16));
 	
 //	nbg_sprintf(0, 14, "(%i)E", numBoxChecks);
 	numBoxChecks = 0;

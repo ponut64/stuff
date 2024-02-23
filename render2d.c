@@ -17,14 +17,15 @@ char sprintf_buffer[256];
 int baseAsciiTexno = 0;
 int sprAsciiWidth = 0;
 int sprAsciiHeight = 0;
+_spr_type_data sprite_prep;
 
-short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, unsigned char mesh, char type, short useClip, int lifetime)
+short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime)
 {
 	short used_sprite = -1;
 	//Find an unused sprite list entry
 	for(short i = 0; i < MAX_SPRITES; i++)
 	{
-		if(sprWorkList[i].type == 'N')
+		if(!sprWorkList[i].type.info.alive)
 		{
 			used_sprite = i;
 			break;
@@ -41,9 +42,9 @@ short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned s
 	sprWorkList[used_sprite].span[Z] = span[Z];
 	sprWorkList[used_sprite].texno = texno;
 	sprWorkList[used_sprite].colorBank = colorBank;
-	sprWorkList[used_sprite].mesh = mesh;
 	sprWorkList[used_sprite].type = type;
 	sprWorkList[used_sprite].useClip = useClip;
+	sprWorkList[used_sprite].type.info.alive = 1;
 	return used_sprite;
 }
 
@@ -145,58 +146,59 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 	/*
 	Matrix Transformation / Perspective Correciton
 	*/
-        /**calculate z**/
-        ssh2VertArea[0].pnt[Z] = trans_pt_by_component(spr->pos, m2z);
-		ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+       /**calculate z**/
+       ssh2VertArea[0].pnt[Z] = trans_pt_by_component(spr->pos, m2z);
+	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
 
-         /**Starts the division**/
-        SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
+        /**Starts the division**/
+       SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
 
-        /**Calculates X and Y while waiting for screenDist/z **/
-        ssh2VertArea[0].pnt[Y] = trans_pt_by_component(spr->pos, m1y);
-        ssh2VertArea[0].pnt[X] = trans_pt_by_component(spr->pos, m0x);
-		
-        /** Retrieves the result of the division **/
-		int inverseZ = *DVDNTL;
-
-        /**Transform X and Y to screen space**/
-        ssh2VertArea[0].pnt[X] = fxm(ssh2VertArea[0].pnt[X], inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[0].pnt[Y] = fxm(ssh2VertArea[0].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
-        //Screen Clip Flags for on-off screen decimation
-		clipping(&ssh2VertArea[0], spr->useClip);
+       /**Calculates X and Y while waiting for screenDist/z **/
+       ssh2VertArea[0].pnt[Y] = trans_pt_by_component(spr->pos, m1y);
+       ssh2VertArea[0].pnt[X] = trans_pt_by_component(spr->pos, m0x);
 	
-		transVerts[0] += 1;
-		int spanX;
-		int spanY;
-		
-		
-		if(spr->type == SPRITE_TYPE_BILLBOARD)
-		{
-			//ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this (?)
-			//If the vertice is off-screen or too far away, return.
-			if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
-			spanX = (spr->span[X] * inverseZ)>>16;
-			spanY = (spr->span[Y] * inverseZ)>>16;
-			FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + spanX, ssh2VertArea[0].pnt[Y] + spanY};
-			FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
-			
-			ssh2SetCommand(pntA, 0, pntC, 0,
-			1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
-			pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, ssh2VertArea[0].pnt[Z]);
-		} else if(spr->type == SPRITE_TYPE_UNSCALED_BILLBOARD)
-		{
-			//If the vertice is off-screen, return. Note does not stop if too far away.
-			if(ssh2VertArea[0].clipFlag) return;
-			spanX = ((pcoTexDefs[spr->texno].SIZE & 0x3F00)>>5)>>1;
-			spanY = (pcoTexDefs[spr->texno].SIZE & 0xFF)>>1;
-			FIXED pntA[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
-			
-			ssh2SetCommand(pntA, 0, 0, 0,
-			0 /*Normal Sprite*/, 0x1090 | (spr->mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
-			pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, 1<<16);
-		}
+       /** Retrieves the result of the division **/
+	int inverseZ = *DVDNTL;
 
+       /**Transform X and Y to screen space**/
+       ssh2VertArea[0].pnt[X] = fxm(ssh2VertArea[0].pnt[X], inverseZ)>>SCR_SCALE_X;
+       ssh2VertArea[0].pnt[Y] = fxm(ssh2VertArea[0].pnt[Y], inverseZ)>>SCR_SCALE_Y;
+ 
+       //Screen Clip Flags for on-off screen decimation
+	clipping(&ssh2VertArea[0], spr->useClip);
+	
+	transVerts[0] += 1;
+	int spanX;
+	int spanY;
+	
+	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] : 1<<16;
+	
+	if(spr->type.info.drawMode == SPRITE_TYPE_BILLBOARD)
+	{
+		//ssh2VertArea[0].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this (?)
+		//If the vertice is off-screen or too far away, return.
+		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
+		spanX = (spr->span[X] * inverseZ)>>16;
+		spanY = (spr->span[Y] * inverseZ)>>16;
+		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] + spanX, ssh2VertArea[0].pnt[Y] + spanY};
+		FIXED pntC[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
+		
+		ssh2SetCommand(pntA, 0, pntC, 0,
+		1 /*Scaled Sprite, no zoom point*/, 0x1090 | (spr->type.info.mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
+		pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, used_z);
+	} else if(spr->type.info.drawMode == SPRITE_TYPE_UNSCALED_BILLBOARD)
+	{
+		//If the vertice is off-screen, return. Note does not stop if too far away.
+		if(ssh2VertArea[0].clipFlag) return;
+		spanX = ((pcoTexDefs[spr->texno].SIZE & 0x3F00)>>5)>>1;
+		spanY = (pcoTexDefs[spr->texno].SIZE & 0xFF)>>1;
+		FIXED pntA[2] = {ssh2VertArea[0].pnt[X] - spanX, ssh2VertArea[0].pnt[Y] - spanY};
+		
+		ssh2SetCommand(pntA, 0, 0, 0,
+		0 /*Normal Sprite*/, 0x1090 | (spr->type.info.mesh<<8) | usrClp /*64 color bank, HSS, enable/disable usr clip*/, 
+		pcoTexDefs[spr->texno].SRCA, spr->colorBank, pcoTexDefs[spr->texno].SIZE, 0, used_z);
+	}
+		
 }
 
 void	ssh2Line(_sprite * spr)
@@ -268,15 +270,15 @@ void	ssh2Line(_sprite * spr)
         //Screen Clip Flags for on-off screen decimation
 		clipping(&ssh2VertArea[i], spr->useClip);
 		//ssh2VertArea[i].clipFlag &= SCRN_CLIP_FLAGS; //Ignore Z clipping for this stuff.... could just make a new clipper func..
-		used_pos[X] += spr->span[X]<<4;
-		used_pos[Y] += spr->span[Y]<<4;
-		used_pos[Z] += spr->span[Z]<<4;
+		used_pos[X] += spr->span[X]<<8;
+		used_pos[Y] += spr->span[Y]<<8;
+		used_pos[Z] += spr->span[Z]<<8;
 	}
 		transVerts[0] += 2;
 		
 		//If the vertice is off-screen or too far away, return.
 		if(ssh2VertArea[0].clipFlag || ssh2VertArea[0].pnt[Z] > FAR_PLANE_DISTANCE) return;
-		int used_z = (spr->type == SPRITE_TYPE_3DLINE) ? ssh2VertArea[0].pnt[Z] : 1<<16;
+		int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] : 1<<16;
         ssh2SetCommand(ssh2VertArea[0].pnt, ssh2VertArea[0].pnt, ssh2VertArea[1].pnt, ssh2VertArea[1].pnt,
 		5 /*Polyline Setting*/, 0x8C0 | usrClp/*manual specifies 0xC0 for polyline, DO NOT CHANGE BITS 7-6*/,
 		0 /*SRCA*/, spr->colorBank /*COLOR BANK CODE*/, 0 /*CMDSIZE*/, 0 /*GR ADDR*/, used_z /*Z*/);
@@ -295,7 +297,9 @@ void	ssh2NormalSprite(_sprite * spr)
 	//To be modified by flash strobes
 	unsigned short used_colrbnk = spr->colorBank;
 	
-	if(spr->type == SPRITE_MESH_STROBE || spr->type == SPRITE_FLASH_STROBE || spr->type == SPRITE_BLINK_STROBE)
+	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] : 1<<16;
+	
+	if(spr->type.info.drawMode == SPRITE_MESH_STROBE || spr->type.info.drawMode == SPRITE_FLASH_STROBE || spr->type.info.drawMode == SPRITE_BLINK_STROBE)
 	{
 		unsigned short * tlimit = (unsigned short *)&spr->span[Y];
 		unsigned short * tcur = (unsigned short *)&spr->span[Z];
@@ -307,21 +311,25 @@ void	ssh2NormalSprite(_sprite * spr)
 		}
 		*tcur += delta_time;
 		
-		if(spr->type == SPRITE_BLINK_STROBE)
+		switch(spr->type.info.drawMode)
 		{
-			used_size = (spr->span[X]) ? 0 : used_size;
-		} else if(spr->type == SPRITE_MESH_STROBE)
-		{
-			spr->mesh = (spr->span[X]) ? 0 : 1;
-		} else if(spr->type == SPRITE_FLASH_STROBE)
-		{
-			used_colrbnk |= (spr->span[X]) ? 0x8000 : 0;
+		case(SPRITE_BLINK_STROBE):
+		used_size = (spr->span[X]) ? 0 : used_size;
+		break;
+		case(SPRITE_MESH_STROBE):
+		spr->type.info.mesh = (spr->span[X]) ? 0 : 1;
+		break;
+		case(SPRITE_FLASH_STROBE):
+		used_colrbnk |= (spr->span[X]) ? 0x8000 : 0;
+		break;
+		default:
+		break;
 		}
 	}
 	
-	ssh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 | (spr->mesh<<8) /*COMMAND MODES*/, 
+	ssh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 | (spr->type.info.mesh<<8) /*COMMAND MODES*/, 
 				pcoTexDefs[spr->texno].SRCA /*SRCA*/, used_colrbnk /*COLOR BANK CODE*/,
-				used_size /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/
+				used_size /*CMDSIZE*/, 0 /*GR ADDR*/, used_z /*Z*/
 				);
 
 }

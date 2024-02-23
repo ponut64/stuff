@@ -1,11 +1,55 @@
-//Uses Jo Engine, copyright Johannes Fetz
-//MIT
+
+//
+// It might be time to add a console / event-viewer to report goings-on of the game in text.
+// Reason: One way to implement subtitles.
+// Of course an easier alternative is just implement a subtitle system,
+// and then use it for event reporting.
+//
 /**
-In Loving Memory of Jeffrey Neil Lindamood,
-my father. 1962 - 2019.
-And Bonnie K Caulder Lindamood,
-my grandmother. 1937 - 2019.
-I am sorry for the pain you had to go through.
+
+jackie's birthday is july 1st
+
+Next Steps
+
+i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
+
+a. Two-polygon particle type
+Two intersecting planes in a + pattern to represent a projectile (longitudinal billboards).
+
+r. Map Polygon Scale
+just needs to be tuned better, somehow, maybe
+
+f. "Actors", "Actor List", "Actor Management", "Actor Spawner"
+This is a lot to do at once but it must be done...
+workflow:
+Actor Spawner is Declared as Game Object
+Actor Spawner lists the Actor Type to spawn
+Actor Spawner contains a flag which indicates if the actor is spawned or not
+Actor Spawner contains a flag which indicates if the spawner is enabled, or not
+
+If the spawner is enabled and the actor is not spawned, spawn the actor of the type listed.
+The actor's data will be entered at the first actor in the actor list which is not <active> (active = 0).
+
+The actor spawns at the location and rotation of the actor spawner. The actor is spawned with a flag set as <alive>.
+If the actor is ever not <alive> (alive = 0), the corresponding actor spawner will be disabled.
+The actor may not be present in play area at all times. In these cases, there shall be a flag on the actor for <active>.
+If the actor is to be present in the play area, it will be marked with <active> (active = 1).
+If <active> for an actor is ever not 1, the actor spawner will be set with <spawned> = 0.
+An actor will necessarily contain a pointer (not an array index, but a pointer) to its spawner.
+
+... Is a pointer safer than an array index?
+No, in either case the qualifying safety can take place, where the declared object is checked to ensure it is a spawner.
+
+g. "Destructible Wall" material
+A type of plane data which will become GHOST and change texture when shot at
+
+2. "Moving Box" actor.
+Spawns an actor which moves towards the player...
+
+3. controls need adjustment
+4. z-limit needs adjustment
+5. the cell size / floor size needs to be increased
+
 **/
 //
 // Compilation updated to use latest version of Jo Engine standard compiler.
@@ -83,8 +127,8 @@ void	load_test(void)
 	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
 	set_tga_to_nbg1_palette((void*)dirty_buf);
 	
-	Uint32 fid = GFS_NameToId((Sint8*)"SPLASH_4.TGA");
-	set_8bpp_tga_to_nbg0_image(fid, dirty_buf);
+	//Uint32 fid = GFS_NameToId((Sint8*)"SPLASH_4.TGA");
+	//set_8bpp_tga_to_nbg0_image(fid, dirty_buf);
 	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
@@ -99,9 +143,7 @@ void	load_test(void)
 	// The total length is thusly 12 characters (as there is a period).
 	////////////////////////////////////////////////
 	nbg_sprintf(0,0, "Loading ...");
-	//stmsnd[stm_win] = (Sint8*)"WIN.ADX";
-	//stmsnd[stm_freturn] = (Sint8*)"FRETURN.ADX";
-	//stmsnd[stm_orchit0] = (Sint8*)"ORCHIT0.ADX";
+	
 	snd_win = load_adx((Sint8*)"WIN.ADX");
 	snd_yeah = load_adx((Sint8*)"YEAH.ADX");
 	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
@@ -135,6 +177,7 @@ void	load_test(void)
 	snd_ring5 = load_8bit_pcm((Sint8*)"CRING5.PCM", 7680);
 	snd_ring6 = load_8bit_pcm((Sint8*)"CRING6.PCM", 7680);
 	snd_ring7 = load_8bit_pcm((Sint8*)"CRING7.PCM", 7680);
+	
 	baseRingMenuTexno = numTex;
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);
 	flagIconTexno = numTex;
@@ -153,23 +196,6 @@ void	load_test(void)
 	WRAP_NewTexture((Sint8*)"PAR.TGA", (void*)dirty_buf);
 	goldImgTexno = numTex;
 	WRAP_NewTexture((Sint8*)"GOLD.TGA", (void*)dirty_buf);
-
-	animated_texture_list[0] = numTex;
-	WRAP_NewTable((Sint8*)"QMARK.TGA", (void*)dirty_buf, 16);
-	animated_texture_list[1] = numTex;
-	WRAP_NewTable((Sint8*)"ARROW.TGA", (void*)dirty_buf, 24);  
-	animated_texture_list[2] = numTex;
-	WRAP_NewTable((Sint8*)"CHECK.TGA", (void*)dirty_buf, 16);  
-	animated_texture_list[3] = numTex;
-	WRAP_NewTable((Sint8*)"GOAL.TGA", (void*)dirty_buf, 16);  
-	animated_texture_list[4] = numTex;
-	WRAP_NewTable((Sint8*)"LEYEANIM.TGA", (void*)dirty_buf, 24);  
-	animated_texture_list[5] = numTex;
-	WRAP_NewTable((Sint8*)"REYEANIM.TGA", (void*)dirty_buf, 24);  
-	animated_texture_list[6] = numTex;
-	WRAP_NewTable((Sint8*)"ARROW2.TGA", (void*)dirty_buf, 24);  
-	animated_texture_list[7] = numTex;
-	WRAP_NewTable((Sint8*)"ARROW3.TGA", (void*)dirty_buf, 24);  
 	
 	/////////////////////////////////////
 	// Floor / heightmap textures
@@ -190,78 +216,17 @@ void	load_test(void)
 	map_last_combined_texno = numTex;
 	make_dithered_textures_for_map(0);
 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PONY.GVP", 		HWRAM_ldptr, &pl_model,    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WINGS.GVP", 		HWRAM_ldptr, &wings,	    GV_SORT_CEN, MODEL_TYPE_PLAYER, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING1.GVP",		HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING2.GVP",		HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING3.GVP",		HWRAM_ldptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING4.GVP",		HWRAM_ldptr, &entities[4], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING5.GVP",		HWRAM_ldptr, &entities[5], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING6.GVP",		HWRAM_ldptr, &entities[6], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RING7.GVP",		HWRAM_ldptr, &entities[7], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"KYOOB.GVP",		HWRAM_ldptr, &entities[9], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PLATF00.GVP",		HWRAM_ldptr, &entities[10], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAG.GVP",			HWRAM_ldptr, &entities[57], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FFIELD.GVP",		HWRAM_ldptr, &entities[55], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL); 
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SIGN.GVP",			HWRAM_ldptr, &entities[36], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"ARBOX.GVP",		HWRAM_ldptr, &entities[37], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BARBOX.GVP",		HWRAM_ldptr, &entities[38], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOOSTER.GVP",		HWRAM_ldptr, &entities[46], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TGUN.GVP",			HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE1.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE01.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE02.GVP",		HWRAM_ldptr, &entities[13], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE03.GVP",		HWRAM_ldptr, &entities[14], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GREECE04.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OVRHNG.GVP",		HWRAM_ldptr, &entities[16], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"PIER1.GVP",		HWRAM_ldptr, &entities[17], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST00.GVP",		HWRAM_ldptr, &entities[18], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL2.GVP",		HWRAM_ldptr, &entities[19], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUNNEL3.GVP",		HWRAM_ldptr, &entities[20], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"WALL1.GVP",		HWRAM_ldptr, &entities[21], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT03.GVP",		HWRAM_ldptr, &entities[22], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE2.GVP",		HWRAM_ldptr, &entities[23], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"OBSTCL1.GVP",		HWRAM_ldptr, &entities[24], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT01.GVP",		HWRAM_ldptr, &entities[25], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLOAT02.GVP",		HWRAM_ldptr, &entities[26], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY01.GVP",		HWRAM_ldptr, &entities[27], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY02.GVP",		HWRAM_ldptr, &entities[28], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY03.GVP",		HWRAM_ldptr, &entities[29], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY04.GVP",		HWRAM_ldptr, &entities[30], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY05.GVP",		HWRAM_ldptr, &entities[31], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY06.GVP",		HWRAM_ldptr, &entities[32], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"RAMP01.GVP",		HWRAM_ldptr, &entities[33], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"HIWAY07.GVP",		HWRAM_ldptr, &entities[34], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TOWER01.GVP",		HWRAM_ldptr, &entities[35], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST01.GVP",		HWRAM_ldptr, &entities[39], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"POST02.GVP",		HWRAM_ldptr, &entities[40], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BRIDGE0.GVP",		HWRAM_ldptr, &entities[41], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"MMAPB.GVP",		HWRAM_ldptr, &entities[42], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"LONGBOX.GVP",		HWRAM_ldptr, &entities[43], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TUTI.GVP",			HWRAM_ldptr, &entities[44], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"CLIMTOW.GVP",		HWRAM_ldptr, &entities[45], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SATRAMP.GVP",		HWRAM_ldptr, &entities[47], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"G_PLANE.GVP",		HWRAM_ldptr, &entities[50], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[51], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"FLAGSTAN.GVP",		HWRAM_ldptr, &entities[53], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"GOALSTAN.GVP",		HWRAM_ldptr, &entities[54], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
-	p64MapRequest(8);
+	p64MapRequest(0);
 	//
-	
 }
 
 void	game_frame(void)
@@ -304,24 +269,6 @@ void	my_vlank(void)
 void	attributions(void)
 {
 	slPrint("Created by Ponut64", slLocate(3, 4));
-	slPrint("Contributions:", slLocate(3, 6));
-	slPrint("XL2 - Essential knowledge & tools", slLocate(3, 7));
-	//slPrint("dannyduarte - fixed workarea.c", slLocate(3, 8));
-	slPrint("ReyeMe - for his czechnology", slLocate(3, 9));
-	slPrint("Emerald Nova - fixed-point timer", slLocate(3, 11));
-	slPrint("fafling - actually read the manuals", slLocate(3, 13));
-	slPrint("mrkotftw - formal programmer guy", slLocate(3, 14));
-	slPrint("Johannez Fetz - good example code", slLocate(3, 15));
-	
-	slPrint("Music __STOLEN__ from:", slLocate(3,16));
-	slPrint("Red Vox, Freedom Planet, Pizza Tower", slLocate(3,17));
-	slPrint("Also: SGAP (Captive Unicorns)", slLocate(3, 18));
-	slPrint("Also: AndTheRainfall",	slLocate(3, 19));
-	slPrint("Also: Whowever made Shazfunk", slLocate(3, 20));
-
-	slPrint("Sound Driver by Ponut64", slLocate(3, 22));
-	slPrint("Great Value Game Engine", slLocate(3, 23));
-	slPrint("also by Ponut64", slLocate(3, 24));
 	
 	//testing_level_data((Sint8*)"LIST0.REM", (void*)dirty_buf);
 	slZoomNbg0(65536, 65536);
@@ -355,62 +302,62 @@ void	hardware_validation(void)
 	load_drv(ADX_MASTER_1536); 
 	load_hmap_prog();
 	sdrv_vblank_rq();
-	update_gamespeed();
-	int start_time = get_time_in_frame();
+	//update_gamespeed();
+	//int start_time = get_time_in_frame();
 	run_hmap_prog(); //Dry-run the DSP to get it to flag done
-	
- 	while(dsp_noti_addr[0] == 0){
-		if(validation_escape()) break;
-	}; //"DSP Wait"
-	
-	int time_at_end = get_time_in_frame();
-	
-	while(m68k_com->start != 0)
-	{
-		if(validation_escape()) break;
-	}; //68K Wait
-	
-	int time_at_sound = get_time_in_frame();
-	
-
-	
-	if((time_at_end - start_time) < 111411)
-	{
-	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	set_tga_to_nbg1_palette((void*)dirty_buf);
-		while(1)
-		{
-			slPrintFX(time_at_end - start_time, slLocate(4, 6));
-			slPrintFX(time_at_sound - start_time, slLocate(4, 8));
-			slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
-			nbg_sprintf(5, 10, "There is something wrong with");
-			nbg_sprintf(5, 11, "your Saturn video game system.");
-			nbg_sprintf(5, 12, "You can contact our associates");
-			nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
-			nbg_sprintf(5, 14, "for the necessary repairs.");
-			if(validation_escape()) break;
-		}
-	}
-	
-	if(((time_at_sound - start_time) > (50<<16)))
-	{
-	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	set_tga_to_nbg1_palette((void*)dirty_buf);
-		while(1)
-		{
-			slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
-			nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
-			nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
-			nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
-			nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
-			nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
-			nbg_sprintf(1, 15, "But please be aware:");
-			nbg_sprintf(1, 16, "It's not the ideal experience.");
-			nbg_sprintf(1, 17, "Press START to continue!");
-			if(is_key_pressed(DIGI_START)) break;
-		}
-	}
-	 nbg_clear_text();
+	//
+ 	//while(dsp_noti_addr[0] == 0){
+	//	if(validation_escape()) break;
+	//}; //"DSP Wait"
+	//
+	//int time_at_end = get_time_in_frame();
+	//
+	//while(m68k_com->start != 0)
+	//{
+	//	if(validation_escape()) break;
+	//}; //68K Wait
+	//
+	//int time_at_sound = get_time_in_frame();
+	//
+	//
+	//
+	//if((time_at_end - start_time) < 111411)
+	//{
+	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	//set_tga_to_nbg1_palette((void*)dirty_buf);
+	//	while(1)
+	//	{
+	//		slPrintFX(time_at_end - start_time, slLocate(4, 6));
+	//		slPrintFX(time_at_sound - start_time, slLocate(4, 8));
+	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
+	//		nbg_sprintf(5, 10, "There is something wrong with");
+	//		nbg_sprintf(5, 11, "your Saturn video game system.");
+	//		nbg_sprintf(5, 12, "You can contact our associates");
+	//		nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
+	//		nbg_sprintf(5, 14, "for the necessary repairs.");
+	//		if(validation_escape()) break;
+	//	}
+	//}
+	//
+	//if(((time_at_sound - start_time) > (50<<16)))
+	//{
+	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	//set_tga_to_nbg1_palette((void*)dirty_buf);
+	//	while(1)
+	//	{
+	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
+	//		nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
+	//		nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
+	//		nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
+	//		nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
+	//		nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
+	//		nbg_sprintf(1, 15, "But please be aware:");
+	//		nbg_sprintf(1, 16, "It's not the ideal experience.");
+	//		nbg_sprintf(1, 17, "Press START to continue!");
+	//		if(is_key_pressed(DIGI_START)) break;
+	//	}
+	//}
+	// nbg_clear_text();
 }
 
 int	main(void)

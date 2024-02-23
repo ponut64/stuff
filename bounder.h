@@ -1,7 +1,9 @@
 #pragma once
 
 
+//Warning: 32 seems to be a max right now.
 #define MAX_PHYS_PROXY (32)
+
 #define BOXID_PLAYER	(-2)
 #define BOXID_MAP		(-3)
 #define BOXID_VOID		(-1)
@@ -46,7 +48,7 @@ typedef struct {
 	FIXED veloNZ[XYZ];
 	FIXED renderScale[XYZ];
 	//The box' radius
-	FIXED brad[XYZ];
+	FIXED radius[XYZ];
 	//The box' rotation (expressed as ANGLE type data)
 	ANGLE	boxRot[XYZ];
 	//Expanded polygon/pointer data
@@ -54,6 +56,7 @@ typedef struct {
 	int * pltbl[6][4];
 	int * nmtbl[6];
 	int * cftbl[6];
+	int	maxtbl[6];
 	//Three separate flags to tell the engine if the box is populated, and ready to ..
 	// [0] == 'R', render,
 //	[1] == 'C', collide,

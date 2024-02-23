@@ -590,91 +590,7 @@ void	start_menu(void)
 	gdat_bg_brpt[X] = 350;
 	gdat_bg_brpt[Y] = 224;
 	draw2dSquare(gdat_bg_tlpt, gdat_bg_brpt, 18 + (64 * 2), 0, 5, 0);
-	
-	_declaredObject * someLDATA = get_first_in_object_list(LDATA);
-	while(someLDATA != &dWorldObjects[objNEW])
-	{
-		if((someLDATA->type.ext_dat & LDATA_TYPE) == TRACK_DATA)
-		{
-			if(!(someLDATA->type.ext_dat & TRACK_COMPLETE))
-			{
-				spr_sprintf(100, 188, "Gates in Track:(%i)", someLDATA->pix[Y]);
-				if(someLDATA->type.ext_dat & TRACK_DISCOVERED)
-				{
-				spr_sprintf(100, 200, "Track Discovered!");
-				} else {
-				spr_sprintf(100, 200, "Gates Discovered:(%i)", someLDATA->pix[X]);
-				}
-			} else {
-				//spr_sprintf(100, 200, "Track is Complete!");
-				spr_sprintf(100, 200, "Track Time:");
-				spr_sprintf_decimal(100 + (10 * 8), 200, someLDATA->dist);
-			}
-		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_7RINGS)
-		{
-			const int rix = 120;
-			if(someLDATA->dist & 0x1)
-			{
-				draw_normal_sprite(rix, 172, baseRingMenuTexno, 0);
-			} else {
-				draw_normal_sprite(rix, 172, baseRingMenuTexno, 0x8003);	
-			}
-			if(someLDATA->dist & 0x2)
-			{
-				draw_normal_sprite(rix + 16, 172, baseRingMenuTexno+1, 0);	
-			} else {
-				draw_normal_sprite(rix + 16, 172, baseRingMenuTexno+1, 0x8003);
-			}
-			if(someLDATA->dist & 0x4)
-			{
-				draw_normal_sprite(rix + 32, 172, baseRingMenuTexno+2, 0);
-			} else {
-				draw_normal_sprite(rix + 32, 172, baseRingMenuTexno+2, 0x8003);
-			}
-			if(someLDATA->dist & 0x8)
-			{
-				draw_normal_sprite(rix + 48, 172, baseRingMenuTexno+3, 0);	
-			} else {
-				draw_normal_sprite(rix + 48, 172, baseRingMenuTexno+3, 0x8003);	
-			}
-			if(someLDATA->dist & 0x10)
-			{
-				draw_normal_sprite(rix + 64, 172, baseRingMenuTexno+4, 0);
-			} else {
-				draw_normal_sprite(rix + 64, 172, baseRingMenuTexno+4, 0x8003);
-			}
-			if(someLDATA->dist & 0x20)
-			{
-				draw_normal_sprite(rix + 80, 172, baseRingMenuTexno+5, 0);
-			} else {
-				draw_normal_sprite(rix + 80, 172, baseRingMenuTexno+5, 0x8003);
-			}
-			if(someLDATA->dist & 0x40)
-			{
-				draw_normal_sprite(rix + 96, 172, baseRingMenuTexno+6, 0);
-			} else {
-				draw_normal_sprite(rix + 96, 172, baseRingMenuTexno+6, 0x8003);
-			}
-		} else if((someLDATA->type.ext_dat & LDATA_TYPE) == ITEM_MANAGER && (someLDATA->type.ext_dat & ITEM_CONDITION_TYPES) == MANAGER_CTF)
-		{
-			if(someLDATA->type.ext_dat & CTF_FLAG_CAPTURED)
-			{
-				//spr_sprintf(100, 212, "Flag Captured!");
-				spr_sprintf(100, 212, "Capture Time:");
-				spr_sprintf_decimal(100 + (13 *8), 212, someLDATA->dist);
-			} else if(someLDATA->type.ext_dat & CTF_FLAG_TAKEN)
-			{
-				spr_sprintf(100, 212, "Flag Taken!");
-			} else if(someLDATA->type.ext_dat & CTF_FLAG_OPEN)
-			{
-				spr_sprintf(100, 212, "Flag is open!");
-			} else {
-				spr_sprintf(100, 212, "Flag stand is shielded!");
-			}
-		}
-		
-		someLDATA = step_linked_object_list(someLDATA);
-	}
+
 	//spr_sprintf(244, 44,
 	
 }
@@ -719,14 +635,16 @@ void	start_hud_event(short eventNum)
 	_hudEvent * event = &hudEvents[eventNum];
 	if(event->status == HUD_EVENT_CLOSE)
 	{
-		char type = 'S';
-		if(event->strobe_type != EVENT_NO_STROBE) type = event->strobe_type;
-		
 		short prx[3] = {0, 0, 0};
 		
 		prx[Y] = event->strobe_interval;
 		
-		short tsp = add_to_sprite_list(event->startPos, prx, event->texno, event->colorBank, 0, type, 0, event->spriteTime);
+		sprite_prep.info.drawMode = (event->strobe_type == EVENT_NO_STROBE) ? SPRITE_TYPE_NORMAL : event->strobe_type;
+		sprite_prep.info.drawOnce = 0;
+		sprite_prep.info.mesh = 0;
+		sprite_prep.info.sorted = 0;
+		
+		short tsp = add_to_sprite_list(event->startPos, prx, event->texno, event->colorBank, sprite_prep, 0, event->spriteTime);
 		if(tsp != -1)
 		{
 			event->spr = &sprWorkList[tsp];

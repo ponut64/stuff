@@ -18,9 +18,10 @@
 
 /*
 
-Particle Sys To-Do is done, for now.
 
 */
+ptypes particle_type_list[MAX_PARTICLE_TYPES];
+
 
 int sparkTexno;
 int puffTexno;
@@ -32,11 +33,14 @@ _sprite		TestSpr = {
 	.span[Y] = 5,
 	.span[Z] = 5,
 	.texno = 5,
-	.colorBank = 0,
+	.colorBank = 1,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 1,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 1,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 }; 
 
 _sprite		SmallPuff = {
@@ -48,8 +52,11 @@ _sprite		SmallPuff = {
 	.colorBank = 2,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 1,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 1,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 }; 
 
 _sprite		GlowPuff = {
@@ -61,8 +68,11 @@ _sprite		GlowPuff = {
 	.colorBank = 1,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 1,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 1,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 }; 
 
 _sprite 	HitPuff = {
@@ -74,8 +84,11 @@ _sprite 	HitPuff = {
 	.colorBank = 0,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 0,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 0,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 };
 
 _sprite 	ThrowPuff = {
@@ -87,8 +100,11 @@ _sprite 	ThrowPuff = {
 	.colorBank = 0,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 1,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 1,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 };
 
 _sprite		DropPuff = {
@@ -100,8 +116,11 @@ _sprite		DropPuff = {
 	.colorBank = 0,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 1,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 1,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 }; 
 
 _sprite		HopPuff = {
@@ -113,8 +132,11 @@ _sprite		HopPuff = {
 	.colorBank = 2,
 	.useClip = 0,
 	.extra = 0,
-	.mesh = 0,
-	.type = SPRITE_TYPE_BILLBOARD
+	.type.info.drawMode = SPRITE_TYPE_BILLBOARD,
+	.type.info.drawOnce = 0,
+	.type.info.mesh = 0,
+	.type.info.sorted = 1,
+	.type.info.alive = 1
 }; 
 
 _particle	particles[MAX_SPRITES];
@@ -128,6 +150,27 @@ void	init_particle(void)
 	SmallPuff.texno = puffTexno;
 	ThrowPuff.texno = puffTexno;
 	
+	particle_type_list[PARTICLE_TYPE_NORMAL].info.gravity = 1;
+	particle_type_list[PARTICLE_TYPE_NORMAL].info.collide = 1;
+	particle_type_list[PARTICLE_TYPE_NORMAL].info.bounce = 1;
+	
+	particle_type_list[PARTICLE_TYPE_NOGRAV].info.gravity = 0;
+	particle_type_list[PARTICLE_TYPE_NOGRAV].info.collide = 1;
+	particle_type_list[PARTICLE_TYPE_NOGRAV].info.bounce = 1;
+	
+	particle_type_list[PARTICLE_TYPE_NOCOL].info.gravity = 1;
+	particle_type_list[PARTICLE_TYPE_NOCOL].info.collide = 0;
+	particle_type_list[PARTICLE_TYPE_NOCOL].info.bounce = 1;
+	
+	particle_type_list[PARTICLE_TYPE_GHOST].info.gravity = 0;
+	particle_type_list[PARTICLE_TYPE_GHOST].info.collide = 0;
+	particle_type_list[PARTICLE_TYPE_GHOST].info.bounce = 1;
+	
+	particle_type_list[PROJ_TEST].info.gravity = 0;
+	particle_type_list[PROJ_TEST].info.collide = 1;
+	particle_type_list[PROJ_TEST].info.bounce = 0;
+	particle_type_list[PROJ_TEST].info.damage = 15;
+	
 }
 
 _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity)
@@ -136,13 +179,13 @@ _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos,
 	//Particles are co-related with the sprite system, since they draw with the sprite list.
 	//Because of this, whether a particle spawns or not is determined first by whether there's a free sprite entry.
 	short spr_entry = add_to_sprite_list(pos, spr_type->span, spr_type->texno, spr_type->colorBank,
-	spr_type->mesh, spr_type->type, spr_type->useClip, spr_type->lifetime);
+	spr_type->type, spr_type->useClip, spr_type->lifetime);
 	
 	if(spr_entry == -1) return &particles[MAX_SPRITES-1];
 	
 	particles[spr_entry].spr = &sprWorkList[spr_entry];
 	particles[spr_entry].lifetime = spr_type->lifetime;
-	particles[spr_entry].type = p_type;
+	particles[spr_entry].type = particle_type_list[p_type];
 	particles[spr_entry].velocity[X] = velocity[X];
 	particles[spr_entry].velocity[Y] = velocity[Y];
 	particles[spr_entry].velocity[Z] = velocity[Z];
@@ -251,12 +294,40 @@ void	object_effects(int obj_index, int box_index)
 		{
 			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
 			{
-			emit_particle_explosion(&ThrowPuff, PARTICLE_TYPE_GHOST, obj->pos, box->UVNZ, box->brad[Z], 32768, 2);
+			emit_particle_explosion(&ThrowPuff, PARTICLE_TYPE_GHOST, obj->pos, box->UVNZ, box->radius[Z], 32768, 2);
 			obj->type.effectTimeCount = 0;
 			}
 			obj->type.effectTimeCount += delta_time;
 		}
 			break;
+	}
+	
+}
+
+void	object_particle_collision_handler(_particle * part, int bound_box_entry)
+{
+	_declaredObject * obj = &dWorldObjects[activeObjects[bound_box_entry]];
+	unsigned short * edata = &obj->type.ext_dat;
+	unsigned short otype = GET_OBJECT_TYPE(*edata);
+	
+	int health = 0;
+	switch(otype)
+	{
+		case(OBJECT_DESTRUCTIBLE):
+		health = (*edata & DESTRUCTIBLE_HEALTH)>>1;
+		
+		health-= part->type.info.damage;
+		health = (health < 0) ? 0 : health;
+		health<<=1;
+		*edata &= 0x7FF0;
+		*edata |= health;
+		if(health <= 0)
+		{
+			*edata |= OBJECT_DISABLED;
+		}
+		break;
+		default:
+		break;
 	}
 	
 }
@@ -273,6 +344,8 @@ void	particle_collision_handler(_particle * part, int * normal)
 	part->spr->pos[X] += normal[X]>>4;
 	part->spr->pos[Y] += normal[Y]>>4;
 	part->spr->pos[Z] += normal[Z]>>4;
+	
+	part->type.info.garbage = (part->type.info.bounce) ? 0 : 1;
 	
 	//part->spr->pos[X] = part->prevPos[X];
 	//part->spr->pos[Y] = part->prevPos[Y];
@@ -309,7 +382,7 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 	if(bigDif > (bigRadius + (20<<16))) return false;
 	
 	int usedSpan;
-	if(part->spr->type != SPRITE_TYPE_3DLINE || part->spr->type != SPRITE_TYPE_3DLINE)
+	if(part->spr->type.info.drawMode != SPRITE_TYPE_3DLINE)
 	{
 		usedSpan = part->spr->span[X];
 	} else {
@@ -358,13 +431,13 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		plane_center[Y] >>=2;
 		plane_center[Z] >>=2;
 		
-		int segPt[XYZ] = {part->spr->pos[X] - (part->dirUV[X] * usedSpan),
-		part->spr->pos[Y] - (part->dirUV[Y] * usedSpan),
-		part->spr->pos[Z] - (part->dirUV[Z] * usedSpan)};
+		int segPt[XYZ] = {part->spr->pos[X] - fxm(part->velocity[X], time_fixed_scale),
+		part->spr->pos[Y] - fxm(part->velocity[Y], time_fixed_scale),
+		part->spr->pos[Z] - fxm(part->velocity[Z], time_fixed_scale)};
 		//Yes, the line method is truly better than dot product tests.
 		//Though part of how it's better is that the collision check can include velocity (in the line segment).
 		//You do that so you can catch things before they just casually phase through by virtue of going fast.
-		int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384 + (part->spd<<3), hitPt);
+		int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384 + (usedSpan<<16), hitPt);
 
 		if(hitLine)
 		{
@@ -382,9 +455,9 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 }
 
 
-short	particle_collide_object(_particle * part, _boundBox * obj)
+short	particle_collide_object(_particle * part, int bound_box_entry)
 {
-	
+	_boundBox * obj = &RBBs[bound_box_entry];
 	//Box Populated Check
 	if(obj->status[1] != 'C')
 	{
@@ -392,7 +465,7 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
 	}
 
 	//Box Distance Culling Check
-	int bigRadius = JO_MAX(JO_MAX(obj->brad[X], obj->brad[Y]), obj->brad[Z]);
+	int bigRadius = JO_MAX(JO_MAX(obj->radius[X], obj->radius[Y]), obj->radius[Z]);
 		
 	int centerDif[XYZ];
 	centerDif[X] = obj->pos[X] - part->spr->pos[X];
@@ -415,7 +488,7 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
 	
 	
 	int usedSpan;
-	if(part->spr->type != SPRITE_TYPE_3DLINE || part->spr->type != SPRITE_TYPE_3DLINE)
+	if(part->spr->type.info.drawMode != SPRITE_TYPE_3DLINE)
 	{
 		usedSpan = part->spr->span[X];
 	} else {
@@ -445,17 +518,18 @@ short	particle_collide_object(_particle * part, _boundBox * obj)
    		//Backfacing Faces
 		if(fxdot(centerDif, obj->nmtbl[i]) > 0) continue;
 		
-		int segPt[XYZ] = {part->spr->pos[X] - (part->dirUV[X] * usedSpan),
-		part->spr->pos[Y] - (part->dirUV[Y] * usedSpan),
-		part->spr->pos[Z] - (part->dirUV[Z] * usedSpan)};
+		int segPt[XYZ] = {part->spr->pos[X] - fxm(part->velocity[X], time_fixed_scale),
+		part->spr->pos[Y] - fxm(part->velocity[Y], time_fixed_scale),
+		part->spr->pos[Z] - fxm(part->velocity[Z], time_fixed_scale)};
 		
-		int hitLine = line_hit_plane_here(part->spr->pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384 + (part->spd<<3), hitPt);
+		int hitLine = line_hit_plane_here(part->spr->pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384 + (usedSpan<<16), hitPt);
 
 		if(hitLine)
 		{
 			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, boxDisField[i], 12))
 			{
 				particle_collision_handler(part, obj->nmtbl[i]);
+				object_particle_collision_handler(part, bound_box_entry);
 				return true;
 			} 
 		}
@@ -530,17 +604,18 @@ void	operate_particles(void)
 	for(int i = 0; i < MAX_SPRITES; i++)
 	{
 		//Particle is dead or empty, stop.
-		if(particles[i].lifetime < 0 || particles[i].type == PARTICLE_TYPE_EMPTY)
+		if(particles[i].lifetime < 0 || particles[i].type.info.garbage)
 		{
-			particles[i].type = PARTICLE_TYPE_EMPTY;
+			particles[i].type.info.garbage = 1;
+			particles[i].lifetime = -1;
+			particles[i].spr->lifetime = -1;
 			continue;
 		}
 		
-		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOGRAV)
+		if(particles[i].type.info.collide)
 		{
 				//Used for collisions
 				accurate_normalize(particles[i].velocity, particles[i].dirUV);
-				particles[i].spd = fxisqrt(fxdot(particles[i].velocity, particles[i].velocity));
 				pHit = particle_collide_heightmap(&particles[i]);
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)
 				{
@@ -550,20 +625,20 @@ void	operate_particles(void)
 					if(entities[dWorldObjects[activeObjects[u]].type.entity_ID].type == MODEL_TYPE_BUILDING)
 					{
 						pHit |= particle_collide_polygon(&entities[dWorldObjects[activeObjects[u]].type.entity_ID], RBBs[u].pos, &particles[i]);
-					} else if(boxtype == (OBJECT | OBJPOP) || boxtype == (GATE_P | OBJPOP))
+					} else if(boxtype == (OBJECT | OBJPOP) || boxtype == SPAWNER)
 					{
-						pHit |= particle_collide_object(&particles[i], &RBBs[u]);
+						pHit |= particle_collide_object(&particles[i], u);
 					}
 				}
 				
-				if(particles[i].spr->type == SPRITE_TYPE_3DLINE)
+				if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 				{
 					particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
 					particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;
 					particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
 				}
 				
-		} else if(particles[i].spr->type == SPRITE_TYPE_3DLINE)
+		} else if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 		{
 			//Exception: If it's a line, we still need this data to display it.
 			normalize(particles[i].velocity, particles[i].dirUV);
@@ -573,7 +648,7 @@ void	operate_particles(void)
 			particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
 		}
 		
-		if(particles[i].type == PARTICLE_TYPE_NORMAL || particles[i].type == PARTICLE_TYPE_NOCOL)
+		if(particles[i].type.info.gravity)
 		{
 			particles[i].velocity[Y] += fxm(GRAVITY, time_fixed_scale);
 		}

@@ -87,7 +87,7 @@ void	init_render_area(short desired_horizontal_fov)
 	for(int i = 0; i < MAX_SPRITES; i++)
 	{
 		//Mark the whole sprite list as unused.
-		sprWorkList[i].type = 'N'; 
+		sprWorkList[i].type.info.alive = 0; 
 	}
 
 	scrn_dist = get_screen_distance_from_fov(desired_horizontal_fov);
@@ -176,7 +176,7 @@ void		ssh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint16 cmdc
    user_sprite->YC=p3[Y];
    user_sprite->XD=p4[X];
    user_sprite->YD=p4[Y];
-   user_sprite->DMMY=(drawPrty>>16);
+   user_sprite->DMMY=(drawPrty>>17);
 
    /**Important : Only the slave CPU is allowed to read/write the z sort buffer**/
    //IMPORTANT: We have to use the "far" screen. This is the "128". Why? Someone got angry when I asked why...
@@ -210,7 +210,7 @@ inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint
    user_sprite->YC=p3[Y];
    user_sprite->XD=p4[X];
    user_sprite->YD=p4[Y];
-   user_sprite->DMMY=(drawPrty>>16);
+   user_sprite->DMMY=(drawPrty>>17);
    
 
 }
@@ -437,6 +437,8 @@ inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short *
 			// 3 - 2		^
 			//-------- Edge | Y-
 			// 0 - 1		|
+			*pclp = 0;
+			return;
 		} 
 		if( (ptv[0]->clipFlag & 3) ){//H *flip 
 			//Incoming Arrangement:
@@ -451,6 +453,7 @@ inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short *
 			// 1 | 0
 			// 2 | 3
 			//	Edge	---> X+
+			*pclp = 0;
 			return;
 		} 
 		if( !((ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) & SCRN_CLIP_FLAGS))
@@ -469,8 +472,9 @@ inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short *
 			return;
 		}
 		*/
-		//In case no pre-clipping is NOT disabled, write it as such.
-		*pclp = 0;
+		//In case no conditions were met, enable preclipping anyway.
+		//This is important; please don't blame it for a problem.
+			*pclp = 0;
 }
 
 ////////////////////////////
@@ -578,14 +582,14 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	FIXED luma;
 	unsigned short colorBank;
 	int inverseZ = 0;
- 
+	register int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
 	////////////////////////////////////////////////////////////
 	// Pre-loop
 	////////////////////////////////////////////////////////////
 	// ** 1 **
 	// Calculate Z for the FIRST vertex
 	ssh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
-	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > near_plane) ? ssh2VertArea[0].pnt[Z] : near_plane;
 	// ** 2 **
 	// Set the division unit to work on the FIRST vertex Z
 	SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
@@ -603,7 +607,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		// ** 3 **
         /**calculate z for the NEXT vertex**/
         ssh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
-		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > near_plane) ? ssh2VertArea[i+1].pnt[Z] : near_plane;
 		// ** 4 **
          /**Starts the division for the NEXT vertex**/
         SetFixDiv(scrn_dist, ssh2VertArea[i+1].pnt[Z]);
@@ -665,7 +669,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 		}
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE ||
 		offScrn || ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
@@ -767,14 +771,14 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	FIXED luma;
 	unsigned short colorBank;
 	int inverseZ = 0;
- 
+	register int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
 	////////////////////////////////////////////////////////////
 	// Pre-loop
 	////////////////////////////////////////////////////////////
 	// ** 1 **
 	// Calculate Z for the FIRST vertex
 	msh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
-	msh2VertArea[0].pnt[Z] = (msh2VertArea[0].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[0].pnt[Z] : NEAR_PLANE_DISTANCE;
+	msh2VertArea[0].pnt[Z] = (msh2VertArea[0].pnt[Z] > near_plane) ? msh2VertArea[0].pnt[Z] : near_plane;
 	// ** 2 **
 	// Set the division unit to work on the FIRST vertex Z
 	SetFixDiv(scrn_dist, msh2VertArea[0].pnt[Z]);
@@ -792,7 +796,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 		// ** 3 **
         /**calculate z for the NEXT vertex**/
         msh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
-		msh2VertArea[i+1].pnt[Z] = (msh2VertArea[i+1].pnt[Z] > NEAR_PLANE_DISTANCE) ? msh2VertArea[i+1].pnt[Z] : NEAR_PLANE_DISTANCE;
+		msh2VertArea[i+1].pnt[Z] = (msh2VertArea[i+1].pnt[Z] > near_plane) ? msh2VertArea[i+1].pnt[Z] : near_plane;
 		// ** 4 **
          /**Starts the division for the NEXT vertex**/
         SetFixDiv(scrn_dist, msh2VertArea[i+1].pnt[Z]);
@@ -854,7 +858,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 		}
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < NEAR_PLANE_DISTANCE || zDepthTgt > FAR_PLANE_DISTANCE ||
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE ||
 		offScrn || msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
