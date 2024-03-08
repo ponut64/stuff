@@ -45,24 +45,27 @@ void	init_lwram(void)
 	dirty_buf = (void*)(LWRAM_END)-65536; 
 // Actual Main Map
 	main_map =  (void*)(dirty_buf-65536);
-// Ready Loaded Map
-	buf_map = (void*)(main_map-65536);
 // Textue Definitions
 	//In LWRAM because why use HWRAM for it? // 8kb
-	pcoTexDefs = (void*)((unsigned int)(buf_map-(sizeof(paletteCode) * 4096)));
+	pcoTexDefs = (void*)((unsigned int)(main_map-(sizeof(paletteCode) * 4096)));
 // Object Table
 	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
 // Building (Source Data) Object Table
 	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
+//Pathing Table Heap. This is sized according to the max pathing step count, multiplied by the max active actors.
+	pathTableHeap = (void*)((unsigned int)(BuildingPayload-(sizeof(_quad) * (MAX_PATHING_STEPS * MAX_PHYS_PROXY))));
+//Adjacent Quad Table. This has an artbitrary size.
+	adjacentPolyHeap = (void*)((unsigned int)(pathTableHeap - (64 * 1024)));
+	adjPolyStackPtr = (void*)(adjacentPolyHeap);
+	adjPolyStackMax = (void*)(pathTableHeap);
 //Space used from end of LWRAM: about 256 KB
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Map Normal Table
-	lightTbl = (void*)((unsigned int)(LWRAM)); //In LWRAM // 192KB
 // 65536/x table // 128KB // 256KB into RAM
-	division_table = (void*)((unsigned int)(lightTbl + (192 * 1024))); //In LWRAM // 128KB
+	division_table = (void*)((unsigned int)(LWRAM)); //In LWRAM // 128KB
+// Map Normal Table
+	lightTbl = (void*)((unsigned int)(division_table + (128 * 1024))); //In LWRAM // 192KB
 // Map Texture Table
-	mapTex = (void*)((unsigned int)(division_table + (128 * 1024))); //In LWRAM // 64KB
-//
+	mapTex = (void*)((unsigned int)(lightTbl + (192 * 1024))); //In LWRAM // 64KB
 	//sine_table = (void*)((unsigned int)(mapTex + (64 * 1024))); //In LWRAM // 128KB
 //Space used from beginning of LWRAM: About 448 KB + 128
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

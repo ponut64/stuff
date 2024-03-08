@@ -53,13 +53,15 @@ int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable 
 	So if we want to actually check a polygon that might face X+ but be a shape that won't collide with its center,
 	we need to do this test with Z+/- and Y+/-.
 	
+	We could do a simple test to check the sign of the difference between the box and the polygon, center to center.
+	This way, we could confine the test to only two walls (eight projections), instead of four walls (sixteen projections);
+	this is still a very intense solution and there is absolutely a simpler way.
 
 	*/
 	
 	if(box->status[3] != 'B') return false;
 	
 	static int intersections[4][3];
-	static int triggers[4];
 
 	int * vect_point;
 	int * vect_norm;
@@ -124,32 +126,28 @@ int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable 
 		break;
 	}
 	
-		triggers[0] = line_hit_plane_here(pp0, pp1, vect_point, vect_norm, zPt, 16384, intersections[0]);
-		if(triggers[0])
+		if(line_hit_plane_here(pp0, pp1, vect_point, vect_norm, zPt, 16384, intersections[0]))
 		{
 			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[0], discard, 12))
 			{
 				return true;
 			}
 		}
-		triggers[1] = line_hit_plane_here(pp1, pp2, vect_point, vect_norm, zPt, 16384, intersections[1]);
-		if(triggers[1])
+		if(line_hit_plane_here(pp1, pp2, vect_point, vect_norm, zPt, 16384, intersections[1]))
 		{
 			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[1], discard, 12))
 			{
 				return true;
 			}
 		}
-		triggers[2] = line_hit_plane_here(pp2, pp3, vect_point, vect_norm, zPt, 16384, intersections[2]);
-		if(triggers[2])
+		if(line_hit_plane_here(pp2, pp3, vect_point, vect_norm, zPt, 16384, intersections[2]))
 		{
 			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[2], discard, 12))
 			{
 				return true;
 			}
 		}
-		triggers[3] = line_hit_plane_here(pp3, pp0, vect_point, vect_norm, zPt, 16384, intersections[3]);
-		if(triggers[3])
+		if(line_hit_plane_here(pp3, pp0, vect_point, vect_norm, zPt, 16384, intersections[3]))
 		{
 			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[3], discard, 12))
 			{
@@ -201,22 +199,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	case (N_Zp):
@@ -224,22 +222,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	case (N_Yn):
@@ -247,22 +245,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	case (N_Xn):
@@ -270,22 +268,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	case (N_Zn):
@@ -293,22 +291,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	case (N_Yp):
@@ -316,22 +314,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) < 0) break;
+		if((left-right) <= 0) break;
 		return 1;
 		break;
 	}
@@ -603,7 +601,7 @@ void	set_from_this_normal(Uint8 normID, _boundBox stator, VECTOR setNormal)
 
 }
 
-int		hitscan_vector_from_position_box(int * ray_normal, int * ray_pos, int * hit, _boundBox * box)
+int		hitscan_vector_from_position_box(int * ray_normal, int * ray_pos, int * hit, int * hitNormal, _boundBox * box)
 {
 
 	static POINT trash = {0, 0, 0};
@@ -653,6 +651,9 @@ int		hitscan_vector_from_position_box(int * ray_normal, int * ray_pos, int * hit
 					hit[X] = possible_hit[X];
 					hit[Y] = possible_hit[Y];
 					hit[Z] = possible_hit[Z];
+					hitNormal[X] = box->nmtbl[i][X];
+					hitNormal[Y] = box->nmtbl[i][Y];
+					hitNormal[Z] = box->nmtbl[i][Z];
 					hasHit = 1;
 				}
 		} 
@@ -899,7 +900,7 @@ void	player_collision_test_loop(void)
 		{
 			case(OBJPOP):
 			case(SPAWNER):
-			you.hasValidAim += hitscan_vector_from_position_box(you.uview, you.viewPos, you.hitscanPt, &RBBs[i]);
+			you.hasValidAim += hitscan_vector_from_position_box(you.uview, you.viewPos, you.hitscanPt, you.hitscanNm, &RBBs[i]);
 			player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
 			subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
 			break;
@@ -907,7 +908,7 @@ void	player_collision_test_loop(void)
 			item_collision(i, &pl_RBB);
 			break;
 			case(BUILD | OBJPOP):
-			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
+			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, you.hitscanNm, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
 			per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
 			if(you.hitObject  == true)
 			{

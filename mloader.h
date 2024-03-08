@@ -78,6 +78,11 @@ typedef struct {
 	unsigned char * lumatbl;	/* Lighting table, as <<9 units. */
 } GVPLY ;
 
+typedef struct {
+	unsigned short adjacent_plane_id[4];
+	int guidance_points[4][3];
+} _pathGuide;
+
 typedef struct
 {
 	int z_plane;	//Boolean. 0 for far, 1 for near.
@@ -96,6 +101,7 @@ typedef struct
     anim_struct * animation[64];
 	GVPLY * pol;
 	FIXED * prematrix;
+	_pathGuide * pathGuides;
 } entity_t;
 
 /**Store all your PDATA meshes here**/

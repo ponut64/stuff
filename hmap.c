@@ -25,7 +25,6 @@
 #include "hmap.h"
 
 Uint8 * main_map = (Uint8*)LWRAM;
-Uint8 * buf_map = (Uint8*)LWRAM;
 
 short * lightTbl;
 unsigned short * mapTex;
@@ -67,10 +66,12 @@ void 	init_heightmap(void)
 
 }
 
-void	chg_map(_heightmap * tmap){
-		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false; i++){
-			main_map[i] = buf_map[i];
-			if(i == tmap->totalPix-1){
+void	chg_map(_heightmap * tmap)
+{
+		for(Uint16 i = 0; i < tmap->totalPix && map_chg == false; i++)
+		{
+			if(i == tmap->totalPix-1)
+			{
 				main_map_x_pix = tmap->Xval;
 				main_map_y_pix = tmap->Yval;
 				main_map_total_pix = tmap->totalPix;
@@ -156,18 +157,19 @@ void	map_parser(void * data)
 	maps[0].dstAddress = data;
 	read_pgm_header(&maps[0]);
 	
-	if(JO_IS_ODD(maps[0].Xval) && JO_IS_ODD(maps[0].Yval)){
+	if(JO_IS_ODD(maps[0].Xval) && JO_IS_ODD(maps[0].Yval))
+	{
 		for(int i = 0; i < maps[0].totalPix; i++)
 		{
-			buf_map[i] = *((Uint8*)maps[0].dstAddress + i);
+			main_map[i] = *((Uint8*)maps[0].dstAddress + i);
 		}
 		
 	// nbg_sprintf(8, 20, "(%i)", maps[0].totalPix);
 	// nbg_sprintf(15, 20, "(%i)", maps[0].Xval);
 	// nbg_sprintf(20, 20, "(%i)", maps[0].Yval);
-		} else {
-	nbg_sprintf(8, 25, "MAP REJECTED - IS EVEN");
-		}
+	} else {
+		nbg_sprintf(8, 25, "MAP REJECTED - IS EVEN");
+	}
 		
 	map_chg = false;
 }

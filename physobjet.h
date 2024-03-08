@@ -309,10 +309,14 @@ void	ldata_manager(void);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // used for actor.c
 
+#define MAX_PATHING_STEPS	(30)
+#define INVALID_PLANE		(0xFFFF)
+
 typedef struct {
 	union {
 		char raw;
 		struct {
+			unsigned char losTarget:1;
 			unsigned char alive:1;
 			unsigned char active:1;
 			unsigned char hitWall:1;
@@ -327,6 +331,8 @@ typedef struct {
 	int dV[3];
 	int velocity[3];
 	int dirUV[3];
+	int pathUV[3];
+	int pathTarget[3];
 	_boundBox * box;
 	int entity_ID;
 	_declaredObject * spawner;
@@ -347,6 +353,12 @@ typedef struct {
 } _actor;
 
 extern _actor spawned_actors[MAX_PHYS_PROXY];
+extern unsigned char * adjacentPolyHeap;
+extern unsigned char * pathTableHeap;
+extern unsigned char * adjPolyStackPtr;
+extern unsigned char * adjPolyStackMax;
+
+void	init_pathing_system(void);
 
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
 void	manage_actors(int * ppix, int * ppos);

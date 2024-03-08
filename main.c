@@ -21,21 +21,6 @@ just needs to be tuned better, somehow, maybe
 
 f. "Actors", "Actor List", "Actor Management", "Actor Spawner"
 This is a lot to do at once but it must be done...
-workflow:
-Actor Spawner is Declared as Game Object
-Actor Spawner lists the Actor Type to spawn
-Actor Spawner contains a flag which indicates if the actor is spawned or not
-Actor Spawner contains a flag which indicates if the spawner is enabled, or not
-
-If the spawner is enabled and the actor is not spawned, spawn the actor of the type listed.
-The actor's data will be entered at the first actor in the actor list which is not <active> (active = 0).
-
-The actor spawns at the location and rotation of the actor spawner. The actor is spawned with a flag set as <alive>.
-If the actor is ever not <alive> (alive = 0), the corresponding actor spawner will be disabled.
-The actor may not be present in play area at all times. In these cases, there shall be a flag on the actor for <active>.
-If the actor is to be present in the play area, it will be marked with <active> (active = 1).
-If <active> for an actor is ever not 1, the actor spawner will be set with <spawned> = 0.
-An actor will necessarily contain a pointer (not an array index, but a pointer) to its spawner.
 
 ... Is a pointer safer than an array index?
 No, in either case the qualifying safety can take place, where the declared object is checked to ensure it is a spawner.
@@ -222,9 +207,10 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
+	init_pathing_system();
 	p64MapRequest(0);
 	//
 }

@@ -657,8 +657,8 @@ void	uv_tile(void * source_texture_data, int base_x, int base_y)
 			img_min[X] = 0;
 			img_min[Y] = 0;
 
-			select_and_cut_from_64xH(img_sz, img_min, dirty_buf, buf_map);
-			generate_downscale_texture(ssx, ssy, tex_x, tex_y, buf_map);
+			select_and_cut_from_64xH(img_sz, img_min, dirty_buf, main_map);
+			generate_downscale_texture(ssx, ssy, tex_x, tex_y, main_map);
 			int tgt = (dsy * 4) + dsx;
 			p_srca[tgt] = pcoTexDefs[numTex-1].SRCA;
 			p_size[tgt] = pcoTexDefs[numTex-1].SIZE;

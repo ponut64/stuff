@@ -97,6 +97,7 @@ typedef struct {
 	FIXED gravAccel;
 	int uview[XYZ];
 	int hitscanPt[XYZ];
+	int hitscanNm[XYZ];
 	int viewPos[XYZ];
 	int shootPos[XYZ];
 	int shootDir[XYZ];

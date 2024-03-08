@@ -258,7 +258,7 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 }
 
 //Exhaustive process here...
-int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, entity_t * ent, int * mesh_position)
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitNormal, entity_t * ent, int * mesh_position)
 {
 	GVPLY * mesh = ent->pol;
 	
@@ -322,6 +322,9 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 					hit[X] = possible_hit[X];
 					hit[Y] = possible_hit[Y];
 					hit[Z] = possible_hit[Z];
+					hitNormal[X] = mesh->nmtbl[i][X];
+					hitNormal[Y] = mesh->nmtbl[i][Y];
+					hitNormal[Z] = mesh->nmtbl[i][Z];
 					hasHit = 1;
 				}
 			}

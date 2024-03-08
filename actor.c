@@ -19,27 +19,408 @@ _actor spawned_actors[MAX_PHYS_PROXY];
 
 _lineTable cur_actor_line_table;
 
-//Next step:
-// Trigger the actor to path to the position of the cursor on a button press.
-// This will be used at first to test actor collision with a wall.
-// Then it will be used to test actor colliion with a box.
-// Then it will be used to test basic floor-based route pathing.
-// Floor pathing...
-// That requires sectors such that a given position knows of the positions adjacent to it.
-// So a floor polygon needs to list the floor polygons that are adjacent to it.
-// That way, when pathing to a position on the floor, the adjacent floor list can bused to build a list
-// that works towards the position, travelling along adjacent floors.
-// How will I implement that?
-//	1 - From the floor's center, scan all floors.
-//	The first four which share a vertex with the current floor are added to the adjacent floor list for that floor.
-//	What should I do for walls? Else this data will be unused.
-//	Should walls look for adjacent floors, or adjacent walls?
-//	I don't know what that would be used for yet.
-//	I think I could build a whole "Node Graph".
-//	Lists adjacent stuff, and also the a direction to each adjacent item.
-//	That "direction" would be stored as a single byte, which indexes a table.
-//	Like the ANORM table... 
-//
+unsigned char * adjacentPolyHeap;
+unsigned char * pathTableHeap;
+
+unsigned char * adjPolyStackPtr;
+unsigned char * adjPolyStackMax;
+/*
+Next steps:
+Guiding the actor by a path
+
+What we need to do:
+Per frame, iterate a pathing step towards (target)
+
+When starting:
+Check pathing (target)
+Find out if a straight, unobstructed, floor path exists to the target
+If so, just walk towards target.
+Also check if the (pathing condition) is met. If so, stop pathing.
+"Pathing Conditions" might be:
+Within min/max distance, in line of sight, without line of sight, etc.
+
+If a straight path does not exist, we need to start building a path table.
+
+However, I'd like to get to building a path table, but I have bigger problems.
+
+The first problem is that I need to determine *if* i need a path table, and this is a complex problem.
+
+I have to be careful about the placement of the target. If it is directly on the floor, there could be issues.
+
+Anyway, first is checking what floor sector the target is at.
+Then you check if you have line of sight to the target, and if you can path to that floor sector without going off/in a wall.
+
+The second question (of whether you can even reach it) is simplest to be calculated procedurally.
+Just walk towards it, and see if **on the NEXT frame** you will hit a wall or walk off of a floor.
+
+It is probably easier to raycast for walls, but checking if walking off a floor is harder.
+A unified solution is to just check a single point in the direction towards the target, and then see
+if the segment between that point and the actor crosses a wall, and if the floor height beneath that point is good.
+
+check target
+walk towards target
+if about to hit wall or walk off floor, STOP, path back to current floor center
+start building path trees (while still moving)
+path tree is built by right-hand rule, very simple for now
+go to first step in path tree 
+
+if about to hit wall or walk off floor, STOP, path back to current floor center
+path to guidance point towards that floor
+once destination is reached, path to next floor center
+if about to hit wall or walk off floor, STOP, exception - maybe don't even test for this and keep walking
+
+once next floor center is reached, this step is passed, next step
+
+needed functions:
+actor line of sight
+actor check movement state OK
+
+path table 1 step
+maintain path table
+etc?
+
+So I have noticed a giant hole in this plan:
+The levels will have to be built out of multiple smaller entities which do not reference the same pntbl/pltbl.
+I am **NOT** going to go as far as to build a sector-based engine; that's a little too much work for me.
+What I understand how to do is a portal-based engine, where you can decide what is and isn't drawn based on which portals
+you have or haven't passed though.
+This has some serious flaws, but perhaps quick-and-dirty can be done.
+Then there is a question of, what restrictions will the environments demand?
+
+I think I have made some pretty good progress here so far, but I need to step back and evaluate how the game will be made.
+
+*/
+
+int		actorLineOfSight(_actor * act, int * pos)
+{
+	//Goal:
+	//Check line-of-sight from (actor) to (pos)
+	//This involves all collision-enabled proxies
+	
+	static int vector_to_pos[3] = {0,0,0};
+	static int normal_to_pos[3] = {0,0,0};
+	static int vector_to_hit[3] = {0,0,0};
+	static int hit[3] = {0,0,0};
+	static int nHit[3];
+	int possibleObstruction = 0;
+	
+	hit[X] = 0;
+	hit[Y] = 0;
+	hit[Z] = 0;
+	
+	vector_to_pos[X] = (pos[X] - act->pos[X])>>4;
+	vector_to_pos[Y] = (pos[Y] - act->pos[Y])>>4;
+	vector_to_pos[Z] = (pos[Z] - act->pos[Z])>>4;
+	
+	accurate_normalize(vector_to_pos, normal_to_pos);
+	
+	//Methods needed:
+	//well i have them
+	
+	for(int c = 0; c < MAX_PHYS_PROXY; c++)
+	{
+		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+		if(RBBs[c].status[1] != 'C') continue;
+		if(RBBs[c].boxID == act->box->boxID) continue;
+		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
+		unsigned short boxType = edata & (0xF000);
+		//Check if object # is a collision-approved type
+		switch(boxType)
+		{
+			case(OBJPOP):
+			case(SPAWNER):
+			possibleObstruction += hitscan_vector_from_position_box(normal_to_pos, act->pos, hit, nHit, &RBBs[c]);
+			break;
+			case(ITEM | OBJPOP):
+			break;
+			case(BUILD | OBJPOP):
+			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, nHit, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
+			break;
+			default:
+			break;
+		}
+	}
+	//What we should have returned now is the closest hit point to the actor (hit).
+	//We need to know if (hit) is between (actor) and (pos).
+	//What we will do is see if the hit is on the right side of pos using the normal to it.
+	//Of course, if there was no hit, there is no obstruction to line-of-sight.
+	if(!possibleObstruction)
+	{
+		return 1;
+	}
+	
+	vector_to_hit[X] = (pos[X] - hit[X]);
+	vector_to_hit[Y] = (pos[Y] - hit[Y]);
+	vector_to_hit[Z] = (pos[Z] - hit[Z]);
+	
+	//(1<<16 being used as some tolerance in case the target position is exactly the hit position, as may sometimes happen)
+	if(fxdot(vector_to_hit, normal_to_pos) > (1<<16))
+	{
+		return 0;
+	}
+	//No obstruction conditions were met; line-of-sight is achieved.
+	return 1;
+	
+}
+
+int	actorCheckPathOK(_actor * act)
+{
+	//Step 1: Create an arbitrary point some distance in the direction the actor is moving, scaled by velocity.
+	static int actorPathProxy[3];
+	static int towardsFloor[3] = {0, (1<<16), 0};
+	static int floorProxy[3];
+	static int floorNorm[3];
+	static int losToProxy = 0;
+	
+	//(we add the Z axis because that's forward)
+	actorPathProxy[X] = act->pos[X] + fxm(act->velocity[X]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[X]);
+	actorPathProxy[Z] = act->pos[Z] + fxm(act->velocity[Z]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[Z]);
+	
+	//We are going to do something that in many circumstances we would not want to do.
+	//We are going to ignore the Y axis of the path proxy; it will retain the Y axis of the actor.
+	//This is a simplification of representing the allowable movement of the actor.
+	//You don't want them to think they can path to a point up a vertical wall; the wall should block them,
+	//and make them find another path.
+	actorPathProxy[Y] = act->pos[Y];
+
+	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
+	sprite_prep.info.drawOnce = 1;
+	sprite_prep.info.mesh = 0;
+	sprite_prep.info.sorted = 0;
+	static short sprSpan[3] = {10,10,10};
+	add_to_sprite_list(actorPathProxy, sprSpan, 'A', 5, sprite_prep, 0, 0);
+	
+	//Step 2: Check line-of-sight to this point.
+	losToProxy = actorLineOfSight(act, actorPathProxy);
+	
+	//If no line of sight, path is not ok.
+	if(!losToProxy) return 0;
+	
+	//Step 3: Get a floor position/normal.
+	int possibleFloor = 0;
+	for(int c = 0; c < MAX_PHYS_PROXY; c++)
+	{
+		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+		if(RBBs[c].status[1] != 'C') continue;
+		if(RBBs[c].boxID == act->box->boxID) continue;
+		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
+		unsigned short boxType = edata & (0xF000);
+		//Check if object # is a collision-approved type
+		switch(boxType)
+		{
+			case(OBJPOP):
+			case(SPAWNER):
+			possibleFloor += hitscan_vector_from_position_box(towardsFloor, actorPathProxy, floorProxy, floorNorm, &RBBs[c]);
+			break;
+			case(ITEM | OBJPOP):
+			break;
+			case(BUILD | OBJPOP):
+			possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, floorNorm, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
+			break;
+			default:
+			break;
+		}
+	}
+	
+	//If there was no possible floor, path is not OK.
+	if(!possibleFloor) return 0;
+	
+	//If the floor height difference is outside the tolerance, path is not OK.
+	if(JO_ABS((act->pos[Y] + act->box->radius[Y]) - floorProxy[Y]) > (act->box->radius[Y]>>1)) return 0;
+	
+	//If this wasn't actually a floor at all, path is not OK.
+	if(floorNorm[Y] > (-32768)) return 0;
+	
+	//Otherwise, path should be OK.
+	return 1;
+	
+}
+
+
+void	buildAdjacentFloorList(int entity_id)
+{
+	//Step 1: Is this a valid entity type?
+	if(entities[entity_id].type != MODEL_TYPE_BUILDING) return;
+	if(!entities[entity_id].file_done) return;
+	
+	GVPLY * mesh = entities[entity_id].pol;
+	entity_t * ent = &entities[entity_id];
+	//The concept is to build an adjacent plane list for each polygon of the mesh.
+	//The first problem is finding RAM suitable to allocate for this purpose.
+
+	//Gotta be carefuL: hopefully this doesn't get misaligned.
+	//we start over max, stop
+	if(adjPolyStackPtr > adjPolyStackMax) return;
+	//
+	ent->pathGuides = (_pathGuide*)adjPolyStackPtr;
+	adjPolyStackPtr += (mesh->nbPolygon * sizeof(_pathGuide));
+	//we over max, stop
+	if(adjPolyStackPtr > adjPolyStackMax) return;
+	//Initialize the path guides
+	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	{
+		ent->pathGuides[i].adjacent_plane_id[0] = INVALID_PLANE;
+		ent->pathGuides[i].adjacent_plane_id[1] = INVALID_PLANE;
+		ent->pathGuides[i].adjacent_plane_id[2] = INVALID_PLANE;
+		ent->pathGuides[i].adjacent_plane_id[3] = INVALID_PLANE;
+	}
+	int t_plane[4][3];
+	int t_center[3] = {0, 0, 0};
+	int c_plane[4][3];
+	int c_center[3] = {0, 0, 0};
+	int vector_to_tc[3];
+	int normal_to_tc[3];
+	int y_min = 0;
+	int y_max = 0;
+	int within_span = 0;
+	unsigned int cur_plane_num = 0;
+	int within_shape_ct = 0;
+	int vert_within_shape[4] = {0,0,0,0};
+	int adjacent_planes = 0;
+	
+	//int total_adj_planes = 0;
+
+	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	{
+		if(mesh->maxtbl[i] != N_Yn) continue;
+		if(!(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)) continue;
+		
+		y_min = mesh->pntbl[mesh->pltbl[i].vertices[0]][Y];
+		y_max = mesh->pntbl[mesh->pltbl[i].vertices[0]][Y];
+		for(int k = 0; k < 4; k++)
+		{
+			t_plane[k][X] = mesh->pntbl[mesh->pltbl[i].vertices[k]][X];
+			t_plane[k][Y] = mesh->pntbl[mesh->pltbl[i].vertices[k]][Y];
+			t_plane[k][Z] = mesh->pntbl[mesh->pltbl[i].vertices[k]][Z];
+			t_center[X] += t_plane[k][X];
+			t_center[Y] += t_plane[k][Y];
+			t_center[Z] += t_plane[k][Z];
+			y_min = (t_plane[k][Y] < y_min) ? t_plane[k][Y] : y_min;
+			y_max = (t_plane[k][Y] > y_max) ? t_plane[k][Y] : y_max;
+		}
+		t_center[X] >>=2;
+		t_center[Y] >>=2;
+		t_center[Z] >>=2;
+		cur_plane_num = i;
+		
+		//Add some margin of error
+		y_min -= 1<<16;
+		y_max += 1<<16;
+		
+		adjacent_planes = 0;
+		for(unsigned int p = 0; p < mesh->nbPolygon; p++)
+		{
+			if(p == cur_plane_num) continue;
+			if(mesh->maxtbl[p] != N_Yn) continue;
+			if(!(mesh->attbl[p].render_data_flags & GV_FLAG_SINGLE)) continue;
+			within_span = 0;
+			for(int k = 0; k < 4; k++)
+			{
+				c_plane[k][X] = mesh->pntbl[mesh->pltbl[p].vertices[k]][X];
+				c_plane[k][Y] = mesh->pntbl[mesh->pltbl[p].vertices[k]][Y];
+				c_plane[k][Z] = mesh->pntbl[mesh->pltbl[p].vertices[k]][Z];
+				if((t_plane[k][Y] > y_min) && (t_plane[k][Y] < y_max)) within_span = 1;
+				c_center[X] += c_plane[k][X];
+				c_center[Y] += c_plane[k][Y];
+				c_center[Z] += c_plane[k][Z];
+			}
+			if(!within_span) continue;
+			
+			c_center[X] >>=2;
+			c_center[Y] >>=2;
+			c_center[Z] >>=2;
+			
+			vector_to_tc[X] = t_center[X] - c_center[X];
+			vector_to_tc[Y] = t_center[Y] - c_center[Y];
+			vector_to_tc[Z] = t_center[Z] - c_center[Z];
+			
+			accurate_normalize(vector_to_tc, normal_to_tc);
+			//Method for detecting adjacency:
+			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
+			//If they are, they probably share an edge.
+			within_shape_ct = 0;
+			for(int k = 0; k < 4; k++)
+			{
+				//Aggravating Necessity: Push c_plane towards t_plane slightly
+				//This is so the chirality test does not fail
+				c_plane[k][X] += normal_to_tc[X]<<1;
+				c_plane[k][Y] += normal_to_tc[Y]<<1;
+				c_plane[k][Z] += normal_to_tc[Z]<<1;
+				vert_within_shape[k] = 0;
+				//I need to know *exactly* which edge is adjacent.
+				//I can do this by checking every vertex, and then seeing which pair is adjacent.
+				if(edge_wind_test(t_plane[0], t_plane[1], t_plane[2], t_plane[3], c_plane[k], N_Yn, 12))
+				{
+					within_shape_ct++;
+					vert_within_shape[k] = 1;
+				}
+			}
+			if(within_shape_ct < 2) continue;
+			
+			//This logic chunk assigns which edge was adjacent (0->1, 1->2, 2->3, 3->0)
+			int fk = 0;
+			int sk = 0;
+			if(vert_within_shape[0] && vert_within_shape[1])
+			{
+				fk = 0;
+				sk = 1;
+			} else if(vert_within_shape[1] && vert_within_shape[2])
+			{
+				fk = 1;
+				sk = 2;
+			} else if(vert_within_shape[2] && vert_within_shape[3])
+			{
+				fk = 2;
+				sk = 3;
+			} else if(vert_within_shape[3] && vert_within_shape[0])
+			{
+				fk = 3;
+				sk = 0;
+			}
+			
+			//So we think these floor polygons are adjacent.
+			//First, state that 'p' (the other polygon we are testing) is adjacent to the current plane being tested for.
+			ent->pathGuides[cur_plane_num].adjacent_plane_id[adjacent_planes] = p;
+			
+			//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
+			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+			
+			//Second, we also need to tell 'p' that it is adjacent to the current plane.
+			//We don't know if we have tested it yet, so we need to look through its plane list to see if there is an empty spot.
+			for(int k = 0; k < 4; k++)
+			{
+				if(ent->pathGuides[p].adjacent_plane_id[k] == INVALID_PLANE)
+				{
+					ent->pathGuides[p].adjacent_plane_id[k] = cur_plane_num;
+					
+					//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
+					//This is a valid guidance point for both polygons, because it is the center of the gateway edge.
+					ent->pathGuides[p].guidance_points[k][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+					ent->pathGuides[p].guidance_points[k][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+					ent->pathGuides[p].guidance_points[k][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+					
+					//total_adj_planes++;
+				}
+			}
+			
+			adjacent_planes++;
+			//total_adj_planes++;
+			if(adjacent_planes >= 4) break;
+		}
+	}
+	//nbg_sprintf(3, 10, "tajp(%i)", total_adj_planes);
+}
+
+void	init_pathing_system(void)
+{
+	for(int i = 0; i < MAX_MODELS; i++)
+	{
+		nbg_sprintf(0,0, "Building path tables...");
+		buildAdjacentFloorList(i);
+	}
+}
 
 void	actorMoveToPos(_actor * act, int * target, int rate, int gap)
 {
@@ -444,6 +825,13 @@ void	manage_actors(int * ppix, int * ppos)
 			if(act->box->status[3] != 'B')
 			{
 				finalize_collision_proxy(act->box);
+				
+				accurate_normalize(act->velocity, act->dirUV);
+				//The path delta (guidance vector) uses 0 for the Y axis to represent the actor's inability to go up.
+				//A more graceful way to do this would be to multiply each input by the actor's traversal limitations.
+				int path_delta[3] = {(act->pathTarget[X] - act->pos[X])>>4, 0, (act->pathTarget[Z] - act->pos[Z])>>4};
+				accurate_normalize(path_delta, act->pathUV);
+				
 			}
 			//this is going to get very expensive, because we must:
 			//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
@@ -472,6 +860,11 @@ void	manage_actors(int * ppix, int * ppos)
 				}
 			}
 			
+			//Debug
+			act->pathTarget[X] = you.guidePos[X];
+			act->pathTarget[Y] = you.guidePos[Y];
+			act->pathTarget[Z] = you.guidePos[Z];
+			
 			if(!act->info.flags.hitFloor)
 			{
 				act->dV[Y] += GRAVITY;
@@ -483,9 +876,13 @@ void	manage_actors(int * ppix, int * ppos)
 				act->pos[Y] = act->floorPos[Y] - (act->box->radius[Y] - (1<<16));
 				act->pos[Z] = act->floorPos[Z];
 				
+				act->info.flags.losTarget = actorCheckPathOK(act);
+				
+					nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+				
 				act->totalFriction = 32768;
 				
-				actorMoveToPos(act, you.guidePos, 32768, 100);
+				if(act->info.flags.losTarget) actorMoveToPos(act, act->pathTarget, 32768, 100);
 			}
 			act->info.flags.hitFloor = 0;
 		} else {
