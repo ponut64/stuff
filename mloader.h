@@ -1,9 +1,13 @@
 #pragma once
 
-#define MAX_MODELS (192)
+#define MAX_MODELS (64)
+#define MAX_SECTORS (64)
+#define INVALID_PLANE		(0xFFFF)
+#define INVALID_SECTOR		(MAX_SECTORS)
 #define MODEL_TYPE_NORMAL ('N')
 #define MODEL_TYPE_PLAYER ('P')
 #define MODEL_TYPE_BUILDING ('B')
+#define MODEL_TYPE_SECTORED	('S')
 #define MODEL_TYPE_UNDEFINED ('F')
 #define MODEL_TYPE_TPACK	('T')
 
@@ -104,8 +108,28 @@ typedef struct
 	_pathGuide * pathGuides;
 } entity_t;
 
+
+/////////////////////////////////
+// Sector Data
+/////////////////////////////////
+typedef struct 
+{
+	entity_t * ent;
+	unsigned short nbPolygon; //# of polygons (planes) in the sector
+	unsigned short nbPoint; //# of points in the sector
+	unsigned short nbAdjacent; //# of sectors which are adjacent to this sector
+	unsigned short * pltbl;  //Stores the polygon IDs from <entity> which are in this sector; of size <nbPolygon>
+	_quad * sctbl; //Stores the sector-specific vertex IDs used to draw the sector
+	unsigned short * pntbl; //Stores the vertex IDs from <entity> which are in this sector; of size <nbPoint>
+	unsigned short * adtbl; //Stores the sector IDs from <entitiy> which are adjacent to this sector; of size <nbAdjacent>
+} _sector;
+
+extern _sector sectors[MAX_SECTORS+1];
+
 /**Store all your PDATA meshes here**/
 extern entity_t entities[MAX_MODELS];
+
+void	*	load_sectors(entity_t * ent, void * workAddress);
 
 void * loadPDATA(void * startAddress, entity_t * model);
 

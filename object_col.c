@@ -258,7 +258,7 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 }
 
 //Exhaustive process here...
-int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitNormal, entity_t * ent, int * mesh_position)
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitPolyID, entity_t * ent, int * mesh_position, _sector * sct)
 {
 	GVPLY * mesh = ent->pol;
 	
@@ -271,11 +271,20 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	static int plane_center[3] = {0,0,0};
 	static int plane_points[4][3];
 	int hasHit = 0;
-	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	
+	if(ent->type != MODEL_TYPE_SECTORED) sct = &sectors[INVALID_SECTOR];
+	if(sct == NULL) sct = &sectors[INVALID_SECTOR];
+	
+	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
+	
+	
+	for(unsigned int i = 0; i < ply_limit; i++)
 	{		
-		if(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)
+		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
+		int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
+		if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
 		{
-			if(fxdot(ray_normal, mesh->nmtbl[i]) > 0) continue;
+			if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;
 		}
 		
 		plane_center[X] = 0;
@@ -283,9 +292,9 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 		plane_center[Z] = 0;
 		for(int u = 0; u < 4; u++)
 		{
-		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][X]) + mesh_position[X];
-		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Y]) + mesh_position[Y];
-		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[i].vertices[u]][Z]) + mesh_position[Z];
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X]) + mesh_position[X];
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y]) + mesh_position[Y];
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z]) + mesh_position[Z];
 		//Add to the plane's center
 		plane_center[X] += plane_points[u][X];
 		plane_center[Y] += plane_points[u][Y];
@@ -296,41 +305,478 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 		plane_center[Y] >>=2;
 		plane_center[Z] >>=2;
 
-		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[i], plane_center, possible_hit);
-		
+		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[alias], plane_center, possible_hit);
+
 		//It can almost work without this. Might be an investigation point to find another shortcut.
+		//(this cuts collisions behind the origin point, so we are only left with things in front)
 		trash[X] = ray_pos[X] - possible_hit[X];
 		trash[Y] = ray_pos[Y] - possible_hit[Y];
 		trash[Z] = ray_pos[Z] - possible_hit[Z];
 		int scale_to_phit = fxdot(trash, ray_normal);
 		if(scale_to_phit > 0) continue;
 		
-		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], possible_hit, mesh->maxtbl[i], 12))
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], possible_hit, mesh->maxtbl[alias], 16))
 			{
 				//Distance test "possible hit" to "ray_pos"
 				//Can be very far, must use integers.
-				trash[X] = (possible_hit[X] - ray_pos[X])>>16;
-				trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
-				trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
-				unsigned int possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-				trash[X] = (hit[X] - ray_pos[X])>>16;
-				trash[Y] = (hit[Y] - ray_pos[Y])>>16;
-				trash[Z] = (hit[Z] - ray_pos[Z])>>16;
-				unsigned int hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-				if(possible_hit_scale < hit_scale)
+				//This is a process to filter multiple potential hits to the closest one.
+				//We do however need to do this only when we have a hit at all.
+				unsigned int possible_hit_scale = 0;
+				unsigned int hit_scale = 0;
+				if(hasHit)
+				{
+					trash[X] = (possible_hit[X] - ray_pos[X])>>16;
+					trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
+					trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
+					possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+					trash[X] = (hit[X] - ray_pos[X])>>16;
+					trash[Y] = (hit[Y] - ray_pos[Y])>>16;
+					trash[Z] = (hit[Z] - ray_pos[Z])>>16;
+					hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				}
+				if(possible_hit_scale < hit_scale || !hasHit)
 				{
 					hit[X] = possible_hit[X];
 					hit[Y] = possible_hit[Y];
 					hit[Z] = possible_hit[Z];
-					hitNormal[X] = mesh->nmtbl[i][X];
-					hitNormal[Y] = mesh->nmtbl[i][Y];
-					hitNormal[Z] = mesh->nmtbl[i][Z];
+					*hitPolyID = alias;
 					hasHit = 1;
 				}
 			}
 	}
 	return hasHit;
 }
+
+void *	buildAdjacentSectorList(int entity_id, void * workAddress)
+{
+	//Step 1: Is this a valid entity type?
+	if(entities[entity_id].type != MODEL_TYPE_SECTORED) return workAddress;
+	if(!entities[entity_id].file_done) return workAddress;
+	
+	nbg_sprintf(1, 6, "Building render graph...");
+	
+	GVPLY * mesh = entities[entity_id].pol;
+
+	workAddress = align_4(workAddress);
+	unsigned short * writeAddress = (unsigned short *)workAddress;
+	unsigned short * slapBuffer = (unsigned short *)dirty_buf;
+
+	int t_plane[4][3];
+	int t_center[3] = {0, 0, 0};
+	int c_plane[4][3];
+	int c_center[3] = {0, 0, 0};
+	int y_min = 0;
+	int y_max = 0;
+	int within_span = 0;
+	int within_shape_ct = 0;
+	
+	int adjSector = 0;
+	
+	int passNumber = 1;
+	//Plan:
+	//Pass 1: Find out how many sectors are adjacent to each sector.
+	//Step: Allocate that memory for each sector (some amount of two byte indices)
+	//Pass 2: Write the IDs of the adjacent sectors (in the respective reserved memory areas)
+	//First, we have to initialize all sectors' adjacent count to zero. We do it here, but later we'll have to do it in an init function.
+	PASS_2:
+	for(unsigned int s = 0; s < MAX_SECTORS; s++)
+	{
+		sectors[s].nbAdjacent = 0;
+	}
+
+	//
+	// Okay, some memory is bound to be wasted now.
+	// Perhaps not if I run this over the dirty buf first.
+	// Either way, I need to do this, and then remove duplicates.
+	//
+
+	for(unsigned int s = 0; s < MAX_SECTORS; s++)
+	{
+		_sector * sctA = &sectors[s];
+	for(unsigned int l = 0; l < MAX_SECTORS; l++)
+	{
+		int sector_adjacent = 0;
+		_sector * sctB = &sectors[l];
+		//Don't test a sector against itself.
+		if(l == s) continue;
+		for(unsigned int i = 0; i < sctA->nbPolygon; i++)
+		{
+			//For now, we are only looking at floors.
+			//Realistically, we should also look at walls. Maybe not ceilings ever.
+			if(mesh->maxtbl[sctA->pltbl[i]] != N_Yn) continue;
+			//In this loop, we're setting up a specific polygon of sctA to test against every polygon in sctB.
+			y_min = mesh->pntbl[mesh->pltbl[sctA->pltbl[i]].vertices[0]][Y];
+			y_max = mesh->pntbl[mesh->pltbl[sctA->pltbl[i]].vertices[0]][Y];
+			for(int k = 0; k < 4; k++)
+			{
+				t_plane[k][X] = mesh->pntbl[mesh->pltbl[sctA->pltbl[i]].vertices[k]][X];
+				t_plane[k][Y] = mesh->pntbl[mesh->pltbl[sctA->pltbl[i]].vertices[k]][Y];
+				t_plane[k][Z] = mesh->pntbl[mesh->pltbl[sctA->pltbl[i]].vertices[k]][Z];
+				t_center[X] += t_plane[k][X];
+				t_center[Y] += t_plane[k][Y];
+				t_center[Z] += t_plane[k][Z];
+				y_min = (t_plane[k][Y] < y_min) ? t_plane[k][Y] : y_min;
+				y_max = (t_plane[k][Y] > y_max) ? t_plane[k][Y] : y_max;
+			}
+			t_center[X] >>=2;
+			t_center[Y] >>=2;
+			t_center[Z] >>=2;
+			
+			//Add some margin of error on height axis
+			y_min -= 1<<16;
+			y_max += 1<<16;
+			
+			for(unsigned int p = 0; p < sctB->nbPolygon; p++)
+			{
+				if(p == i) continue;
+				
+				//No normal discardh here. Perhaps I should discard stuff if it's Y+ (facing down),
+				//but otherwise, it'll test everything in sctB against the floors in sctA.
+				//In this test, we're setting up polygons in sctB to be tested against a specific polygon in sctA.
+				within_span = 0;
+				for(int k = 0; k < 4; k++)
+				{
+					c_plane[k][X] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][X];
+					c_plane[k][Y] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][Y];
+					c_plane[k][Z] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][Z];
+					if((t_plane[k][Y] > y_min) && (t_plane[k][Y] < y_max)) within_span = 1;
+					c_center[X] += c_plane[k][X];
+					c_center[Y] += c_plane[k][Y];
+					c_center[Z] += c_plane[k][Z];
+				}
+				if(!within_span) continue;
+				
+				c_center[X] >>=2;
+				c_center[Y] >>=2;
+				c_center[Z] >>=2;
+				
+				//Method for detecting adjacency:
+				//Hooray, it's the edge-wind test again. We check if a vertex is within the original polygon being tested.
+				within_shape_ct = 0;
+				for(int k = 0; k < 4; k++)
+				{
+					//For finding adjacent sectors, we need less information.
+					//We can work with just a single adjacent vertex.
+					if(edge_wind_test(t_plane[0], t_plane[1], t_plane[2], t_plane[3], c_plane[k], N_Yn, 16))
+					{
+						within_shape_ct++;
+						break;
+					}
+				}
+				//No vertices found within the other shape, continue.
+				if(!within_shape_ct) continue;
+				
+				//So we think these floor polygons are adjacent.
+				//We also think they are in different sectors.
+				//Therefore, the sectors should be marked adjacent.
+				//Depending on which phase of this loop we're in, we want to:
+				//Pass 1: Add to each sector's adjacent sector count
+				//Between the passes, we allocate the memory for *ALL* sectors adjacent sector list at once.
+				//Pass 2: Assign each sector to each sector's adjacent list
+				if(passNumber == 1)
+				{
+					sctA->nbAdjacent++;
+					sctB->nbAdjacent++;
+					adjSector++;
+				} else if(passNumber == 2)
+				{
+					sctA->adtbl[sctA->nbAdjacent] = mesh->attbl[sctB->pltbl[p]].first_sector;
+					sctB->adtbl[sctB->nbAdjacent] = mesh->attbl[sctA->pltbl[i]].first_sector;
+					sctA->nbAdjacent++;
+					sctB->nbAdjacent++;
+				}
+				//Once we know these are adjacent, break this loop. No further tests are needed.
+				sector_adjacent = 1;
+				break;
+			}
+			//We know A and B are adjacent now; break.
+			if(sector_adjacent == 1) break;
+		}
+	}
+	}
+	
+	//We've looked through every sector on the first pass at this point. That, or we're exiting the function.
+	if(passNumber == 2)
+	{
+		//Second pass:
+		//Copy the data we just made.
+		//When building the final sector, add the pimary and secondary adjacents to each sector's adjacent list.
+		//When finding secondary adjacents, we have to use the copied list, because the data of other sector's can change.
+			unsigned short ** adtblCpy = (void*)slapBuffer;
+			slapBuffer += sizeof(void*) * MAX_SECTORS;
+			unsigned short * nbAdjacentCpy = slapBuffer;
+			slapBuffer += sizeof(void*) * MAX_SECTORS;
+		for(int s = 0; s < MAX_SECTORS; s++)
+		{
+			_sector * sct = &sectors[s];
+			nbAdjacentCpy[s] = sct->nbAdjacent;
+			//Copy the adtbl's to another RAM set
+			//Reserve some memory for that too.
+			adtblCpy[s] = slapBuffer;
+			unsigned short * this_adtbl = adtblCpy[s];
+			slapBuffer += nbAdjacentCpy[s];
+			for(unsigned int f = 0; f < nbAdjacentCpy[s]; f++)
+			{
+				this_adtbl[f] = sct->adtbl[f];
+			}
+			
+		}
+		//Now we have to use the copied table as the source here.
+ 		for(int s = 0; s < MAX_SECTORS; s++)
+		{
+			unsigned short * actual_adtbl = writeAddress;
+			unsigned short actual_nbAdjacent = 0;
+			unsigned short uniqueSet = 0;
+			_sector * sct = &sectors[s];
+			unsigned short * copy_primary_adtbl = adtblCpy[s];
+
+			//Process for adjacent / draw / near table:
+			//We made a list of primary adjacents with the adjacent-sector math in the first half of the second pass.
+			//We then copied those lists to adtblCpy and the amount in each sector to nbAdjacentCpy.
+			//We will use those unmodified lists to write the final lists, which contain the sector IDs of all
+			//primary adjacent sectors and all sectors adjacent to those primary sectors.
+			//By definition, we then include this sector in the list (because it's adjacent to the other ones).
+			//While writing these to the final adjacent list, we will remove duplicates.
+			unsigned short * secondary_adjacents = slapBuffer;
+			int nbAdjacent2nd = 0;
+			for(unsigned int l = 0; l < nbAdjacentCpy[s]; l++)
+			{
+				unsigned short * copy_secondary_adtbl = adtblCpy[copy_primary_adtbl[l]];
+				//Include primary adjacents first.
+				secondary_adjacents[nbAdjacent2nd] = copy_primary_adtbl[l];
+				nbAdjacent2nd++;
+				
+				//Then include secondary adjacents.
+				for(int e = 0; e < nbAdjacentCpy[copy_primary_adtbl[l]]; e++)
+				{
+					secondary_adjacents[nbAdjacent2nd] = copy_secondary_adtbl[e];
+					nbAdjacent2nd++;
+				}
+			}
+			//At this point, the "secondary_adjacents" table has "nbAdjacent2nd" list of the two-deep adjacent sectors.
+			//We also added the sectors adjacent in the first sector to it.
+			//This is now the table we want to use to purge duplicates & write permanently.
+			//Note that sectors add themselves to the adjacent list.
+			for(int l = 0; l < nbAdjacent2nd; l++)
+			{
+			actual_adtbl[l] = INVALID_SECTOR;
+			}
+			for(int i = 0; i < nbAdjacent2nd; i++)
+			{
+				uniqueSet = secondary_adjacents[i];
+				for(int l = 0; l < nbAdjacent2nd; l++)
+				{
+					if(actual_adtbl[l] == uniqueSet) uniqueSet = INVALID_SECTOR;
+				}
+				if(uniqueSet != INVALID_SECTOR) 
+				{
+					actual_adtbl[actual_nbAdjacent] = uniqueSet;
+					actual_nbAdjacent++;
+				}
+			}
+			sct->nbAdjacent = actual_nbAdjacent;
+			sct->adtbl = actual_adtbl;
+			writeAddress += sct->nbAdjacent;
+		} 
+		
+		nbg_sprintf(1, 6, "adjacents:(%i)", adjSector);
+		workAddress = (void *)writeAddress;
+		return align_4(workAddress);
+	}
+	//First pass:
+	//Allocate memory for each sector's adjacent table in the temporary work area (dirtybuf).
+	//I'm doing it this way with the goto statements because I don't want to repeat the above code,
+	//and you can't do this on a per-sector basis (as in the loop) as each sector can add to another's adjacent count.
+	//So they all have to be done at the same time once they're all done finding their adjacent counts.
+	for(int s = 0; s < MAX_SECTORS; s++)
+	{
+		sectors[s].adtbl = slapBuffer;
+		slapBuffer += sectors[s].nbAdjacent;
+	}
+	
+	passNumber = 2;
+	
+	goto PASS_2;
+	
+	//So this code is shit and we could end up down here past the goto, i guess? Nah, probably not.
+}
+
+void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
+{
+		//If the entity is not loaded, cease the test.
+		if(ent->file_done != true) return;
+		if(ent->type != MODEL_TYPE_SECTORED) return;
+		
+		//Primary Flaw:
+		//We are testing collision with the *next* position of the box.
+		//In doing so, we find the collision point on the *next* frame.
+		//For walls, this is correct.
+		//For floors, it's correct to test for the next frame, but we need to snap to where we are *this* frame.
+		
+		GVPLY * mesh = ent->pol;
+	
+	static int plane_center[3];
+	static int plane_points[4][3];
+	static int anchor_to_plane[3];
+	static int used_normal[3];
+	static int possible_floor[3];
+	static int possible_wall[3];
+	
+	for(unsigned int i = 0; i < sct->nbPolygon; i++)
+	{
+		
+		//////////////////////////////////////////////////////////////
+		// Add the position of the mesh to the position of its points
+		// PDATA vector space is inverted, so we negate them
+		// "Get world-space point position"
+		//////////////////////////////////////////////////////////////
+		int alias = sct->pltbl[i];
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
+		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent_pos[X] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent_pos[Y] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent_pos[Z] );
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+		
+		used_normal[X] = mesh->nmtbl[alias][X];
+		used_normal[Y] = mesh->nmtbl[alias][Y];
+		used_normal[Z] = mesh->nmtbl[alias][Z];
+		
+		//Exceptor: if the plane is not single-plane (i.e. must collide on both sides), we need to find which side we're on.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE))
+		{
+			anchor_to_plane[X] = (mover->pos[X] - plane_center[X])>>16;
+			anchor_to_plane[Y] = (mover->pos[Y] - plane_center[Y])>>16;
+			anchor_to_plane[Z] = (mover->pos[Z] - plane_center[Z])>>16;
+			
+			int anchor_scale = (anchor_to_plane[X] * mesh->nmtbl[alias][X]) + (anchor_to_plane[Y] * mesh->nmtbl[alias][Y]) + (anchor_to_plane[Z] * mesh->nmtbl[alias][Z]);
+			
+			if(anchor_scale < 0) 
+			{
+				used_normal[X] = -mesh->nmtbl[alias][X];
+				used_normal[Y] = -mesh->nmtbl[alias][Y];
+				used_normal[Z] = -mesh->nmtbl[alias][Z];
+			}
+		}
+		
+		//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
+		
+		switch(mesh->maxtbl[alias])
+		{
+			//case(N_Yp):
+			case(N_Yn):
+			
+			//////////////////////////////////////////////////////////////
+			// Floor branch
+			//////////////////////////////////////////////////////////////
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(mover->UVY, mover->nextPos, used_normal, plane_center, possible_floor);
+				
+				// nbg_sprintf_decimal(2, 7, possible_floor[X]);
+				// nbg_sprintf_decimal(2, 8, possible_floor[Y]);
+				// nbg_sprintf_decimal(2, 9, possible_floor[Z]);
+				
+				// nbg_sprintf_decimal(2, 11, mover->nextPos[X]);
+				// nbg_sprintf_decimal(2, 12, mover->nextPos[Y]);
+				// nbg_sprintf_decimal(2, 13, mover->nextPos[Z]);
+				
+				if(isPointonSegment(possible_floor, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				{
+					//
+					you.hitSurface = true;
+					you.floorNorm[X] = used_normal[X]; 
+					you.floorNorm[Y] = used_normal[Y];
+					you.floorNorm[Z] = used_normal[Z];
+					
+					//Subtract the velocity added to the projection from the position to snap to.
+					//Potentially an issue; if serious, just reproject at current position.
+					you.floorPos[X] = -(possible_floor[X] - fxm(mover->velocity[X], time_fixed_scale));
+					you.floorPos[Y] = -(possible_floor[Y] - fxm(mover->velocity[Y], time_fixed_scale));
+					you.floorPos[Z] = -(possible_floor[Z] - fxm(mover->velocity[Z], time_fixed_scale));
+				}
+			}
+			break;
+			case(N_Xp):
+			case(N_Xn):
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(mover->UVX, mover->nextPos, used_normal, plane_center, possible_wall);
+				if(isPointonSegment(possible_wall, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				{
+					you.hitWall = true;
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+				}
+			} else {
+				//This stuff is supposed to catch edge-face collision. Hm.
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zp))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}
+				
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zn))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}	
+			}
+			break;
+			case(N_Zp):
+			case(N_Zn):
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(mover->UVZ, mover->nextPos, used_normal, plane_center, possible_wall);
+				if(isPointonSegment(possible_wall, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
+				{
+					you.hitWall = true;
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+				}
+			} else {
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xp))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}
+				
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xn))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}	
+			}
+			break;
+		}
+	
+	}
+	
+	
+}
+
 
 // Special notice for code observers:
 // In rendering functions, prematrix data (which includes the translation data) is used.
@@ -556,9 +1002,9 @@ if(you.hitSurface && last_floor_entity == ent && !you.setJet)
 			you.aboveObject = true;
 			}
 			standing_surface_alignment(you.floorNorm);
-			you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-			you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-			you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+			you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
+			you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+			you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 			
 
 			
@@ -698,9 +1144,9 @@ for(int i = 0; i < total_planes; i++)
 					
 					standing_surface_alignment(you.floorNorm);
 					
-					you.floorPos[X] = (lineEnds[Y][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 					
 					you.hitSurface = true;
 				} else {
@@ -753,9 +1199,9 @@ for(int i = 0; i < total_planes; i++)
 					
 					standing_surface_alignment(you.floorNorm);
 					
-					you.floorPos[X] = (lineEnds[Z][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Z][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Z][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 					
 					you.hitSurface = true;
 				} else {
@@ -804,9 +1250,9 @@ for(int i = 0; i < total_planes; i++)
 					
 					standing_surface_alignment(you.floorNorm);
 					
-					you.floorPos[X] = (lineEnds[X][X]) - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[X][Y]) - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[X][Z]) - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
+					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
+					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
+					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
 					
 					you.hitSurface = true;
 				} else {

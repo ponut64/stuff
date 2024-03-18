@@ -1,8 +1,8 @@
 
 #include <sl_def.h>
+#include "def.h"
 #include "mymath.h"
 #include "render.h"
-#include "def.h"
 #include "tga.h"
 
 #include "vdp2.h"

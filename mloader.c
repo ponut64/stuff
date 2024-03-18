@@ -4,13 +4,167 @@
 #include "def.h"
 #include "tga.h"
 #include "render.h"
-#include "bounder.h"
+
 #include "physobjet.h"
 #include "mymath.h"
 
 #include "mloader.h"
 
 entity_t entities[MAX_MODELS];
+_sector sectors[MAX_SECTORS+1];
+
+void	*	load_sectors(entity_t * ent, void * workAddress)
+{
+	nbg_sprintf(1, 7, "Building sectors...");
+	
+	workAddress = align_4(workAddress);
+	
+	unsigned short * writeAddress = (unsigned short *)workAddress;
+	unsigned short * slapBuffer = (unsigned short *)dirty_buf;
+	unsigned short * clapBuffer = (unsigned short *)((unsigned int)dirty_buf + 16384);
+	unsigned char plane_sector = 0;
+	GVPLY * mesh = ent->pol;
+	
+	static int sectored_polygons = 0;
+	static int sectored_verts = 0;
+	static int sectors_made = 0;
+	
+	sectors[INVALID_SECTOR].nbPoint = 0;
+	sectors[INVALID_SECTOR].nbPolygon = 0;
+	sectors[INVALID_SECTOR].nbAdjacent = 0;
+	sectors[INVALID_SECTOR].ent = ent;
+	
+	//Complicated. The idea is that each sector must have a coherent list built for it.
+	//Because of that, we have to scan the mesh on a per-possible-sector basis.
+	//The first thing we will do is build the pltbl.
+	for(unsigned int k = 0; k < MAX_SECTORS; k++)
+	{
+		sectors[k].nbPolygon = 0;
+		sectors[k].pltbl = writeAddress;
+		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+		{
+			plane_sector = mesh->attbl[i].first_sector;
+			if(plane_sector != k) continue;
+			
+			sectors[k].pltbl[sectors[k].nbPolygon] = i;
+			sectors[k].nbPolygon++;			
+		}
+		if(!sectors[k].nbPolygon) continue; 
+		sectors[k].ent = ent;
+		writeAddress += sectors[k].nbPolygon;
+		sectors[k].nbPoint = 0;
+		sectors[k].pntbl = writeAddress;
+		//Damn, this is actually really complicated.
+		/*
+		Say you have four polygons making a sector, of vertices:
+		[2, 10, 66, 15]
+		[2, 10, 11, 14]
+		[11, 14, 100, 5]
+		[66, 13, 77, 15]
+		The polygons we must make for this sector are:
+		[0, 1, 2, 3]
+		[0, 1, 4, 5]
+		[4, 5, 6, 7]
+		[2, 8, 9, 3]
+		Thusly we must make the vertex table as follows:
+		array[0] = 2
+		array[1] = 10
+		array[2] = 66
+		[3] = 15
+		[4] = 11
+		[5] = 14
+		[6] = 100
+		[7] = 5
+		[8] = 13
+		[9] = 77
+		What math can we apply to get this result?
+		
+		First, enter the vertex IDs in an unordered list:
+		2 10 66 15 2 10 11 14 11 14 100 5 66 13 77 15
+		Then, remove duplicates:
+		2 10 66 15 11 14 100 5 13 77
+		This is the sector vertex ID table.
+		Now, what about the polygons?
+		Work back to that list, such that the polygon:
+		[2, 10, 66, 15] will look through the ID table made earlier and find:
+		[0] is 2, such that the new table receives 0 where there was 2.
+		
+		Now, when we draw with this re-ordered list, we have to:
+		1. Transform all vertices in the sector vertex ID table in the order they are in the table
+		2. This draws at entry [9] in the vertex buffer from vertex #77 in the mesh pntbl
+		3. The sector pltbl references [9] in the vertex buffer, which is an alias for vertex #77, its original vertex.
+		*/
+		unsigned int numVerts = 0;
+		for(unsigned int i = 0; i < sectors[k].nbPolygon; i++)
+		{
+			//This is going to be pretty naive.
+			slapBuffer[numVerts] = mesh->pltbl[sectors[k].pltbl[i]].vertices[0];
+			clapBuffer[numVerts] = INVALID_PLANE;
+			numVerts++;
+			slapBuffer[numVerts] = mesh->pltbl[sectors[k].pltbl[i]].vertices[1];
+			clapBuffer[numVerts] = INVALID_PLANE;
+			numVerts++;
+			slapBuffer[numVerts] = mesh->pltbl[sectors[k].pltbl[i]].vertices[2];
+			clapBuffer[numVerts] = INVALID_PLANE;
+			numVerts++;
+			slapBuffer[numVerts] = mesh->pltbl[sectors[k].pltbl[i]].vertices[3];
+			clapBuffer[numVerts] = INVALID_PLANE;
+			numVerts++;
+		}
+		int secondNumVerts = 0;
+		int uniqueSet = 0;
+		//Sets "uniqueSet", checks the entire "clapBuffer" for unqiue set.
+		//If uniqueSet is not in clapBuffer, add to clap buffer, add to total vertex number.
+		for(unsigned int i = 0; i < numVerts; i++)
+		{
+			uniqueSet = slapBuffer[i];
+			for(unsigned int l = 0; l < numVerts; l++)
+			{
+				if(clapBuffer[l] == uniqueSet) uniqueSet = INVALID_PLANE;
+			}
+			if(uniqueSet != INVALID_PLANE) 
+			{
+				clapBuffer[secondNumVerts] = uniqueSet;
+				secondNumVerts++;
+			}
+		}
+		
+		sectors[k].nbPoint = secondNumVerts;
+		for(int i = 0; i < secondNumVerts; i++)
+		{
+			sectors[k].pntbl[i] = clapBuffer[i];
+		}
+		writeAddress += secondNumVerts;
+		//Now we have to go back to the pltbl, and alias it.
+		//We alias it by finding the pltbl' "vertices" entries in the sector pntbl.
+		sectors[k].sctbl = (_quad *)writeAddress;
+		writeAddress += sizeof(_quad) * sectors[k].nbPolygon;
+		
+		for(unsigned int i = 0; i < sectors[k].nbPolygon; i++)
+		{
+			for(int p = 0; p < 4; p++)
+			{
+				for(unsigned int f = 0; f < sectors[k].nbPoint; f++)
+				{
+					if(mesh->pltbl[sectors[k].pltbl[i]].vertices[p] == sectors[k].pntbl[f])
+					{
+						//What this should do is:
+						//Polygon has vertex ID #255, which is sector vertex ID #0, sector polygon vertex ID of #255 becomes #0
+						sectors[k].sctbl[i].vertices[p] = f;
+					}
+				}
+			}
+		}
+		
+		sectors_made++;
+		sectored_polygons += sectors[k].nbPolygon;
+		sectored_verts += sectors[k].nbPoint;
+	}
+
+	nbg_sprintf(1, 7, "sct(%i),ply(%i),vts(%i)", sectors_made, sectored_polygons, sectored_verts);
+	workAddress = (void *)writeAddress;
+	return align_4(workAddress);
+}
 
 /**
 Modified by ponut for madness
@@ -231,10 +385,10 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
     workAddress = loadAnimations(workAddress, model, model_header);
 
 	unsigned char * readByte = workAddress;
-	if(modelType == MODEL_TYPE_TPACK)
+	if(model->type == MODEL_TYPE_TPACK)
 	{
 		readByte = unpackTextures(workAddress, model);
-	} else if(modelType != MODEL_TYPE_BUILDING)
+	} else if(model->type != MODEL_TYPE_BUILDING && model->type != MODEL_TYPE_SECTORED)
 	{
 		readByte = loadTextures(workAddress, model);
 	}
@@ -243,7 +397,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	//	Model type TPACK		-> Building texture pack. Textures from these are UV-cut or UV-combined.
 	//	Model type BUILDING		-> Building model. Not allowed to add new textures. Can declare objects from its payload.
 	////////////////
-	if(model->type == MODEL_TYPE_BUILDING)
+	if(model->type == MODEL_TYPE_BUILDING || model->type == MODEL_TYPE_SECTORED)
 	{
 		unsigned char * total_items = &readByte[0];
 		//unsigned char * unique_items = &readByte[1];
@@ -277,6 +431,11 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		
 		// nbg_sprintf(1, 11, "uitem(%i)", *total_items);
 		// nbg_sprintf(1, 13, "amnti(%i)", *unique_items);
+		
+		if(model->type == MODEL_TYPE_SECTORED)
+		{
+			workAddress = load_sectors(model, workAddress);			
+		}
 	} 
 
 	

@@ -5,7 +5,7 @@
 #include "pcmsys.h"
 #include "pcmstm.h"
 #include "def.h"
-#include "bounder.h"
+
 #include "physobjet.h"
 #include "mloader.h"
 #include "render.h"
@@ -370,8 +370,8 @@ void	testing_level_data(Sint8 * filename, void * destination)
 
 void declarations(void)
 {
-	declare_object_at_cell(0, -(2000 - 0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(0, -(2000 - 0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell(0, -(2000 - 0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell(0, -(2000 - 0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
 	
 
 }

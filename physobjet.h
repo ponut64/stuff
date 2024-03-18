@@ -310,7 +310,6 @@ void	ldata_manager(void);
 // used for actor.c
 
 #define MAX_PATHING_STEPS	(30)
-#define INVALID_PLANE		(0xFFFF)
 
 typedef struct {
 	union {

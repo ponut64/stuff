@@ -39,8 +39,7 @@ MATRIX perspective_root;
 MATRIX unit;
 // Forward Vector. For convenience.
 int scrn_z_fwd[3] = {0, 0, 0};
-//Billboard sprite work list (world-space positions)
-//
+
 // Mental note: Try Rotation-16 framebuffer and alternate screen coordinate from 0,0 and 1,1 every vblank
 // Should make mesh transparencies work better
 
@@ -94,7 +93,7 @@ void	master_draw_stats(void)
 	slPrintFX(you.pos[Z], slLocate(29, 1));
 
 	//nbg_sprintf(18, 0, "(File System Status)");
-	nbg_sprintf(27, 2, "Pts :%x:", you.points);
+	nbg_sprintf(27, 2, "Scr :%x:", you.score);
 	//nbg_sprintf(10, 2, "throttle:(%i)", you.IPaccel);
 	//slPrintFX(you.sanics, slLocate(26, 3));
 //		if(delta_time>>6 > 35)
@@ -217,7 +216,7 @@ void	shadow_draw(int draw_mode)
 
 void	obj_draw_queue(void)
 {
-		
+
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
@@ -230,13 +229,24 @@ void	obj_draw_queue(void)
 	
 		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
 	
-		if(entities[objDRAW[i]].type == MODEL_TYPE_BUILDING)
-		{ 
+		switch(entities[objDRAW[i]].type)
+		{
+			case(MODEL_TYPE_BUILDING):
 			plane_rendering_with_subdivision(&entities[objDRAW[i]]);
-		} else {
-			
+			break;
+			case(MODEL_TYPE_SECTORED):
+			for(int s = 0; s < nearSectorCt; s++)
+			{
+				slPushMatrix();
+				draw_sector(&entities[objDRAW[i]], &sectors[nearSectorList[s]]);
+				slPopMatrix();
+			}
+			break;
+			default:
 			ssh2DrawModel(&entities[objDRAW[i]]);
+			break;
 		}
+
 	slPopMatrix();
 	
 	}
@@ -514,24 +524,24 @@ void	master_draw(void)
 	
 	if(viewInfoTxt == 1)
 	{
-	nbg_sprintf_decimal(7, 7, time_at_start);
-	nbg_sprintf_decimal(7, 8, time_of_master_draw);
-	nbg_sprintf_decimal(7, 9, time_of_object_management);
-	nbg_sprintf_decimal(7, 10, extra_time);
-	nbg_sprintf_decimal(7, 11, time_at_end);
-	nbg_sprintf(2, 6, "MSH2:");
-	nbg_sprintf(2, 7, "Strt:");
-	nbg_sprintf(2, 8, "Map:");
-	nbg_sprintf(2, 9, "Objs:");
-	nbg_sprintf(2, 10, "Ext:");
-	nbg_sprintf(2, 11, "End:");
+	nbg_sprintf_decimal(32, 7, time_at_start);
+	nbg_sprintf_decimal(32, 8, time_of_master_draw);
+	nbg_sprintf_decimal(32, 9, time_of_object_management);
+	nbg_sprintf_decimal(32, 10, extra_time);
+	nbg_sprintf_decimal(32, 11, time_at_end);
+	nbg_sprintf(25, 6, "MSH2:");
+	nbg_sprintf(25, 7, "Strt:");
+	nbg_sprintf(25, 8, "Map:");
+	nbg_sprintf(25, 9, "Objs:");
+	nbg_sprintf(25, 10, "Ext:");
+	nbg_sprintf(25, 11, "End:");
 	
 	while(!*timeComm){
 		if(get_time_in_frame() >= (50<<16)) break;
 	};
 	time_at_ssh2_end = get_time_in_frame();
-	nbg_sprintf_decimal(7, 12, time_at_ssh2_end);
-	nbg_sprintf(2, 12, "SSH2:");
+	nbg_sprintf_decimal(32, 12, time_at_ssh2_end);
+	nbg_sprintf(25, 12, "SSH2:");
 	}
 }
 

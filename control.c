@@ -9,7 +9,7 @@ This file is compiled separately.
 #include "sound.h"
 #include "mymath.h"
 #include "input.h"
-#include "bounder.h"
+
 #include "pcmsys.h"
 #include "render.h"
 #include "particle.h"
@@ -128,6 +128,8 @@ void controls(void)
 		}
 	}
 	
+	//The game does weird stuff when master isn't busy for long enough for the controls handler to work.
+	//Or... too busy? No idea...
 	if(is_key_struck(DIGI_C))
 	{
 		int mark[3] = {0,0,0};
@@ -181,7 +183,6 @@ void controls(void)
 		you.setJet = false;
 	}
 	//
-
 
 	if(is_key_down(DIGI_START)){
 		//reset_player();

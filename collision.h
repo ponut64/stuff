@@ -1,11 +1,13 @@
 #pragma once
 
-#include "bounder.h"
+
 
 #define HIT_TOLERANCE (6553)
 #define REBOUND_ELASTICITY (0x8000)
 
 extern int boxDisField[6];
+extern unsigned short nearSectorList[MAX_SECTORS];
+extern int nearSectorCt;
 
 void	init_box_handling(void);
 int		edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard);
@@ -25,7 +27,9 @@ void	collide_with_heightmap(_boundBox * sbox, _lineTable * moverCFs, _lineTable 
 //object_col lision
 void	purge_rotated_entities(void);
 void	generate_rotated_entity_for_object(short declared_object_entry);
-int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitNormal, entity_t * ent, int * mesh_position);
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitPolyID, entity_t * ent, int * mesh_position, _sector * sct);
+void *	buildAdjacentSectorList(int entity_id, void * workAddress);
+void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis);
 void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, _lineTable * moverCFs, _lineTable * moverTimeAxis);
 
 

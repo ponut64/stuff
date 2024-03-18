@@ -9,7 +9,7 @@ This file is compiled separately.
 #include "mymath.h"
 
 
-#include "bounder.h"
+
 
 _boundBox BoundBoxHost[MAX_PHYS_PROXY];
 _boundBox BoundBoxDraw[MAX_PHYS_PROXY];

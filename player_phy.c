@@ -79,6 +79,9 @@ void reset_player(void)
 	you.airTime = 0;
 	you.cancelTimers = true;
 	you.resetTimers = false;
+	
+	you.curSector = INVALID_SECTOR;
+	you.prevSector = INVALID_SECTOR;
 }
 
 
@@ -272,7 +275,21 @@ void	construct_line_tables(void)
 	
 		// nbg_sprintf(1, 6, "xx: (%i)", you.world_faces.xp0[X]);
 		// nbg_sprintf(1, 7, "xy: (%i)", you.world_faces.xp0[Y]);
-		// nbg_sprintf(1, 8, "xz: (%i)", you.world_faces.xp0[Z]);			
+		// nbg_sprintf(1, 8, "xz: (%i)", you.world_faces.xp0[Z]);		
+
+	//All the stuff above this line might get deleted.
+	for(int s = 0; s < 3; s++)
+	{
+		you.realTimeAxis.xp0[s] = you.wpos[s] + you.box.Xplus[s] + 	fxm(you.wvel[s], time_fixed_scale);
+		you.realTimeAxis.xp1[s] = you.wpos[s] + you.box.Xneg[s] + 	fxm(you.wvel[s], time_fixed_scale);
+		you.realTimeAxis.yp0[s] = you.wpos[s] + you.box.Yplus[s] +	fxm(you.wvel[s], time_fixed_scale);
+		you.realTimeAxis.yp1[s] = you.wpos[s] + you.box.Yneg[s] +	fxm(you.wvel[s], time_fixed_scale);
+		you.realTimeAxis.zp0[s] = you.wpos[s] + you.box.Zplus[s] + 	fxm(you.wvel[s], time_fixed_scale);
+		you.realTimeAxis.zp1[s] = you.wpos[s] + you.box.Zneg[s] + 	fxm(you.wvel[s], time_fixed_scale);
+	
+	}
+	
+
 	
 }
 
@@ -504,7 +521,7 @@ void	player_phys_affect(void)
 		}
 		
 		you.pos[X] = (you.floorPos[X]);
-		you.pos[Y] = (you.floorPos[Y]);
+		you.pos[Y] = (you.floorPos[Y]) + (you.box.radius[Y] - (1<<16));
 		you.pos[Z] = (you.floorPos[Z]);
 		
 	} else {
@@ -689,6 +706,20 @@ void	player_phys_affect(void)
 		}
 	} //OFF SURFACE ROTATION DERATING ENDIF
 		
+		
+	//The player's velocity is calculated independent of an actual value, so use it here instead.
+	you.wvel[X] = -you.velocity[X];
+	you.wvel[Y] = -you.velocity[Y];
+	you.wvel[Z] = -you.velocity[Z];
+
+	you.renderRot[X] = you.rot[X];
+	you.renderRot[Y] = you.rot[Y];
+	you.renderRot[Z] = you.rot[Z];
+	
+	you.wpos[X] = -you.pos[X];
+	you.wpos[Y] = -you.pos[Y];
+	you.wpos[Z] = -you.pos[Z];
+		
 	//Moment
 	you.moment[X] = fxm(you.mass, you.velocity[X]);
 	you.moment[Y] = fxm(you.mass, you.velocity[Y]);
@@ -715,8 +746,26 @@ void	player_phys_affect(void)
 	pl_RBB.velocity[X] = you.velocity[X];
 	pl_RBB.velocity[Y] = you.velocity[Y];
 	pl_RBB.velocity[Z] = you.velocity[Z];
-			
+	/////////////////////////////////////////////////////////////////////
+	// world pos?
+	/////////////////////////////////////////////////////////////////////
 		make2AxisBox(&bound_box_starter);
+		
+	bound_box_starter.modified_box = &you.box;
+	bound_box_starter.x_location = you.wpos[X];
+	bound_box_starter.y_location = you.wpos[Y];
+	bound_box_starter.z_location = you.wpos[Z];
+	
+	bound_box_starter.x_rotation = 0;
+	bound_box_starter.y_rotation = 0;
+	bound_box_starter.z_rotation = 0;
+	
+	you.box.velocity[X] = you.wvel[X];
+	you.box.velocity[Y] = you.wvel[Y];
+	you.box.velocity[Z] = you.wvel[Z];
+		
+		make2AxisBox(&bound_box_starter);
+		
 		//Why is this here?
 		// I used to align by angles. Now I align to a matrix.
 		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
@@ -735,18 +784,6 @@ void	player_phys_affect(void)
 		{
 		finalize_alignment(bound_box_starter.modified_box);
 		}
-		//The player's velocity is calculated independent of an actual value, so use it here instead.
-		you.wvel[X] = -you.velocity[X];
-		you.wvel[Y] = -you.velocity[Y];
-		you.wvel[Z] = -you.velocity[Z];
-
-		you.renderRot[X] = you.rot[X];
-		you.renderRot[Y] = you.rot[Y];
-		you.renderRot[Z] = you.rot[Z];
-		
-		you.wpos[X] = -you.pos[X];
-		you.wpos[Y] = -you.pos[Y];
-		you.wpos[Z] = -you.pos[Z];
 		
 		//Patchwork logic: Every frame you aren't climbing, you need to start as if not climbing.
 		//If collisions thusly calculate that you are, great!

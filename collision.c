@@ -6,7 +6,7 @@ This file is compiled separately.
 #include <sl_def.h>
 #include "def.h"
 #include "mymath.h"
-#include "bounder.h"
+
 #include "mloader.h"
 #include "render.h"
 #include "physobjet.h"
@@ -18,6 +18,9 @@ This file is compiled separately.
 int numBoxChecks = 0;
 
 int boxDisField[6];
+
+unsigned short nearSectorList[MAX_SECTORS];
+int nearSectorCt = 0;
 
 void	init_box_handling(void)
 {
@@ -192,6 +195,8 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 	/////////////////////////////////////////////////////////////////////////////////////////////
 	//Using integer math. The precision of fixed point is not required, and this prevents overflows.
 	/////////////////////////////////////////////////////////////////////////////////////////////
+	// Don't touch this: it works. It's reliable. It's basic. There is no need to edit it.
+	/////////////////////////////////////////////////////////////////////////////////////////////
 	switch(discard)
 	{
 	case (N_Xp):
@@ -199,22 +204,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	case (N_Zp):
@@ -222,22 +227,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	case (N_Yn):
@@ -245,22 +250,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	case (N_Xn):
@@ -268,22 +273,22 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	case (N_Zn):
@@ -291,45 +296,46 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 		plane_p1 = pp1;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
 		left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	case (N_Yp):
+		//I'm serious. Don't touch this. Please.
 		plane_p0 = pp0;
 		plane_p1 = pp1;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp1;
 		plane_p1 = pp2;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp2;
 		plane_p1 = pp3;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		plane_p0 = pp3;
 		plane_p1 = pp0;
 		right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
 		left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
-		if((left-right) <= 0) break;
+		if((left-right) < 0) break;
 		return 1;
 		break;
 	}
@@ -876,19 +882,48 @@ numBoxChecks++;
 	return false;
 }
 
+
+int		broad_phase_sector_finder(int * pos, entity_t * ent, int * mesh_position)
+{
+	
+	//If the entity is not loaded, cease the test.
+	if(ent->file_done != true) return INVALID_SECTOR;
+	//This is the initial phase of determining which sector something is in.
+	//Once we have passed this broad phase, we can find out which sector something is in by less complex means;
+	//mostly by using data from collision processing an actor or the player.
+	//This will be very slow on large levels. So do not use this blindly.
+	//(... proceeds to use blindly...)
+	
+	//Method:
+	//Do a line of sight test from the test position, with the sight vector being down.
+	//Generally, the idea works that all sectors will have floors, but not all sectors will have ceilings.
+	//Bonus: We could do this more efficiently if we did the chirality test first, before the raycast.
+	//Meh.
+	GVPLY * mesh = ent->pol;
+	static int testDirection[3] = {0, 65535, 0};
+	static int pHit[3] = {0, 0, 0};
+	static int hitPolyID = 0;
+
+	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, &sectors[you.curSector]);
+		
+	if(!abovePolygon) return INVALID_SECTOR;
+	
+	return mesh->attbl[hitPolyID].first_sector;
+		
+	
+}
+
+
 void	player_collision_test_loop(void)
 {
 	//This runs the physics workhorse stuff, but a lot of this logic is in physobjet.c -
 	//much of it has as much to do with game state as it does physics.
 	
-	you.hitscanPt[X] = 32767<<16;
-	you.hitscanPt[Y] = 32767<<16;
-	you.hitscanPt[Z] = 32767<<16;
-	
 	you.hitObject = false;
 	if(ldata_ready != true) return; //Just in case.
 	int boxType;
 	int edata;
+	static int hitscanPly = 0;
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
@@ -896,6 +931,28 @@ void	player_collision_test_loop(void)
 		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
 		boxType = edata & (0xF000);
 		//Check if object # is a collision-approved type
+		if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_SECTORED)
+		{
+			you.curSector = broad_phase_sector_finder(you.wpos, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
+			if(you.curSector != INVALID_SECTOR) you.prevSector = you.curSector;
+			//This is also the moment where we should build the adjacent / visible sector list.
+			//Use the current sector's adjacent list as the draw list.
+			_sector * sct = &sectors[you.prevSector];
+			nearSectorCt = sct->nbAdjacent;
+			for(unsigned int s = 0; s < sct->nbAdjacent; s++)
+			{
+				nearSectorList[s] = sct->adtbl[s];
+				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->adtbl[s]], &you.box, &you.realTimeAxis);
+
+				you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->adtbl[s]]);
+				you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
+				you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
+				you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
+
+			}
+			continue;
+		}
+		
 		switch(boxType)
 		{
 			case(OBJPOP):
@@ -908,7 +965,11 @@ void	player_collision_test_loop(void)
 			item_collision(i, &pl_RBB);
 			break;
 			case(BUILD | OBJPOP):
-			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, you.hitscanNm, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
+			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, NULL);
+			you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
+			you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
+			you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
+
 			per_poly_collide(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &pl_RBB, RBBs[i].pos, &you.fwd_world_faces, &you.time_axis);
 			if(you.hitObject  == true)
 			{
@@ -919,10 +980,20 @@ void	player_collision_test_loop(void)
 			default:
 			break;
 		}
+	
 	}
 	
 	ldata_manager();
 	
+	nbg_sprintf(2, 4, "nearSectorCt:(%i)", nearSectorCt);
+	nbg_sprintf(2, 5, "curSector:(%i)", you.curSector);
+	
+	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbAdjacent);
+	//for(int i = 0; i < sectors[you.curSector].nbAdjacent; i++)
+	//{
+	//	spr_sprintf(16, (7 * 12) + (i * 12), "to(%i)", sectors[you.curSector].adtbl[i]);
+	//}
+
 //	nbg_sprintf(0, 14, "(%i)E", numBoxChecks);
 	numBoxChecks = 0;
 	

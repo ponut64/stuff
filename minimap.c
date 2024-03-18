@@ -4,7 +4,6 @@
 #include "mymath.h"
 #include "hmap.h"
 #include "vdp2.h"
-#include "bounder.h"
 #include "physobjet.h"
 
 #include "minimap.h"

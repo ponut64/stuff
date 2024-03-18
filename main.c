@@ -11,29 +11,48 @@ jackie's birthday is july 1st
 
 Next Steps
 
+I will move to a sector-based engine.
+The sectors will be determined by the designer when making the levels. This is normal; Build works lke that.
+The sectors however are not extrapolated into polygons, they are literally the polygons of BUILD-type objects.
+The reason that this is simple enough to work is to be in the level you ought to be above a floor polygon,
+which indicates that you are in that sector.
+In any case, it is valid to simply check which sector plane is nearest to the player's center by a vertical projection.
+This will determine which sector the player actor is in, and also is used for all other actors.
+Then, the designer will not have to specify which sectors are adjacent to other sectors and I may not need portals.
+Instead, the game engine can check which sectors are adjacent to other sectors by the "adjacent floor" algorithm developed.
+The game engine will also be able to build a "InSector" list of planes which are to be drawn for this sector,
+rather than searching the mesh for valid sectors to draw. One or the other method may be valid.
+However, the "adjacent floor" algorithm can allow us to find which planes are adjacent to another sector.
+
+In moving to a sector-based engine, it seems most appropriate for the entire level to be one giant mesh
+that is built in the same vector-space, with the same pntbl and pltbl.
+The polygons to draw are made from the current sector and two sectors adjacent,
+which can easily mean drawing the plane data in each sector's plane list.
+The sector thusly also needs a vertex list, because it needs to know which vertices to transform.
+It will be a lot of memory management to get this system built properly, but once built, it can enable very large worlds.
+Most importantly, it enables large worlds with an integrated method of controlling visibility from region to region.
+
+For collision, it is a little more involved.
+We are first using the collision system to try and find out which sector we're in.
+So we need to optimize that and use some assumptions.
+One idea is that once the sector for an actor is known, we can only collision test a limited number of sectors.
+Only when we don't know where something could be do we have to do a broad check to find out where it is.
+
+Okay, so the next steps:
+1. Build sector lists - done
+a. Prove sector lists are valid & can be drawn - done
+b. prove sectors can be drawn alongside other objects / one another - done
+c. Find which sector player is in - done
+	-- I do actually need to re-write the player collision anyway.
+	Like, urgently need. But that'll be for per-sector stuff.
+b. Draw the sector the player is in (if no sector can be found, draw last sector) - done 
+
+
+2. Mark sectors as adjacent to one another
+
+
 i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
 
-a. Two-polygon particle type
-Two intersecting planes in a + pattern to represent a projectile (longitudinal billboards).
-
-r. Map Polygon Scale
-just needs to be tuned better, somehow, maybe
-
-f. "Actors", "Actor List", "Actor Management", "Actor Spawner"
-This is a lot to do at once but it must be done...
-
-... Is a pointer safer than an array index?
-No, in either case the qualifying safety can take place, where the declared object is checked to ensure it is a spawner.
-
-g. "Destructible Wall" material
-A type of plane data which will become GHOST and change texture when shot at
-
-2. "Moving Box" actor.
-Spawns an actor which moves towards the player...
-
-3. controls need adjustment
-4. z-limit needs adjustment
-5. the cell size / floor size needs to be increased
 
 **/
 //
@@ -41,13 +60,12 @@ Spawns an actor which moves towards the player...
 //
 //
 #include <sl_def.h>
-#include "def.h"
 #include <SEGA_INT.H>
 #include <SEGA_GFS.H>
 
 //Outstanding code contributions from XL2 
 //
-
+#include "def.h"
 #include "mymath.h"
 #include "render.h"
 #include "collision.h"
@@ -207,9 +225,12 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_SECTORED, &entities[0]);
+	HWRAM_ldptr = buildAdjacentSectorList(12, HWRAM_ldptr);
 	HWRAM_hldptr = HWRAM_ldptr;
 	
+
+
 	init_pathing_system();
 	p64MapRequest(0);
 	//
@@ -261,6 +282,7 @@ void	attributions(void)
 	load_test();
 	
 	nbg_clear_text();
+
 	//For NBG0, we zoom it.
 	//This zooms the screen such that a 128x128 area is displayed over the 352x224 screen.
 	//This is for th zoom on in-game backgrounds. Before this point, the zoom is set for the splash screen.

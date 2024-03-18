@@ -8,7 +8,7 @@
 #include "mymath.h"
 #include "render.h"
 #include "mloader.h"
-#include "bounder.h"
+
 #include "collision.h"
 #include "particle.h"
 #include "input.h"
@@ -102,6 +102,7 @@ int		actorLineOfSight(_actor * act, int * pos)
 	static int vector_to_hit[3] = {0,0,0};
 	static int hit[3] = {0,0,0};
 	static int nHit[3];
+	static int hitPly = 0;
 	int possibleObstruction = 0;
 	
 	hit[X] = 0;
@@ -134,7 +135,7 @@ int		actorLineOfSight(_actor * act, int * pos)
 			case(ITEM | OBJPOP):
 			break;
 			case(BUILD | OBJPOP):
-			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, nHit, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
+			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
 			break;
 			default:
 			break;
@@ -170,6 +171,7 @@ int	actorCheckPathOK(_actor * act)
 	static int towardsFloor[3] = {0, (1<<16), 0};
 	static int floorProxy[3];
 	static int floorNorm[3];
+	static int hitFloorPly = 0;
 	static int losToProxy = 0;
 	
 	//(we add the Z axis because that's forward)
@@ -215,7 +217,10 @@ int	actorCheckPathOK(_actor * act)
 			case(ITEM | OBJPOP):
 			break;
 			case(BUILD | OBJPOP):
-			possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, floorNorm, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
+			possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
+			floorNorm[X] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][X];
+			floorNorm[Y] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][Y];
+			floorNorm[Z] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][Z];
 			break;
 			default:
 			break;

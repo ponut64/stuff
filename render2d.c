@@ -6,7 +6,7 @@
 #include "def.h"
 #include "mloader.h"
 #include "mymath.h"
-#include "bounder.h"
+
 
 #include "render.h"
 #include <stdio.h>
