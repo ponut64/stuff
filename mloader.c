@@ -137,7 +137,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		writeAddress += secondNumVerts;
 		//Now we have to go back to the pltbl, and alias it.
 		//We alias it by finding the pltbl' "vertices" entries in the sector pntbl.
-		sectors[k].sctbl = (_quad *)writeAddress;
+		sectors[k].tltbl = (_quad *)writeAddress;
 		writeAddress += sizeof(_quad) * sectors[k].nbPolygon;
 		
 		for(unsigned int i = 0; i < sectors[k].nbPolygon; i++)
@@ -150,7 +150,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 					{
 						//What this should do is:
 						//Polygon has vertex ID #255, which is sector vertex ID #0, sector polygon vertex ID of #255 becomes #0
-						sectors[k].sctbl[i].vertices[p] = f;
+						sectors[k].tltbl[i].vertices[p] = f;
 					}
 				}
 			}

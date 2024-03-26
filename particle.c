@@ -11,7 +11,6 @@
 
 #include "collision.h"
 #include "physobjet.h"
-#include "hmap.h"
 
 #include "particle.h"
 
@@ -537,67 +536,6 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 	return false;
 }
 
-short	particle_collide_heightmap(_particle * part)
-{
-	
-	static _pquad floor;
-	
-	//Negated position.
-	//Why? Fuck man, I don't know. It just works this way. Coordinate system mayhem.
-	int npk[3] = {-part->spr->pos[X], -part->spr->pos[Y], -part->spr->pos[Z]};
-	
-	generate_cell_from_position(npk, &floor);
-	
-	int ymin = JO_MIN(JO_MIN(floor.verts[0][Y], floor.verts[1][Y]), JO_MIN(floor.verts[2][Y], floor.verts[3][Y]));
-	//If we are too far above the floor, return.
-	
-//	slPrintFX(part->spr->pos[Y], slLocate(1, 11));
-//	slPrintFX(ymin, slLocate(1, 8));
-	
-	if((ymin - (20<<16) - JO_ABS(part->velocity[Y])) > part->spr->pos[Y]) return false;
-	
-	static int tri1CF[XYZ];
-	static int tri1Norm[XYZ];
-	static int tri2CF[XYZ];
-	static int tri2Norm[XYZ];
-	
-	divide_cell_return_cfnorms(&floor, tri1CF, tri1Norm, tri2CF, tri2Norm);
-	
-	int tri1Dist =  slSquartFX(fxm(floor.verts[1][X] + npk[X], floor.verts[1][X] + npk[X])
-	+ fxm(floor.verts[1][Z] + npk[Z], floor.verts[1][Z] + npk[Z]));
-	
-	int tri2Dist =  slSquartFX(fxm(floor.verts[3][X] + npk[X], floor.verts[3][X] + npk[X])
-	+ fxm(floor.verts[3][Z] + npk[Z], floor.verts[3][Z] + npk[Z]));
-	
-	int dotTri1 = realpt_to_plane(npk, tri1Norm, tri1CF);
-	int dotTri2 = realpt_to_plane(npk, tri2Norm, tri2CF);
-	
-
-//	slPrintFX(dotTri1, slLocate(0, 11));
-//	slPrintFX(dotTri2, slLocate(0, 12));
-//	slPrintFX(quad->verts[0][Z], slLocate(0, 13));
-	
-	//If triangle 1 is farther away than triangle 2, collide with triangle 2.
-	//If triangle 1 is closer, collide with triangle 1.
-	if(dotTri2 > 8192 && tri1Dist >= tri2Dist)
-	{
-		tri2Norm[X] = -tri2Norm[X];
-		tri2Norm[Y] = -tri2Norm[Y];
-		tri2Norm[Z] = -tri2Norm[Z];
-		particle_collision_handler(part, tri2Norm);
-		return true;
-	} else if(dotTri1 > 8192 && tri1Dist < tri2Dist)
-	{  
-		tri1Norm[X] = -tri1Norm[X];
-		tri1Norm[Y] = -tri1Norm[Y];
-		tri1Norm[Z] = -tri1Norm[Z];
-		particle_collision_handler(part, tri1Norm);
-		return true;
-	}
-	return false;
-	
-}
-
 void	operate_particles(void)
 {
 	short pHit = false;
@@ -616,7 +554,7 @@ void	operate_particles(void)
 		{
 				//Used for collisions
 				accurate_normalize(particles[i].velocity, particles[i].dirUV);
-				pHit = particle_collide_heightmap(&particles[i]);
+				pHit = false;
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)
 				{
 					unsigned short edata = dWorldObjects[activeObjects[u]].type.ext_dat;

@@ -16,7 +16,6 @@
 #include "physobjet.h"
 
 #include "minimap.h"
-#include "hmap.h"
 #include "sound.h"
 #include "collision.h"
 

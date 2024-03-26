@@ -7,7 +7,6 @@
 #include "render.h"
 #include "collision.h"
 #include "ldata.h"
-#include "hmap.h"
 #include "menu.h"
 #include "minimap.h"
 #include "particle.h"
@@ -289,7 +288,6 @@ void	object_control_loop(int ppos[XY])
 							// Will change levels *(insofar as the uncommented code)
 							//////////////////////////////////////////
 							(*obj_edat) |= OBJPOP;
-							map_chg = false;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 						}
 					}

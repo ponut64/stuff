@@ -11,7 +11,6 @@
 #include "render.h"
 #include "tga.h"
 #include "sound.h"
-#include "hmap.h"
 #include "mymath.h"
 #include "collision.h"
 
@@ -24,162 +23,6 @@
 
 
 Bool ldata_ready = false;
-
-void	snargon(void)
-{
-	//Testing: Finding polygons of heightmap encapsulated in other shapes.
-	//This is complex code with a lot of moving parts.
-	//
-	// This is pretty cool. I'm intending it to be used for occlusion.
-	// But it seems that it would have great uses for pre-calculating shadows from objects to map.
-	//
-	
-	static int points[4][4];
-
-	static int cell_pos[XYZ] = {0, 0, 0};
-	static int targetMapPolygon = 0;
-	
-	int aprx_pos[3] = {0, 0, 0};
-	
-	//////////////////////////////
-	//Loop 1: Search all objects.
-	//////////////////////////////
-	for(int i = 0; i < objNEW; i++)
-	{
-
-	///////////////////////////////
-	// If the object is not of a certain type, move on to the next one.
-	///////////////////////////////
-	if((entities[dWorldObjects[i].type.entity_ID].type != MODEL_TYPE_BUILDING)) continue;
-	if(!(dWorldObjects[i].type.ext_dat & BUILD_MASTER_OCCLUDER)) continue;
-		
-	///////////////////////////////
-	// When a matching type is found, we will check it.
-	// But also we don't want the rest of the game logic to use it at all.
-	// So flag it as disabled.
-	///////////////////////////////
-	dWorldObjects[i].type.ext_dat |= OBJECT_DISABLED;
-	
-		GVPLY * mesh = entities[dWorldObjects[i].type.entity_ID].pol;
-		///////////////////////////
-		// For this type of object, proceed with a per-polygon test.
-		///////////////////////////
-		for(unsigned int j = 0; j < mesh->nbPolygon; j++)
-		{
-			//////////////////////////////////////
-			// For now, this is only being used to find "master occlusion";
-			// that being polygons of the heightmap which should never be drawn, according to polygonal shapes.
-			// So there is a specific flag for that.
-			//////////////////////////////////////
-			if(mesh->attbl[j].render_data_flags != GV_SPECIAL_FLAG_UNRENDER_MAP) continue;
-			
-			//////////////////////////////////////
-			// Locate the points in negative world-space.
-			//////////////////////////////////////
-			for(int u = 0; u < 4; u++)
-			{
-			points[u][X] = (((mesh->pntbl[mesh->pltbl[j].vertices[u]][X])) + dWorldObjects[i].pos[X]);
-			points[u][Z] = (((mesh->pntbl[mesh->pltbl[j].vertices[u]][Z])) + dWorldObjects[i].pos[Z]);
-			}
-
-			aprx_pos[X] = dWorldObjects[i].pos[X];
-			aprx_pos[Z] = dWorldObjects[i].pos[Z];
-			
-			//////////////////////////////////////
-			//Re-set the target (heightmap) polygon to test.
-			//In addition to this, re-set the cell position target's Y axis.
-			//////////////////////////////////////
-			targetMapPolygon = 0;
-			cell_pos[Z] = -(((main_map_y_pix>>1)) * CELL_SIZE_INT - 20)<<16;
-			for(int k = 0; k < (main_map_y_pix-1); k++)
-			{
-				//////////////////////////////////
-				//For every row, re-set the cell's X axis.
-				//////////////////////////////////
-				cell_pos[X] = (((main_map_x_pix>>1)) * CELL_SIZE_INT + 20)<<16;
-				for(int v = 0; v < (main_map_x_pix-1); v++)
-				{
-					int adist = approximate_distance(cell_pos, aprx_pos)>>1;
-
-					if(adist < (dWorldObjects[i].type.radius[X]<<16) || adist < (dWorldObjects[i].type.radius[Z]<<16))
-					{
-						//////////////////////////
-						// If the cell is within the radius of the object, 
-						// and its center is within the occlusion plane,
-						// flag it such that it is blanked out.
-						//////////////////////////
-						if(edge_wind_test(points[0], points[1], points[2], points[3], cell_pos, N_Yn, 12))
-						{
-							lightTbl[targetMapPolygon] = 0xF;
-						}
-					}
-				targetMapPolygon++;
-				cell_pos[X] -= CELL_SIZE;		
-				}				
-				cell_pos[Z] += CELL_SIZE;
-			}
-			
-		}
-	
-	}
-	
-}
-
-
-void	replace_table_0(void * source_data)
-{
-	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[0]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); 
-	for(int i = 0; i < 13; i++)
-	{
-		old_tex_tbl_names[0][i] = map_tex_tbl_names[0][i];
-	}
-}
-
-void	replace_table_1(void * source_data)
-{
-	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[1]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); 
-	for(int i = 0; i < 13; i++)
-	{
-		old_tex_tbl_names[1][i] = map_tex_tbl_names[1][i];
-	}
-}
-
-void	replace_table_2(void * source_data)
-{
-	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[2]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); 
-	for(int i = 0; i < 13; i++)
-	{
-		old_tex_tbl_names[2][i] = map_tex_tbl_names[2][i];
-	}
-}
-
-void	replace_table_3(void * source_data)
-{
-	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[3]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); 
-	for(int i = 0; i < 13; i++)
-	{
-		old_tex_tbl_names[3][i] = map_tex_tbl_names[3][i];
-	}
-}
-
-void	replace_table_4(void * source_data)
-{
-	ReplaceTextureTable(source_data, 24, map_texture_table_numbers[4]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, map_end_of_original_textures);
-	make_dithered_textures_for_map(1); 
-	for(int i = 0; i < 13; i++)
-	{
-		old_tex_tbl_names[4][i] = map_tex_tbl_names[4][i];
-	}
-}
 
 void	process_binary_ldata(void * source_data)
 {
@@ -221,41 +64,12 @@ void	process_binary_ldata(void * source_data)
 	//////////////////////////////////
 	cptr+=6;
 
+	//We don't do anything with these because these are for the heightmap that is no longer used.
 	for(int l = 0; l < 5; l++)
 	{
-		short parity = 0;
 		for(int i = 0; i < 12; i++)
 		{
-			if(*cptr != ' ')
-			{
-				if(*cptr == old_tex_tbl_names[l][i]) parity++;
-				map_tex_tbl_names[l][i] = *cptr;
-			} else {
-				map_tex_tbl_names[l][i] = 0; //NUL character / string terminator
-				if(old_tex_tbl_names[l][i] == 0) parity++;
-			}
 			cptr++;
-		}
-		if(parity != 12)
-		{
-			if(l == 0)
-			{
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_0, HANDLE_FILE_ASAP); 
-				//nbg_sprintf(2, 8, "0(%i)", parity);
-				//nbg_sprintf(2, 8, "%s", &map_tex_tbl_names[l][0]);
-			} else if(l == 1){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_1, HANDLE_FILE_ASAP); 
-				//nbg_sprintf(2, 9, "%s", &map_tex_tbl_names[l][0]);
-			} else if(l == 2){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_2, HANDLE_FILE_ASAP); 
-				//nbg_sprintf(2, 10, "%s", &map_tex_tbl_names[l][0]);
-			} else if(l == 3){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_3, HANDLE_FILE_ASAP); 
-				//nbg_sprintf(2, 11, "3(%i)", parity);
-			} else if(l == 4){
-				new_file_request((Sint8*)map_tex_tbl_names[l], dirty_buf, replace_table_4, HANDLE_FILE_ASAP); 
-				//nbg_sprintf(2, 12, "4(%i)", parity);
-			}
 		}
 	}
 	
@@ -342,7 +156,6 @@ void	process_binary_ldata(void * source_data)
 	stm.times_to_loop = 255;
 	
 	level_data_basic();
-	snargon();
 }
 
 void	testing_level_data(Sint8 * filename, void * destination)

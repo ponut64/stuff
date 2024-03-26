@@ -12,7 +12,7 @@
 extern unsigned char oneLineCt;
 
 void	init_minimap(void);
-void	add_position_to_minimap(int xpos, int ypos, unsigned short color, short pattern);
+void	add_position_to_minimap(void);
 void	update_mmap_1pass(void);
 void	draw_minimap(void);
 

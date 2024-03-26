@@ -54,14 +54,19 @@ Information about the scale and subdivision rules of the plane.
 2-3: Second subdivision rule
 4-5: Third subdivision rule
 6-7: ???
+Tile information is formatted the same as plane information, except it is regarding the subdivisions of the root plane (tiles).
+Tiles are further subdivided.
+
+uv_id: The base texture (in the UV cut list) that the tiles, absent of subdivisions, receives.
+This is important for determining which texture IDs correspond to subdivisions of the tile.
 */
 
 typedef struct {
 	unsigned short render_data_flags;
+	unsigned char tile_information;
 	unsigned char plane_information;
 	unsigned char uv_id;
 	unsigned char first_sector;
-	unsigned char second_sector;
 	unsigned short texno;
 } gvAtr;
 
@@ -115,13 +120,17 @@ typedef struct
 typedef struct 
 {
 	entity_t * ent;
-	unsigned short nbPolygon; //# of polygons (planes) in the sector
-	unsigned short nbPoint; //# of points in the sector
+	unsigned short nbPolygon; //# of polygons (planes) in the sector (for collision)
+	unsigned short nbPoint; //# of points in the sector (for collision)
+	unsigned short nbTile;	//# of tiles (polygons to draw) in the sector
+	unsigned short nbTileVert; //# of vertices for the tiles (to draw) in the sector
 	unsigned short nbAdjacent; //# of sectors which are adjacent to this sector
 	unsigned short * pltbl;  //Stores the polygon IDs from <entity> which are in this sector; of size <nbPolygon>
-	_quad * sctbl; //Stores the sector-specific vertex IDs used to draw the sector
 	unsigned short * pntbl; //Stores the vertex IDs from <entity> which are in this sector; of size <nbPoint>
 	unsigned short * adtbl; //Stores the sector IDs from <entitiy> which are adjacent to this sector; of size <nbAdjacent>
+	unsigned short * altbl; //Stores the polygon ID alias of the tiles from <entity> in the sector; of size <nbTile>
+	_quad * tltbl; //Stores the sector-specific vertex IDs used to draw the sector's tiles
+	POINT * tvtbl; //Stores the sector-specific vertices used to draw the sector's tiles
 } _sector;
 
 extern _sector sectors[MAX_SECTORS+1];

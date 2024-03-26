@@ -720,6 +720,10 @@ void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _
 					you.wallNorm[X] = used_normal[X];
 					you.wallNorm[Y] = used_normal[Y];
 					you.wallNorm[Z] = used_normal[Z];
+					
+					you.wallPos[X] = possible_wall[X];
+					you.wallPos[Y] = possible_wall[Y];
+					you.wallPos[Z] = possible_wall[Z];
 				}
 			} else {
 				//This stuff is supposed to catch edge-face collision. Hm.
@@ -751,6 +755,10 @@ void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _
 					you.wallNorm[X] = used_normal[X];
 					you.wallNorm[Y] = used_normal[Y];
 					you.wallNorm[Z] = used_normal[Z];
+					
+					you.wallPos[X] = possible_wall[X];
+					you.wallPos[Y] = possible_wall[Y];
+					you.wallPos[Z] = possible_wall[Z];
 				}
 			} else {
 				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xp))

@@ -11,7 +11,6 @@
 #include "render.h"
 #include "tga.h"
 #include "physobjet.h"
-#include "hmap.h"
 #include "collision.h"
 #include "pcmstm.h"
 #include "menu.h"
@@ -19,8 +18,6 @@
 #include "gamespeed.h"
 //
 #include "dspm.h"
-//
-#include "height.h"
 
 #include "draw.h"
 
@@ -42,9 +39,6 @@ int scrn_z_fwd[3] = {0, 0, 0};
 
 // Mental note: Try Rotation-16 framebuffer and alternate screen coordinate from 0,0 and 1,1 every vblank
 // Should make mesh transparencies work better
-
-FIXED hmap_matrix_pos[XYZ] = {0, 0, 0};
-FIXED hmap_actual_pos[XYZ] = {0, 0, 0};
 
 //Note: global light is in order of BLUE, GREEN, RED. [BGR]
 int globalColorOffset;
@@ -251,8 +245,9 @@ void	obj_draw_queue(void)
 	
 	}
 	
-
-	for(int s = MAX_SPRITES; s >= 0; s--)
+	//Warning: Reverse-count loops must not start equal to the max count; this results in memory corruption.
+	//Ex: Array[63] has valid members 0-62.
+	for(int s = (MAX_SPRITES-1); s >= 0; s--)
 	{
 		if(sprWorkList[s].lifetime >= 0 || sprWorkList[s].type.info.drawOnce)
 		{
@@ -279,30 +274,12 @@ void	obj_draw_queue(void)
 		} else {
 			//Mark expired sprites as unused.
 			sprWorkList[s].type.info.alive = 0; 
+			sprWorkList[s].type.info.drawOnce = 0;
 		}
 	}
 	
+	
 }
-
- //Uses SGL to prepare the matrix for the map, so it doesn't mess up the matrix stack when the map draws
- //Be aware the location of this function is important:
- //The player's position/rotation cannot change from between when it runs and when the matrix is used.
-void	prep_map_mtx(void)
-{
-	slInitMatrix();
-	set_camera();
-	slPushMatrix();
-	{
-	//slTranslate((VIEW_OFFSET_X), (VIEW_OFFSET_Y), (VIEW_OFFSET_Z) );
-	slRotX((you.viewRot[X]));
-	slRotY((you.viewRot[Y]));
-	slTranslate(hmap_matrix_pos[X], you.pos[Y], hmap_matrix_pos[Z]);
-	slGetMatrix(hmap_mtx);
-	}
-	slPopMatrix();
-}
-
-	//volatile int times[8];
 
 void	object_draw(void)
 {
@@ -332,11 +309,7 @@ void	object_draw(void)
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
 	slGetMatrix(perspective_root);
-	if(drawModeSwitch == DRAW_MASTER)
-	{
-		player_draw(DRAW_SLAVE);
-		shadow_draw(DRAW_SLAVE);
-	}
+
 	//Adjustments are made on the Y to account for the height of the player (in first-person camera)
 	slTranslate(you.pos[X], you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16)), you.pos[Z]);
 	slGetMatrix(unit);
@@ -349,44 +322,6 @@ void	object_draw(void)
 	}
 	slPopMatrix();
 	
-}
-
-void	map_draw_prep(void)
-{
-	hmap_cluster();
-	
-	//Loads the DSP pepperbox
-	you.prevCellPos[X] = you.cellPos[X];
-	you.prevCellPos[Y] = you.cellPos[Y];
-	you.prevDispPos[X] = you.dispPos[X];
-	you.prevDispPos[Y] = you.dispPos[Y];
-	//View Distance Extention -- Makes turning view cause performance issue, beware?
-	you.cellPos[X] = (fxm((INV_CELL_SIZE), you.pos[X])>>16);
-	you.cellPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z])>>16);
-	int center_distance = (CELL_SIZE_INT * ((LCL_MAP_PLY>>1)-1))<<16;
-	int sineY = fxm(slSin(-you.viewRot[Y]), center_distance);
-	int sineX = fxm(slCos(-you.viewRot[Y]), center_distance);
-	you.dispPos[X] = (fxm((INV_CELL_SIZE), you.pos[X] +  sineY)>>16);
-	you.dispPos[Y] = (fxm((INV_CELL_SIZE), you.pos[Z] +  sineX)>>16);
-	//
-	hmap_matrix_pos[X] = (you.pos[X] + you.velocity[X]) - ((you.dispPos[X] * CELL_SIZE_INT)<<16);
-	hmap_matrix_pos[Z] = (you.pos[Z] + you.velocity[Z]) - ((you.dispPos[Y] * CELL_SIZE_INT)<<16);
-	
-	hmap_actual_pos[X] = hmap_matrix_pos[X] - (you.pos[X] + you.velocity[X]);
-	hmap_actual_pos[Y] = 0;
-	hmap_actual_pos[Z] = hmap_matrix_pos[Z] - (you.pos[Z] + you.velocity[Z]);
-	
-	load_hmap_prog();
-	run_hmap_prog();
-
-}
-
-void	map_draw(void)
-{	
-
-	while(dsp_noti_addr[0] == 0){}; //"DSP Wait"
-	update_hmap(hmap_mtx);
-
 }
 
 void	background_draw(void)
@@ -458,8 +393,6 @@ void	master_draw(void)
 
 	time_at_start = get_time_in_frame();
 
-	drawModeSwitch = (you.distanceToMapFloor < 768<<16) ? DRAW_MASTER : DRAW_SLAVE;
-
 	if(!you.inMenu)
 	{
 		
@@ -472,14 +405,8 @@ void	master_draw(void)
 	player_animation();
 
 	//
-	if(drawModeSwitch == DRAW_MASTER)
-	{
-	map_draw();
-	} else {
 	player_draw(DRAW_MASTER);
 	shadow_draw(DRAW_MASTER);
-	}
-	map_draw_prep();
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
 	interim_time = get_time_in_frame();
@@ -488,12 +415,10 @@ void	master_draw(void)
 	hud_menu();
 
 	//
-	
 		//No Touch Order -- Affects animations/mechanics
 		controls();
 		player_phys_affect();
 		player_collision_test_loop();
-		collide_with_heightmap(&pl_RBB, &you.fwd_world_faces, &you.time_axis);
 		//
 	extra_time = get_time_in_frame() - interim_time;
 	

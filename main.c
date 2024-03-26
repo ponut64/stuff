@@ -9,46 +9,59 @@
 
 jackie's birthday is july 1st
 
-Next Steps
+Sector-based engine has been implemented in its first steps.
 
-I will move to a sector-based engine.
-The sectors will be determined by the designer when making the levels. This is normal; Build works lke that.
-The sectors however are not extrapolated into polygons, they are literally the polygons of BUILD-type objects.
-The reason that this is simple enough to work is to be in the level you ought to be above a floor polygon,
-which indicates that you are in that sector.
-In any case, it is valid to simply check which sector plane is nearest to the player's center by a vertical projection.
-This will determine which sector the player actor is in, and also is used for all other actors.
-Then, the designer will not have to specify which sectors are adjacent to other sectors and I may not need portals.
-Instead, the game engine can check which sectors are adjacent to other sectors by the "adjacent floor" algorithm developed.
-The game engine will also be able to build a "InSector" list of planes which are to be drawn for this sector,
-rather than searching the mesh for valid sectors to draw. One or the other method may be valid.
-However, the "adjacent floor" algorithm can allow us to find which planes are adjacent to another sector.
+I now want to move on and optimize the number of planes put in each sector.
+What I want is to have a "First Pass Subdivision", where a polygon is subdivided by rules,
+but WITHOUT a UV coordinate respected to it; the polygons subdivided from the first are all "tiles" of the main polygon.
 
-In moving to a sector-based engine, it seems most appropriate for the entire level to be one giant mesh
-that is built in the same vector-space, with the same pntbl and pltbl.
-The polygons to draw are made from the current sector and two sectors adjacent,
-which can easily mean drawing the plane data in each sector's plane list.
-The sector thusly also needs a vertex list, because it needs to know which vertices to transform.
-It will be a lot of memory management to get this system built properly, but once built, it can enable very large worlds.
-Most importantly, it enables large worlds with an integrated method of controlling visibility from region to region.
+I have the first-pass of extra large plane subdivision.
 
-For collision, it is a little more involved.
-We are first using the collision system to try and find out which sector we're in.
-So we need to optimize that and use some assumptions.
-One idea is that once the sector for an actor is known, we can only collision test a limited number of sectors.
-Only when we don't know where something could be do we have to do a broad check to find out where it is.
+However, it's amounting to a pretty high vertex count.
+I should investigate some way to optimize it.
 
-Okay, so the next steps:
-1. Build sector lists - done
-a. Prove sector lists are valid & can be drawn - done
-b. prove sectors can be drawn alongside other objects / one another - done
-c. Find which sector player is in - done
-	-- I do actually need to re-write the player collision anyway.
-	Like, urgently need. But that'll be for per-sector stuff.
-b. Draw the sector the player is in (if no sector can be found, draw last sector) - done 
+I have decided: there is no way an FPS game is happening with 100% real-time subdivision.
+What I need to do is precalculate the subdivision on a sector-by-sector basis.
+In this way, the mesh loaded from RAM contains the plane data of the level, raw.
+The game engine then compiles that raw plane data into sectors and then subdivides the planes of the sector
+according to the number of subdivisions that it must receive.
+What I will try first is subdividing down to tiles only first, then if that works well, try subdividing all the way down.
+That will burn a lot of memory but I do have a lot of free LWRAM.
+This also can be packed efficiently; many tiles and polygons share normals and attributes.
 
+Well, what exactly does precalculating the subdivision save me?
+Basically I would be using the same process as currently, and THEN have to matrix transform the subdivisions.
+There would be a lot of set-up and duplicated work....
+One thing I don't do in the subdivision routine is eliminate duplicate vertices in the output;
+it's more work to do that than not.
+In case of precalculation, you have the time to invest into removing duplicates; that can reduce the workload.
 
-2. Mark sectors as adjacent to one another
+An Alternative Optimization:
+Portals.
+If you cannot see the portal that borders a particular sector, then you cannot see that sector;
+that sector should not be drawn if you aren't in it.
+This can help isolate the problem to the current sector, at least.
+Or: Limit the subdivisions for secondary adjacents? Do they even contribute that much; they can be pretty far...
+I just don't understand how so much subdivision is happening off-screen. That's the core issue. 
+Subdivision needs to stop when it's off-screen.
+
+I need to limit off-screen subdivision in a way that does not require transforming everything to screenspace.
+Well, regardless, one think I know will help is striking a better balance between subdivision<->plane size.
+Smaller planes means more points to sample for decimating stuff off-screen.
+As a practical matter, this is OK.
+In fact, given how badly large sample points for this can destroy the frame-rate, I might want to bias the tiles smaller.
+Hmm...
+Another option that will be necessary in the long-term is backface culling and screenspace decimation of entire sectors.
+I think I can achieve this by getting the radius of the sector (in each axis) and adding that to its center to form a box.
+What we can do next is determine on which side (X+/Y- etc) of the sector we are on and use the opposing face of the sector box.
+A screenspace transform of this single polygon can help accurately determine if the sector is or isn't on screen.
+
+when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
+I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
+
+I also need to implement point lights / dynamic lights back in.
+
+I also need to test \ implement actors in the sector system.
 
 
 i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
@@ -70,7 +83,6 @@ i would like to note that with my new knowledge of bitfields, so much code can b
 #include "render.h"
 #include "collision.h"
 #include "control.h"
-#include "hmap.h"
 #include "vdp2.h"
 #include "physobjet.h"
 #include "tga.h"
@@ -89,6 +101,7 @@ i would like to note that with my new knowledge of bitfields, so much code can b
 //
 //
 #include "dspm.h"
+#include <stdio.h>
 //
 // Game data //
 //Be very careful with uninitialized pointers. [In other words, INITIALIZE POINTERS!]
@@ -96,10 +109,7 @@ i would like to note that with my new knowledge of bitfields, so much code can b
 unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
 void * HWRAM_ldptr;
 void * HWRAM_hldptr;
-//
-
-//
-short * division_table;
+void * sectorPolygonStack;
 
 //short * sine_table;
 
@@ -108,6 +118,7 @@ POINT zPt = {0, 0, 0};
 extern Sint8 SynchConst; //SGL System Variable
 
 unsigned char * dirty_buf;
+unsigned char * dirtier_buf;
 void * currentAddress;
 
 volatile Uint32 * scuireg = (Uint32*)0x25FE00A4;
@@ -122,6 +133,41 @@ int flagIconTexno = 0;
 // Player data struct
 //////////////////////////////////////////////////////////////////////////////
 	_player you;
+
+void	p64MapRequest(short levelNo)
+{
+	Sint8 ldat_name[13];
+	char the_number[3] = {'0', '0', '0'};
+	//Why three?
+	//Strings need a terminating character.
+	//String "99" is actually binary #'9','9',0 (literal zero).
+	int num_char = sprintf(the_number, "%i", levelNo);
+	if(num_char == 1)
+	{
+		the_number[1] = the_number[0];
+		the_number[0] = '0';
+	}
+///Fill out the request.
+					
+ 	ldat_name[0] = 'L';
+	ldat_name[1] = 'E';
+	ldat_name[2] = 'V';
+	ldat_name[3] = 'E';
+	ldat_name[4] = 'L';
+	ldat_name[5] = the_number[0];
+	ldat_name[6] = the_number[1];
+	ldat_name[7] = '.';
+	ldat_name[8] = 'L';
+	ldat_name[9] = 'D';
+	ldat_name[10] = 'S';
+	
+	set_music_track = NO_STAGE_MUSIC; //Clear stage music, preparing to change music of course.
+	new_file_request(ldat_name, dirty_buf, process_binary_ldata, 0);
+	ldata_ready = false;
+
+
+}
+
 
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
@@ -199,25 +245,6 @@ void	load_test(void)
 	WRAP_NewTexture((Sint8*)"PAR.TGA", (void*)dirty_buf);
 	goldImgTexno = numTex;
 	WRAP_NewTexture((Sint8*)"GOLD.TGA", (void*)dirty_buf);
-	
-	/////////////////////////////////////
-	// Floor / heightmap textures
-	/////////////////////////////////////
-	map_texture_table_numbers[0] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[0], (void*)dirty_buf, 0);
-	map_texture_table_numbers[1] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[1], (void*)dirty_buf, 0);
-	map_texture_table_numbers[2] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[2], (void*)dirty_buf, 0);
-	map_texture_table_numbers[3] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[3], (void*)dirty_buf, 0);
-	map_texture_table_numbers[4] = numTex;
-	WRAP_NewTable((Sint8*)&map_tex_tbl_names[4], (void*)dirty_buf, 0);
-	map_end_of_original_textures = numTex;
-	map_tex_amt = (numTex - map_texture_table_numbers[0]);
-	make_4way_combined_textures(map_texture_table_numbers[0], map_end_of_original_textures, 0);
-	map_last_combined_texno = numTex;
-	make_dithered_textures_for_map(0);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TGUN.GVP",			HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
@@ -227,9 +254,11 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_SECTORED, &entities[0]);
 	HWRAM_ldptr = buildAdjacentSectorList(12, HWRAM_ldptr);
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		HWRAM_ldptr = preprocess_planes_to_tiles_for_sector(&sectors[i], HWRAM_ldptr);
+	}
 	HWRAM_hldptr = HWRAM_ldptr;
-	
-
 
 	init_pathing_system();
 	p64MapRequest(0);
@@ -245,7 +274,6 @@ void	game_frame(void)
 	// nbg_sprintf(2, 12, "rt(%i)", apd1.rta);
 
 	slCashPurge();
-	prep_map_mtx();
 	
 	update_gamespeed();
 	maintRand();
@@ -308,64 +336,7 @@ int		validation_escape(void)
 void	hardware_validation(void)
 {
 	load_drv(ADX_MASTER_1536); 
-	load_hmap_prog();
 	sdrv_vblank_rq();
-	//update_gamespeed();
-	//int start_time = get_time_in_frame();
-	run_hmap_prog(); //Dry-run the DSP to get it to flag done
-	//
- 	//while(dsp_noti_addr[0] == 0){
-	//	if(validation_escape()) break;
-	//}; //"DSP Wait"
-	//
-	//int time_at_end = get_time_in_frame();
-	//
-	//while(m68k_com->start != 0)
-	//{
-	//	if(validation_escape()) break;
-	//}; //68K Wait
-	//
-	//int time_at_sound = get_time_in_frame();
-	//
-	//
-	//
-	//if((time_at_end - start_time) < 111411)
-	//{
-	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	//set_tga_to_nbg1_palette((void*)dirty_buf);
-	//	while(1)
-	//	{
-	//		slPrintFX(time_at_end - start_time, slLocate(4, 6));
-	//		slPrintFX(time_at_sound - start_time, slLocate(4, 8));
-	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x801F);
-	//		nbg_sprintf(5, 10, "There is something wrong with");
-	//		nbg_sprintf(5, 11, "your Saturn video game system.");
-	//		nbg_sprintf(5, 12, "You can contact our associates");
-	//		nbg_sprintf(5, 13, "Jane Mednafen or John Bizhawk");
-	//		nbg_sprintf(5, 14, "for the necessary repairs.");
-	//		if(validation_escape()) break;
-	//	}
-	//}
-	//
-	//if(((time_at_sound - start_time) > (50<<16)))
-	//{
-	//get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	//set_tga_to_nbg1_palette((void*)dirty_buf);
-	//	while(1)
-	//	{
-	//		slBack1ColSet((void*)back_scrn_colr_addr, 0x9B26);
-	//		nbg_sprintf(1, 10, "Listen, I know you are using an emulator.");
-	//		nbg_sprintf(1, 11, "That, or a PAL / modded Saturn.");
-	//		nbg_sprintf(1, 12, "My point is Saturn emulation is flawed.");
-	//		nbg_sprintf(1, 13, "Mednafen/Bizhawk are pretty good.");
-	//		nbg_sprintf(1, 14, "Kronos/SSF are almost good.");
-	//		nbg_sprintf(1, 15, "But please be aware:");
-	//		nbg_sprintf(1, 16, "It's not the ideal experience.");
-	//		nbg_sprintf(1, 17, "Press START to continue!");
-	//		if(is_key_pressed(DIGI_START)) break;
-	//	}
-	//}
-	// nbg_clear_text();
 }
 
 int	main(void)
@@ -383,7 +354,6 @@ int	main(void)
 	init_render_area(90 * 182);
 	initPhys();
 	init_box_handling();
-	init_heightmap();
 	//The one interrupt that SGL has you register
 	slIntFunction(my_vlank);
 	//

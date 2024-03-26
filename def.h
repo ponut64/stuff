@@ -282,37 +282,18 @@ extern int cutTex;
 extern POINT zPt;
 extern POINT alwaysLow;
 //Lives in main.c
-extern short * division_table;
-//extern short * sine_table;
 extern void * HWRAM_ldptr;
 extern void * HWRAM_hldptr;
 //System
+extern void * sectorPolygonStack;
 extern unsigned char * dirty_buf;
+extern unsigned char * dirtier_buf;
 extern void * currentAddress;
 extern volatile Uint32 * scuireg;
 
-
+void	p64MapRequest(short levelNo);
 
 	/*
-	
-	TEXTURE ID MATRIX:
-	1	- full size
-	2	- full y, 1/2 x
-	3	- full y, 1/4 x
-	4	- full y, 1/8 x
-	5	- 1/2 y, full x
-	6	- 1/2 y, 1/2 x
-	7	- 1/2 y, 1/4 x
-	8	- 1/2 y, 1/8 x
-	9	- 1/4 y, full x
-	10	- 1/4 y, 1/2 x
-	11	- 1/4 y, 1/4 x
-	12	- 1/4 y, 1/8 x
-	13	- 1/8 y, full x
-	14	- 1/8 y, 1/2 x
-	15	- 1/8 y, 1/4 x
-	16	- 1/8 y, 1/8 x
-	This needs to move to a texture coordinate system...
 	
 	SUBDIVISION TABLES
 	+ rule:

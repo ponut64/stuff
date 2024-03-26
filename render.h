@@ -27,12 +27,12 @@
 #define VRAM_TEXTURE_BASE (0xA000) //Matches jo engine specification
 #define VDP1_VRAM (0x25C00000)
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
-#define INTERNAL_MAX_POLY 2600 //Slave only 1700
-#define INTERNAL_MAX_VERTS 2800 //Slave only 2800
+#define INTERNAL_MAX_POLY (2048)
+#define INTERNAL_MAX_VERTS (2048)
 #define MAX_SSH2_SENT_POLYS (750) //SpriteBuf size limitation 
 #define MAX_MSH2_SENT_POLYS (550) //SpriteBuf size limitation 
-#define MAX_SSH2_ENTITY_VERTICES (500)
-#define MAX_MSH2_ENTITY_VERTICES (500) //This is coming from def.h for hmap.c, but it needs to be at least this much.
+#define MAX_SSH2_ENTITY_VERTICES (1024) //These are probably oversized, but they need to be at least this big for the subdivision.
+#define MAX_MSH2_ENTITY_VERTICES (1024)
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.
 #define MAX_SIMULTANEOUS_SPRITE_ANIMATIONS (64)
 // Base PMOD: Bit 12 is HSS
@@ -284,6 +284,7 @@ extern _spr_type_data sprite_prep;
 extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 
 //subrender.c
+void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
 void	plane_rendering_with_subdivision(entity_t * ent);
 void	draw_sector(entity_t * ent, _sector * sct);
 //2drender.c

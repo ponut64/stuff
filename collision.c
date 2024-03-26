@@ -883,9 +883,9 @@ numBoxChecks++;
 }
 
 
-int		broad_phase_sector_finder(int * pos, entity_t * ent, int * mesh_position)
+int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_sector)
 {
-	
+	entity_t * ent = test_sector->ent;
 	//If the entity is not loaded, cease the test.
 	if(ent->file_done != true) return INVALID_SECTOR;
 	//This is the initial phase of determining which sector something is in.
@@ -904,7 +904,7 @@ int		broad_phase_sector_finder(int * pos, entity_t * ent, int * mesh_position)
 	static int pHit[3] = {0, 0, 0};
 	static int hitPolyID = 0;
 
-	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, &sectors[you.curSector]);
+	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, test_sector);
 		
 	if(!abovePolygon) return INVALID_SECTOR;
 	
@@ -933,14 +933,18 @@ void	player_collision_test_loop(void)
 		//Check if object # is a collision-approved type
 		if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_SECTORED)
 		{
-			you.curSector = broad_phase_sector_finder(you.wpos, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos);
-			if(you.curSector != INVALID_SECTOR) you.prevSector = you.curSector;
+			//if(you.curSector == INVALID_SECTOR)
+			//{
+				you.curSector = broad_phase_sector_finder(you.wpos, RBBs[i].pos, &sectors[you.curSector]);
+				if(you.curSector != INVALID_SECTOR) you.prevSector = you.curSector;
+			//}
 			//This is also the moment where we should build the adjacent / visible sector list.
 			//Use the current sector's adjacent list as the draw list.
 			_sector * sct = &sectors[you.prevSector];
 			nearSectorCt = sct->nbAdjacent;
 			for(unsigned int s = 0; s < sct->nbAdjacent; s++)
 			{
+				
 				nearSectorList[s] = sct->adtbl[s];
 				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->adtbl[s]], &you.box, &you.realTimeAxis);
 
@@ -987,6 +991,8 @@ void	player_collision_test_loop(void)
 	
 	nbg_sprintf(2, 4, "nearSectorCt:(%i)", nearSectorCt);
 	nbg_sprintf(2, 5, "curSector:(%i)", you.curSector);
+	nbg_sprintf(2, 6, "sctTile:(%i)", sectors[you.curSector].nbTile);
+	nbg_sprintf(2, 7, "scttVert:(%i)", sectors[you.curSector].nbTileVert);
 	
 	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbAdjacent);
 	//for(int i = 0; i < sectors[you.curSector].nbAdjacent; i++)

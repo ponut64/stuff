@@ -10,7 +10,6 @@
 #include "collision.h"
 #include "draw.h"
 #include "mymath.h"
-#include "hmap.h"
 #include "particle.h"
 #include "sound.h"
 
@@ -36,9 +35,7 @@ I mean, this *was* an essential part of what made tribes fun to play. Limited ca
 void reset_player(void)
 {
 	you.mass = 250<<16;
-	
-	hmap_matrix_pos[X] = 0;
-	hmap_matrix_pos[Z] = 0;
+
 	you.hitMap = false;
 	you.hitSurface = false;
 	you.hitWall = false;
@@ -799,133 +796,4 @@ void	player_phys_affect(void)
 	pl_RBB.status[1] = 'C';	
 	pl_RBB.status[2] = 'L';	
 }
-
-void	collide_with_heightmap(_boundBox * sbox, _lineTable * moverCFs, _lineTable * moverTimeAxis)
-{
-
-POINT below_player = {you.pos[X], you.pos[Y] - (1<<16), you.pos[Z]};
-int len_A;
-int len_B;
-
-static _pquad nySmp;
-
-static POINT nyNearTriCF1 = {0, 0, 0};
-static VECTOR nyTriNorm1 = {0, 0, 0};
-static POINT nyNearTriCF2 = {0, 0, 0};
-static VECTOR nyTriNorm2 = {0, 0, 0};
-static FIXED nyToTri1 = 0;
-static FIXED nyToTri2 = 0;
-
-generate_cell_from_position(moverCFs->yp1, &nySmp);
-
-
-//
-// stuff2(nySmp.verts[0], 0);
-// stuff2(nySmp.verts[1], 0);
-// stuff2(nySmp.verts[2], 0);
-// stuff2(nySmp.verts[3], 0);
-//
-
-divide_cell_return_cfnorms(&nySmp, nyNearTriCF1, nyTriNorm1, nyNearTriCF2, nyTriNorm2);
-
-//Why add, and not subtract? Because coordinate systems
-you.distanceToMapFloor = sbox->pos[Y] + ((nySmp.verts[0][Y] + nySmp.verts[1][Y] + nySmp.verts[2][Y] + nySmp.verts[3][Y])>>2);
-
-FIXED ny_Dist1 =  slSquartFX(fxm(nySmp.verts[1][X] + moverCFs->yp1[X], nySmp.verts[1][X] + moverCFs->yp1[X]) + fxm(nySmp.verts[1][Z] + moverCFs->yp1[Z], nySmp.verts[1][Z] + moverCFs->yp1[Z]));
-FIXED ny_Dist2 =  slSquartFX(fxm(nySmp.verts[3][X] + moverCFs->yp1[X], nySmp.verts[3][X] + moverCFs->yp1[X]) + fxm(nySmp.verts[3][Z] + moverCFs->yp1[Z], nySmp.verts[3][Z] + moverCFs->yp1[Z]));
-
-nyToTri1 = realpt_to_plane(moverCFs->yp1, nyTriNorm1, nyNearTriCF1);
-nyToTri2 = realpt_to_plane(moverCFs->yp1, nyTriNorm2, nyNearTriCF2);
-//Collision detection is using heightmap data
-
-if(nyToTri2 >= 8192 && ny_Dist1 >= ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
-{
-	you.hitMap = true;
-	
-	if(!you.setJet)
-	{
-		you.hitSurface = true;
-		
-		line_hit_plane_here(moverCFs->yp1, moverCFs->yp0, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, lowPoint);
-		you.floorNorm[X] = -nyTriNorm2[X];
-		you.floorNorm[Y] = -nyTriNorm2[Y];
-		you.floorNorm[Z] = -nyTriNorm2[Z];
-		standing_surface_alignment(you.floorNorm);
-	
-		you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]) - moverTimeAxis->yp1[X]);
-		you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]) - moverTimeAxis->yp1[Y]);
-		you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]) - moverTimeAxis->yp1[Z]);
-		you.shadowPos[X] = lowPoint[X];
-		you.shadowPos[Y] = lowPoint[Y];
-		you.shadowPos[Z] = lowPoint[Z];
-	} else {
-		you.wallNorm[X] = -nyTriNorm1[X];
-		you.wallNorm[Y] = -nyTriNorm1[Y];
-		you.wallNorm[Z] = -nyTriNorm1[Z];
-		you.wallPos[X] = -lowPoint[X];
-		you.wallPos[Y] = -lowPoint[Y];
-		you.wallPos[Z] = -lowPoint[Z];
-		
-		you.hitWall = true;
-	}
-	
-	pl_RBB.collisionID = BOXID_MAP;
-} else if(nyToTri1 >= 8192 && ny_Dist1 < ny_Dist2 && (pl_RBB.collisionID == BOXID_VOID || you.hitSurface == false))
-{
-	you.hitMap = true;
-	
-	if(!you.setJet)
-	{
-		you.hitSurface = true;
-		
-		line_hit_plane_here(moverCFs->yp1, moverCFs->yp0, nyNearTriCF1, nyTriNorm1, alwaysLow, 1<<16, lowPoint);
-		you.floorNorm[X] = -nyTriNorm1[X];
-		you.floorNorm[Y] = -nyTriNorm1[Y];
-		you.floorNorm[Z] = -nyTriNorm1[Z];
-		standing_surface_alignment(you.floorNorm);
-	
-		you.floorPos[X] = ((lowPoint[X]) - (sbox->Yneg[X]) - moverTimeAxis->yp1[X]);
-		you.floorPos[Y] = ((lowPoint[Y]) - (sbox->Yneg[Y]) - moverTimeAxis->yp1[Y]);
-		you.floorPos[Z] = ((lowPoint[Z]) - (sbox->Yneg[Z]) - moverTimeAxis->yp1[Z]);
-		you.shadowPos[X] = lowPoint[X];
-		you.shadowPos[Y] = lowPoint[Y];
-		you.shadowPos[Z] = lowPoint[Z];
-	} else {
-		you.wallNorm[X] = -nyTriNorm1[X];
-		you.wallNorm[Y] = -nyTriNorm1[Y];
-		you.wallNorm[Z] = -nyTriNorm1[Z];
-		you.wallPos[X] = -lowPoint[X];
-		you.wallPos[Y] = -lowPoint[Y];
-		you.wallPos[Z] = -lowPoint[Z];
-		
-		you.hitWall = true;
-	}
-	
-	pl_RBB.collisionID = BOXID_MAP;
-} else {
-	//Find Floor on Map, if not above an object
-			if(you.aboveObject != true)
-			{
-	len_A = unfix_length(you.pos, nyNearTriCF1);
-	len_B = unfix_length(you.pos, nyNearTriCF2);
-		if(len_A < len_B)
-		{
-		line_hit_plane_here(you.pos, below_player, nyNearTriCF1, nyTriNorm1, alwaysLow, 1<<16, you.shadowPos);
-		} else {
-		line_hit_plane_here(you.pos, below_player, nyNearTriCF2, nyTriNorm2, alwaysLow, 1<<16, you.shadowPos);
-		}
-		
-			//slPrintFX(you.shadowPos[X], slLocate(9, 7));
-			//slPrintFX(you.shadowPos[Y], slLocate(19, 7));
-			//slPrintFX(you.shadowPos[Z], slLocate(29, 7));
-			}
-	//
-	you.hitMap = false;
-}
-
-	// nbg_sprintf(0, 11, "(%i)", cellCenterPos[0]);
-	// nbg_sprintf(5, 11, "(%i)", cellCenterPos[1]);	
-
-}
-
 

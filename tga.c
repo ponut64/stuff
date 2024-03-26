@@ -5,7 +5,6 @@
 #include "def.h"
 #include "render.h" 
 #include "vdp2.h"
-#include "hmap.h"
 #include "mymath.h"
 
 #include "tga.h"
@@ -657,8 +656,8 @@ void	uv_tile(void * source_texture_data, int base_x, int base_y)
 			img_min[X] = 0;
 			img_min[Y] = 0;
 
-			select_and_cut_from_64xH(img_sz, img_min, dirty_buf, main_map);
-			generate_downscale_texture(ssx, ssy, tex_x, tex_y, main_map);
+			select_and_cut_from_64xH(img_sz, img_min, dirty_buf, dirtier_buf);
+			generate_downscale_texture(ssx, ssy, tex_x, tex_y, dirtier_buf);
 			int tgt = (dsy * 4) + dsx;
 			p_srca[tgt] = pcoTexDefs[numTex-1].SRCA;
 			p_size[tgt] = pcoTexDefs[numTex-1].SIZE;
