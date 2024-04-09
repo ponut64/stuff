@@ -41,20 +41,39 @@ Portals.
 If you cannot see the portal that borders a particular sector, then you cannot see that sector;
 that sector should not be drawn if you aren't in it.
 This can help isolate the problem to the current sector, at least.
-Or: Limit the subdivisions for secondary adjacents? Do they even contribute that much; they can be pretty far...
-I just don't understand how so much subdivision is happening off-screen. That's the core issue. 
-Subdivision needs to stop when it's off-screen.
 
-I need to limit off-screen subdivision in a way that does not require transforming everything to screenspace.
-Well, regardless, one think I know will help is striking a better balance between subdivision<->plane size.
-Smaller planes means more points to sample for decimating stuff off-screen.
-As a practical matter, this is OK.
-In fact, given how badly large sample points for this can destroy the frame-rate, I might want to bias the tiles smaller.
-Hmm...
-Another option that will be necessary in the long-term is backface culling and screenspace decimation of entire sectors.
-I think I can achieve this by getting the radius of the sector (in each axis) and adding that to its center to form a box.
-What we can do next is determine on which side (X+/Y- etc) of the sector we are on and use the opposing face of the sector box.
-A screenspace transform of this single polygon can help accurately determine if the sector is or isn't on screen.
+Primary issue:
+Tile subdivision creates a tremendous amount of duplicate vertices.
+
+I need to precalculate a table, per plane, which tags vertices created by each subdivision.
+uhhh.... how do i do that
+what follows from each plane is an ID for each tile of the plane
+from each subdivision of each tile, an ID must be created.
+in this situation, every possible polygon has a unique ID
+How will I structure that?
+Some rules that it must adhere to:
+1. The IDs must be unique and consistent across the entire plane
+2. The IDs must identify which IDs are created when that ID is subdivided, according to its rule.
+Tag list is based on the tile ID and the subdivisions proceeding from the tile.
+If +++, the tag list is:
+tile+1
+	tile+2
+		tile+3
+		tile+4
+		tile+5
+		tile+6
+	tile+7
+		tile+8
+		tile+9
+		..
+
+
+
+And then, in the subdivision system, I need to check if that tag is already alive in a fixed-size list
+before creating a vertex.
+
+so, I need to check... exactly how many duplicates are there within a plane?
+i'm so close to solving it but I would like to know...
 
 when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
 I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
@@ -254,11 +273,21 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_SECTORED, &entities[0]);
 	HWRAM_ldptr = buildAdjacentSectorList(12, HWRAM_ldptr);
+	
+	int ptr_begin = (unsigned int)HWRAM_ldptr;
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
 		HWRAM_ldptr = preprocess_planes_to_tiles_for_sector(&sectors[i], HWRAM_ldptr);
 	}
+	ptr_begin -= (unsigned int)HWRAM_ldptr;
+	
+	nbg_sprintf(5, 10, "sz(%i)", ptr_begin);
 	HWRAM_hldptr = HWRAM_ldptr;
+
+	while(is_key_up(DIGI_START))
+	{
+		
+	};
 
 	init_pathing_system();
 	p64MapRequest(0);

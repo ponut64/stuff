@@ -14,7 +14,7 @@
 #define MAP_V_SCALE (17) //Map data is shifted left by this amount
 //////////////////////////////////
 #define	HIMEM	(100679680)
-#define HWRAM_MODEL_DATA_HEAP_SIZE (300 * 1024)
+#define HWRAM_MODEL_DATA_HEAP_SIZE (150 * 1024)
 //////////////////////////////////
 #define UNCACHE (0x20000000)
 #define VDP2_RAMBASE (0x25E00000)

@@ -991,8 +991,7 @@ void	player_collision_test_loop(void)
 	
 	nbg_sprintf(2, 4, "nearSectorCt:(%i)", nearSectorCt);
 	nbg_sprintf(2, 5, "curSector:(%i)", you.curSector);
-	nbg_sprintf(2, 6, "sctTile:(%i)", sectors[you.curSector].nbTile);
-	nbg_sprintf(2, 7, "scttVert:(%i)", sectors[you.curSector].nbTileVert);
+	nbg_sprintf(2, 6, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
 	
 	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbAdjacent);
 	//for(int i = 0; i < sectors[you.curSector].nbAdjacent; i++)

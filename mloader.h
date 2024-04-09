@@ -122,9 +122,10 @@ typedef struct
 	entity_t * ent;
 	unsigned short nbPolygon; //# of polygons (planes) in the sector (for collision)
 	unsigned short nbPoint; //# of points in the sector (for collision)
-	unsigned short nbTile;	//# of tiles (polygons to draw) in the sector
 	unsigned short nbTileVert; //# of vertices for the tiles (to draw) in the sector
 	unsigned short nbAdjacent; //# of sectors which are adjacent to this sector
+	unsigned short * nbTile; //# of tiles (polygons to draw) in each plane of sector, of size <nbPolygon>
+	unsigned short * plStart; //Starting tile # in each plane of sector, of size <nbPolygon>
 	unsigned short * pltbl;  //Stores the polygon IDs from <entity> which are in this sector; of size <nbPolygon>
 	unsigned short * pntbl; //Stores the vertex IDs from <entity> which are in this sector; of size <nbPoint>
 	unsigned short * adtbl; //Stores the sector IDs from <entitiy> which are adjacent to this sector; of size <nbAdjacent>

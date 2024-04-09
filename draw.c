@@ -447,26 +447,54 @@ void	master_draw(void)
 	time_at_end = get_time_in_frame();
 	//Debug stuff. Important!
 	
+	
+	static int rolling_avg_msh2 = 0;
+	static int rolling_avg_ssh2 = 0;
+	static int avg_samples = 0;
+	
 	if(viewInfoTxt == 1)
 	{
-	nbg_sprintf_decimal(32, 7, time_at_start);
-	nbg_sprintf_decimal(32, 8, time_of_master_draw);
-	nbg_sprintf_decimal(32, 9, time_of_object_management);
-	nbg_sprintf_decimal(32, 10, extra_time);
-	nbg_sprintf_decimal(32, 11, time_at_end);
-	nbg_sprintf(25, 6, "MSH2:");
-	nbg_sprintf(25, 7, "Strt:");
-	nbg_sprintf(25, 8, "Map:");
-	nbg_sprintf(25, 9, "Objs:");
-	nbg_sprintf(25, 10, "Ext:");
-	nbg_sprintf(25, 11, "End:");
+	nbg_sprintf_decimal(34, 7, time_at_start);
+	nbg_sprintf_decimal(34, 8, time_of_master_draw);
+	nbg_sprintf_decimal(34, 9, time_of_object_management);
+	nbg_sprintf_decimal(34, 10, extra_time);
+	nbg_sprintf_decimal(34, 11, time_at_end);
+	nbg_sprintf(29, 6, "MSH2:");
+	nbg_sprintf(29, 7, "Strt:");
+	nbg_sprintf(29, 8, "Map:");
+	nbg_sprintf(29, 9, "Objs:");
+	nbg_sprintf(29, 10, "Ext:");
+	nbg_sprintf(29, 11, "End:");
 	
 	while(!*timeComm){
 		if(get_time_in_frame() >= (50<<16)) break;
 	};
 	time_at_ssh2_end = get_time_in_frame();
-	nbg_sprintf_decimal(32, 12, time_at_ssh2_end);
-	nbg_sprintf(25, 12, "SSH2:");
+	nbg_sprintf_decimal(34, 12, time_at_ssh2_end);
+	nbg_sprintf(29, 12, "SSH2:");
+	
+	if(!you.inMenu)
+	{
+		avg_samples++;
+		int inversion = fxdiv(1<<16, avg_samples<<16);
+		rolling_avg_msh2 -= fxm(rolling_avg_msh2, inversion);
+		rolling_avg_msh2 += fxm(time_at_end, inversion);
+		rolling_avg_ssh2 -= fxm(rolling_avg_ssh2, inversion);
+		rolling_avg_ssh2 += fxm(time_at_ssh2_end, inversion);
+		
+		nbg_sprintf_decimal(34, 14, rolling_avg_msh2);
+		nbg_sprintf_decimal(34, 15, rolling_avg_ssh2);
+		nbg_sprintf(29, 14, "AVGS:");
+		nbg_sprintf(29, 15, "AVGM:");
+	}
+	
+	} else {
+		if(!you.inMenu)
+		{
+		rolling_avg_msh2 = time_at_end;
+		rolling_avg_ssh2 = time_at_ssh2_end;
+		avg_samples = 0;
+		}
 	}
 }
 
