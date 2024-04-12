@@ -484,8 +484,8 @@ void	master_draw(void)
 		
 		nbg_sprintf_decimal(34, 14, rolling_avg_msh2);
 		nbg_sprintf_decimal(34, 15, rolling_avg_ssh2);
-		nbg_sprintf(29, 14, "AVGS:");
-		nbg_sprintf(29, 15, "AVGM:");
+		nbg_sprintf(29, 14, "CPU0:");
+		nbg_sprintf(29, 15, "CPU1:");
 	}
 	
 	} else {

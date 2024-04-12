@@ -46,12 +46,14 @@ inline void		maintRand(void)
 }
 
 //this particular arrangement of C coaxes GCC into outputting dmuls.l followed by sts mach, sts macl, and xtrct
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wlong-long"
 inline int        fxm(int d1, int d2) //Fixed Point Multiplication
 {
     unsigned long long c =  (unsigned long long)d1 * (unsigned long long)d2;
     return c>>16;
 }
-
+#pragma GCC diagnostic pop
 
 
 inline FIXED	fxdot(FIXED * ptA, FIXED * ptB) //Fixed-point dot product
