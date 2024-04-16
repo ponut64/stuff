@@ -11,70 +11,6 @@ jackie's birthday is july 1st
 
 Sector-based engine has been implemented in its first steps.
 
-I now want to move on and optimize the number of planes put in each sector.
-What I want is to have a "First Pass Subdivision", where a polygon is subdivided by rules,
-but WITHOUT a UV coordinate respected to it; the polygons subdivided from the first are all "tiles" of the main polygon.
-
-I have the first-pass of extra large plane subdivision.
-
-However, it's amounting to a pretty high vertex count.
-I should investigate some way to optimize it.
-
-I have decided: there is no way an FPS game is happening with 100% real-time subdivision.
-What I need to do is precalculate the subdivision on a sector-by-sector basis.
-In this way, the mesh loaded from RAM contains the plane data of the level, raw.
-The game engine then compiles that raw plane data into sectors and then subdivides the planes of the sector
-according to the number of subdivisions that it must receive.
-What I will try first is subdividing down to tiles only first, then if that works well, try subdividing all the way down.
-That will burn a lot of memory but I do have a lot of free LWRAM.
-This also can be packed efficiently; many tiles and polygons share normals and attributes.
-
-Well, what exactly does precalculating the subdivision save me?
-Basically I would be using the same process as currently, and THEN have to matrix transform the subdivisions.
-There would be a lot of set-up and duplicated work....
-One thing I don't do in the subdivision routine is eliminate duplicate vertices in the output;
-it's more work to do that than not.
-In case of precalculation, you have the time to invest into removing duplicates; that can reduce the workload.
-
-An Alternative Optimization:
-Portals.
-If you cannot see the portal that borders a particular sector, then you cannot see that sector;
-that sector should not be drawn if you aren't in it.
-This can help isolate the problem to the current sector, at least.
-
-Primary issue:
-Tile subdivision creates a tremendous amount of duplicate vertices.
-
-I need to precalculate a table, per plane, which tags vertices created by each subdivision.
-uhhh.... how do i do that
-what follows from each plane is an ID for each tile of the plane
-from each subdivision of each tile, an ID must be created.
-in this situation, every possible polygon has a unique ID
-How will I structure that?
-Some rules that it must adhere to:
-1. The IDs must be unique and consistent across the entire plane
-2. The IDs must identify which IDs are created when that ID is subdivided, according to its rule.
-Tag list is based on the tile ID and the subdivisions proceeding from the tile.
-If +++, the tag list is:
-tile+1
-	tile+2
-		tile+3
-		tile+4
-		tile+5
-		tile+6
-	tile+7
-		tile+8
-		tile+9
-		..
-
-
-
-And then, in the subdivision system, I need to check if that tag is already alive in a fixed-size list
-before creating a vertex.
-
-so, I need to check... exactly how many duplicates are there within a plane?
-i'm so close to solving it but I would like to know...
-
 when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
 I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
 
@@ -128,9 +64,6 @@ i would like to note that with my new knowledge of bitfields, so much code can b
 unsigned char hwram_model_data[HWRAM_MODEL_DATA_HEAP_SIZE];
 void * HWRAM_ldptr;
 void * HWRAM_hldptr;
-void * sectorPolygonStack;
-
-//short * sine_table;
 
 //A zero vector to be used when you want zero.
 POINT zPt = {0, 0, 0};
@@ -138,6 +71,9 @@ extern Sint8 SynchConst; //SGL System Variable
 
 unsigned char * dirty_buf;
 unsigned char * dirtier_buf;
+
+int * zTable = (int *)LWRAM;
+
 void * currentAddress;
 
 volatile Uint32 * scuireg = (Uint32*)0x25FE00A4;
@@ -378,9 +314,9 @@ int	main(void)
 	//
 	//Loading Area
 	//
-	init_lwram();
 	init_vdp2(0xE726);
 	init_render_area(90 * 182);
+	init_lwram();
 	initPhys();
 	init_box_handling();
 	//The one interrupt that SGL has you register

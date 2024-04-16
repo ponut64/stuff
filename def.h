@@ -284,8 +284,8 @@ extern POINT alwaysLow;
 //Lives in main.c
 extern void * HWRAM_ldptr;
 extern void * HWRAM_hldptr;
+extern int * zTable;
 //System
-extern void * sectorPolygonStack;
 extern unsigned char * dirty_buf;
 extern unsigned char * dirtier_buf;
 extern void * currentAddress;

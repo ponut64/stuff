@@ -210,7 +210,6 @@ Information about the scale and subdivision rules of the plane.
 
 POINT		sub_transform_buffer[MAX_SSH2_ENTITY_VERTICES];
 vertex_t	screen_transform_buffer[MAX_SSH2_ENTITY_VERTICES];
-unsigned char is_already_screenspace[MAX_SSH2_ENTITY_VERTICES];
 //Realistically, this could go up to 4^6. That's a lot of RAM.
 //Even this being set at 1024 is quite a lot of RAM used.
 // 12kb pt buffer + 8kb poly buffer + 2kb tex buffer // 22kb
@@ -227,11 +226,11 @@ short	texture_rules[4]		= {16, 16, 16, 0};
 int		z_rules[4]				= {512<<16, 256<<16, 128<<16, 0};
 
 typedef struct {
-	FIXED * ptv[4]; //ptv[0] is byte 0, otv[1] is byte 4, ptv[2] is byte 8, ptv[3] is byte 12
-	short poly_a; // 	byte 16
-	short poly_b; // 	byte 18
-	short poly_c; // 	byte 20
-	short poly_d; // 	byte 22
+	FIXED * ptv[4]; //ptv[0] is byte 0, ptv[1] is byte 4, ptv[2] is byte 8, ptv[3] is byte 12
+	short * poly_a; // 	byte 16
+	short * poly_b; // 	byte 20
+	short * poly_c; // 	byte 24
+	short * poly_d; // 	byte 28
 } _subdivision_settings;
 	
 void	subdivide_xy(_subdivision_settings * set)
@@ -255,58 +254,63 @@ void	subdivide_xy(_subdivision_settings * set)
 	3D			2D | 3C			2C
 	*/
 	// Initial Conditions
-	subdivided_polygons[set->poly_a][0] = subdivided_polygons[set->poly_a][0];
-	subdivided_polygons[set->poly_b][1] = subdivided_polygons[set->poly_a][1];
-	subdivided_polygons[set->poly_d][2] = subdivided_polygons[set->poly_a][2];
-	subdivided_polygons[set->poly_c][3] = subdivided_polygons[set->poly_a][3];
+	//set->poly_a[0] = set->poly_a[0];
+	set->poly_b[1] = set->poly_a[1];
+	set->poly_c[3] = set->poly_a[3];
+	set->poly_d[2] = set->poly_a[2];
 
 	// Center
 	// 
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[0][X] + set->ptv[1][X] + 
+	int * live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[0][X] + set->ptv[1][X] + 
 										set->ptv[2][X] + set->ptv[3][X])>>2;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[0][Y] + set->ptv[1][Y] + 
+	live_vt[Y] = (set->ptv[0][Y] + set->ptv[1][Y] + 
 										set->ptv[2][Y] + set->ptv[3][Y])>>2;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[0][Z] + set->ptv[1][Z] + 
+	live_vt[Z] = (set->ptv[0][Z] + set->ptv[1][Z] + 
 										set->ptv[2][Z] + set->ptv[3][Z])>>2;
 	
-
-	subdivided_polygons[set->poly_a][2] = sub_vert_cnt;
-	subdivided_polygons[set->poly_b][3] = sub_vert_cnt;
-	subdivided_polygons[set->poly_d][0] = sub_vert_cnt;
-	subdivided_polygons[set->poly_c][1] = sub_vert_cnt;
+	set->poly_a[2] = sub_vert_cnt;
+	set->poly_b[3] = sub_vert_cnt;
+	set->poly_c[1] = sub_vert_cnt;
+	set->poly_d[0] = sub_vert_cnt;
 
 	sub_vert_cnt++;
 	// 0 -> 1
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[0][X] + set->ptv[1][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[0][Y] + set->ptv[1][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[0][Z] + set->ptv[1][Z])>>1;
+	//Hm, in the process of making center, we do add 0+1. That could be an optimization -- if it were not for the shifts.
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[0][X] + set->ptv[1][X])>>1;
+	live_vt[Y] = (set->ptv[0][Y] + set->ptv[1][Y])>>1;
+	live_vt[Z] = (set->ptv[0][Z] + set->ptv[1][Z])>>1;
 	
-	subdivided_polygons[set->poly_a][1] = sub_vert_cnt;
-	subdivided_polygons[set->poly_b][0] = sub_vert_cnt;
+	set->poly_a[1] = sub_vert_cnt;
+	set->poly_b[0] = sub_vert_cnt;
 	sub_vert_cnt++;
 	// 1 -> 2
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[2][X] + set->ptv[1][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[2][Y] + set->ptv[1][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[2][Z] + set->ptv[1][Z])>>1;
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[2][X] + set->ptv[1][X])>>1;
+	live_vt[Y] = (set->ptv[2][Y] + set->ptv[1][Y])>>1;
+	live_vt[Z] = (set->ptv[2][Z] + set->ptv[1][Z])>>1;
 	
-	subdivided_polygons[set->poly_b][2] = sub_vert_cnt;
-	subdivided_polygons[set->poly_d][1] = sub_vert_cnt;
+	set->poly_b[2] = sub_vert_cnt;
+	set->poly_d[1] = sub_vert_cnt;
 	sub_vert_cnt++;
 	// 3 -> 2
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[2][X] + set->ptv[3][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[2][Y] + set->ptv[3][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[2][Z] + set->ptv[3][Z])>>1;
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[2][X] + set->ptv[3][X])>>1;
+	live_vt[Y] = (set->ptv[2][Y] + set->ptv[3][Y])>>1;
+	live_vt[Z] = (set->ptv[2][Z] + set->ptv[3][Z])>>1;
 	
-	subdivided_polygons[set->poly_d][3] = sub_vert_cnt;
-	subdivided_polygons[set->poly_c][2] = sub_vert_cnt;
+	set->poly_c[2] = sub_vert_cnt;
+	set->poly_d[3] = sub_vert_cnt;
 	sub_vert_cnt++;
 	// 3 -> 0
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[0][X] + set->ptv[3][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[0][Y] + set->ptv[3][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[0][Z] + set->ptv[3][Z])>>1;
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[0][X] + set->ptv[3][X])>>1;
+	live_vt[Y] = (set->ptv[0][Y] + set->ptv[3][Y])>>1;
+	live_vt[Z] = (set->ptv[0][Z] + set->ptv[3][Z])>>1;
 	
-	subdivided_polygons[set->poly_a][3] = sub_vert_cnt;
-	subdivided_polygons[set->poly_c][0] = sub_vert_cnt;
+	set->poly_a[3] = sub_vert_cnt;
+	set->poly_c[0] = sub_vert_cnt;
 	sub_vert_cnt++;
 
 	sub_poly_cnt += 3; //Only add 3, as there was already 1 polygon. It was split into four.
@@ -329,104 +333,33 @@ void	subdivide_y(_subdivision_settings * set)
 					B
 	3B							2B
 	*/
-	// mov @(R0, set);
-	// R0 being a byte offset, and "set" being an absolute address
-	// subdivided_polygons is 8 bytes per entry, so <<3
-	// subdivided_points is 16 bytes per entry
-	// BENCHMARKED: This IS faster, but it is micro-faster.
-	asm(
-		"mov.w @(16,%[set]),r0;" //poly_a's index to r0
-		"shll2 r0;"
-		"shll r0;"				//performs poly_a index, <<3
-		"mov %[sub_ply],r3;"	//move subdivided_polygons pointer to r3
-		"add r0,r3;"			//add poly_a's address offset in sub_ply to sub_ply to get pointer to sub_ply[poly_a] in r3
-		"mov.w @(18,%[set]),r0;" //poly_b's index to r0
-		"shll2 r0;"		
-		"shll r0;"
-		"mov %[sub_ply],r4;"
-		"add r0,r4;"			//repeat of the above set for poly_b; poly_b pointer in r4
-		"mov.w @(4,r3),r0;" //Copy poly_a[2] to r0 (the syntax here doesn't line up with the manual)
-		"mov.w r0,@(4,r4);" //Copy r0 to poly_b[2] (GCC expects the literal byte offset, and converts it)
-		"mov.w @(6,r3),r0;" //Copy poly_a[3] to r0 (the manual states the offset is x1/x2/x4 for mov.b/w/l)
-		"mov.w r0,@(6,r4);" //Copy r0 to poly_b[3]
-		"mov.w @%[pnt_cnt],r0;" //Copy sub_vert_cnt to r0
-		"mov.w r0,@(4,r3);" //Copy sub_vert_cnt in r0 to poly_a[2]
-		"mov.w r0,@(2,r4);" //copy sub_vert_cnt in r0 to poly_b[1]
-		"mov r0, r1;"		//copy sub_vert_cnt in r0 to r1
-		"shll2 r1;"
-		"shll2 r1;"			// sub_vert_cnt<<2 in r1
-		"add %[sub_pnt],r1;" //makes pointer to sub_pnt[sub_vert_cnt] in r1
-		"mov.l @(4,%[set]),r2;" //copy set->ptv[1] to r2
-		"mov.l @r2,r5;"			
-		"mov.l @(4,r2),r6;"
-		"mov.l @(8,r2),r7;"		//copy set->ptv[1][xyz] to r5,r6,r7
-		"mov.l @(8,%[set]),r2;" //copy set->ptv[2] to r2
-		"mov.l @r2,r8;"		//set->ptv[2][X] in r8
-		"add r8,r5;"
-		"shar r5;"			//(set->ptv[1][X] + set->ptv[2][X]) >> 1
-		"mov.l @(4,r2),r8;"//set->ptv[2][Y] in r8
-		"add r8,r6;"       
-		"shar r6;"         //(set->ptv[1][Y] + set->ptv[2][Y]) >> 1
-		"mov.l @(8,r2),r8;"//set->ptv[2][Z] in r8
-		"add r8,r7;"       
-		"shar r7;"         //(set->ptv[1][Z] + set->ptv[2][Z]) >> 1
-		"mov.l r5,@r1;"
-		"mov.l r6,@(4,r1);"
-		"mov.l r7,@(8,r1);" //copies (ptv[1][xyz]+ptv[2][xyz])>>1 to sub_pnt[sub_vert_cnt][xyz]
-		"add #1,r0;" //add 1 to sub_vert_cnt in r0
-		"mov.w r0,@(6,r3);" //poly_a[3] = sub_vert_cnt+1
-		"mov.w r0,@r4;"	//poly_b[3] = sub_vert_cnt+1
-		"add #16,r1;" //add 16 to r1 to reach the next array entry
-		"mov.l @(12,%[set]),r2;" //move set->ptv[3] to r2
-		"mov.l @r2,r5;"
-		"mov.l @(4,r2),r6;"
-		"mov.l @(8,r2),r7;"	//move set->ptv[3][xyz] to r5,r7,r7
-		"mov.l @%[set],r2;" //move set->ptv[0] to r2
-		"mov.l @r2,r8;"		//set->ptv[0][X] in r8
-		"add r8,r5;"
-		"shar r5;"			//(set->ptv[0][X] + set->ptv[3][X]) >> 1
-		"mov.l @(4,r2),r8;"//set->ptv[0][Y] in r8
-		"add r8,r6;"       
-		"shar r6;"         //(set->ptv[0][Y] + set->ptv[3][Y]) >> 1
-		"mov.l @(8,r2),r8;"//set->ptv[0][Z] in r8
-		"add r8,r7;"       
-		"shar r7;"         //(set->ptv[0][Z] + set->ptv[3][Z]) >> 1
-		"mov.l r5,@r1;"
-		"mov.l r6,@(4,r1);"
-		"mov.l r7,@(8,r1);" //copies (ptv[0][xyz]+ptv[3][xyz])>>1 to sub_pnt[tgt_pnt+1][xyz]
-		"add #1,r0;"			//add 1 to sub_vert_cnt in r0
-		"mov.w r0,@%[pnt_cnt];"	//move sub_vert_cnt+2 to sub_vert_cnt
-		"mov.w @%[ply_cnt],r0;" //move sub_poly_cnt to r0
-		"add #1,r0;"			//add 1 to sub_poly_cnt
-		"mov.w r0,@%[ply_cnt];" //move sub_poly_cnt+1 to sub_poly_cnt
-		: 																//OUT
-		:	[set] "p" (set), [sub_ply] "p" (subdivided_polygons), [sub_pnt] "p" (subdivided_points), [pnt_cnt] "p" (&sub_vert_cnt), [ply_cnt] "p" (&sub_poly_cnt)	//IN
-		:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"		//CLOBBERS
-	);
-	// Initial Conditions
-	//subdivided_polygons[set->poly_a][0] = subdivided_polygons[set->poly_a][0];
-	//subdivided_polygons[set->poly_a][1] = subdivided_polygons[set->poly_a][1];
-	//subdivided_polygons[set->poly_b][2] = subdivided_polygons[set->poly_a][2];
-	//subdivided_polygons[set->poly_b][3] = subdivided_polygons[set->poly_a][3];
-	//
-	//// 1 -> 2
-	//subdivided_points[sub_vert_cnt][X] = (set->ptv[2][X] + set->ptv[1][X])>>1;
-	//subdivided_points[sub_vert_cnt][Y] = (set->ptv[2][Y] + set->ptv[1][Y])>>1;
-	//subdivided_points[sub_vert_cnt][Z] = (set->ptv[2][Z] + set->ptv[1][Z])>>1;
-	//
-	//subdivided_polygons[set->poly_a][2] = sub_vert_cnt;
-	//subdivided_polygons[set->poly_b][1] = sub_vert_cnt;
-	//sub_vert_cnt++;
-	//// 3 -> 0
-	//subdivided_points[sub_vert_cnt][X] = (set->ptv[0][X] + set->ptv[3][X])>>1;
-	//subdivided_points[sub_vert_cnt][Y] = (set->ptv[0][Y] + set->ptv[3][Y])>>1;
-	//subdivided_points[sub_vert_cnt][Z] = (set->ptv[0][Z] + set->ptv[3][Z])>>1;
-	//
-	//subdivided_polygons[set->poly_a][3] = sub_vert_cnt;
-	//subdivided_polygons[set->poly_b][0] = sub_vert_cnt;
-	//sub_vert_cnt++;
-	//	
-	//sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
+
+	 //Initial Conditions
+	//set->poly_a[0] = set->poly_a[0];
+	//set->poly_a[1] = set->poly_a[1];
+	set->poly_b[2] = set->poly_a[2];
+	set->poly_b[3] = set->poly_a[3];
+	
+	// 1 -> 2
+	int * live_vt = &subdivided_points[sub_vert_cnt][0];
+	 live_vt[X] = (set->ptv[2][X] + set->ptv[1][X])>>1;
+	 live_vt[Y] = (set->ptv[2][Y] + set->ptv[1][Y])>>1;
+	 live_vt[Z] = (set->ptv[2][Z] + set->ptv[1][Z])>>1;
+	
+	 set->poly_a[2] = sub_vert_cnt;
+	 set->poly_b[1] = sub_vert_cnt;
+	 sub_vert_cnt++;
+	// 3 -> 0
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	 live_vt[X] = (set->ptv[0][X] + set->ptv[3][X])>>1;
+	 live_vt[Y] = (set->ptv[0][Y] + set->ptv[3][Y])>>1;
+	 live_vt[Z] = (set->ptv[0][Z] + set->ptv[3][Z])>>1;
+	
+	 set->poly_a[3] = sub_vert_cnt;
+	 set->poly_b[0] = sub_vert_cnt;
+	 sub_vert_cnt++;
+	
+	 sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
 	
 }
 
@@ -446,28 +379,30 @@ void	subdivide_x(_subdivision_settings * set)
 	3A			 2A | 3B			2B
 	*/
 	// Initial Conditions
-	//subdivided_polygons[set->poly_a][0] = subdivided_polygons[set->poly_a][0];
-	//subdivided_polygons[set->poly_a][3] = subdivided_polygons[set->poly_a][3];
-	subdivided_polygons[set->poly_b][1] = subdivided_polygons[set->poly_a][1];
-	subdivided_polygons[set->poly_b][2] = subdivided_polygons[set->poly_a][2];
+	//set->poly_a[0] = set->poly_a[0];
+	//set->poly_a[3] = set->poly_a[3];
+	set->poly_b[1] = set->poly_a[1];
+	set->poly_b[2] = set->poly_a[2];
 		
 	// 0 -> 1
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[0][X] + set->ptv[1][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[0][Y] + set->ptv[1][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[0][Z] + set->ptv[1][Z])>>1;
+	int * live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[0][X] + set->ptv[1][X])>>1;
+	live_vt[Y] = (set->ptv[0][Y] + set->ptv[1][Y])>>1;
+	live_vt[Z] = (set->ptv[0][Z] + set->ptv[1][Z])>>1;
 	
-	subdivided_polygons[set->poly_a][1] = sub_vert_cnt;
-	subdivided_polygons[set->poly_b][0] = sub_vert_cnt;
+	set->poly_a[1] = sub_vert_cnt;
+	set->poly_b[0] = sub_vert_cnt;
 	sub_vert_cnt++;
 	// 3 -> 2
-	subdivided_points[sub_vert_cnt][X] = (set->ptv[2][X] + set->ptv[3][X])>>1;
-	subdivided_points[sub_vert_cnt][Y] = (set->ptv[2][Y] + set->ptv[3][Y])>>1;
-	subdivided_points[sub_vert_cnt][Z] = (set->ptv[2][Z] + set->ptv[3][Z])>>1;
+	live_vt = &subdivided_points[sub_vert_cnt][0];
+	live_vt[X] = (set->ptv[2][X] + set->ptv[3][X])>>1;
+	live_vt[Y] = (set->ptv[2][Y] + set->ptv[3][Y])>>1;
+	live_vt[Z] = (set->ptv[2][Z] + set->ptv[3][Z])>>1;
 	
-	subdivided_polygons[set->poly_a][2] = sub_vert_cnt;
-	subdivided_polygons[set->poly_b][3] = sub_vert_cnt;
+	set->poly_a[2] = sub_vert_cnt;
+	set->poly_b[3] = sub_vert_cnt;
 	sub_vert_cnt++;
-
+	
 	sub_poly_cnt += 1; //Only add 1, as there was already 1 polygon. It was split in two.
 	
 }
@@ -506,10 +441,10 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	sub.ptv[1] = ptv[1];
 	sub.ptv[2] = ptv[2];
 	sub.ptv[3] = ptv[3];
-	sub.poly_a = semaphore_poly_a;
-	sub.poly_b = semaphore_poly_b;
-	sub.poly_c = semaphore_poly_c;
-	sub.poly_d = semaphore_poly_d;
+	sub.poly_a = &subdivided_polygons[semaphore_poly_a][0];
+	sub.poly_b = &subdivided_polygons[semaphore_poly_b][0];
+	sub.poly_c = &subdivided_polygons[semaphore_poly_c][0];
+	sub.poly_d = &subdivided_polygons[semaphore_poly_d][0];
 	
 	///////////////////////////////////////////
 	//	Recursively subdivide the polygon.
@@ -755,21 +690,20 @@ void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress)
 
 }
 
-void	subdivide_tile(short start_point, short overwritten_polygon, short num_divisions, short total_divisions, short rootTex)
+void	subdivide_tile(short overwritten_polygon, short num_divisions, short total_divisions, short rootTex)
 {
-	//if((start_point+4) >= MAX_IN_PLANE) return;
-	//if((overwritten_polygon+4) >= MAX_IN_PLANE) return;
 	//"Load" the original points (code shortening operation)
-	FIXED * ptv[4];
-	static char new_rule;
+	int new_rule;
 	static _subdivision_settings sub;
-
-	ptv[0] = &subdivided_points[subdivided_polygons[overwritten_polygon][0]][X];
-	ptv[1] = &subdivided_points[subdivided_polygons[overwritten_polygon][1]][X];
-	ptv[2] = &subdivided_points[subdivided_polygons[overwritten_polygon][2]][X];
-	ptv[3] = &subdivided_points[subdivided_polygons[overwritten_polygon][3]][X];
 	
-	if(ptv[0][Z] < 0 && ptv[1][Z] < 0 && ptv[2][Z] < 0 && ptv[3][Z] < 0) return;
+	short * semaphore_poly_a = &subdivided_polygons[overwritten_polygon][0];
+
+	sub.ptv[0] = &subdivided_points[semaphore_poly_a[0]][X];
+	sub.ptv[1] = &subdivided_points[semaphore_poly_a[1]][X];
+	sub.ptv[2] = &subdivided_points[semaphore_poly_a[2]][X];
+	sub.ptv[3] = &subdivided_points[semaphore_poly_a[3]][X];
+	
+	if(sub.ptv[0][Z] < 0 && sub.ptv[1][Z] < 0 && sub.ptv[2][Z] < 0 && sub.ptv[3][Z] < 0) return;
 	new_rule = tile_rules[total_divisions];
 	rootTex = rootTex-1;
 	used_textures[overwritten_polygon] = rootTex;
@@ -777,7 +711,7 @@ void	subdivide_tile(short start_point, short overwritten_polygon, short num_divi
 	// Quick check: If we are subdividing a polygon above the z level, stop further subdivision.
 	// This is mostly useful in cases where a large polygon is being recursively subdivided and parts of it may be far away.
 	//////////////////////////////////////////////////////////////////
-	int polygon_minimum = JO_MIN(JO_MIN(ptv[0][Z], ptv[1][Z]),  JO_MIN(ptv[2][Z], ptv[3][Z]));
+	int polygon_minimum = JO_MIN(JO_MIN(sub.ptv[0][Z], sub.ptv[1][Z]),  JO_MIN(sub.ptv[2][Z], sub.ptv[3][Z]));
 	///////////
 	// Don't try and add an exception to let things draw closer to the screen,
 	// even as untextured polygons.
@@ -791,60 +725,316 @@ void	subdivide_tile(short start_point, short overwritten_polygon, short num_divi
 	//Because "sub" is a structure of localized memory common to all subdivided planes,
 	//we have to store this data separately from the subdivision parameters to prevent data corruption on recursive calls.
 	//This definitely blows some stack space.
-	short semaphore_poly_a = overwritten_polygon;
+
 	short semaphore_poly_b = sub_poly_cnt;
 	short semaphore_poly_c = sub_poly_cnt+1;
 	short semaphore_poly_d = sub_poly_cnt+2;
 	
-	sub.ptv[0] = ptv[0];
-	sub.ptv[1] = ptv[1];
-	sub.ptv[2] = ptv[2];
-	sub.ptv[3] = ptv[3];
 	sub.poly_a = semaphore_poly_a;
-	sub.poly_b = semaphore_poly_b;
-	sub.poly_c = semaphore_poly_c;
-	sub.poly_d = semaphore_poly_d;
+	sub.poly_b = &subdivided_polygons[semaphore_poly_b][0];
+	sub.poly_c = &subdivided_polygons[semaphore_poly_c][0];
+	sub.poly_d = &subdivided_polygons[semaphore_poly_d][0];
 	
+	// mov @(R0, set);
+	// R0 being a byte offset, and "set" being an absolute address
+	// subdivided_polygons is 8 bytes per entry, so <<3
+	// subdivided_points is 16 bytes per entry
+	// BENCHMARKED: The assembly IS faster, but it is micro-faster; like 1 or 2% faster; maybe not faster (or slower).
+	// (to be clear I seriously don't expect to do better than the compiler at such simple tasks)
+	// Some more potential optimizations is to get rid of the middleman struct "sub"
 	switch(new_rule)
 	{
 	case(SUBDIVIDE_XY):
-	subdivide_xy(&sub);
-	///////////////////////////////////////////
-	//	Recursively subdivide the polygon.
-	//	Check the maximum Z of every new polygon.
-	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-	///////////////////////////////////////////
-	subdivide_tile(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-	subdivide_tile(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-	subdivide_tile(sub_vert_cnt, semaphore_poly_c, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][2]);
-	subdivide_tile(sub_vert_cnt, semaphore_poly_d, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][3]);
-		
+	// subdivide_xy(&sub);
+	asm(
+		"mov.l @(16,%[set]),r2;" //Move &poly_a to r2
+		"mov.l @(20,%[set]),r3;" //Move &poly_b to r3
+		"mov.l @(24,%[set]),r4;" //Move &poly_c to r4
+		"mov.l @(28,%[set]),r5;" //Move &poly_d to r5
+		"mov.w @(2,r2),r0;"
+		"mov.w r0,@(2,r3);"		//Copy poly_a[1] to poly_b[1]
+		"mov.w @(4,r2),r0;"
+		"mov.w r0,@(4,r5);"		//Copy poly_a[2] to poly_c[2]
+		"mov.w @(6,r2),r0;"
+		"mov.w r0,@(6,r4);"		//Copy poly_a[3] to poly_d[3]
+		"mov.w @%[pnt_cnt],r0;" //Copy sub_vert_cnt to r0
+		"mov r0,r1;"
+		"shll2 r1;"
+		"shll2 r1;"				//Perform sub_vert_cnt<<2 in r1
+		"add %[sub_pnt],r1;"	//Add subdivided_points to r1 to get address of: subdivided_points[sub_vert_cnt] in r1
+		"mov.l @%[set],r6;"		//Move ptv[0] to r6
+		"mov.l @r6,r7;"
+		"mov.l @(4,r6),r8;"
+		"mov.l @(8,r6),r9;"		//Move ptv[0][xyz] to r7,r8,r9
+		"mov.l @(4,%[set]),r6;"	//Move ptv[1] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"			//ptv[0][X] + ptv[1][X]
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"			//ptv[0][Y] + ptv[1][Y]
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[0][Z] + ptv[1][Z] -- this code will repeat for ptv[2] and ptv[3] to be added.
+		"mov.l @(8,%[set]),r6;" //Move ptv[2] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"
+		"mov.l @(12,%[set]),r6;" //Move ptv[3] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[0,1,2,3] have been added together
+		"shar r7;"
+		"shar r7;"
+		"shar r8;"
+		"shar r8;"
+		"shar r9;"
+		"shar r9;"				//Shifts each of xyz right by two (arithmetic shift)
+		"mov.l r7,@r1;"
+		"mov.l r8,@(4,r1);"
+		"mov.l r9,@(8,r1);"		//Set this point to subdivided_points[sub_vert_cnt]
+		"add #16,r1;"			//Increment the pointer in subdivided_points
+		"mov.w r0,@(4,r2);"		//Set poly_a[2] = sub_vert_cnt (in r0)
+		"mov.w r0,@(6,r3);"		//Set poly_b[3] = sub_vert_cnt
+		"mov.w r0,@(2,r4);"		//Set poly_c[1] = sub_vert_cnt
+		"mov.w r0,@r5;"			//Set poly_d[0] = sub_vert_cnt
+		"add #1,r0;"				//End calculating new vertex, add 1 to vertex count
+		"mov.l @%[set],r6;"		//Move ptv[0] to r6 (for (ptv[0]+ptv[1])>>1
+		"mov.l @r6,r7;"
+		"mov.l @(4,r6),r8;"
+		"mov.l @(8,r6),r9;"		//Move ptv[0][xyz] to r7,r8,r9
+		"mov.l @(4,%[set]),r6;"	//Move ptv[1] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"			//ptv[0][X] + ptv[1][X]
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"			//ptv[0][Y] + ptv[1][Y]
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[0][Z] + ptv[1][Z] -- this code segment is only ptv[0]+ptv[1].
+		"shar r7;"
+		"shar r8;"
+		"shar r9;"
+		"mov.l r7,@r1;"
+		"mov.l r8,@(4,r1);"
+		"mov.l r9,@(8,r1);"		//Set this point to subdivided_points[sub_vert_cnt]
+		"add #16,r1;"			//Increment the pointer in subdivided_points
+		"mov.w r0,@(2,r2);"		//Set poly_a[1] = sub_vert_cnt (in r0)
+		"mov.w r0,@r3;"			//Set poly_b[0] = sub_vert_cnt
+		"add #1,r0;"				//End calculating new vertex, add 1 to vertex count
+		"mov.l @(4,%[set]),r6;"	//Move ptv[1] to r6 (for (ptv[2]+ptv[1])>>1
+		"mov.l @r6,r7;"
+		"mov.l @(4,r6),r8;"
+		"mov.l @(8,r6),r9;"		//Move ptv[1][xyz] to r7,r8,r9
+		"mov.l @(8,%[set]),r6;"	//Move ptv[2] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"			//ptv[2][X] + ptv[1][X]
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"			//ptv[2][Y] + ptv[1][Y]
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[2][Z] + ptv[1][Z] -- this code segment is only ptv[0]+ptv[1].
+		"shar r7;"
+		"shar r8;"
+		"shar r9;"
+		"mov.l r7,@r1;"
+		"mov.l r8,@(4,r1);"
+		"mov.l r9,@(8,r1);"		//Set this point to subdivided_points[sub_vert_cnt]
+		"add #16,r1;"			//Increment the pointer in subdivided_points
+		"mov.w r0,@(4,r3);"		//Set poly_b[2] = sub_vert_cnt (in r0)
+		"mov.w r0,@(2,r5);"		//Set poly_d[1] = sub_vert_cnt
+		"add #1,r0;"				//End calculating new vertex, add 1 to vertex count
+		"mov.l @(8,%[set]),r6;"	//Move ptv[2] to r6 (for (ptv[2]+ptv[3])>>1
+		"mov.l @r6,r7;"
+		"mov.l @(4,r6),r8;"
+		"mov.l @(8,r6),r9;"		//Move ptv[3][xyz] to r7,r8,r9
+		"mov.l @(12,%[set]),r6;"	//Move ptv[3] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"			//ptv[2][X] + ptv[3][X]
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"			//ptv[2][Y] + ptv[3][Y]
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[2][Z] + ptv[3][Z] -- this code segment is only ptv[0]+ptv[1].
+		"shar r7;"
+		"shar r8;"
+		"shar r9;"
+		"mov.l r7,@r1;"
+		"mov.l r8,@(4,r1);"
+		"mov.l r9,@(8,r1);"		//Set this point to subdivided_points[sub_vert_cnt]
+		"add #16,r1;"			//Increment the pointer in subdivided_points
+		"mov.w r0,@(4,r4);"		//Set poly_c[2] = sub_vert_cnt (in r0)
+		"mov.w r0,@(6,r5);"		//Set poly_d[3] = sub_vert_cnt
+		"add #1,r0;"				//End calculating new vertex, add 1 to vertex count
+		"mov.l @%[set],r6;"		//Move ptv[0] to r6 (for (ptv[0]+ptv[3])>>1
+		"mov.l @r6,r7;"
+		"mov.l @(4,r6),r8;"
+		"mov.l @(8,r6),r9;"		//Move ptv[3][xyz] to r7,r8,r9
+		"mov.l @(12,%[set]),r6;"	//Move ptv[3] to r6
+		"mov.l @r6,r10;"
+		"add r10,r7;"			//ptv[0][X] + ptv[3][X]
+		"mov.l @(4,r6),r10;"
+		"add r10,r8;"			//ptv[0][Y] + ptv[3][Y]
+		"mov.l @(8,r6),r10;"
+		"add r10,r9;"			//ptv[0][Z] + ptv[3][Z] -- this code segment is only ptv[0]+ptv[1].
+		"shar r7;"
+		"shar r8;"
+		"shar r9;"
+		"mov.l r7,@r1;"
+		"mov.l r8,@(4,r1);"
+		"mov.l r9,@(8,r1);"		//Set this point to subdivided_points[sub_vert_cnt]
+		"add #16,r1;"			//Increment the pointer in subdivided_points
+		"mov.w r0,@(6,r2);"		//Set poly_a[3] = sub_vert_cnt (in r0)
+		"mov.w r0,@r4;"			//Set poly_c[0] = sub_vert_cnt
+		"add #1,r0;"				//End calculating new vertex, add 1 to vertex count
+		"mov.w r0,@%[pnt_cnt];" //Move the new sub_vert_cnt (in r0) to the address of sub_vert_cnt
+		"mov.w @%[ply_cnt],r0;"	//Move ply_cnt to r0
+		"add #3,r0;"			//We added three polygons in this process; increase the polygon count by 3.
+		"mov.w r0,@%[ply_cnt];"
+		: 																//OUT
+		:	[set] "p" (&sub), [sub_pnt] "p" (subdivided_points), [pnt_cnt] "p" (&sub_vert_cnt), [ply_cnt] "p" (&sub_poly_cnt)	//IN
+		:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "r9", "r10"		//CLOBBERS
+	);
 	break;
 	case(SUBDIVIDE_Y):
-	subdivide_y(&sub);
-	///////////////////////////////////////////
-	//	Recursively subdivide the polygon.
-	//	Check the maximum Z of every new polygon.
-	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-	///////////////////////////////////////////
-	subdivide_tile(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-	subdivide_tile(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-
+	// subdivide_y(&sub);
+	asm(
+		"mov.l @(16,%[set]),r3;" //poly_a's pointer to r3
+		"mov.l @(20,%[set]),r4;" //poly_b's pointer to r4
+		"mov.w @(4,r3),r0;" //Copy poly_a[2] to r0 (the syntax here doesn't line up with the manual)
+		"mov.w r0,@(4,r4);" //Copy r0 to poly_b[2] (GCC expects the literal byte offset, and converts it)
+		"mov.w @(6,r3),r0;" //Copy poly_a[3] to r0 (the manual states the offset is x1/x2/x4 for mov.b/w/l)
+		"mov.w r0,@(6,r4);" //Copy r0 to poly_b[3]
+		"mov.w @%[pnt_cnt],r0;" //Copy sub_vert_cnt to r0
+		"mov.w r0,@(4,r3);" //Copy sub_vert_cnt in r0 to poly_a[2]
+		"mov.w r0,@(2,r4);" //copy sub_vert_cnt in r0 to poly_b[1]
+		"mov r0, r1;"		//copy sub_vert_cnt in r0 to r1
+		"shll2 r1;"
+		"shll2 r1;"			// sub_vert_cnt<<2 in r1
+		"add %[sub_pnt],r1;" //makes pointer to sub_pnt[sub_vert_cnt] in r1
+		"mov.l @(4,%[set]),r2;" //copy set->ptv[1] to r2
+		"mov.l @r2,r5;"			
+		"mov.l @(4,r2),r6;"
+		"mov.l @(8,r2),r7;"		//copy set->ptv[1][xyz] to r5,r6,r7
+		"mov.l @(8,%[set]),r2;" //copy set->ptv[2] to r2
+		"mov.l @r2,r8;"		//set->ptv[2][X] in r8
+		"add r8,r5;"
+		"shar r5;"			//(set->ptv[1][X] + set->ptv[2][X]) >> 1
+		"mov.l @(4,r2),r8;"//set->ptv[2][Y] in r8
+		"add r8,r6;"       
+		"shar r6;"         //(set->ptv[1][Y] + set->ptv[2][Y]) >> 1
+		"mov.l @(8,r2),r8;"//set->ptv[2][Z] in r8
+		"add r8,r7;"       
+		"shar r7;"         //(set->ptv[1][Z] + set->ptv[2][Z]) >> 1
+		"mov.l r5,@r1;"
+		"mov.l r6,@(4,r1);"
+		"mov.l r7,@(8,r1);" //copies (ptv[1][xyz]+ptv[2][xyz])>>1 to sub_pnt[sub_vert_cnt][xyz]
+		"add #1,r0;" //add 1 to sub_vert_cnt in r0
+		"mov.w r0,@(6,r3);" //poly_a[3] = sub_vert_cnt+1
+		"mov.w r0,@r4;"	//poly_b[0] = sub_vert_cnt+1
+		"add #16,r1;" //add 16 to r1 to reach the next array entry
+		"mov.l @(12,%[set]),r2;" //move set->ptv[3] to r2
+		"mov.l @r2,r5;"
+		"mov.l @(4,r2),r6;"
+		"mov.l @(8,r2),r7;"	//move set->ptv[3][xyz] to r5,r7,r7
+		"mov.l @%[set],r2;" //move set->ptv[0] to r2
+		"mov.l @r2,r8;"		//set->ptv[0][X] in r8
+		"add r8,r5;"
+		"shar r5;"			//(set->ptv[0][X] + set->ptv[3][X]) >> 1
+		"mov.l @(4,r2),r8;"//set->ptv[0][Y] in r8
+		"add r8,r6;"       
+		"shar r6;"         //(set->ptv[0][Y] + set->ptv[3][Y]) >> 1
+		"mov.l @(8,r2),r8;"//set->ptv[0][Z] in r8
+		"add r8,r7;"       
+		"shar r7;"         //(set->ptv[0][Z] + set->ptv[3][Z]) >> 1
+		"mov.l r5,@r1;"
+		"mov.l r6,@(4,r1);"
+		"mov.l r7,@(8,r1);" //copies (ptv[0][xyz]+ptv[3][xyz])>>1 to sub_pnt[tgt_pnt+1][xyz]
+		"add #1,r0;"			//add 1 to sub_vert_cnt in r0
+		"mov.w r0,@%[pnt_cnt];"	//move sub_vert_cnt+2 to sub_vert_cnt
+		"mov.w @%[ply_cnt],r0;" //move sub_poly_cnt to r0
+		"add #1,r0;"			//add 1 to sub_poly_cnt
+		"mov.w r0,@%[ply_cnt];" //move sub_poly_cnt+1 to sub_poly_cnt
+		: 																//OUT
+		:	[set] "p" (&sub), [sub_pnt] "p" (subdivided_points), [pnt_cnt] "p" (&sub_vert_cnt), [ply_cnt] "p" (&sub_poly_cnt)	//IN
+		:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"		//CLOBBERS
+	);
 	break;
 	case(SUBDIVIDE_X):
-	subdivide_x(&sub);
-	///////////////////////////////////////////
-	//	Recursively subdivide the polygon.
-	//	Check the maximum Z of every new polygon.
-	// 	If the maximum Z is less than zero, it's not on screen. No point in subdividing it any further.
-	///////////////////////////////////////////
-	subdivide_tile(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
-	subdivide_tile(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
-
+	// subdivide_x(&sub);
+	asm(
+		"mov.l @(16,%[set]),r3;" //poly_a's pointer to r3
+		"mov.l @(20,%[set]),r4;" //poly_b's pointer to r4
+		"mov.w @(2,r3),r0;" //Copy poly_a[1] to r0 (the syntax here doesn't line up with the manual)
+		"mov.w r0,@(2,r4);" //Copy r0 to poly_b[1] (GCC expects the literal byte offset, and converts it)
+		"mov.w @(4,r3),r0;" //Copy poly_a[2] to r0 (the manual states the offset is x1/x2/x4 for mov.b/w/l)
+		"mov.w r0,@(4,r4);" //Copy r0 to poly_b[2]
+		"mov.w @%[pnt_cnt],r0;" //Copy sub_vert_cnt to r0
+		"mov.w r0,@(2,r3);" //Copy sub_vert_cnt in r0 to poly_a[1]
+		"mov.w r0,@r4;" //copy sub_vert_cnt in r0 to poly_b[0]
+		"mov r0, r1;"		//copy sub_vert_cnt in r0 to r1
+		"shll2 r1;"
+		"shll2 r1;"			// sub_vert_cnt<<2 in r1
+		"add %[sub_pnt],r1;" //makes pointer to sub_pnt[sub_vert_cnt] in r1
+		"mov.l @(4,%[set]),r2;" //copy set->ptv[1] to r2
+		"mov.l @r2,r5;"			
+		"mov.l @(4,r2),r6;"
+		"mov.l @(8,r2),r7;"		//copy set->ptv[1][xyz] to r5,r6,r7
+		"mov.l @%[set],r2;" //copy set->ptv[0] to r2
+		"mov.l @r2,r8;"		//set->ptv[0][X] in r8
+		"add r8,r5;"
+		"shar r5;"			//(set->ptv[1][X] + set->ptv[0][X]) >> 1
+		"mov.l @(4,r2),r8;"//set->ptv[0][Y] in r8
+		"add r8,r6;"       
+		"shar r6;"         //(set->ptv[1][Y] + set->ptv[0][Y]) >> 1
+		"mov.l @(8,r2),r8;"//set->ptv[0][Z] in r8
+		"add r8,r7;"       
+		"shar r7;"         //(set->ptv[1][Z] + set->ptv[0][Z]) >> 1
+		"mov.l r5,@r1;"
+		"mov.l r6,@(4,r1);"
+		"mov.l r7,@(8,r1);" //copies (ptv[0][xyz]+ptv[1][xyz])>>1 to sub_pnt[sub_vert_cnt][xyz]
+		"add #1,r0;" //add 1 to sub_vert_cnt in r0
+		"mov.w r0,@(4,r3);" //poly_a[2] = sub_vert_cnt+1
+		"mov.w r0,@(6,r4);"	//poly_b[3] = sub_vert_cnt+1
+		"add #16,r1;" //add 16 to r1 to reach the next array entry
+		"mov.l @(12,%[set]),r2;" //move set->ptv[3] to r2
+		"mov.l @r2,r5;"
+		"mov.l @(4,r2),r6;"
+		"mov.l @(8,r2),r7;"	//move set->ptv[3][xyz] to r5,r7,r7
+		"mov.l @(8,%[set]),r2;" //move set->ptv[2] to r2
+		"mov.l @r2,r8;"		//set->ptv[2][X] in r8
+		"add r8,r5;"
+		"shar r5;"			//(set->ptv[2][X] + set->ptv[3][X]) >> 1
+		"mov.l @(4,r2),r8;"//set->ptv[2][Y] in r8
+		"add r8,r6;"       
+		"shar r6;"         //(set->ptv[2][Y] + set->ptv[3][Y]) >> 1
+		"mov.l @(8,r2),r8;"//set->ptv[2][Z] in r8
+		"add r8,r7;"       
+		"shar r7;"         //(set->ptv[2][Z] + set->ptv[3][Z]) >> 1
+		"mov.l r5,@r1;"
+		"mov.l r6,@(4,r1);"
+		"mov.l r7,@(8,r1);" //copies (ptv[2][xyz]+ptv[3][xyz])>>1 to sub_pnt[tgt_pnt+1][xyz]
+		"add #1,r0;"			//add 1 to sub_vert_cnt in r0
+		"mov.w r0,@%[pnt_cnt];"	//move sub_vert_cnt+2 to sub_vert_cnt
+		"mov.w @%[ply_cnt],r0;" //move sub_poly_cnt to r0
+		"add #1,r0;"			//add 1 to sub_poly_cnt
+		"mov.w r0,@%[ply_cnt];" //move sub_poly_cnt+1 to sub_poly_cnt
+		: 																//OUT
+		:	[set] "p" (&sub), [sub_pnt] "p" (subdivided_points), [pnt_cnt] "p" (&sub_vert_cnt), [ply_cnt] "p" (&sub_poly_cnt)	//IN
+		:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8"		//CLOBBERS
+	);
 	break;
 	default:
 	break;
 	}
+	
+	subdivide_tile(overwritten_polygon, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][0]);
+	subdivide_tile(semaphore_poly_b, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][1]);
+	//All subdivision methods use the above two recursive calls; subdivide_xy is unique. 
+	//In case subdivide_xy was not used, do not continue.
+	if(new_rule != SUBDIVIDE_XY) return;
+	subdivide_tile(semaphore_poly_c, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][2]);
+	subdivide_tile(semaphore_poly_d, num_divisions-1, total_divisions+1, texIDs_cut_from_texID[rootTex][3]);
+	
 }
 
 
@@ -1097,7 +1287,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 			// The subdivision rules were pre-calculated by the converter tool.
 			// In addition, the base texture (the uv_id) was also pre-calculated by the tool.
 			///////////////////////////////////////////
-			subdivide_tile(sub_vert_cnt, 0, 3, 0, mesh->attbl[i].uv_id);
+			subdivide_tile(0, 3, 0, mesh->attbl[i].uv_id);
 			///////////////////////////////////////////
 			//
 			// Screenspace Transform of SUBDIVIDED Vertices
@@ -1283,16 +1473,19 @@ for(unsigned int i = 0; i < sct->nbTileVert; i++)
 		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
 		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
          /**Starts the division**/
-        SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+      //  SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         sub_transform_buffer[i][Y] = trans_pt_by_component(v, m1y);
         sub_transform_buffer[i][X] = trans_pt_by_component(v, m0x);
 		
         /** Retrieves the result of the division **/
-		inverseZ = *DVDNTL;
-
+		//inverseZ = *DVDNTL;
+		inverseZ = zTable[(screen_transform_buffer[i].pnt[Z]>>16)];
+		//inverseZ = fxdiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
         /**Transform X and Y to screen space**/
+       // screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
+       // screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
         screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
         screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
  
@@ -1305,10 +1498,6 @@ for(unsigned int i = 0; i < sct->nbTileVert; i++)
 		transVerts[0]++;
 }
 
-	for(int v = 0; v < MAX_SSH2_ENTITY_VERTICES; v++)
-	{
-		is_already_screenspace[v] = 0;
-	}
 //Draw Route:
 // Per Plane
 //		Per Tile
@@ -1321,93 +1510,90 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	int alias = sct->pltbl[p];
 	
 	flags = mesh->attbl[alias].render_data_flags;
+	if(!(flags & GV_FLAG_DISPLAY)) continue;
+	
+	//////////////////////////////////////////////////////////////
+	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
+	//////////////////////////////////////////////////////////////
+	if(flags & GV_FLAG_SINGLE)
+	{
+		dual_plane = 0;
+		//Why does this work? What is this doing?
+		//This is pretty much following Wikipedia's article on backface culling. Note the other method used in render.c kind of also does.
+		//The difference is this is view-space, but not screenspace.
+		//In screenspace, you can use a cross product to find the normal of the polygon. This fails for polygons distorted by the near plane.
+		//Instead, we can do the math in view-space. However, doing the math in view-space requires us to transform the normal.
+		//That is why this method is technically inferior, but it is a very similar idea: is the normal facing towards or away the polygon.
+		//In screen-space, that polygon in/out vector coincides with the screen's Z axis.
+		//In view-space, that polygon in/out vector coincides with the plane of the polygon. The normal, you understand?
+		//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
+		//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
+		int t_norm[3] = {0, 0, 0};
+		t_norm[0] = fxdot(mesh->nmtbl[alias], m0x);
+		t_norm[1] = fxdot(mesh->nmtbl[alias], m1y);
+		t_norm[2] = fxdot(mesh->nmtbl[alias], m2z);
+		int tdot = fxdot(t_norm, sub_transform_buffer[sct->tltbl[sct->plStart[p]].vertices[0]]);
+		if(tdot > 0) continue;
+	} else {
+		dual_plane = 1;
+	}
+	
+	///////////////////////////////////////////
+	// Just a side note:
+	// Doing subdivision in screen-space **does not work**.
+	// Well, technically it works, but warping is experienced. It looks pretty awful.
+	///////////////////////////////////////////
+	tile_rules[0] = mesh->attbl[alias].tile_information & 0x3;
+	tile_rules[1] = (mesh->attbl[alias].tile_information>>2) & 0x3;
+	tile_rules[2] = (mesh->attbl[alias].tile_information>>4) & 0x3;
+	
+	used_textures[0] = mesh->attbl[alias].uv_id;
 	
 	for(unsigned int i = 0; i < sct->nbTile[p]; i++)
 	{
 		int tile = sct->plStart[p] + i;
-		
-		sub_vert_cnt = 0;
-		sub_poly_cnt = 0;
 		//////////////////////////////////////////////////////////////
 		// Load the points
 		// These use aliased polygons in the sector because they deal with memory in the transform buffer.
 		//////////////////////////////////////////////////////////////
-			vids[0] = sct->tltbl[tile].vertices[0];
-			vids[1] = sct->tltbl[tile].vertices[1];
-			vids[2] = sct->tltbl[tile].vertices[2];
-			vids[3] = sct->tltbl[tile].vertices[3];
-			
-			subdivided_polygons[sub_poly_cnt][0] = sub_vert_cnt;
-			subdivided_polygons[sub_poly_cnt][1] = sub_vert_cnt+1;
-			subdivided_polygons[sub_poly_cnt][2] = sub_vert_cnt+2;
-			subdivided_polygons[sub_poly_cnt][3] = sub_vert_cnt+3;
-			subdivided_points[subdivided_polygons[sub_poly_cnt][0]][X] = sub_transform_buffer[vids[0]][X];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][0]][Y] = sub_transform_buffer[vids[0]][Y];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][0]][Z] = sub_transform_buffer[vids[0]][Z];
-	
-			subdivided_points[subdivided_polygons[sub_poly_cnt][1]][X] = sub_transform_buffer[vids[1]][X];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][1]][Y] = sub_transform_buffer[vids[1]][Y];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][1]][Z] = sub_transform_buffer[vids[1]][Z];
-			
-			subdivided_points[subdivided_polygons[sub_poly_cnt][2]][X] = sub_transform_buffer[vids[2]][X];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][2]][Y] = sub_transform_buffer[vids[2]][Y];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][2]][Z] = sub_transform_buffer[vids[2]][Z];
-			
-			subdivided_points[subdivided_polygons[sub_poly_cnt][3]][X] = sub_transform_buffer[vids[3]][X];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][3]][Y] = sub_transform_buffer[vids[3]][Y];
-			subdivided_points[subdivided_polygons[sub_poly_cnt][3]][Z] = sub_transform_buffer[vids[3]][Z];
-	
-			if(screen_transform_buffer[vids[0]].clipFlag
-			& screen_transform_buffer[vids[1]].clipFlag
-			& screen_transform_buffer[vids[2]].clipFlag
-			& screen_transform_buffer[vids[3]].clipFlag) continue;
+		vids[0] = sct->tltbl[tile].vertices[0];
+		vids[1] = sct->tltbl[tile].vertices[1];
+		vids[2] = sct->tltbl[tile].vertices[2];
+		vids[3] = sct->tltbl[tile].vertices[3];
 		
-		if(!(flags & GV_FLAG_DISPLAY)) continue;
-			
-		//////////////////////////////////////////////////////////////
-		// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
-		//////////////////////////////////////////////////////////////
-		if(flags & GV_FLAG_SINGLE)
-		{
-			dual_plane = 0;
-			//Why does this work? What is this doing?
-			//This is pretty much following Wikipedia's article on backface culling. Note the other method used in render.c kind of also does.
-			//The difference is this is view-space, but not screenspace.
-			//In screenspace, you can use a cross product to find the normal of the polygon. This fails for polygons distorted by the near plane.
-			//Instead, we can do the math in view-space. However, doing the math in view-space requires us to transform the normal.
-			//That is why this method is technically inferior, but it is a very similar idea: is the normal facing towards or away the polygon.
-			//In screen-space, that polygon in/out vector coincides with the screen's Z axis.
-			//In view-space, that polygon in/out vector coincides with the plane of the polygon. The normal, you understand?
-			//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
-			//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
-			int t_norm[3] = {0, 0, 0};
-			t_norm[0] = fxdot(mesh->nmtbl[alias], m0x);
-			t_norm[1] = fxdot(mesh->nmtbl[alias], m1y);
-			t_norm[2] = fxdot(mesh->nmtbl[alias], m2z);
-			int tdot = fxdot(t_norm, sub_transform_buffer[vids[0]]);
-			if(tdot > 0) continue;
-		} else {
-			dual_plane = 1;
-		}
-		///////////////////////////////////////////
-		// Just a side note:
-		// Doing subdivision in screen-space **does not work**.
-		// Well, technically it works, but warping is experienced. It looks pretty awful.
-		///////////////////////////////////////////
-			used_textures[sub_poly_cnt] = mesh->attbl[alias].uv_id;
-	
-			tile_rules[0] = mesh->attbl[alias].tile_information & 0x3;
-			tile_rules[1] = (mesh->attbl[alias].tile_information>>2) & 0x3;
-			tile_rules[2] = (mesh->attbl[alias].tile_information>>4) & 0x3;
-			
-		int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[sub_poly_cnt][0]][Z], subdivided_points[subdivided_polygons[sub_poly_cnt][1]][Z]),
-				JO_MIN(subdivided_points[subdivided_polygons[sub_poly_cnt][2]][Z], subdivided_points[subdivided_polygons[sub_poly_cnt][3]][Z]));
+		if(screen_transform_buffer[vids[0]].clipFlag
+		& screen_transform_buffer[vids[1]].clipFlag
+		& screen_transform_buffer[vids[2]].clipFlag
+		& screen_transform_buffer[vids[3]].clipFlag) continue;
 		
-		//////////////////////////////////////////////////////////////
-		// We have at least four vertices, and at least one polygon (the plane's data itself).
-		//////////////////////////////////////////////////////////////
-			sub_vert_cnt += 4;
-			sub_poly_cnt += 1;		
+		//At this point, we know we have at least four vertices.
+		sub_vert_cnt = 4;
+		//At this point, we know we have at least one polygon.
+		sub_poly_cnt = 1;	
+		
+		subdivided_polygons[0][0] = 0;
+		subdivided_points[0][X] = sub_transform_buffer[vids[0]][X];
+		subdivided_points[0][Y] = sub_transform_buffer[vids[0]][Y];
+		subdivided_points[0][Z] = sub_transform_buffer[vids[0]][Z];
+	
+		subdivided_polygons[0][1] = 1;
+		subdivided_points[1][X] = sub_transform_buffer[vids[1]][X];
+		subdivided_points[1][Y] = sub_transform_buffer[vids[1]][Y];
+		subdivided_points[1][Z] = sub_transform_buffer[vids[1]][Z];
+		
+		subdivided_polygons[0][2] = 2;
+		subdivided_points[2][X] = sub_transform_buffer[vids[2]][X];
+		subdivided_points[2][Y] = sub_transform_buffer[vids[2]][Y];
+		subdivided_points[2][Z] = sub_transform_buffer[vids[2]][Z];
+		
+		subdivided_polygons[0][3] = 3;
+		subdivided_points[3][X] = sub_transform_buffer[vids[3]][X];
+		subdivided_points[3][Y] = sub_transform_buffer[vids[3]][Y];
+		subdivided_points[3][Z] = sub_transform_buffer[vids[3]][Z];
+			
+		int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
+				JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+
 		if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 		{
 			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
@@ -1427,32 +1613,27 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			//We already know the polygon is on-screen from earlier.
 			ssh2VertArea[0].clipFlag = 0;
 			//Because I fucked up when transcribing the texture tables, we gotta -1.
-			used_textures[0] -= 1;
+			used_textures[0] = mesh->attbl[alias].uv_id - 1;
 			//Subdivision disabled end stub
 		} else {
 			///////////////////////////////////////////
 			// The subdivision rules were pre-calculated by the converter tool.
 			// In addition, the base texture (the uv_id) was also pre-calculated by the tool.
 			///////////////////////////////////////////
-			subdivide_tile(sub_vert_cnt, 0, 3, 0, mesh->attbl[alias].uv_id);
+			subdivide_tile(0, 3, 0, mesh->attbl[alias].uv_id);
 			///////////////////////////////////////////
-			//
 			// Screenspace Transform of SUBDIVIDED Vertices
 			// v = subdivided point index
 			// testing_planes[i] = plane data index
-			///////////////////////////////////////////
-			// Pre-loop: Set near-plane clip for first vertex, then set the division unit to work
-			///////////////////////////////////////////
-			ssh2VertArea[0].pnt[Z] = (subdivided_points[0][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[0][Z] : SUBDIVISION_NEAR_PLANE;
-			SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
 			for(int v = 0; v < sub_vert_cnt; v++)
 			{
-				//Push to near-plane for NEXT vertex
-				ssh2VertArea[v+1].pnt[Z] = (subdivided_points[v+1][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v+1][Z] : SUBDIVISION_NEAR_PLANE;
+				//Push to near-plane for CURRENT vertex
+				ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
+				//Set division for CURRENT vertex
+				//SetFixDiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
 				//Get 1/z for CURRENT vertex
-				inverseZ = *DVDNTL;
-				//Set division for NEXT vertex
-				SetFixDiv(scrn_dist, ssh2VertArea[v+1].pnt[Z]);
+				//inverseZ = *DVDNTL;
+				inverseZ = zTable[ssh2VertArea[v].pnt[Z]>>16];
 				//Transform to screen-space
 				ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
 				ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;

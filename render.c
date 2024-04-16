@@ -461,17 +461,16 @@ inline	void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short *
 			*pclp = VDP1_PRECLIPPING_DISABLE; //Preclipping Disable
 			return;
 		}
-		/*
+		
 		//Alternate Clip Handling
 		// If NO CLIP FLAGS are high, disable preclipping.
-		// This improves VDP1 performance, at the cost of some CPU time.
-		ptv[0]->clipFlag |= ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag;
-		if( !(ptv[0]->clipFlag & SCRN_CLIP_FLAGS) )
-		{
-			*pclp = 2048; //Preclipping Disable
-			return;
-		}
-		*/
+		// This improves VDP1 performance, at the cost of some CPU time. This cost is less than flipping the polygon.
+		//if( !((ptv[0]->clipFlag | ptv[1]->clipFlag | ptv[2]->clipFlag | ptv[3]->clipFlag) & SCRN_CLIP_FLAGS) )
+		//{
+		//	*pclp = VDP1_PRECLIPPING_DISABLE; //Preclipping Disable
+		//	return;
+		//}
+		
 		//In case no conditions were met, enable preclipping anyway.
 		//This is important; please don't blame it for a problem.
 			*pclp = 0;

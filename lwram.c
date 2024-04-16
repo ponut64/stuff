@@ -1,6 +1,18 @@
 //lwram.c
 //this file is included in main.c
 
+void	init_ztable(void)
+{
+	//Plan:
+	//For (scrn_dist), divide it by (-32767 to +32767)<<16
+	for(int i = -32768; i < 32768; i++)
+	{
+		int sample = fxdiv(scrn_dist, i<<16);
+		zTable[i] = (sample);
+	}
+
+}
+
 void	init_lwram(void)
 {
 	////////////////////////////////////
@@ -25,14 +37,16 @@ void	init_lwram(void)
 	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
 //Pathing Table Heap. This is sized according to the max pathing step count, multiplied by the max active actors.
 	pathTableHeap = (void*)((unsigned int)(BuildingPayload-(sizeof(_quad) * (MAX_PATHING_STEPS * MAX_PHYS_PROXY))));
-//Adjacent Quad Table. This has an artbitrary size.
-	adjacentPolyHeap = (void*)((unsigned int)(pathTableHeap - (64 * 1024)));
+//Adjacent Quad Table. This has an arbitrary size.
+	adjacentPolyHeap = (void*)((unsigned int)(pathTableHeap - (32 * 1024)));
 	adjPolyStackPtr = (void*)(adjacentPolyHeap);
 	adjPolyStackMax = (void*)(pathTableHeap);
-//Space used from end of LWRAM: about 256 KB
+//Z-Table - this will be used with signed offsets; its size is actually 256kb
+	zTable = (void*)((unsigned int)(adjacentPolyHeap - (128 * 1024)));
+//Space used from end of LWRAM: about 512 KB
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	sectorPolygonStack = (void*)(LWRAM);
 
+	init_ztable();
 //I have detected a 'black spot' in LWRAM, between bytes 512 - 768 of LWRAM /something/ bad happens.
 }
 
