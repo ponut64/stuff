@@ -156,8 +156,8 @@ typedef struct {
 // Post-transformed vertice data struct
 //////////////////////////////////
 typedef struct {
-    POINT  pnt;
-	int clipFlag;
+    POINT  pnt;		//x = 0, y = 4, z = 8
+	int clipFlag;	// = 12
 } vertex_t; //16 bytes each
 
 //////////////////////////////////

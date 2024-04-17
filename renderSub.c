@@ -225,6 +225,8 @@ short	texture_rules[4]		= {16, 16, 16, 0};
 // big performance nob.
 int		z_rules[4]				= {512<<16, 256<<16, 128<<16, 0};
 
+int		clip_settings[6] = {TV_HALF_WIDTH, -TV_HALF_WIDTH, TV_HALF_HEIGHT, -TV_HALF_WIDTH, SUBDIVISION_NEAR_PLANE, 0};
+//								0					4			8				12					16				20
 typedef struct {
 	FIXED * ptv[4]; //ptv[0] is byte 0, ptv[1] is byte 4, ptv[2] is byte 8, ptv[3] is byte 12
 	short * poly_a; // 	byte 16
@@ -1461,6 +1463,8 @@ void	draw_sector(entity_t * ent, _sector * sct)
 	//nbg_sprintf(2, 7, "addr_ply(%i)", sct->pltbl);
 //First: Transform all of the vertices of the mesh to a buffer.
 //We must use the sector's pntbl with an extra layer of deference to get the right vertex in the mesh's pntbl.
+
+transVerts[0]+= sct->nbTileVert;
 for(unsigned int i = 0; i < sct->nbTileVert; i++)
 {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1495,7 +1499,6 @@ for(unsigned int i = 0; i < sct->nbTileVert; i++)
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
-		transVerts[0]++;
 }
 
 //Draw Route:
@@ -1549,6 +1552,10 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	
 	used_textures[0] = mesh->attbl[alias].uv_id;
 	
+	//Used to account for the texture # being offset when UV cut textures are generated
+	int texno_offset = ((mesh->attbl[alias].texno - ent->base_texture) * UV_CUT_COUNT) + mesh->attbl[alias].texno;
+	unsigned short usedCMDCTRL = ((flags & GV_FLAG_POLYLINE)) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+	
 	for(unsigned int i = 0; i < sct->nbTile[p]; i++)
 	{
 		int tile = sct->plStart[p] + i;
@@ -1591,8 +1598,8 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		subdivided_points[3][Y] = sub_transform_buffer[vids[3]][Y];
 		subdivided_points[3][Z] = sub_transform_buffer[vids[3]][Z];
 			
-		int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-				JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+		int min_z = JO_MIN(JO_MIN(subdivided_points[0][Z], subdivided_points[1][Z]),
+				JO_MIN(subdivided_points[2][Z], subdivided_points[3][Z]));
 
 		if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 		{
@@ -1625,39 +1632,121 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			// Screenspace Transform of SUBDIVIDED Vertices
 			// v = subdivided point index
 			// testing_planes[i] = plane data index
-			for(int v = 0; v < sub_vert_cnt; v++)
-			{
-				//Push to near-plane for CURRENT vertex
-				ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
-				//Set division for CURRENT vertex
-				//SetFixDiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
-				//Get 1/z for CURRENT vertex
-				//inverseZ = *DVDNTL;
-				inverseZ = zTable[ssh2VertArea[v].pnt[Z]>>16];
-				//Transform to screen-space
-				ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
-				ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
-				//Screen Clip Flags for on-off screen decimation
-				ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[v].clipFlag;
-				transVerts[0]++;
-				// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
-			}
+			//for(int v = 0; v < sub_vert_cnt; v++)
+			//{
+			//	//Push to near-plane for CURRENT vertex
+			//	ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
+			//	//Set division for CURRENT vertex
+			//	//SetFixDiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
+			//	//Get 1/z for CURRENT vertex
+			//	//inverseZ = *DVDNTL;
+			//	inverseZ = zTable[ssh2VertArea[v].pnt[Z]>>16];
+			//	//Transform to screen-space
+			//	ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
+			//	ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
+			//	//Screen Clip Flags for on-off screen decimation
+			//	ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+			//	ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
+			//	ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
+			//	ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
+			//	ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+			//	// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
+			//}
+			asm(
+			"mov.w @%[subCnt],r0;" //Move sub_vert_cnt to r0. Used as loop count. (Decrement method)
+			"mov r0,r1;"		//Move r0 to r1 for address calculation in ssh2VertArea AND subdivided_points
+			"shll2 r1;"
+			"shll2 r1;"
+			"mov r1,r2;"		//Move r1<<4 to r2 for address calculation for subdivided_points; r1 is for ssh2VertArea
+			"add %[scrn_pnts],r1;" //Add address of ssh2VertArea to address offset in r1
+			"add %[sub_pnts],r2;" //Add address of subdivided_points to address offset in r2
+			//A decrement must happen on the pointers, but NOT on the loop counter.
+			//The loop counts down from (sub_vert_cnt) to (0); when it equals zero, it will exit. So 0 is not included in the count.
+			//However, zero MUST be included in the processed quantities; e.g. ssh2VertArea[0] and subdivided_points[0] are valid,
+			//and in addition to that, ssh2VertArea[sub_vert_cnt] and subdivided_points[sub_vert_cnt] are NOT valid.
+			//So if we just decrement the pointers by 1, we'll land at the right spot.
+			"add #-16,r1;" //ssh2VertArea[v] = ssh2VertArea[v-1]			
+			"add #-16,r2;" //subdivided_points[v] = subdivided_points[v-1]	
+			"mov.l @(16,%[clpSet]),r4;" //Move SUBDIVISION_NEAR_PLANE to r4
+			"FORV:"
+			"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation
+			"mov.l @(8,r2),r3;" //Move subdivided_points[v][Z] to r3
+
+			"cmp/gt r3,r4;" //If r4 > r3 (otherwise read as r3 < r4); if SUBDIVISION_NEAR_PLANE > pnt[Z]; T bit to 1
+			"bf GUDZ;" //If T bit is 0,jump to HIGHZ
+			"mov r4,r3;" //Set used Z in r3 to SUBDIVISION_NEAR_PLANE
+			"mov #16,r5;" //Move CLIP_Z (literal #16) to clipFlag
+			"GUDZ:"
+			
+			"mov.l r3,@(8,r1);" //Move subdivided_points[v][Z] to ssh2VertArea[v].pnt[Z] 
+			"shlr16 r3;" //Shift subdivided_points[v][Z] right 16 times in preparation for calculation of address offset
+			"shll2 r3;" //Shift subdivided_points[v][Z] left twice in calculation for address offset in zTbl
+			"add %[zTbl],r3;" //Add address of zTable to address offset in r3
+			"mov.l @r3,r6;" //Obtain inverse_z in r6
+			
+			"mov.l @r2,r7;" //Move sub_pnts[v][X] to r7
+			"dmuls.l r7,r6;" // pnt[X] * inverse_z -> MACH/MACL
+			"sts mach,r7;"	//we only want the upper 32 bits (screen coordinates)
+			"mov.l r7,@r1;" //Move pnt[X] to ssh2VertArea.pnt[X]
+			
+			"mov.l @%[clpSet],r3;" //Move clpSet[0] to r3 (TV_HALF_WIDTH)
+			"cmp/gt r3,r7;" //Perform if(pnt[X] > TV_HALF_WIDTH), T = 1
+			"bf NOCLIPX;" //If T = 0, do not clip X; jump ahead.
+			"mov #1,r3;" //Clobber R3; replace with constant #1 to represent SCRN_CLIP_X
+			"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
+			"NOCLIPX:" //(Proceeding to test if X is < -TV_HALF_WIDTH)
+			"mov.l @(4,%[clpSet]),r3;" //Move -TV_HALF_WIDTH from clip_settings to r3
+			"cmp/gt r7,r3;" //Perform if(-TV_HALF_WIDTH > pnt[X]), T = 1
+			"bf NOCLIPNX;" //If T = 0, do not clip NX; jump ahead.
+			"mov #2,r3;" //Clobber R3; replace with constant #2 to represent SCRN_CLIP_NX
+			"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
+			"NOCLIPNX:"
+
+			"mov.l @(4,r2),r7;" //Move sub_pnts[v][Y] to r7
+			"dmuls.l r7,r6;" //pnt[Y] * inverse_z -> MACH/MACL
+			"sts mach,r7;" //get upper 32 bits of that operation (should not be more than 16, to be fair)
+			"mov.l r7,@(4,r1);"//Move pnt[Y] to ssh2VertArea.pnt[Y]
+			
+			"mov.l @(8,%[clpSet]),r3;" //Move TV_HALF_HEIGHT from clpSet[2] to r3
+			"cmp/gt r3,r7;" //Perform if(pnt[Y] > TV_HALF_HEIGHT), T = 1
+			"bf NOCLIPY;" //If T = 0, do not clip X; jump ahead.
+			"mov #4,r3;" //Clobber R3; replace with constant #4 to represent SCRN_CLIP_Y
+			"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
+			"NOCLIPY:" //(Proceeding to test if Y is < -TV_HALF_HEIGHT)
+			"mov.l @(12,%[clpSet]),r3;"
+			"cmp/gt r7,r3;" //Perform if(-TV_HALF_HEIGHT > pnt[X]), T = 1
+			"bf NOCLIPNY;" //If T = 0, do not clip NX; jump ahead.
+			"mov #8,r3;" //Clobber R3; replace with constant #8 to represent SCRN_CLIP_NY
+			"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
+			"NOCLIPNY:"
+			
+			"mov.l r5,@(12,r1);" //Move clipFlag to ssh2VertArea[v].clipFlag
+			"add #-16,r1;" //ssh2VertArea[v] = ssh2VertArea[v-1]
+			"add #-16,r2;" //subdivided_points[v] = subdivided_points[v-1]
+			"dt r0;" //Decrement R0 (r0 = r0 - 1)
+			"bf FORV;" //In case R0 >= 0, branch to loop
+			"nop;"
+			: 																//OUT
+			:	[scrn_pnts] "p" (&ssh2VertArea[0]), [sub_pnts] "p" (&subdivided_points[0]), [zTbl] "p" (&zTable[0]), [subCnt] "p" (&sub_vert_cnt), [clpSet] "p" (&clip_settings[0]) //IN
+			:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "mach", "macl"										//CLOBBERS
+			); //5 input registers
+			transVerts[0] += sub_vert_cnt;
 		//Subdivision activation end stub
 		}
+		
 		///////////////////////////////////////////
 		//
 		// Z-sort Insertion & Command Arrangement of Polygons
 		// j = subdivided polygon index
 		//
+		// For future reference, portal implementation of in-out culling will be FASTER on a per polygon basis.
+		// The reason is we only have to purge & copy four flags instead of all in a tile at once.
+		// Then the DSP can be set to work on those flags, and as a VDP1 optimization, we only care about it insofar as its result,
+		// before the draw command is sent.
+		// We are of course doing more total purges than we otherwise would, but the CPU shouldn't have to wait.
+		//
 		///////////////////////////////////////////
 		if(ssh2SentPolys[0] + sub_poly_cnt > MAX_SSH2_SENT_POLYS) return;
-		//Used to account for the texture # being offset when UV cut textures are generated
-		int texno_offset = ((mesh->attbl[alias].texno - ent->base_texture) * UV_CUT_COUNT) + mesh->attbl[alias].texno;
-		unsigned short usedCMDCTRL = ((flags & GV_FLAG_POLYLINE)) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
 		for(int j = 0; j < sub_poly_cnt; j++)
 		{
 			transPolys[0]++;
@@ -1684,8 +1773,9 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			specific_texture = (flags & GV_FLAG_ANIM) ? mesh->attbl[alias].texno : specific_texture;
 			///////////////////////////////////////////
 			// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+			// Subdivided polygon drawing is incompatible with flip in the draw command; to flip, rotate the polygon.
 			///////////////////////////////////////////
-			flip = GET_FLIP_DATA(flags);
+			flip = 0;
 			preclipping(ptv, &flip, &pclp);
 			///////////////////////////////////////////
 			// Lighting Math
