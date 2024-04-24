@@ -6,6 +6,7 @@
 #include "mymath.h"
 #include "render.h"
 #include "draw.h"
+#include "dspm.h"
 
 unsigned short texIDs_cut_from_texID[225][4] = {
 	{30, 31, 32, 33}, // +++
@@ -204,11 +205,10 @@ Information about the scale and subdivision rules of the plane.
 	#define SUBDIVIDE_2X	(0x5) // ||
 
 	#define UV_CUT_COUNT (224)
-	#define SUBDIVISION_NEAR_PLANE (15<<16)
 	
 	#define MAX_IN_TILE (128)
 
-POINT		sub_transform_buffer[MAX_SSH2_ENTITY_VERTICES];
+int			sub_transform_buffer[MAX_SSH2_ENTITY_VERTICES][4];
 vertex_t	screen_transform_buffer[MAX_SSH2_ENTITY_VERTICES];
 //Realistically, this could go up to 4^6. That's a lot of RAM.
 //Even this being set at 1024 is quite a lot of RAM used.
@@ -225,8 +225,8 @@ short	texture_rules[4]		= {16, 16, 16, 0};
 // big performance nob.
 int		z_rules[4]				= {512<<16, 256<<16, 128<<16, 0};
 
-int		clip_settings[6] = {TV_HALF_WIDTH, -TV_HALF_WIDTH, TV_HALF_HEIGHT, -TV_HALF_WIDTH, SUBDIVISION_NEAR_PLANE, 0};
-//								0					4			8				12					16				20
+int		clip_settings[7] = {TV_HALF_WIDTH, -TV_HALF_WIDTH, TV_HALF_HEIGHT, -TV_HALF_WIDTH, SUBDIVISION_NEAR_PLANE, 0, 0};
+//								0					4			8				12					16			   20,24
 typedef struct {
 	FIXED * ptv[4]; //ptv[0] is byte 0, ptv[1] is byte 4, ptv[2] is byte 8, ptv[3] is byte 12
 	short * poly_a; // 	byte 16
@@ -1061,7 +1061,7 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	unsigned short	pclp = 0;
 
 	vertex_t * ptv[5];
-	unsigned short vids[4];
+	int * stv[4];
 
     static MATRIX newMtx;
 	static FIXED m0x[4];
@@ -1129,16 +1129,19 @@ for(unsigned int i = 0; i < mesh->nbPoint; i++)
 		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
 		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
          /**Starts the division**/
-        SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+      //  SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
 
         /**Calculates X and Y while waiting for screenDist/z **/
         sub_transform_buffer[i][Y] = trans_pt_by_component(mesh->pntbl[i], m1y);
         sub_transform_buffer[i][X] = trans_pt_by_component(mesh->pntbl[i], m0x);
 		
         /** Retrieves the result of the division **/
-		inverseZ = *DVDNTL;
-
+		//inverseZ = *DVDNTL;
+		inverseZ = zTable[(screen_transform_buffer[i].pnt[Z]>>16)];
+		//inverseZ = fxdiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
         /**Transform X and Y to screen space**/
+       // screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
+       // screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
         screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
         screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
  
@@ -1148,79 +1151,58 @@ for(unsigned int i = 0; i < mesh->nbPoint; i++)
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : screen_transform_buffer[i].clipFlag;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : screen_transform_buffer[i].clipFlag;
 		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : screen_transform_buffer[i].clipFlag;
-		transVerts[0]++;
+
 }
+transVerts[0] += mesh->nbPoint;
 
 for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 {
-		sub_vert_cnt = 0;
-		sub_poly_cnt = 0;
 		
 	flags = mesh->attbl[i].render_data_flags;
 		
 	//////////////////////////////////////////////////////////////
 	// Load the points
+	// This is a small optimization to avoid doing the address calculation for each point multiple times
 	//////////////////////////////////////////////////////////////
-		vids[0] = mesh->pltbl[i].vertices[0];
-		vids[1] = mesh->pltbl[i].vertices[1];
-		vids[2] = mesh->pltbl[i].vertices[2];
-		vids[3] = mesh->pltbl[i].vertices[3];
-		
-		subdivided_polygons[0][0] = 0;
-		subdivided_polygons[0][1] = 1;
-		subdivided_polygons[0][2] = 2;
-		subdivided_polygons[0][3] = 3;
-		subdivided_points[0][X] = sub_transform_buffer[vids[0]][X];
-		subdivided_points[0][Y] = sub_transform_buffer[vids[0]][Y];
-		subdivided_points[0][Z] = sub_transform_buffer[vids[0]][Z];
+	ptv[0] = &screen_transform_buffer[mesh->pltbl[i].vertices[0]];
+	ptv[1] = &screen_transform_buffer[mesh->pltbl[i].vertices[1]];
+	ptv[2] = &screen_transform_buffer[mesh->pltbl[i].vertices[2]];
+	ptv[3] = &screen_transform_buffer[mesh->pltbl[i].vertices[3]];
 
-		subdivided_points[1][X] = sub_transform_buffer[vids[1]][X];
-		subdivided_points[1][Y] = sub_transform_buffer[vids[1]][Y];
-		subdivided_points[1][Z] = sub_transform_buffer[vids[1]][Z];
-		
-		subdivided_points[2][X] = sub_transform_buffer[vids[2]][X];
-		subdivided_points[2][Y] = sub_transform_buffer[vids[2]][Y];
-		subdivided_points[2][Z] = sub_transform_buffer[vids[2]][Z];
-		
-		subdivided_points[3][X] = sub_transform_buffer[vids[3]][X];
-		subdivided_points[3][Y] = sub_transform_buffer[vids[3]][Y];
-		subdivided_points[3][Z] = sub_transform_buffer[vids[3]][Z];
-
-		if(screen_transform_buffer[vids[0]].clipFlag
-		& screen_transform_buffer[vids[1]].clipFlag
-		& screen_transform_buffer[vids[2]].clipFlag
-		& screen_transform_buffer[vids[3]].clipFlag) continue;
-		 
-	///////////////////////////////////////////
-	//	Check the maximum Z of every new polygon.
-	// 	This is the first polygon. So, if its maximum Z is too low, just discard it.
-	///////////////////////////////////////////
-	// max_z = JO_MAX(JO_MAX(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			// JO_MAX(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
-	// if(max_z <= SUBDIVISION_NEAR_PLANE) continue;
+	if(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag) continue;
 	
-	//////////////////////////////////////////////////////////////
-	// Portal stuff
-	// This plane rendering really has a lot of garbage in it, doesn't it?
-	//////////////////////////////////////////////////////////////
-	if(flags & GV_FLAG_PORTAL && current_portal_count < MAX_SCENE_PORTALS)
-	{
-		scene_portals[current_portal_count].type = PORTAL_TYPE_ACTIVE;
-		scene_portals[current_portal_count].type |= (flags & GV_FLAG_PORT_TYPE) ? PORTAL_OR_OCCLUDE : 0;
-		scene_portals[current_portal_count].type |= PORTAL_TYPE_DUAL;
-		for(int u = 0; u < 4; u++)
-		{
-		scene_portals[current_portal_count].verts[u][X] = screen_transform_buffer[vids[u]].pnt[X];
-		scene_portals[current_portal_count].verts[u][Y] = screen_transform_buffer[vids[u]].pnt[Y];
-		scene_portals[current_portal_count].verts[u][Z] = screen_transform_buffer[vids[u]].pnt[Z];
-		}
-		current_portal_count++;
-	}
+	stv[0] = &sub_transform_buffer[mesh->pltbl[i].vertices[0]][X];
+	stv[1] = &sub_transform_buffer[mesh->pltbl[i].vertices[1]][X];
+	stv[2] = &sub_transform_buffer[mesh->pltbl[i].vertices[2]][X];
+	stv[3] = &sub_transform_buffer[mesh->pltbl[i].vertices[3]][X];
+	
+	//At this point, we know we have at least four vertices.
+	sub_vert_cnt = 4;
+	//At this point, we know we have at least one polygon.
+	sub_poly_cnt = 1;	
+	
+	subdivided_polygons[0][0] = 0;
+	subdivided_points[0][X] = stv[0][X];
+	subdivided_points[0][Y] = stv[0][Y];
+	subdivided_points[0][Z] = stv[0][Z];
+	
+	subdivided_polygons[0][1] = 1;
+	subdivided_points[1][X] = stv[1][X];
+	subdivided_points[1][Y] = stv[1][Y];
+	subdivided_points[1][Z] = stv[1][Z];
+	
+	subdivided_polygons[0][2] = 2;
+	subdivided_points[2][X] = stv[2][X];
+	subdivided_points[2][Y] = stv[2][Y];
+	subdivided_points[2][Z] = stv[2][Z];
+	
+	subdivided_polygons[0][3] = 3;
+	subdivided_points[3][X] = stv[3][X];
+	subdivided_points[3][Y] = stv[3][Y];
+	subdivided_points[3][Z] = stv[3][Z];
+
 	if(!(flags & GV_FLAG_DISPLAY)) continue;
-		 
-	
-	int min_z = JO_MIN(JO_MIN(subdivided_points[subdivided_polygons[0][0]][Z], subdivided_points[subdivided_polygons[0][1]][Z]),
-			JO_MIN(subdivided_points[subdivided_polygons[0][2]][Z], subdivided_points[subdivided_polygons[0][3]][Z]));
+		
 	//////////////////////////////////////////////////////////////
 	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
 	//////////////////////////////////////////////////////////////
@@ -1241,87 +1223,77 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		t_norm[0] = fxdot(mesh->nmtbl[i], m0x);
 		t_norm[1] = fxdot(mesh->nmtbl[i], m1y);
 		t_norm[2] = fxdot(mesh->nmtbl[i], m2z);
-		int tdot = fxdot(t_norm, sub_transform_buffer[vids[0]]);
+		int tdot = fxdot(t_norm, stv[0]);
 		
 		if(tdot > 0) continue;
-
+	
 	} else {
 		dual_plane = 1;
 	}
 	
-	//////////////////////////////////////////////////////////////
-	// We have at least four vertices, and at least one polygon (the plane's data itself).
-	//////////////////////////////////////////////////////////////
-		sub_vert_cnt += 4;
-		sub_poly_cnt += 1;
 	///////////////////////////////////////////
 	// Just a side note:
 	// Doing subdivision in screen-space **does not work**.
 	// Well, technically it works, but warping is experienced. It looks pretty awful.
 	///////////////////////////////////////////
-		used_textures[0] = mesh->attbl[i].uv_id;
+	used_textures[0] = mesh->attbl[i].uv_id;
 
-		tile_rules[0] = mesh->attbl[i].tile_information & 0x3;
-		tile_rules[1] = (mesh->attbl[i].tile_information>>2) & 0x3;
-		tile_rules[2] = (mesh->attbl[i].tile_information>>4) & 0x3;
-		
-		if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
+	tile_rules[0] = mesh->attbl[i].tile_information & 0x3;
+	tile_rules[1] = (mesh->attbl[i].tile_information>>2) & 0x3;
+	tile_rules[2] = (mesh->attbl[i].tile_information>>4) & 0x3;
+	
+	register int min_z = JO_MIN(JO_MIN(stv[0][Z], stv[1][Z]), JO_MIN(stv[2][Z], stv[3][Z]));
+	if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
+	{
+		//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
+		ssh2VertArea[0].pnt[X] = ptv[0]->pnt[X];
+		ssh2VertArea[0].pnt[Y] = ptv[0]->pnt[Y];
+		ssh2VertArea[0].pnt[Z] = ptv[0]->pnt[Z];
+		ssh2VertArea[1].pnt[X] = ptv[1]->pnt[X];
+		ssh2VertArea[1].pnt[Y] = ptv[1]->pnt[Y];
+		ssh2VertArea[1].pnt[Z] = ptv[1]->pnt[Z];
+		ssh2VertArea[2].pnt[X] = ptv[2]->pnt[X];
+		ssh2VertArea[2].pnt[Y] = ptv[2]->pnt[Y];
+		ssh2VertArea[2].pnt[Z] = ptv[2]->pnt[Z];
+		ssh2VertArea[3].pnt[X] = ptv[3]->pnt[X];
+		ssh2VertArea[3].pnt[Y] = ptv[3]->pnt[Y];
+		ssh2VertArea[3].pnt[Z] = ptv[3]->pnt[Z];
+		ssh2VertArea[0].clipFlag = 0;
+		//Because I fucked up when transcribing the texture tables, we gotta -1.
+		used_textures[0] -= 1;
+		//Subdivision disabled end stub
+	} else {
+		///////////////////////////////////////////
+		// The subdivision rules were pre-calculated by the converter tool.
+		// In addition, the base texture (the uv_id) was also pre-calculated by the tool.
+		///////////////////////////////////////////
+		subdivide_tile(0, 3, 0, mesh->attbl[i].uv_id);
+		///////////////////////////////////////////
+		// Screenspace Transform of SUBDIVIDED Vertices
+		// v = subdivided point index
+		for(int v = 0; v < sub_vert_cnt; v++)
 		{
-			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
-			ssh2VertArea[0].pnt[X] = screen_transform_buffer[vids[0]].pnt[X];
-			ssh2VertArea[0].pnt[Y] = screen_transform_buffer[vids[0]].pnt[Y];
-			ssh2VertArea[0].pnt[Z] = screen_transform_buffer[vids[0]].pnt[Z];
-			ssh2VertArea[1].pnt[X] = screen_transform_buffer[vids[1]].pnt[X];
-			ssh2VertArea[1].pnt[Y] = screen_transform_buffer[vids[1]].pnt[Y];
-			ssh2VertArea[1].pnt[Z] = screen_transform_buffer[vids[1]].pnt[Z];
-			ssh2VertArea[2].pnt[X] = screen_transform_buffer[vids[2]].pnt[X];
-			ssh2VertArea[2].pnt[Y] = screen_transform_buffer[vids[2]].pnt[Y];
-			ssh2VertArea[2].pnt[Z] = screen_transform_buffer[vids[2]].pnt[Z];
-			ssh2VertArea[3].pnt[X] = screen_transform_buffer[vids[3]].pnt[X];
-			ssh2VertArea[3].pnt[Y] = screen_transform_buffer[vids[3]].pnt[Y];
-			ssh2VertArea[3].pnt[Z] = screen_transform_buffer[vids[3]].pnt[Z];
-			ssh2VertArea[0].clipFlag = 0;
-			//Because I fucked up when transcribing the texture tables, we gotta -1.
-			used_textures[0] -= 1;
-			//Subdivision disabled end stub
-		} else {
-			///////////////////////////////////////////
-			// The subdivision rules were pre-calculated by the converter tool.
-			// In addition, the base texture (the uv_id) was also pre-calculated by the tool.
-			///////////////////////////////////////////
-			subdivide_tile(0, 3, 0, mesh->attbl[i].uv_id);
-			///////////////////////////////////////////
-			//
-			// Screenspace Transform of SUBDIVIDED Vertices
-			// v = subdivided point index
-			// testing_planes[i] = plane data index
-			///////////////////////////////////////////
-			// Pre-loop: Set near-plane clip for first vertex, then set the division unit to work
-			///////////////////////////////////////////
-			ssh2VertArea[0].pnt[Z] = (subdivided_points[0][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[0][Z] : SUBDIVISION_NEAR_PLANE;
-			SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
-			for(int v = 0; v < sub_vert_cnt; v++)
-			{
-				//Push to near-plane for NEXT vertex
-				ssh2VertArea[v+1].pnt[Z] = (subdivided_points[v+1][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v+1][Z] : SUBDIVISION_NEAR_PLANE;
-				//Get 1/z for CURRENT vertex
-				inverseZ = *DVDNTL;
-				//Set division for NEXT vertex
-				SetFixDiv(scrn_dist, ssh2VertArea[v+1].pnt[Z]);
-				//Transform to screen-space
-				ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
-				ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
-				//Screen Clip Flags for on-off screen decimation
-				ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : ssh2VertArea[v].clipFlag; 
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : ssh2VertArea[v].clipFlag;
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : ssh2VertArea[v].clipFlag;
-				ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : ssh2VertArea[v].clipFlag;
-				transVerts[0]++;
-				// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
-			}
-		//Subdivision activation end stub
+			//Push to near-plane for CURRENT vertex
+			ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
+			//Set division for CURRENT vertex
+			//SetFixDiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
+			//Get 1/z for CURRENT vertex
+			//inverseZ = *DVDNTL;
+			inverseZ = zTable[ssh2VertArea[v].pnt[Z]>>16];
+			//Transform to screen-space
+			ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
+			ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
+			//Screen Clip Flags for on-off screen decimation
+			ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+			// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
 		}
+		transVerts[0] += sub_vert_cnt;
+	//Subdivision activation end stub
+	}
 	///////////////////////////////////////////
 	//
 	// Z-sort Insertion & Command Arrangement of Polygons
@@ -1398,7 +1370,8 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 
 //////////////////////////////////////////////////////////////////
 //Sector drawing routine
-//Probably sucks, might not work for awhile
+// Warning: Assembly ahead
+// The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
 //////////////////////////////////////////////////////////////////
 void	draw_sector(entity_t * ent, _sector * sct)
 {
@@ -1414,7 +1387,6 @@ void	draw_sector(entity_t * ent, _sector * sct)
 	sub_poly_cnt = 0;
 	sub_vert_cnt = 0;
 	unsigned short	colorBank = 0;
-	int		inverseZ = 0;
 	int 	luma = 0;
 	int 	zDepthTgt = 0;
 	unsigned short	flags = 0;
@@ -1422,31 +1394,29 @@ void	draw_sector(entity_t * ent, _sector * sct)
 	unsigned short	pclp = 0;
 
 	vertex_t * ptv[5];
-	unsigned short vids[4];
+	int * stv[4];
 
     static MATRIX newMtx;
-	static FIXED m0x[4];
-	static FIXED m1y[4];
-	static FIXED m2z[4];
+	static FIXED mmtx[12];
 	
 	//These can't have an orienation... eh, we'll do it anyway.
 	slMultiMatrix((POINT *)ent->prematrix);
     slGetMatrix(newMtx);
 	
-	m0x[0] = newMtx[X][X];
-	m0x[1] = newMtx[Y][X];
-	m0x[2] = newMtx[Z][X];
-	m0x[3] = newMtx[3][X];
+	mmtx[0] = newMtx[X][X];
+	mmtx[1] = newMtx[Y][X];
+	mmtx[2] = newMtx[Z][X];
+	mmtx[3] = newMtx[3][X];
 	
-	m1y[0] = newMtx[X][Y];
-	m1y[1] = newMtx[Y][Y];
-	m1y[2] = newMtx[Z][Y];
-	m1y[3] = newMtx[3][Y];
+	mmtx[4] = newMtx[X][Y];
+	mmtx[5] = newMtx[Y][Y];
+	mmtx[6] = newMtx[Z][Y];
+	mmtx[7] = newMtx[3][Y];
 	
-	m2z[0] = newMtx[X][Z];
-	m2z[1] = newMtx[Y][Z];
-	m2z[2] = newMtx[Z][Z];
-	m2z[3] = newMtx[3][Z];
+	mmtx[8] = newMtx[X][Z];
+	mmtx[9] = newMtx[Y][Z];
+	mmtx[10] = newMtx[Z][Z];
+	mmtx[11] = newMtx[3][Z];
 
 	/**
 	Rendering Planes
@@ -1464,42 +1434,168 @@ void	draw_sector(entity_t * ent, _sector * sct)
 //First: Transform all of the vertices of the mesh to a buffer.
 //We must use the sector's pntbl with an extra layer of deference to get the right vertex in the mesh's pntbl.
 
-transVerts[0]+= sct->nbTileVert;
-for(unsigned int i = 0; i < sct->nbTileVert; i++)
-{
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Vertice 3D Transformation
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//Vertex ID aliasing
-		int * v = sct->tvtbl[i];
-        /**calculate z**/
-        screen_transform_buffer[i].pnt[Z] = trans_pt_by_component(v, m2z);
-		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
-		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
-         /**Starts the division**/
-      //  SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
 
-        /**Calculates X and Y while waiting for screenDist/z **/
-        sub_transform_buffer[i][Y] = trans_pt_by_component(v, m1y);
-        sub_transform_buffer[i][X] = trans_pt_by_component(v, m0x);
-		
-        /** Retrieves the result of the division **/
-		//inverseZ = *DVDNTL;
-		inverseZ = zTable[(screen_transform_buffer[i].pnt[Z]>>16)];
-		//inverseZ = fxdiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
-        /**Transform X and Y to screen space**/
-       // screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
-       // screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
-        screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
-        screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
- 
-        //Screen Clip Flags for on-off screen decimation
-		screen_transform_buffer[i].clipFlag = ((screen_transform_buffer[i].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
-		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
-		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
-		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
-}
+transVerts[0]+= sct->nbTileVert;
+//	int		inverseZ = 0;
+//for(unsigned int i = 0; i < sct->nbTileVert; i++)
+//{
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////Vertice 3D Transformation
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//		//Vertex ID aliasing
+//		int * v = sct->tvtbl[i];
+//        /**calculate z**/
+//        screen_transform_buffer[i].pnt[Z] = trans_pt_by_component(v, m2z);
+//		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
+//		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
+//         /**Starts the division**/
+//      //  SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+//
+//        /**Calculates X and Y while waiting for screenDist/z **/
+//        sub_transform_buffer[i][Y] = trans_pt_by_component(v, m1y);
+//        sub_transform_buffer[i][X] = trans_pt_by_component(v, m0x);
+//		
+//        /** Retrieves the result of the division **/
+//		//inverseZ = *DVDNTL;
+//		inverseZ = zTable[(screen_transform_buffer[i].pnt[Z]>>16)];
+//		//inverseZ = fxdiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+//        /**Transform X and Y to screen space**/
+//       // screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
+//       // screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
+//        screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
+//        screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
+// 
+//        //Screen Clip Flags for on-off screen decimation
+//		screen_transform_buffer[i].clipFlag = ((screen_transform_buffer[i].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
+//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
+//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
+//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+//}
+	clip_settings[5] = (unsigned int)&mmtx[0];
+	asm(
+	"mov.w @(8,%[sct]),r0;" //Move sct->nbTileVert to r0. Used as loop count. (Decrement method)
+	"mov r0,r1;"		//move sct->nbTileVert to r1 in preparation for address offset calculation in sct->tvtbl[i]
+	"mov #12,r8;"		//Move #12 to r8 in preparation for address offset calculation in sct->tvtbl (12 bytes per entry)
+	"mulu.w r8,r1;"		//Multiply, 16-bit, unsigned #12 by r1 (number of vertices); 12 bytes offset
+	"sts macl,r1;"		//Move result back to r1 (clobber r1)
+	"mov.l @(40,%[sct]),r8;" //Move sct->tvtbl to r8 in preparation for calculation of sct->tvtbl[i]
+	"add r1,r8;"		//Add address offset in r1 to sct->tvtbl in r8 to get sct->tvtbl[sct->nbTileVert]
+	"mov r0,r1;"		//Move r0 to r1 for address calculation in screen_transform_buffer AND subdivided_points 
+	"shll2 r1;"
+	"shll2 r1;"
+	"mov r1,r2;"		//Move r1<<4 to r2 for address calculation for sub_transform_buffer; r1 is for screen_transform_buffer
+	"add %[scrn_pnts],r1;" //Add address of screen_transform_buffer to address offset in r1
+	"add %[sub_pnts],r2;" //Add address of sub_transform_buffer to address offset in r2
+	//A decrement must happen on the pointers, but NOT on the loop counter.
+	//The loop counts down from (sct->nbTileVert) to (0); when it equals zero, it will exit. So 0 is not included in the count.
+	//However, zero MUST be included in the processed quantities; e.g. screen_transform_buffer[0] and sub_transform_buffer[0] are valid,
+	//and in addition to that, screen_transform_buffer[sct->nbTileVert] and sub_transform_buffer[sct->nbTileVert.] are NOT valid.
+	//So if we just decrement the pointers by 1, we'll land at the right spot.
+	"add #-16,r1;" //screen_transform_buffer[i] = screen_transform_buffer[i-1]			
+	"add #-16,r2;" //sub_transform_buffer[i] = sub_transform_buffer[i-1]	
+	"add #-12,r8;" //sct->tvtbl[i] = sct->tvtbl[i-1]
+	"mov.l @(16,%[clpSet]),r4;" //Move SUBDIVISION_NEAR_PLANE to r4
+	"FORI:"
+	"mov.l @(20,%[clpSet]),r3;" //Move &mmtx[0] to r3 (from clpSet[5])
+	//I can use r5, r6, and r7 for the components
+	"clrmac;"		//Clear the accumulator
+	"mac.l @r3+,@r8+;" //mtx[0] * tvtbl[i][X] +
+	"mac.l @r3+,@r8+;" //mtx[1] * tvtbl[i][Y] +
+	"mac.l @r3+,@r8+;" //mtx[2] * tvtbl[i][Z] 
+	"sts mach,r5;"
+	"sts macl,r6;"		//(fixed point extraction from 64-bits)
+	"xtrct r5,r6;"		//new X vector in r6
+	"mov.l @r3+,r5;"	//move mtx[3] to r5
+	"add r5,r6;"		//add mtx[3] to X vector to get X position
+	"mov.l r6,@r2;"		//move to sub_transform_buffer[i][X]
+	"clrmac;"
+	"add #-12,r8;" //Reset the pointer in r8
+	"mac.l @r3+,@r8+;"	//mtx[4] * tvtbl[i][X] +
+	"mac.l @r3+,@r8+;"	//mtx[5] * tvtbl[i][Y] +
+	"mac.l @r3+,@r8+;"	//mtx[6] * tvtbl[i][Z] 
+	"sts mach,r5;"
+	"sts macl,r6;"		//(fixed point extraction from 64-bits)
+	"xtrct r5,r6;"		//new Y vector in r6
+	"mov.l @r3+,r5;"	//move mtx[7] to r5
+	"add r5,r6;"		//add mtx[7] to Y vector to get Y position
+	"mov.l r6,@(4,r2);"	//move to sub_transform_buffer[i][Y]
+	"clrmac;"
+	"add #-12,r8;" //Reset the pointer in r8
+	"mac.l @r3+,@r8+;"	//mtx[8] * tvtbl[i][X] +
+	"mac.l @r3+,@r8+;"	//mtx[9] * tvtbl[i][Y] +
+	"mac.l @r3+,@r8+;"	//mtx[10] * tvtbl[i][Z] 
+	"sts mach,r5;"
+	"sts macl,r6;"		//(fixed point extraction from 64-bits)
+	"xtrct r5,r6;"		//new Z vector in r6
+	"mov.l @r3+,r5;"	//move mtx[11] to r5
+	"add r5,r6;"		//add mtx[11] to Z vector to get Z position
+	"mov.l r6,@(8,r2);"	//move to sub_transform_buffer[i][Z]
+	
+	"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation
+	"mov.l @(8,r2),r3;" //Move sub_transform_buffer[i][Z] to r3
+
+	"cmp/gt r3,r4;" //If r4 > r3 (otherwise read as r3 < r4); if SUBDIVISION_NEAR_PLANE > pnt[Z]; T bit to 1
+	"bf GUDZA;" //If T bit is 0,jump to HIGHZ
+	"mov r4,r3;" //Set used Z in r3 to SUBDIVISION_NEAR_PLANE
+	"mov #16,r5;" //Move CLIP_Z (literal #16) to clipFlag
+	"GUDZA:"
+	
+	"mov.l r3,@(8,r1);" //Move sub_transform_buffer[i][Z] to screen_transform_buffer[i].pnt[Z] 
+	"shlr16 r3;" //Shift sub_transform_buffer[i][Z] right 16 times in preparation for calculation of address offset
+	"shll2 r3;" //Shift sub_transform_buffer[i][Z] left twice in calculation for address offset in zTbl
+	"add %[zTbl],r3;" //Add address of zTable to address offset in r3
+	"mov.l @r3,r6;" //Obtain inverse_z in r6
+	
+	"mov.l @r2,r7;" //Move sub_pnts[i][X] to r7
+	"dmuls.l r7,r6;" // pnt[X] * inverse_z -> MACH/MACL
+	"sts mach,r7;"	//we only want the upper 32 bits (screen coordinates)
+	"mov.l r7,@r1;" //Move pnt[X] to screen_transform_buffer.pnt[X]
+	
+	"mov.l @%[clpSet],r3;" //Move clpSet[0] to r3 (TV_HALF_WIDTH)
+	"cmp/gt r3,r7;" //Perform if(pnt[X] > TV_HALF_WIDTH), T = 1
+	"bf NOCLIPXA;" //If T = 0, do not clip X; jump ahead.
+	"mov #1,r3;" //Clobber R3; replace with constant #1 to represent SCRN_CLIP_X
+	"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
+	"NOCLIPXA:" //(Proceeding to test if X is < -TV_HALF_WIDTH)
+	"mov.l @(4,%[clpSet]),r3;" //Move -TV_HALF_WIDTH from clip_settings to r3
+	"cmp/gt r7,r3;" //Perform if(-TV_HALF_WIDTH > pnt[X]), T = 1
+	"bf NOCLIPNXA;" //If T = 0, do not clip NX; jump ahead.
+	"mov #2,r3;" //Clobber R3; replace with constant #2 to represent SCRN_CLIP_NX
+	"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
+	"NOCLIPNXA:"
+
+	"mov.l @(4,r2),r7;" //Move sub_pnts[i][Y] to r7
+	"dmuls.l r7,r6;" //pnt[Y] * inverse_z -> MACH/MACL
+	"sts mach,r7;" //get upper 32 bits of that operation (should not be more than 16, to be fair)
+	"mov.l r7,@(4,r1);"//Move pnt[Y] to screen_transform_buffer.pnt[Y]
+	
+	"mov.l @(8,%[clpSet]),r3;" //Move TV_HALF_HEIGHT from clpSet[2] to r3
+	"cmp/gt r3,r7;" //Perform if(pnt[Y] > TV_HALF_HEIGHT), T = 1
+	"bf NOCLIPYA;" //If T = 0, do not clip X; jump ahead.
+	"mov #4,r3;" //Clobber R3; replace with constant #4 to represent SCRN_CLIP_Y
+	"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
+	"NOCLIPYA:" //(Proceeding to test if Y is < -TV_HALF_HEIGHT)
+	"mov.l @(12,%[clpSet]),r3;"
+	"cmp/gt r7,r3;" //Perform if(-TV_HALF_HEIGHT > pnt[X]), T = 1
+	"bf NOCLIPNYA;" //If T = 0, do not clip NX; jump ahead.
+	"mov #8,r3;" //Clobber R3; replace with constant #8 to represent SCRN_CLIP_NY
+	"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
+	"NOCLIPNYA:"
+	
+	"mov.l r5,@(12,r1);" //Move clipFlag to screen_transform_buffer[i].clipFlag
+	"add #-16,r1;" //screen_transform_buffer[i] = screen_transform_buffer[i-1]
+	"add #-16,r2;" //sub_transform_buffer[i] = sub_transform_buffer[i-1]
+	"add #-24,r8;" //sct->tvtbl[i+1] = sct->tvtbl[i-1]
+	"dt r0;" //Decrement R0 (r0 = r0 - 1)
+	"bf FORI;" //In case R0 >= 0, branch to loop
+	"nop;"
+	: 																//OUT
+	:	[scrn_pnts] "p" (&screen_transform_buffer[0]), [sub_pnts] "p" (&sub_transform_buffer[0]), [zTbl] "p" (&zTable[0]), [sct] "p" (sct), [clpSet] "p" (&clip_settings[0]) //IN
+	:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "mach", "macl"										//CLOBBERS
+	); //5 input registers
+
+run_winder_prog(sct->nbTileVert, current_portal_count, (void*)&screen_transform_buffer[0]);
 
 //Draw Route:
 // Per Plane
@@ -1532,9 +1628,9 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
 		//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
 		int t_norm[3] = {0, 0, 0};
-		t_norm[0] = fxdot(mesh->nmtbl[alias], m0x);
-		t_norm[1] = fxdot(mesh->nmtbl[alias], m1y);
-		t_norm[2] = fxdot(mesh->nmtbl[alias], m2z);
+		t_norm[0] = fxdot(mesh->nmtbl[alias], &mmtx[0]);
+		t_norm[1] = fxdot(mesh->nmtbl[alias], &mmtx[4]);
+		t_norm[2] = fxdot(mesh->nmtbl[alias], &mmtx[8]);
 		int tdot = fxdot(t_norm, sub_transform_buffer[sct->tltbl[sct->plStart[p]].vertices[0]]);
 		if(tdot > 0) continue;
 	} else {
@@ -1558,20 +1654,37 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	
 	for(unsigned int i = 0; i < sct->nbTile[p]; i++)
 	{
-		int tile = sct->plStart[p] + i;
+		_quad * tile = &sct->tltbl[sct->plStart[p] + i];
 		//////////////////////////////////////////////////////////////
 		// Load the points
 		// These use aliased polygons in the sector because they deal with memory in the transform buffer.
+		// This is a small optimization to avoid doing the address calculation for each point multiple times
 		//////////////////////////////////////////////////////////////
-		vids[0] = sct->tltbl[tile].vertices[0];
-		vids[1] = sct->tltbl[tile].vertices[1];
-		vids[2] = sct->tltbl[tile].vertices[2];
-		vids[3] = sct->tltbl[tile].vertices[3];
+		ptv[0] = &screen_transform_buffer[tile->vertices[0]];
+		ptv[1] = &screen_transform_buffer[tile->vertices[1]];
+		ptv[2] = &screen_transform_buffer[tile->vertices[2]];
+		ptv[3] = &screen_transform_buffer[tile->vertices[3]];
+
+		//////////////////////////////////////////////////////////////
+		// This looks ugly, but I'm surprised it works... this is pretty efficient.
+		// (Hypothetically, anyway; that address calculation is probably pretty ugly)
+		volatile int * flag0 = (volatile int *)(((unsigned int)&ptv[0]->clipFlag)|UNCACHE);
+		volatile int * flag1 = (volatile int *)(((unsigned int)&ptv[1]->clipFlag)|UNCACHE);
+		volatile int * flag2 = (volatile int *)(((unsigned int)&ptv[2]->clipFlag)|UNCACHE);
+		volatile int * flag3 = (volatile int *)(((unsigned int)&ptv[3]->clipFlag)|UNCACHE);
+		volatile int check;
+		do{
+			check = *flag0 & *flag1 & *flag2 & *flag3;
+			__asm__("nop;");
+		}while((!(check & DSP_CLIP_CHECK)) && *current_portal_count);
 		
-		if(screen_transform_buffer[vids[0]].clipFlag
-		& screen_transform_buffer[vids[1]].clipFlag
-		& screen_transform_buffer[vids[2]].clipFlag
-		& screen_transform_buffer[vids[3]].clipFlag) continue;
+		//If the tile is off-screen, don't draw it or any part of it.
+		if(check & JUST_CLIP_FLAGS) continue;
+		
+		stv[0] = &sub_transform_buffer[tile->vertices[0]][X];
+		stv[1] = &sub_transform_buffer[tile->vertices[1]][X];
+		stv[2] = &sub_transform_buffer[tile->vertices[2]][X];
+		stv[3] = &sub_transform_buffer[tile->vertices[3]][X];
 		
 		//At this point, we know we have at least four vertices.
 		sub_vert_cnt = 4;
@@ -1579,43 +1692,41 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		sub_poly_cnt = 1;	
 		
 		subdivided_polygons[0][0] = 0;
-		subdivided_points[0][X] = sub_transform_buffer[vids[0]][X];
-		subdivided_points[0][Y] = sub_transform_buffer[vids[0]][Y];
-		subdivided_points[0][Z] = sub_transform_buffer[vids[0]][Z];
-	
+		subdivided_points[0][X] = stv[0][X];
+		subdivided_points[0][Y] = stv[0][Y];
+		subdivided_points[0][Z] = stv[0][Z];
+		
 		subdivided_polygons[0][1] = 1;
-		subdivided_points[1][X] = sub_transform_buffer[vids[1]][X];
-		subdivided_points[1][Y] = sub_transform_buffer[vids[1]][Y];
-		subdivided_points[1][Z] = sub_transform_buffer[vids[1]][Z];
+		subdivided_points[1][X] = stv[1][X];
+		subdivided_points[1][Y] = stv[1][Y];
+		subdivided_points[1][Z] = stv[1][Z];
 		
 		subdivided_polygons[0][2] = 2;
-		subdivided_points[2][X] = sub_transform_buffer[vids[2]][X];
-		subdivided_points[2][Y] = sub_transform_buffer[vids[2]][Y];
-		subdivided_points[2][Z] = sub_transform_buffer[vids[2]][Z];
+		subdivided_points[2][X] = stv[2][X];
+		subdivided_points[2][Y] = stv[2][Y];
+		subdivided_points[2][Z] = stv[2][Z];
 		
 		subdivided_polygons[0][3] = 3;
-		subdivided_points[3][X] = sub_transform_buffer[vids[3]][X];
-		subdivided_points[3][Y] = sub_transform_buffer[vids[3]][Y];
-		subdivided_points[3][Z] = sub_transform_buffer[vids[3]][Z];
+		subdivided_points[3][X] = stv[3][X];
+		subdivided_points[3][Y] = stv[3][Y];
+		subdivided_points[3][Z] = stv[3][Z];
 			
-		int min_z = JO_MIN(JO_MIN(subdivided_points[0][Z], subdivided_points[1][Z]),
-				JO_MIN(subdivided_points[2][Z], subdivided_points[3][Z]));
-
+		register int min_z = JO_MIN(JO_MIN(stv[0][Z], stv[1][Z]), JO_MIN(stv[2][Z], stv[3][Z]));
 		if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 		{
 			//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
-			ssh2VertArea[0].pnt[X] = screen_transform_buffer[vids[0]].pnt[X];
-			ssh2VertArea[0].pnt[Y] = screen_transform_buffer[vids[0]].pnt[Y];
-			ssh2VertArea[0].pnt[Z] = screen_transform_buffer[vids[0]].pnt[Z];
-			ssh2VertArea[1].pnt[X] = screen_transform_buffer[vids[1]].pnt[X];
-			ssh2VertArea[1].pnt[Y] = screen_transform_buffer[vids[1]].pnt[Y];
-			ssh2VertArea[1].pnt[Z] = screen_transform_buffer[vids[1]].pnt[Z];
-			ssh2VertArea[2].pnt[X] = screen_transform_buffer[vids[2]].pnt[X];
-			ssh2VertArea[2].pnt[Y] = screen_transform_buffer[vids[2]].pnt[Y];
-			ssh2VertArea[2].pnt[Z] = screen_transform_buffer[vids[2]].pnt[Z];
-			ssh2VertArea[3].pnt[X] = screen_transform_buffer[vids[3]].pnt[X];
-			ssh2VertArea[3].pnt[Y] = screen_transform_buffer[vids[3]].pnt[Y];
-			ssh2VertArea[3].pnt[Z] = screen_transform_buffer[vids[3]].pnt[Z];
+			ssh2VertArea[0].pnt[X] = ptv[0]->pnt[X];
+			ssh2VertArea[0].pnt[Y] = ptv[0]->pnt[Y];
+			ssh2VertArea[0].pnt[Z] = ptv[0]->pnt[Z];
+			ssh2VertArea[1].pnt[X] = ptv[1]->pnt[X];
+			ssh2VertArea[1].pnt[Y] = ptv[1]->pnt[Y];
+			ssh2VertArea[1].pnt[Z] = ptv[1]->pnt[Z];
+			ssh2VertArea[2].pnt[X] = ptv[2]->pnt[X];
+			ssh2VertArea[2].pnt[Y] = ptv[2]->pnt[Y];
+			ssh2VertArea[2].pnt[Z] = ptv[2]->pnt[Z];
+			ssh2VertArea[3].pnt[X] = ptv[3]->pnt[X];
+			ssh2VertArea[3].pnt[Y] = ptv[3]->pnt[Y];
+			ssh2VertArea[3].pnt[Z] = ptv[3]->pnt[Z];
 			//We only need to set one clip flag to prevent it from being decimated.
 			//We already know the polygon is on-screen from earlier.
 			ssh2VertArea[0].clipFlag = 0;
@@ -1733,7 +1844,7 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			transVerts[0] += sub_vert_cnt;
 		//Subdivision activation end stub
 		}
-		
+
 		///////////////////////////////////////////
 		//
 		// Z-sort Insertion & Command Arrangement of Polygons
@@ -1754,7 +1865,7 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			ptv[1] = &ssh2VertArea[subdivided_polygons[j][1]];
 			ptv[2] = &ssh2VertArea[subdivided_polygons[j][2]];
 			ptv[3] = &ssh2VertArea[subdivided_polygons[j][3]];
-			int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
+			int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag & JUST_CLIP_FLAGS);
 			if(offScrn) continue;
 			///////////////////////////////////////////
 			// Z-Sorting Stuff	
@@ -1808,7 +1919,6 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	}
 
 }
-
 
 }
 

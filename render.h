@@ -53,9 +53,9 @@
 #define SCRN_CLIP_NY	(1<<3)
 #define SCRN_CLIP_FLAGS	(0xF)
 #define CLIP_Z 			(1<<4)
-#define LOW_Z 			(1<<5)
 #define DSP_CLIP_IN		(0x1FF)
-#define DSP_CLIP_CHECK	(0x100)
+#define DSP_CLIP_CHECK	(0x100) //When the DSP performs portal processing, ALL processed vertices will receive this flag.
+#define JUST_CLIP_FLAGS	(0xFF)
 
 #define CLIP_TO_SCRN_X(xcoord) ((xcoord > TV_HALF_WIDTH) ? TV_HALF_WIDTH : (xcoord < -TV_HALF_WIDTH) ? -TV_HALF_WIDTH : xcoord)
 #define CLIP_TO_SCRN_Y(ycoord) ((ycoord > TV_HALF_HEIGHT) ? TV_HALF_HEIGHT : (ycoord < -TV_HALF_HEIGHT) ? -TV_HALF_HEIGHT : ycoord)
@@ -66,10 +66,11 @@
 
 #define MAX_SPRITES (64)
 
-#define MAX_SCENE_PORTALS	(8)
-#define MAX_USED_PORTALS	(2)
+#define MAX_SCENE_PORTALS	(12)
+#define MAX_USED_PORTALS	(6)
 
 #define SUBDIVISION_SCALE (64)
+#define SUBDIVISION_NEAR_PLANE (15<<16)
 
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
@@ -107,11 +108,6 @@ Render data flags:
 	#define GV_FLIP_HV			(0x30)
 	#define GET_SORT_DATA(n)	(n & 0xC0)
 	#define GET_FLIP_DATA(n)	(n & 0x30)
-	
-	//Speicl Flags. These flags do NOT imply the combination of the individual flags.
-	//Instead, something special happens when all of these conditions are met.
-	//Case 1: Will remove polygons of the heightmap below these polygons, if they are facing Y+, on map load.
-	#define GV_SPECIAL_FLAG_UNRENDER_MAP	(GV_FLAG_DARK | GV_FLAG_MESH | GV_FLAG_POLYLINE | GV_FLAG_NDIV)
 	
 	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
 	#define PORTAL_OR_OCCLUDE	(1<<1)	//Portal IN or OUT setting (portal or occluder). 1 = portal. 0 = occluder.
@@ -248,8 +244,6 @@ typedef struct
 
 extern _portal scene_portals[MAX_SCENE_PORTALS];
 extern _portal used_portals[MAX_USED_PORTALS];
-extern short current_portal_count;
-extern short portal_reset;
 extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;
@@ -272,6 +266,8 @@ extern int * msh2SentPolys;
 extern int * transVerts;
 extern int * transPolys;
 extern int * timeComm;
+extern int * current_portal_count;
+extern int * masterIsDoneDrawing;
 extern paletteCode * pcoTexDefs;
 
 extern point_light * active_lights;
@@ -318,6 +314,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
+void	collect_portals_from_sector(_sector * sct);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	depth_cueing(int * depth, int * cue);

@@ -210,7 +210,22 @@ void	shadow_draw(int draw_mode)
 
 void	obj_draw_queue(void)
 {
-
+	/////////////////////////////////////////////////////////
+	// Pre-loop portal processing
+	////////////////////////////////////////////////////////
+	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
+	{
+		if(entities[objDRAW[i]].type != MODEL_TYPE_SECTORED) continue;
+		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
+		for(int s = 0; s < nearSectorCt; s++)
+		{
+			slPushMatrix();
+			collect_portals_from_sector(&sectors[drawSectorList[s]]);
+			slPopMatrix();
+		}
+	}
+	
+	
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
@@ -222,7 +237,7 @@ void	obj_draw_queue(void)
 	slPushMatrix();
 	
 		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
-	
+
 		switch(entities[objDRAW[i]].type)
 		{
 			case(MODEL_TYPE_BUILDING):
@@ -232,7 +247,7 @@ void	obj_draw_queue(void)
 			for(int s = 0; s < nearSectorCt; s++)
 			{
 				slPushMatrix();
-				draw_sector(&entities[objDRAW[i]], &sectors[nearSectorList[s]]);
+				draw_sector(&entities[objDRAW[i]], &sectors[drawSectorList[s]]);
 				slPopMatrix();
 			}
 			break;
@@ -278,17 +293,18 @@ void	obj_draw_queue(void)
 		}
 	}
 	
-	
 }
 
-void	object_draw(void)
+void	scene_draw(void)
 {
 	*timeComm = 0;
+	frame_render_prep();
 	/////////////////////////////////////////////
 	// Important first-step
 	// Sometimes the master will finish preparing the drawing list while the slave is working on them.
 	// That would normally break the work flow and make some entities disappear.
 	// To prevent that, we capture the to-draw lists at the start of the Slave's workflow to a list that the Master does not edit.
+	// (i need to do the same with the sprite work list)
 	/////////////////////////////////////////////
 	for(int i = 0; i < objUP; i++)
 	{
@@ -297,6 +313,10 @@ void	object_draw(void)
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		DBBs[i] = RBBs[i];
+	}
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		drawSectorList[i] = nearSectorList[i];
 	}
 
 	computeLight();
@@ -322,6 +342,16 @@ void	object_draw(void)
 	}
 	slPopMatrix();
 	
+	///////////////////////////////////////////////////////////////////////////////////////////
+	// Important Wait-Synch-Loop
+	// If master SH2 is not done drawing, don't continue on to sorting its work.
+	// If it however IS done drawing, beak the nop loop and sort its output in the Zbuffer.
+	do
+	{
+		__asm__("nop;");
+	} while(!(*masterIsDoneDrawing));
+	
+	sort_master_polys();
 }
 
 void	background_draw(void)
@@ -393,17 +423,9 @@ void	master_draw(void)
 
 	time_at_start = get_time_in_frame();
 
-	if(!you.inMenu)
-	{
-		
-	slSlaveFunc(object_draw, 0); //Get SSH2 busy with its drawing stack ASAP
-	slCashPurge();
-
-	interim_time = get_time_in_frame();
-	
 	background_draw();
 	player_animation();
-
+	interim_time = get_time_in_frame();
 	//
 	player_draw(DRAW_MASTER);
 	shadow_draw(DRAW_MASTER);
@@ -419,7 +441,7 @@ void	master_draw(void)
 		controls();
 		player_phys_affect();
 		player_collision_test_loop();
-		//
+	//
 	extra_time = get_time_in_frame() - interim_time;
 	
 	interim_time = get_time_in_frame();
@@ -427,21 +449,13 @@ void	master_draw(void)
 	light_control_loop(); //lit
 	object_control_loop(you.dispPos);
 	time_of_object_management = get_time_in_frame() - interim_time;
-	slSlaveFunc(sort_master_polys, 0);
+	*masterIsDoneDrawing = 1;
 		//
-	} else if(you.inMenu)
-	{
-		start_menu();
-		//
-		slSlaveFunc(sort_master_polys, 0);
-		//
-	}
 	
 	//Oh, right, this...
 	//I was intending on integrating some sort of process-based loop on these.
 	//Oh well...
 	clean_sprite_animations();
-	// start_texture_animation(&check, &entities[18]);
 	operate_texture_animations();
 
 	time_at_end = get_time_in_frame();
@@ -454,27 +468,25 @@ void	master_draw(void)
 	
 	if(viewInfoTxt == 1)
 	{
-	nbg_sprintf_decimal(34, 7, time_at_start);
-	nbg_sprintf_decimal(34, 8, time_of_master_draw);
-	nbg_sprintf_decimal(34, 9, time_of_object_management);
-	nbg_sprintf_decimal(34, 10, extra_time);
-	nbg_sprintf_decimal(34, 11, time_at_end);
-	nbg_sprintf(29, 6, "MSH2:");
-	nbg_sprintf(29, 7, "Strt:");
-	nbg_sprintf(29, 8, "Map:");
-	nbg_sprintf(29, 9, "Objs:");
-	nbg_sprintf(29, 10, "Ext:");
-	nbg_sprintf(29, 11, "End:");
+		nbg_sprintf_decimal(34, 7, time_at_start);
+		nbg_sprintf_decimal(34, 8, time_of_master_draw);
+		nbg_sprintf_decimal(34, 9, time_of_object_management);
+		nbg_sprintf_decimal(34, 10, extra_time);
+		nbg_sprintf_decimal(34, 11, time_at_end);
+		nbg_sprintf(29, 6, "MSH2:");
+		nbg_sprintf(29, 7, "Strt:");
+		nbg_sprintf(29, 8, "Map:");
+		nbg_sprintf(29, 9, "Objs:");
+		nbg_sprintf(29, 10, "Ext:");
+		nbg_sprintf(29, 11, "End:");
+		
+		while(!*timeComm){
+			if(get_time_in_frame() >= (50<<16)) break;
+		};
+		time_at_ssh2_end = get_time_in_frame();
+		nbg_sprintf_decimal(34, 12, time_at_ssh2_end);
+		nbg_sprintf(29, 12, "SSH2:");
 	
-	while(!*timeComm){
-		if(get_time_in_frame() >= (50<<16)) break;
-	};
-	time_at_ssh2_end = get_time_in_frame();
-	nbg_sprintf_decimal(34, 12, time_at_ssh2_end);
-	nbg_sprintf(29, 12, "SSH2:");
-	
-	if(!you.inMenu)
-	{
 		avg_samples++;
 		int inversion = fxdiv(1<<16, avg_samples<<16);
 		rolling_avg_msh2 -= fxm(rolling_avg_msh2, inversion);
@@ -486,15 +498,11 @@ void	master_draw(void)
 		nbg_sprintf_decimal(34, 15, rolling_avg_ssh2);
 		nbg_sprintf(29, 14, "CPU0:");
 		nbg_sprintf(29, 15, "CPU1:");
-	}
-	
+
 	} else {
-		if(!you.inMenu)
-		{
 		rolling_avg_msh2 = time_at_end;
 		rolling_avg_ssh2 = time_at_ssh2_end;
 		avg_samples = 0;
-		}
 	}
 }
 

@@ -14,6 +14,14 @@ Sector-based engine has been implemented in its first steps.
 when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
 I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
 
+so i have to say:
+portals will not be included in a sector's polygon list; this is a powerful part of processing the sectors from a mesh
+the portals will instead be entered into a portal list per sector
+that way the drawing routine won't touch them, and we know exactly where they are quickly
+so we've done that
+the next step is to get the portals from all sectors in scene and add them to the active portal lists
+then we can start clipping by the portal, maybe
+
 I also need to implement point lights / dynamic lights back in.
 
 I also need to test \ implement actors in the sector system.
@@ -232,19 +240,21 @@ void	load_test(void)
 
 void	game_frame(void)
 {
-	
-	// nbg_sprintf(2, 9, "ax(%i)", apd1.ax);
-	// nbg_sprintf(2, 10, "ay(%i)", apd1.ay);
-	// nbg_sprintf(2, 11, "lt(%i)", apd1.lta);
-	// nbg_sprintf(2, 12, "rt(%i)", apd1.rta);
+	*masterIsDoneDrawing = 0;
+	update_gamespeed();
+	master_draw_stats();
 
+	slSlaveFunc(scene_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 	
-	update_gamespeed();
 	maintRand();
-	master_draw_stats();
-	frame_render_prep();
-	master_draw(); 
+	if(!you.inMenu)
+	{
+		master_draw(); 
+	} else {
+		start_menu();
+		*masterIsDoneDrawing = 1;
+	}
 	operate_stage_music();
 	reset_pad(&pad1);
 
@@ -253,7 +263,6 @@ void	game_frame(void)
 	{
 		SYS_Exit(0);
 	}
-
 }
 
 void	my_vlank(void)

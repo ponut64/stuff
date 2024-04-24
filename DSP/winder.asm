@@ -7,20 +7,15 @@
 	;------------------------------------------------------------------------ P64 PROGRAM ADDRESS HEADER
 														mov 0,ct1
 	MVI INPUT,MC1													;	CT1 = 0
-	MVI VERTTBL,MC1													;	CT1 = 1
-	MVI PORTTBL,MC1													;	CT1 = 2
-	MVI REPORT,MC1													;	CT1 = 3
-														mov 0,ct1	;	CT1 = 4
+														mov 0,ct1	;	CT1 = 1
 										mov mc1,a		mov 60,ct3	;	CT1 = 0
-	sl									mov alu,a					;	CT1 = 1, CT3 = 60
-														mov all,ra0
-										mov mc1,a		mov all,mc3 ;	
-	sl									mov alu,a		mov 0,ct2	;	CT1 = 2, CT3 = 61
-										mov mc1,a		mov all,mc3	;		
-	sl									mov alu,a		mov 0,ct0	;	CT1 = 3, CT3 = 62
-										mov mc1,a		mov all,mc3 ;	
-	sl									mov alu,a		mov 0,ct1	;	CT1 = 4, CT3 = 63
-														mov all,mc3	;
+	sl									mov alu,a		mov 0,ct2	;	CT1 = 1, CT3 = 60
+														mov all,ra0 ;	Move the address portion of the arguments' address to RA0
+	mvi #3,PL														;   Add 3 to this address to get to function arguments address
+	add									mov alu,a		mov 0,ct0	;
+														mov all,mc3 ;	CT0 = 0, Function arguments address to RAM3 60
+	DMA2 d0,mc3,3													;	CT3 = 61 DMA with address increment will be used
+																	;	CT3 = 62,63,?? ; RA0 is now at function arguments
 	;------------------------------------------------------------------------ CT3 = ??
 	; RAM3 58: Copy of vertex address
 	; RAM3 59: Temporary copy of portal address
@@ -37,8 +32,8 @@
 	;	// Post-transformed vertice data struct
 	;	//////////////////////////////////
 	;	typedef struct {
-	;		POINT  pnt;
-	;		int clipFlag;
+	;	POINT  pnt;
+	;	int clipFlag;
 	;	} vertex_t; //16 bytes each
 	;	//////////////////////////////////
 	;	// Basic Portal/Occluder Stuff
@@ -140,6 +135,7 @@
 															; CT0 = 1 ; Result to RAM0[0] ; 
 	;	---------------------------------------------------------------------
 	;	DMA in vertex_t[i]. Four units ( 16 bytes ).
+	;	This is to: RAM2[0] - RAM2[3]
 	;	---------------------------------------------------------------------
 	DMAH2 D0,MC2,4
 	;	---------------------------------------------------------------------
@@ -185,7 +181,7 @@
 								mov m1,a	
 	and							
 	jmp Z,REPORTAL
-	nop										
+											mov 12,ct1
 	;	---------------------------------------------------------------------
 	;	8. Check vertex against portal.
 	;	Check the vertex' depth against the portal's depth.

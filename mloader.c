@@ -32,6 +32,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 	sectors[INVALID_SECTOR].nbPoint = 0;
 	sectors[INVALID_SECTOR].nbPolygon = 0;
 	sectors[INVALID_SECTOR].nbAdjacent = 0;
+	sectors[INVALID_SECTOR].nbPortal = 0;
 	sectors[INVALID_SECTOR].ent = ent;
 	
 	//Complicated. The idea is that each sector must have a coherent list built for it.
@@ -45,6 +46,8 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		{
 			plane_sector = mesh->attbl[i].first_sector;
 			if(plane_sector != k) continue;
+			//If this is a portal, don't add it to the polygon list. It's added elsewhere.
+			if(mesh->attbl[i].render_data_flags & GV_FLAG_PORTAL) continue;
 			
 			sectors[k].pltbl[sectors[k].nbPolygon] = i;
 			sectors[k].nbPolygon++;			
@@ -159,6 +162,26 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		sectors_made++;
 		sectored_polygons += sectors[k].nbPolygon;
 		sectored_verts += sectors[k].nbPoint;
+	}
+	
+	//For address management purposes, we're going to do a very similar loop again.
+	//In this case, we're looking specifically for the portals.
+	writeAddress = align_4(writeAddress);
+	for(unsigned int k = 0; k < MAX_SECTORS; k++)
+	{
+		sectors[k].nbPortal = 0;
+		sectors[k].portals = (unsigned short *)writeAddress;
+		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+		{
+			plane_sector = mesh->attbl[i].first_sector;
+			if(plane_sector != k) continue;
+			//If this is NOT a portal, we do not want to concern ourselves with it right now. Don't add it.
+			if(!(mesh->attbl[i].render_data_flags & GV_FLAG_PORTAL)) continue;
+			
+			sectors[k].portals[sectors[k].nbPortal] = i;
+			sectors[k].nbPortal++;			
+		}
+	writeAddress+= sectors[k].nbPortal * sizeof(unsigned short);
 	}
 
 	nbg_sprintf(1, 7, "sct(%i),ply(%i),vts(%i)", sectors_made, sectored_polygons, sectored_verts);

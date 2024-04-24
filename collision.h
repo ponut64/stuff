@@ -7,6 +7,7 @@
 
 extern int boxDisField[6];
 extern unsigned short nearSectorList[MAX_SECTORS];
+extern unsigned short drawSectorList[MAX_SECTORS];
 extern int nearSectorCt;
 
 void	init_box_handling(void);

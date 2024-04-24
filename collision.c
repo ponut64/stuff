@@ -20,6 +20,7 @@ int numBoxChecks = 0;
 int boxDisField[6];
 
 unsigned short nearSectorList[MAX_SECTORS];
+unsigned short drawSectorList[MAX_SECTORS];
 int nearSectorCt = 0;
 
 void	init_box_handling(void)
@@ -989,9 +990,10 @@ void	player_collision_test_loop(void)
 	
 	ldata_manager();
 	
-	nbg_sprintf(2, 4, "nearSectorCt:(%i)", nearSectorCt);
-	nbg_sprintf(2, 5, "curSector:(%i)", you.curSector);
-	nbg_sprintf(2, 6, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	// nbg_sprintf(2, 6, "nearSectorCt:(%i),portals:(%i)", nearSectorCt, sectors[you.curSector].nbPortal);
+	// nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	// nbg_sprintf(2, 8, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	
 	
 	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbAdjacent);
 	//for(int i = 0; i < sectors[you.curSector].nbAdjacent; i++)

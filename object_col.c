@@ -282,6 +282,7 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	{		
 		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
 		int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
+		if(mesh->attbl[alias].render_data_flags & GV_FLAG_PORTAL) continue;
 		if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
 		{
 			if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;
