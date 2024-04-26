@@ -275,7 +275,7 @@ void	collect_portals_from_sector(_sector * sct)
 		ptv[k] = &ssh2VertArea[k];
         /**calculate z**/
         ssh2VertArea[k].pnt[Z] = trans_pt_by_component(v, m2z);
-		ssh2VertArea[k].pnt[Z] = (ssh2VertArea[k].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[k].pnt[Z] : NEAR_PLANE_DISTANCE;
+		//ssh2VertArea[k].pnt[Z] = (ssh2VertArea[k].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[k].pnt[Z] : NEAR_PLANE_DISTANCE;
          /**Starts the division**/
       //  SetFixDiv(scrn_dist, ssh2VertArea[k].pnt[Z]);
 
@@ -335,7 +335,6 @@ void	collect_portals_from_sector(_sector * sct)
 		
 		current_portal_count[0]+=1;
 		//Todo: Sector delimits (stuff it doesn't apply to)?
-		
 	}
 }
 

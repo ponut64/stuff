@@ -27,7 +27,7 @@
 	; Opening WA0: Report
 	;------------------------------------------------------------------------
 	; Long-term purpose of this program:
-	; To work with the heightmap vertex struct and the portal struct to calculate if the vertices are in or out of the portal.
+	; To work with a sector-based engine to perform portal culling on the appropriate sectors
 	;	//////////////////////////////////
 	;	// Post-transformed vertice data struct
 	;	//////////////////////////////////
@@ -50,31 +50,26 @@
 	;	
 	;	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
 	;	#define PORTAL_OR_OCCLUDE	(1<<1)	//Portal IN or OUT setting (portal or occluder). 1 = portal. 0 = occluder.
+	;	Please take special note; this program does NOT read the PORTAL_OR_OCCLUDE flag. It will only perform portal functions.
+	;	No occlusion functions are performed in this program.
 	;	#define PORTAL_TYPE_BACK	(1<<2)	// Portal on back-facing (only used if portal facing away from camera), otherwise front facing
+	;	Please note this program DOES check if the portal is or isn't backfaced, and adjusts accordingly.
 	;	#define PORTAL_TYPE_DUAL	(1<<3)	// Portal on both front and back facing (portal always used if active)
 	;
-	;	Next steps:
-	;	Enabling multiple portals to be processed
-	;	There is not enough program RAM to facilitate loading multiple portals in to RAM and then using them in sequence.
-	;	In order to use multiple portals, they will have to be copied in multiple times via the DMA command from HWRAM.
-	;	This is unfortunate.
+	;	To portal with multiple portals at once, the program must always check if the vertex is IN and OUT.
+	;	If a vertex is IN the portal, it should NOT write any clipFlags, but it should write DSP_CLIP_CHECK (RAM0[2]).
 	;
 	;	Communication Input Layout:
 	;	DMA -> RAM0[0] -> # of vertices to clip
 	;	DMA -> RAM0[1] -> # of portals to use
-	;	DMA -> RAM0[2] -> Flag applied all vertices checked
-	;	DMA -> RAM0[3] -> Clip flag when clipped IN occluder
+	;	DMA -> RAM0[2] -> Flag applied all vertices checked	(DSP_CLIP_CHECK)
+	;	DMA -> RAM0[3] -> Clip flag when clipped IN occluder (unused)
 	;	DMA -> RAM0[4] -> Clip flag applied when clipped OUT of 0 -> 1 edge of portal
 	;	DMA -> RAM0[5] -> Clip flag applied when clipped OUT of 1 -> 2 edge of portal
 	;	DMA -> RAM0[6] -> Clip flag applied when clipped OUT of 2 -> 3 edge of portal
 	;	DMA -> RAM0[7] -> Clip flag applied when clipped OUT of 3 -> 0 edge of portal
 	;	
 	;	
-	;
-	;------------------------------------------------------------------------
-	;
-	; Note this program is running tandem with another DSP program.
-	; Because of that, nothing can be assumed zero or non-zero unless written to.
 	;
 	;------------------------------------------------------------------------
 	; Clear RAM3[30] to use as reporting data: reports the # of vertices marked as within the portal/occluder
@@ -120,6 +115,7 @@
 	; Vertex				->	RAM2[0] - RAM2[3]
 	; &vertex_t				->	RA0 (Read)
 	; &vertex_t.clipFlag	->	WA0	(Write)
+	; Vertex clip count		->	RAM1[20]
 	; -----------------------------------------------------------------------
 	;	CT0 = 0 ; CT1 = ?? ; CT2 = ?? CT3 = ?? ; All but CT0 are undefined.
 	;	1. Check vertex count; if zero, exit.
@@ -129,23 +125,27 @@
 					mov m0,p	clr a						; 
 	ad2							mov alu,a	mov 1,PL		; RAM0[0] in P as loop counter
 	jmp ZS,FOR_EXIT1										; RAM0[0] moved to A with AD2 instruction ; 1 in PL
-	nop														; If RAM0[0] was zero or negative, jump to loop exit	
-	sub							mov alu,a	mov 0,ct2		; (nop inserted for jump safety)
+	nop														; If RAM0[0] was zero or negative, jump to loop exit (Delayed Branch)
+	sub							mov alu,a	mov 0,ct2		; 
 								clr a		mov all,mc0		; CT2 = 0 ; Perform RAM0[0] - 1
 															; CT0 = 1 ; Result to RAM0[0] ; 
-	;	---------------------------------------------------------------------
+	;	----------------------------------------------------;
 	;	DMA in vertex_t[i]. Four units ( 16 bytes ).
 	;	This is to: RAM2[0] - RAM2[3]
 	;	---------------------------------------------------------------------
 	DMAH2 D0,MC2,4
 	;	---------------------------------------------------------------------
+	;	3-1. Copy vertex clip flag (RAM2[3]) to RAM1[21] but also apply DSP_CLIP_CHECK to it
 	;	3. Copy original portal count.
 	;	3a. Copy original portal adddress.
 	;	RAM0[1] : Portal count to test
 	;	RAM2[20] : Portal count for this vertex
 	;	RAM3[62] : Portal address
 	;	RAM3[59] : Copied portal address
-											mov 1,ct0
+											mov 3,ct2
+								mov m2,a	mov 21,ct1	; CT2 = 3
+											mov all,mc1 ; CT1 = 21
+											mov 1,ct0	; CT1 = 22 ; RAM2[3] -> RAM1[21]
 								mov m0,a	mov 20,ct2	; CT0 = 1
 											mov all,mc2	; CT2 = 20
 											mov 62,ct3	; CT2 = 21
@@ -180,18 +180,10 @@
 	mvi PORTAL_ACTIVE,PL									; CT1 = 13
 								mov m1,a	
 	and							
-	jmp Z,REPORTAL
-											mov 12,ct1
-	;	---------------------------------------------------------------------
-	;	8. Check vertex against portal.
-	;	Check the vertex' depth against the portal's depth.
-	;	If the vertex Z is lower than the portal's Z (read: nearer to camera), cease the test.
-	;	point[Z] = RAM2[2]
-	;	portal[i].depth = RAM1[12]
-											mov 2,ct2	; CT1 = 12
-					mov m1,p	mov m2,a				; CT2 = 2
-	sub							mov alu,a	mov 1,ct2	;
-	jmp S,UNCLIPPED										; CT2 = 1
+	jmp Z,REPORTAL										
+											mov 20,ct1		; 
+	mvi #0,mc1												; CT1 = 20
+															; #0 to RAM1[20] as EDGE_IN count
 	;	---------------------------------------------------------------------
 	;	Chirality check maths
 	;
@@ -210,6 +202,7 @@
 	;	RAM3[2], side
 	;	---------------------------------------------------------------------
 	TEST_01:
+											mov 1,ct2	; (Delayed Branch)
 							mov m2,a		mov 4,ct2	; CT2 = 1
 											mov all,mc2	; CT2 = 4 ; RAM2[1] to A (pointY)
 											mov 0,ct1	; CT2 = 5 ; RAM2[1] from A to RAM2[4] (pointY)
@@ -227,29 +220,27 @@
 							clr a			mov all,mc1 ; CT1 = 18 ; RAM2[0] to A (pointX)
 	mvi 1,LOP											; CT1 = 19 ; RAM2[0] from A to RAM1[18] (pointX)
 	mvi CHIRALITY_ONE_SIDE,PC							; Jump to subroutine (note: DO NOT USE `jmp` instruction)
-														; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
-	;	Next: Check the portal's clip OUT or clip IN setting.
-	;	RAM1[13] -> Portal settings, bit 9: 0 is clip IN (occlude), 1 is clip OUT (portal)
-	;	DMA -> RAM0[4] -> Clip flag applied when clipped OUT of 0 -> 1 edge of portal
-							mov m1,a
-	mvi PORTAL_OR_OCCLUDE,PL
-	and
-	jmp Z,OCCLUDE_01
+	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
+	; -----------------------------------------------------------------------
+	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 4,ct0	
-	jmp NS,TEST_12
+	jmp NS,IN_01
 	nop										mov 3,ct2	; CT0 = 4 (clip flag for OUT of 0->1)
-				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
-	or						mov alu,a		
-											mov all,mc2
-	jmp TEST_12											; CT2 = 4
-	OCCLUDE_01:
+				mov m0,p	mov m2,a					;
+	or						mov alu,a					;
+											mov all,mc2 ; PL = 1
+	IN_01:
 	; -----------------------------------------------------------------------
-	;	Next: If RAM3[2] is < 0, jump to UNCLIPPED.
-	;	If RAM3[2] is >= 0, set-up and test p1 -> p2.
-				mov m3,p	clr a			
-	ad2						mov alu,a		
-	jmp S,UNCLIPPED
+	;	Next: If RAM3[2] is < 0, jump to set-up and test p1 -> p2..
+	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
+				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
+	ad2						mov alu,a		mov 1,PL	; CT1 = 20
+	jmp ZS,TEST_12
+	nop						mov m1,a					; PL = 1 (delayed branch)
+	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
+											mov all,mc1 ; EDGE_IN+1
+														; EDGE_IN+1 to RAM1[20]
 	;	RAM2[4], pointY from RAM2[1]
 	;	RAM2[5], edgeAX	from RAM1[3]
 	;	RAM2[6], edgeBY from RAM1[7]
@@ -270,28 +261,27 @@
 											mov all,mc1	; CT1 = 17 ; RAM1[6] to A (p2[X])
 	mvi 1,LOP											; CT1 = 18  ; RAM1[6] from A to RAM1[17] (p2[X])
 	mvi CHIRALITY_ONE_SIDE,PC							; Jump to subroutine (note: DO NOT USE `jmp` instruction)
-	;	Next: Check the portal's clip OUT or clip IN setting.
-	;	RAM1[13] -> Portal settings, bit 9: 0 is clip IN (occlude), 1 is clip OUT (portal)
-	;	DMA -> RAM0[5] -> Clip flag applied when clipped OUT of 1 -> 2 edge of portal
-							mov m1,a
-	mvi PORTAL_OR_OCCLUDE,PL
-	and
-	jmp Z,OCCLUDE_12
+	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
+	; -----------------------------------------------------------------------
+	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 5,ct0	
-	jmp NS,TEST_23
+	jmp NS,IN_12
 	nop										mov 3,ct2	; CT0 = 5 (clip flag for OUT of 1->2)
-				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
-	or						mov alu,a		
-											mov all,mc2
-	jmp TEST_23
-	OCCLUDE_12:
+				mov m0,p	mov m2,a					;
+	or						mov alu,a					;
+											mov all,mc2 ; PL = 1
+	IN_12:
 	; -----------------------------------------------------------------------
-	;	Next: If RAM3[2] is < 0, jump to UNCLIPPED.
-	;	If RAM3[2] is >= 0, set-up and test p2 -> p3.
-				mov m3,p	clr a			
-	ad2						mov alu,a		
-	jmp S,UNCLIPPED
+	;	Next: If RAM3[2] is < 0, jump to set-up and test p2 -> p3..
+	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
+				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
+	ad2						mov alu,a		mov 1,PL	; CT1 = 20
+	jmp ZS,TEST_23
+	nop						mov m1,a					; PL = 1 (delayed branch)
+	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
+											mov all,mc1 ; EDGE_IN+1
+														; EDGE_IN+1 to RAM1[20]
 	;	RAM2[4], pointY from RAM2[1]
 	;	RAM2[5], edgeAX	from RAM1[6]
 	;	RAM2[6], edgeBY from RAM1[10]
@@ -312,28 +302,27 @@
 											mov all,mc1	; CT1 = 17 ; RAM1[9] to A (p3[X])
 	mvi 1,LOP											; CT1 = 18 ; RAM1[9] from A to RAM1[17] (p3[X])
 	mvi CHIRALITY_ONE_SIDE,PC							; Jump to subroutine (note: DO NOT USE `jmp` instruction)
-	;	Next: Check the portal's clip OUT or clip IN setting.
-	;	RAM1[13] -> Portal settings, bit 9: 0 is clip IN (occlude), 1 is clip OUT (portal)
-	;	DMA -> RAM0[6] -> Clip flag applied when clipped OUT of 2 -> 3 edge of portal
-							mov m1,a
-	mvi PORTAL_OR_OCCLUDE,PL
-	and
-	jmp Z,OCCLUDE_23
+	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
+	; -----------------------------------------------------------------------
+	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 6,ct0	
-	jmp NS,TEST_30
+	jmp NS,IN_23
 	nop										mov 3,ct2	; CT0 = 6 (clip flag for OUT of 2->3)
 				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
-	or						mov alu,a		
-											mov all,mc2
-	jmp TEST_30
-	OCCLUDE_23:
+	or						mov alu,a					; 
+											mov all,mc2 ;
+	IN_23:
 	; -----------------------------------------------------------------------
-	;	Next: If RAM3[2] is < 0, jump to UNCLIPPED.
-	;	If RAM3[2] is >= 0, set-up and test p3 -> p0.
-				mov m3,p	clr a			
-	ad2						mov alu,a		
-	jmp S,UNCLIPPED
+	;	Next: If RAM3[2] is < 0, jump to set-up and test p3 -> p0..
+	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
+				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
+	ad2						mov alu,a		mov 1,PL	; CT1 = 20
+	jmp ZS,TEST_30
+	nop						mov m1,a					; PL = 1 (delayed branch)
+	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
+											mov all,mc1 ; EDGE_IN+1
+														; EDGE_IN+1 to RAM1[20]
 	;	RAM2[4], pointY from RAM2[1]
 	;	RAM2[5], edgeAX	from RAM1[9]
 	;	RAM2[6], edgeBY from RAM1[1]
@@ -354,53 +343,39 @@
 											mov all,mc1	; CT1 = 17 ; RAM1[0] to A (p0[X])
 	mvi 1,LOP											; CT1 = 18 ; RAM1[0] from A to RAM1[17] (p0[X])
 	mvi CHIRALITY_ONE_SIDE,PC							; Jump to subroutine (note: DO NOT USE `jmp` instruction)
-	;	Next: Check the portal's clip OUT or clip IN setting.
-	;	RAM1[13] -> Portal settings, bit 9: 0 is clip IN (occlude), 1 is clip OUT (portal)
-	;	DMA -> RAM0[7] -> Clip flag applied when clipped OUT of 3 -> 0 edge of portal
-							mov m1,a
-	mvi PORTAL_OR_OCCLUDE,PL
-	and
-	jmp Z,OCCLUDE_30
+	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
+	; -----------------------------------------------------------------------
+	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 7,ct0	
-	jmp NS,UNCLIPPED
+	jmp NS,IN_30
 	nop										mov 3,ct2	; CT0 = 7 (clip flag for OUT of 3->0)
 				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
-	or						mov alu,a		
-											mov all,mc2
-	jmp UNCLIPPED
-	OCCLUDE_30:
+	or						mov alu,a					; 
+											mov all,mc2 ; 
+	IN_30:
 	; -----------------------------------------------------------------------
-	;	9. Apply clip flags if needed.
-	;	It should only DMA out at the CONTINUE step.
-	;	This is because the portals will apply stacking flip flags.
-	;	Next: If RAM3[2] is < 0, jump to UNCLIPPED.
-	;	If RAM3[2] is >= 0, all edges have passed the test (in case of clip IN).
-	;	We shall then mark RAM2[3] with the data DMA'd in at RAM0[3], and DMA it out. 
-	;	DMA8 cannot be used here as the offset is unknown.
-				mov m3,p	clr a			
-	ad2						mov alu,a		mov 3,ct0
-	jmp S,UNCLIPPED
-											mov 3,ct2
-				mov m0,p	mov m2,a
-	or						mov alu,a		mov 30,ct3
-							clr a			mov all,mc2
-	;	In this case, I also want to use, say, RAM3[30] to store the # of hits.
-	;	10. Go to step #4.
-							mov m3,a		mov 1,PL
-	ad2						mov alu,a		
-											mov all,mc3
-	jmp REPORTAL
-	UNCLIPPED:
-	;	In case the vertex is not clipped IN, mark the vertex as being checked with the data DMA'd in at RAM0[2], then continue.
-	;	This branch will also be reached by portals that clip OUT.
-	;	10. Go to step #4.
-											mov 3,ct2
-											mov 2,ct0
-				mov m0,p	mov m2,a
-	or						mov alu,a		
-							clr a			mov all,mc2
-	jmp REPORTAL			
+	;	Next: If RAM3[2] is < 0, well, it's not inside the portal at this point; we can just exit.
+	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
+				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
+	ad2						mov alu,a		mov 1,PL	; CT1 = 20
+	jmp ZS,REPORTAL
+	nop						mov m1,a					; PL = 1 (delayed branch)
+	add						mov alu,a		mov 4,PL	; RAM1[20] (EDGE_IN count) to A
+											mov all,mc1 ; EDGE_IN+1
+														; CT1 = 21 EDGE_IN+1 to RAM1[20]
+	; -----------------------------------------------------------------------
+	; Next: Check RAM1[20] to see if it is less than or equal to four.
+	; If it is equal to four, the vertex is INSIDE of the portal; it should NOT receive clip flags from portals.
+	; At this point, the EDGE_IN count is in the A register and 4 is in the P register; so we should be able to compare it now.
+	sub						mov alu,a
+	jmp S,REPORTAL
+	nop						
+							mov m1,a		mov 3,ct2
+	; At this point, we should know that the EDGE_IN count was 4 or greater than 4.
+	; Rather than continue to process more portals, we will overwrite RAM2[3] with the data in RAM1[21], the vertex' original clipFlag.
+	; Then, we will jump to process the next vertex.
+											mov all,mc2
 	CONTINUE:
 	;	---------------------------------------------------------------------
 	;	11. DMA out the clip flag after all portals have processed.
@@ -408,6 +383,13 @@
 	;	11b. Move vertex WRITE and vertex READ to RA0/WA0, respectively.
 	;	We must retrieve the output DMA address in RAM3[61] and add 4 to it then write it back.
 	;	We must also retrieve the vertex READ address (RAM3[58]), add 4 to it, then write it back.
+	;	Before we DMA out the clipFlag, we need to ensure we apply |= DSP_CLIP_CHECK to it.
+	; 	DSP_CLIP_CHECK is in RAM0[2].
+											mov 3,ct2
+											mov 2,ct0
+				mov m0,p	mov m2,a
+	or						mov alu,a		
+							clr a			mov all,mc2
 											mov 3,ct2
 	DMAH2 MC2,D0,1
 							clr a			mov 61,ct3

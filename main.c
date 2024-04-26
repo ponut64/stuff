@@ -15,12 +15,34 @@ when I finish a performant & functional version of the sector-based engine, I wa
 I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
 
 so i have to say:
-portals will not be included in a sector's polygon list; this is a powerful part of processing the sectors from a mesh
-the portals will instead be entered into a portal list per sector
-that way the drawing routine won't touch them, and we know exactly where they are quickly
-so we've done that
-the next step is to get the portals from all sectors in scene and add them to the active portal lists
-then we can start clipping by the portal, maybe
+first-pass / first-functional portal implementation is working
+now i need to adjust the calculation of the PVS to be aware of the portals
+
+a simple functional rule is that:
+if a sector has portals, all visibility into and outside of that sector must be through one of its portals
+this is a functional rule; the only problem with this rule is that it means basically every sector must have portals
+if any of them are to have portals.
+
+A more cost effective solution in human terms is antiportals;
+antiportals are all-encompassing blockers. They care not for which sector they belong to.
+If you need to look through an antiportal to see something, you shouldn't see it; end of story.
+The problem with antiportals is you need far more of them to accomplish the same task that can be done with one portal.
+It is not computationally efficient, even if it is more human-efficient; you need to place less of them.
+
+the hybrid solution:
+When building the primary adjacent list,
+a primary adjacent sector with any portals listed for it must be visible through those portals
+so long as the portals list the current sector as their border.
+If any portal lists the current sector as bordered, all portals apply.
+If no portals list the current sector as bordered, no portals apply.
+When using portals to look from outside of a sector to the inside of it, the portals should be invalidated if they are backfaced.
+I need to adjust the way the DSP program works so that it stores the original clip_flags of a vertex before portalling it.
+It will only apply the clip flags of the portal if the vertex is outside of **all** portals.
+When building the secondary adjacent list (PVS),
+
+
+
+How to make logic to facilitate this?
 
 I also need to implement point lights / dynamic lights back in.
 
