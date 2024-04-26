@@ -11,6 +11,8 @@ void	init_ztable(void)
 		zTable[i] = (sample);
 	}
 
+	// :)
+	zTable[0] = zTable[1];
 }
 
 void	init_lwram(void)

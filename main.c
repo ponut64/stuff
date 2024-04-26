@@ -18,29 +18,11 @@ so i have to say:
 first-pass / first-functional portal implementation is working
 now i need to adjust the calculation of the PVS to be aware of the portals
 
-a simple functional rule is that:
-if a sector has portals, all visibility into and outside of that sector must be through one of its portals
-this is a functional rule; the only problem with this rule is that it means basically every sector must have portals
-if any of them are to have portals.
-
-A more cost effective solution in human terms is antiportals;
-antiportals are all-encompassing blockers. They care not for which sector they belong to.
-If you need to look through an antiportal to see something, you shouldn't see it; end of story.
-The problem with antiportals is you need far more of them to accomplish the same task that can be done with one portal.
-It is not computationally efficient, even if it is more human-efficient; you need to place less of them.
-
-the hybrid solution:
-When building the primary adjacent list,
-a primary adjacent sector with any portals listed for it must be visible through those portals
-so long as the portals list the current sector as their border.
-If any portal lists the current sector as bordered, all portals apply.
-If no portals list the current sector as bordered, no portals apply.
-When using portals to look from outside of a sector to the inside of it, the portals should be invalidated if they are backfaced.
-I need to adjust the way the DSP program works so that it stores the original clip_flags of a vertex before portalling it.
-It will only apply the clip flags of the portal if the vertex is outside of **all** portals.
-When building the secondary adjacent list (PVS),
-
-
+Issues:
+When the portal's plane intersects the view plane, there are issues where whole sectors may stop rendering.
+This is the one valid case where it might be correct to disable all portals; or simply note that portal as intersecting,
+and therefore consider us close enough to draw both sectors the portal applies to without portals.
+This is a special exception case, but it needs to be done.
 
 How to make logic to facilitate this?
 

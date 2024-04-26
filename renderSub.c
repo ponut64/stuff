@@ -1373,12 +1373,13 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 // Warning: Assembly ahead
 // The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
 //////////////////////////////////////////////////////////////////
-void	draw_sector(entity_t * ent, _sector * sct)
+void	draw_sector(entity_t * ent, int sector_number, int viewport_sector)
 {
 	///////////////////////////////////////////
 	// If the file is not yet loaded, do not try and render it.
 	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
 	///////////////////////////////////////////
+	_sector * sct = &sectors[sector_number];
 	if(ent->file_done != true) return;
 	if(ent->type != MODEL_TYPE_SECTORED) return;
 	if(!sct->nbPoint || !sct->pntbl) return; 
@@ -1594,6 +1595,27 @@ transVerts[0]+= sct->nbTileVert;
 	:	[scrn_pnts] "p" (&screen_transform_buffer[0]), [sub_pnts] "p" (&sub_transform_buffer[0]), [zTbl] "p" (&zTable[0]), [sct] "p" (sct), [clpSet] "p" (&clip_settings[0]) //IN
 	:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "mach", "macl"										//CLOBBERS
 	); //5 input registers
+
+//Copy the portal list 
+//If we are in sector A, we should disable the portals when drawing sector A.
+for(int  i = 0; i < (*current_portal_count); i++)
+{
+	_portal * scene_port = &scene_portals[i];
+	_portal * used_port = &used_portals[i];
+	
+	if(scene_port->sectorA == viewport_sector && sector_number == scene_port->sectorA)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	if(scene_port->sectorB == viewport_sector && sector_number == scene_port->sectorB)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	*used_port = *scene_port;
+}
+
 
 run_winder_prog(sct->nbTileVert, current_portal_count, (void*)&screen_transform_buffer[0]);
 

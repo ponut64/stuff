@@ -19,8 +19,11 @@ point_light * active_lights;
 entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
-_portal __attribute__ ((aligned (8)))	scene_portals[MAX_SCENE_PORTALS];
-_portal __attribute__ ((aligned (8)))	used_portals[MAX_USED_PORTALS];
+_portal scene_portal_host[MAX_SCENE_PORTALS];
+_portal used_portal_host[MAX_USED_PORTALS];
+
+_portal * scene_portals;
+_portal * used_portals;
 
 
 int dummy[7];
@@ -100,16 +103,28 @@ void	init_render_area(short desired_horizontal_fov)
 	current_portal_count = (int *)(((unsigned int)&dummy[5])|UNCACHE);
 	masterIsDoneDrawing = (int *)(((unsigned int)&dummy[6])|UNCACHE);
 	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
+	used_portals = (_portal *)(((unsigned int)&used_portal_host[0])|UNCACHE);
+	scene_portals = (_portal *)(((unsigned int)&scene_portal_host[0])|UNCACHE);
 }
 
 void	frame_render_prep(void)
 {	
 	//nbg_sprintf(10,15,"prt(%i)", *current_portal_count);
 	//
+	//nbg_sprintf(2, 5, "0act(%i)", scene_portals[0].type);
 	//nbg_sprintf(2, 6, "0x(%i),0y(%i),0z(%i)", used_portals[0].verts[0][X], used_portals[0].verts[0][Y], used_portals[0].verts[0][Z]);
 	//nbg_sprintf(2, 7, "1x(%i),1y(%i),1z(%i)", used_portals[0].verts[1][X], used_portals[0].verts[1][Y], used_portals[0].verts[1][Z]);
 	//nbg_sprintf(2, 8, "2x(%i),2y(%i),2z(%i)", used_portals[0].verts[2][X], used_portals[0].verts[2][Y], used_portals[0].verts[2][Z]);
 	//nbg_sprintf(2, 9, "3x(%i),3y(%i),3z(%i)", used_portals[0].verts[3][X], used_portals[0].verts[3][Y], used_portals[0].verts[3][Z]);
+	//nbg_sprintf(2, 11, "1act(%i)", scene_portals[1].type);
+	//nbg_sprintf(2, 12, "0x(%i),0y(%i),0z(%i)", used_portals[1].verts[0][X], used_portals[1].verts[0][Y], used_portals[1].verts[0][Z]);
+	//nbg_sprintf(2, 13, "1x(%i),1y(%i),1z(%i)", used_portals[1].verts[1][X], used_portals[1].verts[1][Y], used_portals[1].verts[1][Z]);
+	//nbg_sprintf(2, 14, "2x(%i),2y(%i),2z(%i)", used_portals[1].verts[2][X], used_portals[1].verts[2][Y], used_portals[1].verts[2][Z]);
+	//nbg_sprintf(2, 15, "3x(%i),3y(%i),3z(%i)", used_portals[1].verts[3][X], used_portals[1].verts[3][Y], used_portals[1].verts[3][Z]);
+	
+	//nbg_sprintf(2, 6,"prt(%i)", *current_portal_count);
+	//nbg_sprintf(2, 7, "sectorA(%i)", used_portals[0].sectorA);
+	//nbg_sprintf(2, 8, "sectorB(%i)", used_portals[0].sectorB);
 	
 	ssh2SentPolys[0] = 0;
 	msh2SentPolys[0] = 0;
@@ -224,8 +239,9 @@ inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint
    
 }
 
-void	collect_portals_from_sector(_sector * sct)
+void	collect_portals_from_sector(int sector_number, int viewport_sector)
 {
+	_sector * sct = &sectors[sector_number];
 	if(sct->ent->file_done != true) return;
 	if(sct->ent->type != MODEL_TYPE_SECTORED) return;
 	if(sct->nbPortal <= 0) return;
@@ -237,6 +253,8 @@ void	collect_portals_from_sector(_sector * sct)
 	static FIXED m0x[4];
 	static FIXED m1y[4];
 	static FIXED m2z[4];
+	static int post[3];
+	static int center[3];
 	
 	m0x[0] = newMtx[X][X];
 	m0x[1] = newMtx[Y][X];
@@ -256,6 +274,34 @@ void	collect_portals_from_sector(_sector * sct)
 	GVPLY * mesh = sct->ent->pol;
 	vertex_t * ptv[4];
 	
+	//_portal * port = &scene_portals[*current_portal_count];
+	//port->sectorA = 0;
+	//port->sectorB = 1;
+	//port->verts[0][X] = 0;
+	//port->verts[0][Y] = TV_HALF_HEIGHT;
+	//port->verts[1][X] = TV_HALF_WIDTH;
+	//port->verts[1][Y] = TV_HALF_HEIGHT;
+	//port->verts[2][X] = TV_HALF_WIDTH;
+	//port->verts[2][Y] = -TV_HALF_HEIGHT;
+	//port->verts[3][X] = 0;
+	//port->verts[3][Y] = -TV_HALF_HEIGHT;	
+	//port->type = 1;
+	//*current_portal_count = 1;
+	//port = &scene_portals[*current_portal_count];
+	//port->sectorA = 0;
+	//port->sectorB = 1;
+	//port->verts[0][X] = -TV_HALF_WIDTH;
+	//port->verts[0][Y] = TV_HALF_HEIGHT;
+	//port->verts[1][X] = 0;
+	//port->verts[1][Y] = TV_HALF_HEIGHT;
+	//port->verts[2][X] = 0;
+	//port->verts[2][Y] = -TV_HALF_HEIGHT;
+	//port->verts[3][X] = -TV_HALF_WIDTH;
+	//port->verts[3][Y] = -TV_HALF_HEIGHT;	
+	//port->type = 1;
+	//*current_portal_count = 2;
+	
+	
 	for(unsigned int i = 0; i < sct->nbPortal; i++)
 	{
 		if(*current_portal_count > (MAX_USED_PORTALS-1)) return;
@@ -263,7 +309,7 @@ void	collect_portals_from_sector(_sector * sct)
 		//Portals are unlikely to share vertices, so it should be okay to do this.
 		//Establish the pointer to the portal's vertices
 		_quad * plane = &mesh->pltbl[sct->portals[i]];
-		_portal * port = &used_portals[*current_portal_count];
+		_portal * port = &scene_portals[*current_portal_count];
 		for(int k = 0; k < 4; k++)
 		{
 		int		inverseZ = 0;
@@ -273,65 +319,83 @@ void	collect_portals_from_sector(_sector * sct)
 		//Vertex ID aliasing
 		int * v = mesh->pntbl[plane->vertices[k]];
 		ptv[k] = &ssh2VertArea[k];
-        /**calculate z**/
-        ssh2VertArea[k].pnt[Z] = trans_pt_by_component(v, m2z);
-		//ssh2VertArea[k].pnt[Z] = (ssh2VertArea[k].pnt[Z] > NEAR_PLANE_DISTANCE) ? ssh2VertArea[k].pnt[Z] : NEAR_PLANE_DISTANCE;
-         /**Starts the division**/
-      //  SetFixDiv(scrn_dist, ssh2VertArea[k].pnt[Z]);
-
-        /**Calculates X and Y while waiting for screenDist/z **/
-        ssh2VertArea[k].pnt[Y] = trans_pt_by_component(v, m1y);
+		//Matrix transformation
         ssh2VertArea[k].pnt[X] = trans_pt_by_component(v, m0x);
-		
-        /** Retrieves the result of the division **/
-		//inverseZ = *DVDNTL;
+        ssh2VertArea[k].pnt[Y] = trans_pt_by_component(v, m1y);
+        ssh2VertArea[k].pnt[Z] = trans_pt_by_component(v, m2z);
+		//Store the "post" for the backface determinant logic
+		post[X] = ssh2VertArea[k].pnt[X];
+		post[Y] = ssh2VertArea[k].pnt[Y];
+		post[Z] = ssh2VertArea[k].pnt[Z];
+		//Clip by Z (do portals need to do this?) (yes, they unfortunately do)
+		ssh2VertArea[k].pnt[Z] = (ssh2VertArea[k].pnt[Z] > 0) ? ssh2VertArea[k].pnt[Z] : 0;
+		//Get 1/z from table
+		//Note the table is contributing something special here; a magic number for dividing by zero.
 		inverseZ = zTable[(ssh2VertArea[k].pnt[Z]>>16)];
-		//inverseZ = fxdiv(scrn_dist, ssh2VertArea[k].pnt[Z]);
-        /**Transform X and Y to screen space**/
-       // ssh2VertArea[k].pnt[X] = fxm(ssh2VertArea[k][X], inverseZ)>>SCR_SCALE_X;
-       // ssh2VertArea[k].pnt[Y] = fxm(ssh2VertArea[k][Y], inverseZ)>>SCR_SCALE_Y;
+		//Apply screenspace transform
         ssh2VertArea[k].pnt[X] = fxm(ssh2VertArea[k].pnt[X], inverseZ)>>SCR_SCALE_X;
         ssh2VertArea[k].pnt[Y] = fxm(ssh2VertArea[k].pnt[Y], inverseZ)>>SCR_SCALE_Y;
- 
+	
         //Screen Clip Flags for on-off screen decimation
 		ssh2VertArea[k].clipFlag = ((ssh2VertArea[k].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
 		ssh2VertArea[k].clipFlag |= ((ssh2VertArea[k].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
 		ssh2VertArea[k].clipFlag |= ((ssh2VertArea[k].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
 		ssh2VertArea[k].clipFlag |= ((ssh2VertArea[k].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
-		ssh2VertArea[k].clipFlag |= ((ssh2VertArea[k].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+		ssh2VertArea[k].clipFlag |= ((ssh2VertArea[k].pnt[Z]) <= 0) ? CLIP_Z : 0;
 			
 		//We don't know if this portal is going to be active yet, but it is convenient to do this here.
 		port->verts[k][X] = ptv[k]->pnt[X];
 		port->verts[k][Y] = ptv[k]->pnt[Y];
 		port->verts[k][Z] = ptv[k]->pnt[Z];
+		
+		center[X] += ptv[k]->pnt[X];
+		center[Y] += ptv[k]->pnt[Y];
 		}
+		center[X] >>=2;
+		center[Y] >>=2;
 		
 		//If the portal is off-screen, don't add it.
+		//Warning: Removing a portal from an instance where multiple portals are active will remove visibility.
 		if(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag) continue;
 		
-		//Unsure of where to set the Z-target for 'generic' portals; it seems more useful to delimit based on the sector?
-		//I will need to delimit based on that anyway
+		//the ztarget is not used for clipping in or out; it is only used to know if the portal is too far away or too close.
 		//int ztarget = (ptv[0]->pnt[Z] + ptv[1]->pnt[Z] + ptv[2]->pnt[Z] + ptv[3]->pnt[Z])>>2;
 		int ztarget = JO_MIN(JO_MIN(ptv[0]->pnt[Z], ptv[1]->pnt[Z]), JO_MIN(ptv[2]->pnt[Z], ptv[3]->pnt[Z]));
 		
 		//If the portal is too far away, don't add it.
 		if(ztarget > FAR_PLANE_DISTANCE) continue;
-		//Don't forget to give the portal its depth :)
-		port->depth = ztarget;
+
 		//Otherwise, we should be able to log this portal.
-		//Todo: Backfaced?
-		//Since this is screenspace, we can use the same method for if it is or isn't backfaced.
-		int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X]) * (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
-		int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y]) * (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
-		//Note the backface flag: It is backwards from our other processing modes.
-		//The reason is I wrote the DSP code backwards at first and it's easier to fix this than that :)
-		port->backface = (cross1 >= cross0) ? 1 : 0;
+		//Backface Determinant
+		//We have to do this in a more complicated manner because the polygons we are dealing with are frequently large.
+		//The screenspace backface culling method will not work reliably enough for these.
+		int t_norm[3] = {0, 0, 0};
+		t_norm[0] = fxdot(mesh->nmtbl[sct->portals[i]], m0x);
+		t_norm[1] = fxdot(mesh->nmtbl[sct->portals[i]], m1y);
+		t_norm[2] = fxdot(mesh->nmtbl[sct->portals[i]], m2z);
+		int tdot = fxdot(t_norm, post);
+		port->backface = (tdot > 0) ? 0 : 1;
+		//Expansion
+		//Sometimes, vertices are on the portal's borders.
+		//We don't want to clip right on the edge. I could adjust the DSP's math to do that, or I could do this.
+		for(int k = 0; k < 4; k++)
+		{
+			post[X] = center[X] - port->verts[k][X];
+			post[Y] = center[Y] - port->verts[k][Y];
+			//4:3
+			if(post[X] < 0) port->verts[k][X] -= 4;
+			if(post[X] >= 0) port->verts[k][X] += 4;
+			if(post[Y] < 0) port->verts[k][Y] -= 3;
+			if(post[Y] >= 0) port->verts[k][Y] += 3;
+		}
 		
 		//Todo: Type?
-
+	
 		port->type = PORTAL_TYPE_ACTIVE;
 		port->type |= (mesh->attbl[sct->portals[i]].render_data_flags & GV_FLAG_PORT_TYPE) ? PORTAL_OR_OCCLUDE : 0;
-		//port->type |= PORTAL_TYPE_DUAL;
+		
+		port->sectorA = sector_number;
+		port->sectorB = mesh->attbl[sct->portals[i]].texno;
 		
 		current_portal_count[0]+=1;
 		//Todo: Sector delimits (stuff it doesn't apply to)?

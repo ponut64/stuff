@@ -220,7 +220,7 @@ void	obj_draw_queue(void)
 		for(int s = 0; s < nearSectorCt; s++)
 		{
 			slPushMatrix();
-			collect_portals_from_sector(&sectors[drawSectorList[s]]);
+			collect_portals_from_sector(drawSectorList[s], you.curSector);
 			slPopMatrix();
 		}
 	}
@@ -247,7 +247,7 @@ void	obj_draw_queue(void)
 			for(int s = 0; s < nearSectorCt; s++)
 			{
 				slPushMatrix();
-				draw_sector(&entities[objDRAW[i]], &sectors[drawSectorList[s]]);
+				draw_sector(&entities[objDRAW[i]], drawSectorList[s], you.curSector);
 				slPopMatrix();
 			}
 			break;

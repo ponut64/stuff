@@ -209,10 +209,11 @@ unsigned char setTextures(entity_t * model, short baseTexture)
 	{
 		smpAttr = model->pol->attbl[i];
 		
-		if(!(smpAttr.render_data_flags & GV_FLAG_ANIM))
+		if(!(smpAttr.render_data_flags & GV_FLAG_ANIM) && !(smpAttr.render_data_flags & GV_FLAG_PORTAL))
 		{
 		model->pol->attbl[i].texno += baseTexture;
-		} else {
+		} else if(smpAttr.render_data_flags & GV_FLAG_ANIM)
+		{
 		model->pol->attbl[i].texno = animated_texture_list[smpAttr.texno];
 		}
 	}

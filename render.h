@@ -52,10 +52,14 @@
 #define SCRN_CLIP_Y		(1<<2)
 #define SCRN_CLIP_NY	(1<<3)
 #define SCRN_CLIP_FLAGS	(0xF)
-#define CLIP_Z 			(1<<4)
-#define DSP_CLIP_IN		(0x1FF)
-#define DSP_CLIP_CHECK	(0x100) //When the DSP performs portal processing, ALL processed vertices will receive this flag.
-#define JUST_CLIP_FLAGS	(0xFF)
+#define DSP_PORT_01		(1<<4)
+#define DSP_PORT_12		(1<<5)
+#define DSP_PORT_23		(1<<6)
+#define DSP_PORT_30		(1<<7)
+#define CLIP_Z 			(1<<8)
+#define DSP_CLIP_IN		(0x0)
+#define DSP_CLIP_CHECK	(1<<9) //When the DSP performs portal processing, ALL processed vertices will receive this flag.
+#define JUST_CLIP_FLAGS	(0x1FF)
 
 #define CLIP_TO_SCRN_X(xcoord) ((xcoord > TV_HALF_WIDTH) ? TV_HALF_WIDTH : (xcoord < -TV_HALF_WIDTH) ? -TV_HALF_WIDTH : xcoord)
 #define CLIP_TO_SCRN_Y(ycoord) ((ycoord > TV_HALF_HEIGHT) ? TV_HALF_HEIGHT : (ycoord < -TV_HALF_HEIGHT) ? -TV_HALF_HEIGHT : ycoord)
@@ -242,8 +246,8 @@ typedef struct
 	unsigned char backface;
 } _portal;
 
-extern _portal scene_portals[MAX_SCENE_PORTALS];
-extern _portal used_portals[MAX_USED_PORTALS];
+extern _portal * scene_portals;
+extern _portal * used_portals;
 extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;
@@ -282,7 +286,7 @@ extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 //subrender.c
 void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
 void	plane_rendering_with_subdivision(entity_t * ent);
-void	draw_sector(entity_t * ent, _sector * sct);
+void	draw_sector(entity_t * ent, int sector_number, int viewport_sector);
 //2drender.c
 short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
@@ -314,7 +318,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
-void	collect_portals_from_sector(_sector * sct);
+void	collect_portals_from_sector(int sector_number, int viewport_sector);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	depth_cueing(int * depth, int * cue);
