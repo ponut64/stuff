@@ -316,7 +316,7 @@ void	scene_draw(void)
 	}
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
-		drawSectorList[i] = nearSectorList[i];
+		drawSectorList[i] = visibleSectors[i];
 	}
 
 	computeLight();

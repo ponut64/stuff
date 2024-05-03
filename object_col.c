@@ -382,7 +382,7 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 	PASS_2:
 	for(unsigned int s = 0; s < MAX_SECTORS; s++)
 	{
-		sectors[s].nbAdjacent = 0;
+		sectors[s].nbVisible = 0;
 	}
 
 	//
@@ -476,15 +476,15 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 				//Pass 2: Assign each sector to each sector's adjacent list
 				if(passNumber == 1)
 				{
-					sctA->nbAdjacent++;
-					sctB->nbAdjacent++;
+					sctA->nbVisible++;
+					sctB->nbVisible++;
 					adjSector++;
 				} else if(passNumber == 2)
 				{
-					sctA->adtbl[sctA->nbAdjacent] = mesh->attbl[sctB->pltbl[p]].first_sector;
-					sctB->adtbl[sctB->nbAdjacent] = mesh->attbl[sctA->pltbl[i]].first_sector;
-					sctA->nbAdjacent++;
-					sctB->nbAdjacent++;
+					sctA->pvs[sctA->nbVisible] = mesh->attbl[sctB->pltbl[p]].first_sector;
+					sctB->pvs[sctB->nbVisible] = mesh->attbl[sctA->pltbl[i]].first_sector;
+					sctA->nbVisible++;
+					sctB->nbVisible++;
 				}
 				//Once we know these are adjacent, break this loop. No further tests are needed.
 				sector_adjacent = 1;
@@ -503,81 +503,136 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 		//Copy the data we just made.
 		//When building the final sector, add the pimary and secondary adjacents to each sector's adjacent list.
 		//When finding secondary adjacents, we have to use the copied list, because the data of other sector's can change.
-			unsigned short ** adtblCpy = (void*)slapBuffer;
+			unsigned short ** pvsCpy = (void*)slapBuffer;
 			slapBuffer += sizeof(void*) * MAX_SECTORS;
-			unsigned short * nbAdjacentCpy = slapBuffer;
+			unsigned short * nbVisibleCpy = slapBuffer;
 			slapBuffer += sizeof(void*) * MAX_SECTORS;
 		for(int s = 0; s < MAX_SECTORS; s++)
 		{
 			_sector * sct = &sectors[s];
-			nbAdjacentCpy[s] = sct->nbAdjacent;
-			//Copy the adtbl's to another RAM set
+			nbVisibleCpy[s] = sct->nbVisible;
+			//Copy the pvs's to another RAM set
 			//Reserve some memory for that too.
-			adtblCpy[s] = slapBuffer;
-			unsigned short * this_adtbl = adtblCpy[s];
-			slapBuffer += nbAdjacentCpy[s];
-			for(unsigned int f = 0; f < nbAdjacentCpy[s]; f++)
+			pvsCpy[s] = slapBuffer;
+			unsigned short * this_pvs = pvsCpy[s];
+			slapBuffer += nbVisibleCpy[s];
+			for(unsigned int f = 0; f < nbVisibleCpy[s]; f++)
 			{
-				this_adtbl[f] = sct->adtbl[f];
+				this_pvs[f] = sct->pvs[f];
 			}
 			
 		}
 		//Now we have to use the copied table as the source here.
  		for(int s = 0; s < MAX_SECTORS; s++)
 		{
-			unsigned short * actual_adtbl = writeAddress;
-			unsigned short actual_nbAdjacent = 0;
+			unsigned short * actual_pvs = writeAddress;
+			unsigned short actual_nbVisible = 0;
 			unsigned short uniqueSet = 0;
 			_sector * sct = &sectors[s];
-			unsigned short * copy_primary_adtbl = adtblCpy[s];
+			unsigned short * copy_primary_pvs = pvsCpy[s];
 
 			//Process for adjacent / draw / near table:
 			//We made a list of primary adjacents with the adjacent-sector math in the first half of the second pass.
-			//We then copied those lists to adtblCpy and the amount in each sector to nbAdjacentCpy.
+			//We then copied those lists to pvsCpy and the amount in each sector to nbVisibleCpy.
 			//We will use those unmodified lists to write the final lists, which contain the sector IDs of all
 			//primary adjacent sectors and all sectors adjacent to those primary sectors.
 			//By definition, we then include this sector in the list (because it's adjacent to the other ones).
 			//While writing these to the final adjacent list, we will remove duplicates.
+			/////////////////////////////////////////////////////////////////////////////
+			// Explicit change
+			// When processing the PVS, the system must be able to find the primary adjacent sectors in the PVS.
+			// A "primary adjacent" is a sector which is physically touching another sector. Thus, it is mutual.
+			// The way we do this is to place all primary adjacents in the same place in the PVS: after the sector self-identifier,
+			// but before the non-adjacent sectors (in this case, sectors which are adjacent to primary adjacents).
+			// We also store the number of primary adjacents to each sector when removing duplicates in the primary adjacent section.
+			// This is important for determining when portals should or should not be used, which this part of the code does not handle,
+			// but makes possible.
+			/////////////////////////////////////////////////////////////////////////////
 			unsigned short * secondary_adjacents = slapBuffer;
-			int nbAdjacent2nd = 0;
-			for(unsigned int l = 0; l < nbAdjacentCpy[s]; l++)
+			int nbVisible2nd = 0;
+			for(unsigned int l = 0; l < nbVisibleCpy[s]; l++)
 			{
-				unsigned short * copy_secondary_adtbl = adtblCpy[copy_primary_adtbl[l]];
+				unsigned short * copy_secondary_pvs = pvsCpy[copy_primary_pvs[l]];
 				//Include primary adjacents first.
-				secondary_adjacents[nbAdjacent2nd] = copy_primary_adtbl[l];
-				nbAdjacent2nd++;
+				secondary_adjacents[nbVisible2nd] = copy_primary_pvs[l];
+				nbVisible2nd++;
 				
 				//Then include secondary adjacents.
-				for(int e = 0; e < nbAdjacentCpy[copy_primary_adtbl[l]]; e++)
+				for(int e = 0; e < nbVisibleCpy[copy_primary_pvs[l]]; e++)
 				{
-					secondary_adjacents[nbAdjacent2nd] = copy_secondary_adtbl[e];
-					nbAdjacent2nd++;
+					secondary_adjacents[nbVisible2nd] = copy_secondary_pvs[e];
+					nbVisible2nd++;
 				}
 			}
-			//At this point, the "secondary_adjacents" table has "nbAdjacent2nd" list of the two-deep adjacent sectors.
+			//At this point, the "secondary_adjacents" table has "nbVisible2nd" list of the two-deep adjacent sectors.
 			//We also added the sectors adjacent in the first sector to it.
 			//This is now the table we want to use to purge duplicates & write permanently.
 			//Note that sectors add themselves to the adjacent list.
-			for(int l = 0; l < nbAdjacent2nd; l++)
+			//Here, we are just setting the PVS list to a known value.
+			for(int l = 0; l < nbVisible2nd; l++)
 			{
-			actual_adtbl[l] = INVALID_SECTOR;
+			actual_pvs[l] = INVALID_SECTOR;
 			}
-			for(int i = 0; i < nbAdjacent2nd; i++)
+			
+			//We can seed the PVS with a sector self-identifier; obviously a sector must see itself.
+			actual_pvs[0] = s;
+			actual_nbVisible++;
+			
+			//In this pass, we are exclusively writing the primary adjacent list as visible.
+			//We do not need to know the total # of visible sectors now; just the # of primary adjacents.
+			nbVisible2nd = 0;
+			for(unsigned int l = 0; l < nbVisibleCpy[s]; l++)
+			{
+				//Include primary adjacents first.
+				secondary_adjacents[nbVisible2nd] = copy_primary_pvs[l];
+				nbVisible2nd++;
+			}
+			//In this loop, we determine the exact number of primary adjacents after removing duplicates from it.
+			for(int i = 0; i < nbVisible2nd; i++)
 			{
 				uniqueSet = secondary_adjacents[i];
-				for(int l = 0; l < nbAdjacent2nd; l++)
+				for(int l = 0; l < nbVisible2nd; l++)
 				{
-					if(actual_adtbl[l] == uniqueSet) uniqueSet = INVALID_SECTOR;
+					if(actual_pvs[l] == uniqueSet) uniqueSet = INVALID_SECTOR;
 				}
 				if(uniqueSet != INVALID_SECTOR) 
 				{
-					actual_adtbl[actual_nbAdjacent] = uniqueSet;
-					actual_nbAdjacent++;
+					actual_pvs[actual_nbVisible] = uniqueSet;
+					actual_nbVisible++;
+					sct->nbAdjacent++;
 				}
 			}
-			sct->nbAdjacent = actual_nbAdjacent;
-			sct->adtbl = actual_adtbl;
-			writeAddress += sct->nbAdjacent;
+			//In the next pass, we include the secondary adjacents after all primary adjacents.
+			for(unsigned int l = 0; l < nbVisibleCpy[s]; l++)
+			{
+				unsigned short * copy_secondary_pvs = pvsCpy[copy_primary_pvs[l]];
+				//Then include secondary adjacents.
+				for(int e = 0; e < nbVisibleCpy[copy_primary_pvs[l]]; e++)
+				{
+					secondary_adjacents[nbVisible2nd] = copy_secondary_pvs[e];
+					nbVisible2nd++;
+				}
+			}
+			//After the primary adjacents were added to the PVS and duplicates removed,
+			//we've now added all secondary adjacents to the potential PVS, and now they need to be added with duplicates removed.
+			for(int i = 0; i < nbVisible2nd; i++)
+			{
+				uniqueSet = secondary_adjacents[i];
+				for(int l = 0; l < nbVisible2nd; l++)
+				{
+					if(actual_pvs[l] == uniqueSet) uniqueSet = INVALID_SECTOR;
+				}
+				if(uniqueSet != INVALID_SECTOR) 
+				{
+					actual_pvs[actual_nbVisible] = uniqueSet;
+					actual_nbVisible++;
+				}
+			}
+			
+			
+			sct->nbVisible = actual_nbVisible;
+			sct->pvs = actual_pvs;
+			writeAddress += sct->nbVisible;
 		} 
 		
 		nbg_sprintf(1, 6, "adjacents:(%i)", adjSector);
@@ -591,8 +646,8 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 	//So they all have to be done at the same time once they're all done finding their adjacent counts.
 	for(int s = 0; s < MAX_SECTORS; s++)
 	{
-		sectors[s].adtbl = slapBuffer;
-		slapBuffer += sectors[s].nbAdjacent;
+		sectors[s].pvs = slapBuffer;
+		slapBuffer += sectors[s].nbVisible;
 	}
 	
 	passNumber = 2;

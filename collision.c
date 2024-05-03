@@ -19,10 +19,6 @@ int numBoxChecks = 0;
 
 int boxDisField[6];
 
-unsigned short nearSectorList[MAX_SECTORS];
-unsigned short drawSectorList[MAX_SECTORS];
-int nearSectorCt = 0;
-
 void	init_box_handling(void)
 {
 	
@@ -942,14 +938,14 @@ void	player_collision_test_loop(void)
 			//This is also the moment where we should build the adjacent / visible sector list.
 			//Use the current sector's adjacent list as the draw list.
 			_sector * sct = &sectors[you.prevSector];
-			nearSectorCt = sct->nbAdjacent;
-			for(unsigned int s = 0; s < sct->nbAdjacent; s++)
+			nearSectorCt = sct->nbVisible;
+			for(unsigned int s = 0; s < sct->nbVisible; s++)
 			{
 				
-				nearSectorList[s] = sct->adtbl[s];
-				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->adtbl[s]], &you.box, &you.realTimeAxis);
+				visibleSectors[s] = sct->pvs[s];
+				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
 
-				you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->adtbl[s]]);
+				you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->pvs[s]]);
 				you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
 				you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
 				you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
@@ -990,15 +986,37 @@ void	player_collision_test_loop(void)
 	
 	ldata_manager();
 	
-	// nbg_sprintf(2, 6, "nearSectorCt:(%i),portals:(%i)", nearSectorCt, sectors[you.curSector].nbPortal);
-	// nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
-	// nbg_sprintf(2, 8, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
+	nbg_sprintf(2, 8, "curSector:(%i)", you.curSector);
+	nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
 	
+	int alltilect = 0;
+	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
+	{
+		alltilect += sectors[you.curSector].nbTile[i];
+	}
 	
-	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbAdjacent);
-	//for(int i = 0; i < sectors[you.curSector].nbAdjacent; i++)
+	nbg_sprintf(2, 10, "sctTile:(%i)", alltilect);
+	
+	//////////////////////////////////////////////
+	// Process should create:
+	// adjacentSectors as a boolean flag which states which sectors are and which are not adjacent.
+	// Every frame, it is purged such that all sectors are not adjacent.
+	// Then, the correct sectors from the PVS are written in as "1", for true, adjacent.
+	for(unsigned int s = 0; s < MAX_SECTORS; s++)
+	{
+		adjacentSectors[s] = 0;
+	}
+	for(unsigned int p = 0; p < sectors[you.curSector].nbAdjacent; p++)
+	{
+		//+1 from the PVS list to bypass the sector self-identifier
+		adjacentSectors[sectors[you.curSector].pvs[p+1]] = 1;
+	}
+	
+	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbVisible);
+	//for(int i = 0; i < sectors[you.curSector].nbVisible; i++)
 	//{
-	//	spr_sprintf(16, (7 * 12) + (i * 12), "to(%i)", sectors[you.curSector].adtbl[i]);
+	//	spr_sprintf(16, (7 * 12) + (i * 12), "to(%i)", sectors[you.curSector].pvs[i]);
 	//}
 
 //	nbg_sprintf(0, 14, "(%i)E", numBoxChecks);

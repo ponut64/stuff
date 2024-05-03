@@ -6,9 +6,6 @@
 #define REBOUND_ELASTICITY (0x8000)
 
 extern int boxDisField[6];
-extern unsigned short nearSectorList[MAX_SECTORS];
-extern unsigned short drawSectorList[MAX_SECTORS];
-extern int nearSectorCt;
 
 void	init_box_handling(void);
 int		edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard);

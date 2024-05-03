@@ -76,7 +76,7 @@ void	create_objects(int levelNo)
 		palName = "PAL0.TGA";
 		bgName = "BG0.TGA";
 		
-		declare_object_at_cell(-200, (2000 - 110), 0, 11 /*start stand*/, 0, 0, 0, 0, 0);
+		declare_object_at_cell(0, (2000 - 100), 0, 11 /*start stand*/, 0, 0, 0, 0, 0);
 		declare_object_at_cell(0, (2000 - 0), 0, 12 /*testmap*/, 0, 0, 0, 0, 0);
 	}
 	

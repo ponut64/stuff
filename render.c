@@ -25,6 +25,10 @@ _portal used_portal_host[MAX_USED_PORTALS];
 _portal * scene_portals;
 _portal * used_portals;
 
+unsigned short adjacentSectors[MAX_SECTORS];
+unsigned short visibleSectors[MAX_SECTORS];
+unsigned short drawSectorList[MAX_SECTORS];
+int nearSectorCt = 0;
 
 int dummy[7];
 int * ssh2SentPolys;
@@ -392,7 +396,8 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector)
 		//Todo: Type?
 	
 		port->type = PORTAL_TYPE_ACTIVE;
-		port->type |= (mesh->attbl[sct->portals[i]].render_data_flags & GV_FLAG_PORT_TYPE) ? PORTAL_OR_OCCLUDE : 0;
+		port->type |= (ztarget <= NEAR_PLANE_DISTANCE) ? PORTAL_INTERSECTING : 0;
+		
 		
 		port->sectorA = sector_number;
 		port->sectorB = mesh->attbl[sct->portals[i]].texno;

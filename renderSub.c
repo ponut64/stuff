@@ -256,7 +256,7 @@ void	subdivide_xy(_subdivision_settings * set)
 	3D			2D | 3C			2C
 	*/
 	// Initial Conditions
-	//set->poly_a[0] = set->poly_a[0];
+	set->poly_a[0] = set->poly_a[0];
 	set->poly_b[1] = set->poly_a[1];
 	set->poly_c[3] = set->poly_a[3];
 	set->poly_d[2] = set->poly_a[2];
@@ -337,8 +337,8 @@ void	subdivide_y(_subdivision_settings * set)
 	*/
 
 	 //Initial Conditions
-	//set->poly_a[0] = set->poly_a[0];
-	//set->poly_a[1] = set->poly_a[1];
+	set->poly_a[0] = set->poly_a[0];
+	set->poly_a[1] = set->poly_a[1];
 	set->poly_b[2] = set->poly_a[2];
 	set->poly_b[3] = set->poly_a[3];
 	
@@ -381,8 +381,8 @@ void	subdivide_x(_subdivision_settings * set)
 	3A			 2A | 3B			2B
 	*/
 	// Initial Conditions
-	//set->poly_a[0] = set->poly_a[0];
-	//set->poly_a[3] = set->poly_a[3];
+	set->poly_a[0] = set->poly_a[0];
+	set->poly_a[3] = set->poly_a[3];
 	set->poly_b[1] = set->poly_a[1];
 	set->poly_b[2] = set->poly_a[2];
 		
@@ -412,8 +412,8 @@ void	subdivide_x(_subdivision_settings * set)
 
 void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
 {
-	if((start_point+4) >= MAX_IN_TILE) return;
-	if((overwritten_polygon+4) >= MAX_IN_TILE) return;
+	//if((start_point+4) >= MAX_IN_TILE) return;
+	//if((overwritten_polygon+4) >= MAX_IN_TILE) return;
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
 	static char new_rule;
@@ -586,12 +586,12 @@ void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress)
 	for(unsigned int i = 0; i < sct->nbPolygon; i++)
 	{
 		tPlane = 0;
-		int first_tile = 0;
+		int first_tile = -1;
 		for(int t = 0; t < tNew; t++)
 		{
 			if(sct->altbl[t] == sct->pltbl[i])
 			{
-				first_tile = (first_tile == 0) ? t : first_tile;
+				first_tile = (first_tile == -1) ? t : first_tile;
 				tPlane++;
 			}
 		}
@@ -1598,10 +1598,33 @@ transVerts[0]+= sct->nbTileVert;
 
 //Copy the portal list 
 //If we are in sector A, we should disable the portals when drawing sector A.
+int intersecting_portal = 0;
+int adjacent_has_portal = 0;
+int is_adjacent = adjacentSectors[sector_number];
+
 for(int  i = 0; i < (*current_portal_count); i++)
 {
 	_portal * scene_port = &scene_portals[i];
 	_portal * used_port = &used_portals[i];
+	
+	if(sector_number == viewport_sector)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	
+	if(((scene_port->sectorB == sector_number && scene_port->sectorA == viewport_sector)
+		|| (scene_port->sectorB == viewport_sector && scene_port->sectorA == sector_number))
+		&& scene_port->type & PORTAL_INTERSECTING)
+	{
+		intersecting_portal = 1;
+	}
+	
+	if(scene_port->sectorA == INVALID_SECTOR || scene_port->sectorB == INVALID_SECTOR)
+	{
+		used_port->type = 0;
+		continue;
+	}
 	
 	if(scene_port->sectorA == viewport_sector && sector_number == scene_port->sectorA)
 	{
@@ -1613,7 +1636,63 @@ for(int  i = 0; i < (*current_portal_count); i++)
 		used_port->type = 0;
 		continue;
 	}
+	//If we are in the sector the portal belongs to and the portal is NOT backfaced, disable it.
+	if(scene_port->sectorA == viewport_sector && scene_port->backface == 1)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	//If we are NOT in the sector belongs to and the portal IS backfaced, disable it.
+	if(scene_port->sectorA != viewport_sector && scene_port->backface == 0)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	
+	//Now, for branches in which the sector drawn IS a primary adjacent:
+	if(is_adjacent)
+	{
+		//Bro, this is really, really complicated.
+		//We have built a negatively-biased system; there are conditions which DISABLE the portal, otherwise it's turned on.
+		//This might not have been the smartest way to do it...
+		//These conditions check if the adjacent sector has any portals which border the two sectors.
+		//In case there aren't any which border an adjacent sector, no portals should be used to draw that sector.
+		if(scene_port->sectorA == sector_number && scene_port->sectorB == viewport_sector)
+		{
+			adjacent_has_portal = 1;
+		}
+		if(scene_port->sectorB == sector_number && scene_port->sectorA == viewport_sector)
+		{
+			adjacent_has_portal = 1;
+		}
+		
+		//For a primary adjacent sector, what conditions DISABLE the portal?
+		//If the sector is not sectorA and not sectorB.
+		//
+		if(scene_port->sectorA != sector_number && scene_port->sectorB != sector_number)
+		{
+			used_port->type = 0;
+			continue;
+		}
+
+	}		
+	
+	
 	*used_port = *scene_port;
+}
+
+//If this sector has a portal that is intersecting the view plane, and we are in sectorA or sectorB of the portal,
+//disable all portals which pertain to drawing sectorA and sectorB.
+//This is explicitly structured so it does not disable portals for sectors that pertain to sectorA OR sectorB;
+//only those which border sectorA AND sectorB, wherein the viewport_sector and drawn sector must be A and B.
+//This also disables portals in case we are drawing an adjacent sector and there are no portals which border viewport_sector<->sector_number.
+if(intersecting_portal || (is_adjacent && !adjacent_has_portal))
+{
+	for(int  i = 0; i < (*current_portal_count); i++)
+	{
+		_portal * used_port = &used_portals[i];
+		used_port->type = 0;
+	}
 }
 
 

@@ -31,8 +31,9 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 	
 	sectors[INVALID_SECTOR].nbPoint = 0;
 	sectors[INVALID_SECTOR].nbPolygon = 0;
-	sectors[INVALID_SECTOR].nbAdjacent = 0;
+	sectors[INVALID_SECTOR].nbVisible = 0;
 	sectors[INVALID_SECTOR].nbPortal = 0;
+	sectors[INVALID_SECTOR].nbAdjacent = 0;
 	sectors[INVALID_SECTOR].ent = ent;
 	
 	//Complicated. The idea is that each sector must have a coherent list built for it.
@@ -41,6 +42,8 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 	for(unsigned int k = 0; k < MAX_SECTORS; k++)
 	{
 		sectors[k].nbPolygon = 0;
+		sectors[k].nbAdjacent = 0;
+		sectors[k].nbVisible = 0;
 		sectors[k].pltbl = writeAddress;
 		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		{

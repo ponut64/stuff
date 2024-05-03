@@ -1,0 +1,4 @@
+SYSSOURCES = $(SGLLDIR)/../SRC/workarea_sgl.c
+SYSOBJECTS = $(SYSSOURCES:.c=.o)
+SGLIDIR = $(SGLDIR)/INC
+sh2eb-elf-gcc.exe -W -m2 -c -O2 -Wno-strict-aliasing -I$(SGLIDIR) -o $(SYSOBJECTS) $(SYSSOURCES)

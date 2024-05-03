@@ -114,9 +114,7 @@ Render data flags:
 	#define GET_FLIP_DATA(n)	(n & 0x30)
 	
 	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
-	#define PORTAL_OR_OCCLUDE	(1<<1)	//Portal IN or OUT setting (portal or occluder). 1 = portal. 0 = occluder.
-	#define PORTAL_TYPE_BACK	(1<<2)	// Portal on back-facing only, otherwise front facing only
-	#define PORTAL_TYPE_DUAL	(1<<3)	// Portal on both front and back facing (portal always used if active)
+	#define PORTAL_INTERSECTING	(1<<1)	//Flag applied when portal is intersecting view plane
 
 
 typedef struct {
@@ -248,6 +246,10 @@ typedef struct
 
 extern _portal * scene_portals;
 extern _portal * used_portals;
+extern unsigned short adjacentSectors[MAX_SECTORS];
+extern unsigned short visibleSectors[MAX_SECTORS];
+extern unsigned short drawSectorList[MAX_SECTORS];
+extern int nearSectorCt;
 extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
 extern MATRIX global_view_matrix;

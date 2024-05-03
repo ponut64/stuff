@@ -16,13 +16,29 @@ I know that'll be a week time-sink to plan the script and shoot, but it might be
 
 so i have to say:
 first-pass / first-functional portal implementation is working
-now i need to adjust the calculation of the PVS to be aware of the portals
+I think the majority of the remaining work regarding the portal implementation is the PVS rules
+basically, if there is a path to a sector which does not include a portal which lists that sector as a border,
+do not use portals when drawing that sector
+IF and ONLY IF it is not a primary adjacent;
+if a sector is a primary adjacent and a portal borders that sector, draw it via the portal.
 
-Issues:
-When the portal's plane intersects the view plane, there are issues where whole sectors may stop rendering.
-This is the one valid case where it might be correct to disable all portals; or simply note that portal as intersecting,
-and therefore consider us close enough to draw both sectors the portal applies to without portals.
-This is a special exception case, but it needs to be done.
+there might be a simpler way to check that, because checking for a path is hard
+the simpler solution is:
+
+if a sector is a primary adjacent with another sector, and no portals exist as borders between those two sectors,
+no portal should be used to draw either sector.
+
+if a sector is a primary adjacent with another sector, and portals exist as borders between those two sectors,
+then all portals which mention either sector should be used to draw either sector, barring other restrictions.
+
+if a sector is not a primary adjacent with another sector, this are more complicated.
+	- first, check all sectors within the PVS to see which ones are primary adjacent to it.
+		If all sectors which are potentially visible AND primary adjacents to the visible sector have portals,
+		that sector should be drawn according to the portals in the mutually visible sectors.
+
+i need to test portal-through-portal in a case where multiple portals exist to final sector
+not sure what the system will do
+
 
 How to make logic to facilitate this?
 
@@ -30,6 +46,7 @@ I also need to implement point lights / dynamic lights back in.
 
 I also need to test \ implement actors in the sector system.
 
+i wanna play Dragon Force
 
 i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
 
@@ -231,11 +248,6 @@ void	load_test(void)
 	
 	nbg_sprintf(5, 10, "sz(%i)", ptr_begin);
 	HWRAM_hldptr = HWRAM_ldptr;
-
-	while(is_key_up(DIGI_START))
-	{
-		
-	};
 
 	init_pathing_system();
 	p64MapRequest(0);
