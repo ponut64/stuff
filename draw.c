@@ -30,10 +30,10 @@ entity_t shadow;
 entity_t wings;
 //Heightmap Matrix
 MATRIX hmap_mtx;
-//Root matrix after perspective transform
+//Root matrix for the screen
 MATRIX perspective_root;
-// ???
-MATRIX unit;
+//Root matrix for the world
+_boundBox world_box;
 // Forward Vector. For convenience.
 int scrn_z_fwd[3] = {0, 0, 0};
 
@@ -210,21 +210,6 @@ void	shadow_draw(int draw_mode)
 
 void	obj_draw_queue(void)
 {
-	/////////////////////////////////////////////////////////
-	// Pre-loop portal processing
-	////////////////////////////////////////////////////////
-	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
-	{
-		if(entities[objDRAW[i]].type != MODEL_TYPE_SECTORED) continue;
-		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
-		for(int s = 0; s < nearSectorCt; s++)
-		{
-			slPushMatrix();
-			collect_portals_from_sector(drawSectorList[s], you.curSector);
-			slPopMatrix();
-		}
-	}
-	
 	
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
@@ -247,7 +232,7 @@ void	obj_draw_queue(void)
 			for(int s = 0; s < nearSectorCt; s++)
 			{
 				slPushMatrix();
-				draw_sector(&entities[objDRAW[i]], drawSectorList[s], you.curSector);
+				draw_sector(&entities[objDRAW[i]], drawSectorList[s]);
 				slPopMatrix();
 			}
 			break;
@@ -328,14 +313,14 @@ void	scene_draw(void)
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
-	slGetMatrix(perspective_root);
+	
+	player_animation();
+	player_draw(DRAW_SLAVE);
+	shadow_draw(DRAW_SLAVE);
 
 	//Adjustments are made on the Y to account for the height of the player (in first-person camera)
 	slTranslate(you.pos[X], you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16)), you.pos[Z]);
-	slGetMatrix(unit);
-	scrn_z_fwd[X] = unit[3][X];
-	scrn_z_fwd[Y] = unit[3][Y];
-	scrn_z_fwd[Z] = unit[3][Z];
+
 
 	obj_draw_queue();
 
@@ -411,9 +396,70 @@ void	background_draw(void)
 	}
 }
 
+void	sector_vertex_remittance(void)
+{
+	/////////////////////////////////////////////////////////
+	// World matrix processing 
+	/////////////////////////////////////////////////////////
+	bound_box_starter.modified_box = &world_box;
+
+	bound_box_starter.x_location = you.pos[X];
+	bound_box_starter.y_location = you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16));
+	bound_box_starter.z_location = you.pos[Z];
+	
+	bound_box_starter.x_rotation = -you.viewRot[X];
+	bound_box_starter.y_rotation = you.viewRot[Y] + (32768);
+	bound_box_starter.z_rotation = 0;
+	
+	bound_box_starter.x_radius = 1;
+	bound_box_starter.y_radius = 1;
+	bound_box_starter.z_radius = 1;
+
+	/////////////////////////////////////////////////////////////////////
+	// world pos?
+	/////////////////////////////////////////////////////////////////////
+	makeBoundBox(&bound_box_starter, EULER_OPTION_XYZ);
+	//we copy off perspective_root to have the world matrix before translations are applied
+	copy_matrix((int*)&perspective_root, (int*)&world_box);
+	fxMatrixApplyTranslation((int*)&world_box);
+
+	scrn_z_fwd[X] = world_box.UVZ[X];
+	scrn_z_fwd[Y] = world_box.UVZ[Y];
+	scrn_z_fwd[Z] = world_box.UVZ[Z];
+	
+	/////////////////////////////////////////////////////////
+	// Pre-loop portal processing
+	////////////////////////////////////////////////////////
+	for(int s = 0; s < nearSectorCt; s++)
+	{
+		collect_portals_from_sector(drawSectorList[s], you.curSector, (MATRIX*)&world_box);
+	}
+	/////////////////////////////////////////////////////////
+	// Sector Vertex Transform Loop (includes DSP portal processing)
+	////////////////////////////////////////////////////////
+	dsp_noti_addr[0] = 1;
+	for(int i = 0; i < nearSectorCt; i++)
+	{
+		transform_verts_for_sector(visibleSectors[i], you.curSector, (MATRIX*)&world_box);
+	}
+	
+	nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
+	nbg_sprintf(2, 8, "curSector:(%i)", you.curSector);
+	nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	
+	int alltilect = 0;
+	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
+	{
+		alltilect += sectors[you.curSector].nbTile[i];
+	}
+	
+	nbg_sprintf(2, 10, "sctTile:(%i)", alltilect);
+
+}
+
 void	master_draw(void)
 {
-	static int time_at_start;
+	static int time_of_sectors;
 	static int time_of_master_draw;
 	static int time_of_object_management;
 	static int time_at_end;
@@ -421,14 +467,15 @@ void	master_draw(void)
 	static int interim_time;
 	static int extra_time;
 
-	time_at_start = get_time_in_frame();
+	time_of_sectors = get_time_in_frame();
 
 	background_draw();
-	player_animation();
+	
 	interim_time = get_time_in_frame();
 	//
-	player_draw(DRAW_MASTER);
-	shadow_draw(DRAW_MASTER);
+	//player_animation();
+	//player_draw(DRAW_MASTER);
+	//shadow_draw(DRAW_MASTER);
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
 	interim_time = get_time_in_frame();
@@ -468,13 +515,13 @@ void	master_draw(void)
 	
 	if(viewInfoTxt == 1)
 	{
-		nbg_sprintf_decimal(34, 7, time_at_start);
+		nbg_sprintf_decimal(34, 7, time_of_sectors);
 		nbg_sprintf_decimal(34, 8, time_of_master_draw);
 		nbg_sprintf_decimal(34, 9, time_of_object_management);
 		nbg_sprintf_decimal(34, 10, extra_time);
 		nbg_sprintf_decimal(34, 11, time_at_end);
 		nbg_sprintf(29, 6, "MSH2:");
-		nbg_sprintf(29, 7, "Strt:");
+		nbg_sprintf(29, 7, "Sctr:");
 		nbg_sprintf(29, 8, "Map:");
 		nbg_sprintf(29, 9, "Objs:");
 		nbg_sprintf(29, 10, "Ext:");

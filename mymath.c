@@ -406,9 +406,29 @@ void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix)
 
 }
 
+void	fxMatrixApplyTranslation(int * matrix)
+{
+	//////////////////////////////////
+	// Commutes a translation through a rotation matrix to a position on the fourth column via transpose multiplication
+	//////////////////////////////////
+	int * ix1 = &matrix[0];
+	int * iy1 = &matrix[3];
+	int * iz1 = &matrix[6];
+	int * ip1 = &matrix[9]; //(Position)
+	//Row -> Column Transpose
+	int trap1X[3] = {ix1[X], iy1[X], iz1[X]};
+	int trap1Y[3] = {ix1[Y], iy1[Y], iz1[Y]};
+	int trap1Z[3] = {ix1[Z], iy1[Z], iz1[Z]};
+	int trap1P[3] = {ip1[X], ip1[Y], ip1[Z]};
+	ip1[X] = fxdot(trap1X, trap1P);
+	ip1[Y] = fxdot(trap1Y, trap1P);
+	ip1[Z] = fxdot(trap1Z, trap1P);
+	
+}
+
 void	zero_matrix(int * mtx)
 {
-	for(int i = 0; i < 9; i++)
+	for(int i = 0; i < 12; i++)
 	{
 		mtx[i] = 0;
 	}
@@ -416,7 +436,7 @@ void	zero_matrix(int * mtx)
 
 void	copy_matrix(int * mtx_dst, int * mtx_src)
 {
-	for(int i = 0; i < 9; i++)
+	for(int i = 0; i < 12; i++)
 	{
 		mtx_dst[i] = mtx_src[i];
 	}

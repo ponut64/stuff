@@ -133,10 +133,13 @@ typedef struct
 	_quad * tltbl; //Stores the sector-specific vertex IDs used to draw the sector's tiles										36
 	POINT * tvtbl; //Stores the sector-specific vertices used to draw the sector's tiles										40
 	unsigned short * portals; //Stores the polygon IDs in ent->pol->attbl and ent->pol->pltbl and ent->pol->pntbl				44
-	unsigned short nbPortal; //Stores the # of portals in the sector															46
-	unsigned short nbAdjacent; //# of sectors which are primary adjacent to this sector (immediately, physically touching)		48
+	void * viewspace_tvtbl; //Memory allocated for the viewspace transform of the tvtbl	(sized of vertex_t)						48
+	void * scrnspace_tvtbl; //Memory allocated for the screenspace transform of tvtbl (sized of vertex_t)						52
+	unsigned short nbPortal; //Stores the # of portals in the sector															54
+	unsigned short nbAdjacent; //# of sectors which are primary adjacent to this sector (immediately, physically touching)		56
+	volatile unsigned short ready_this_frame; //Boolean; 0 if sector is not ready to draw this frame, 1 if it is.						58
+	volatile unsigned short draw_this_frame; //Boolean; 0 if sector will be not be drawn this frame at all, 1 if it will be.				60
 } _sector;
-
 extern _sector sectors[MAX_SECTORS+1];
 
 /**Store all your PDATA meshes here**/

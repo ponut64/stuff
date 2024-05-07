@@ -14,35 +14,19 @@ Sector-based engine has been implemented in its first steps.
 when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
 I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
 
-so i have to say:
-first-pass / first-functional portal implementation is working
-I think the majority of the remaining work regarding the portal implementation is the PVS rules
-basically, if there is a path to a sector which does not include a portal which lists that sector as a border,
-do not use portals when drawing that sector
-IF and ONLY IF it is not a primary adjacent;
-if a sector is a primary adjacent and a portal borders that sector, draw it via the portal.
+Portal restrictions:
 
-there might be a simpler way to check that, because checking for a path is hard
-the simpler solution is:
+There are a few more glitches to work out in the portal implementation.
 
-if a sector is a primary adjacent with another sector, and no portals exist as borders between those two sectors,
-no portal should be used to draw either sector.
+There's a few crashes/lockups to work out too.
+I'm not sure which part of the code is not working correctly at that point.
 
-if a sector is a primary adjacent with another sector, and portals exist as borders between those two sectors,
-then all portals which mention either sector should be used to draw either sector, barring other restrictions.
+The master<->dsp<->slave workflow for sector processing was successful.
+The Master CPU is now in "frametime jeopardy", but it can give a few milliseconds.
+It turns out the portal+vertex processing time was about 8ms in the test scene.
+This means that the slave CPU, after some workload realignment, can probably take another 4ms of work. Great!
 
-if a sector is not a primary adjacent with another sector, this are more complicated.
-	- first, check all sectors within the PVS to see which ones are primary adjacent to it.
-		If all sectors which are potentially visible AND primary adjacents to the visible sector have portals,
-		that sector should be drawn according to the portals in the mutually visible sectors.
-
-i need to test portal-through-portal in a case where multiple portals exist to final sector
-not sure what the system will do
-
-
-How to make logic to facilitate this?
-
-I also need to implement point lights / dynamic lights back in.
+There are some bugs in this implementation; we need to synchronize the matrices between master/slave better.
 
 I also need to test \ implement actors in the sector system.
 
@@ -262,6 +246,7 @@ void	game_frame(void)
 
 	slSlaveFunc(scene_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
+	sector_vertex_remittance();
 	
 	maintRand();
 	if(!you.inMenu)

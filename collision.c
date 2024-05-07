@@ -32,133 +32,6 @@ boxDisField[5] = N_Xp;
 }
 
 
-int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard)
-{
-	
-	/*
-	Edge Projection Test
-	
-	Hitherto shall be constructed a vector from each edge of the polygon supplied as:
-	(pp0 -> pp1)
-	(pp1 -> pp2)
-	(pp2 -> pp3)
-	(pp3 -> pp0)
-
-	What does the code do now?
-	It takes the (discard) and applies the (discard) as:
-	vect_point, vect_norm, and polygon points.
-	So if N_Xp, all of those will point back to X+ face/normal/center.
-	Furthermore, the discard, to check if within the face, will proceed with (discard).
-	
-	So if we want to actually check a polygon that might face X+ but be a shape that won't collide with its center,
-	we need to do this test with Z+/- and Y+/-.
-	
-	We could do a simple test to check the sign of the difference between the box and the polygon, center to center.
-	This way, we could confine the test to only two walls (eight projections), instead of four walls (sixteen projections);
-	this is still a very intense solution and there is absolutely a simpler way.
-
-	*/
-	
-	if(box->status[3] != 'B') return false;
-	
-	static int intersections[4][3];
-
-	int * vect_point;
-	int * vect_norm;
-	int * plpnt[4];
-
-	switch(discard)
-	{
-	case (N_Xp):
-		//Polygon #5
-		vect_point = boxAxis->xp0;
-		vect_norm = box->UVX;
-		plpnt[0] = box->pltbl[5][0];
-		plpnt[1] = box->pltbl[5][1];
-		plpnt[2] = box->pltbl[5][2];
-		plpnt[3] = box->pltbl[5][3];
-		break;
-	case (N_Zp):
-		//Polygon #4
-		vect_point = boxAxis->zp0;
-		vect_norm = box->UVZ;
-		plpnt[0] = box->pltbl[4][0];
-		plpnt[1] = box->pltbl[4][1];
-		plpnt[2] = box->pltbl[4][2];
-		plpnt[3] = box->pltbl[4][3];
-		break;
-	case (N_Yn):
-	default:
-		//Polygon #0
-		vect_point = boxAxis->yp1;
-		vect_norm = box->UVNY;
-		plpnt[0] = box->pltbl[0][0];
-		plpnt[1] = box->pltbl[0][1];
-		plpnt[2] = box->pltbl[0][2];
-		plpnt[3] = box->pltbl[0][3];
-		break;
-	case (N_Xn):
-		//Polygon #2
-		vect_point = boxAxis->xp1;
-		vect_norm = box->UVNX;
-		plpnt[0] = box->pltbl[2][0];
-		plpnt[1] = box->pltbl[2][1];
-		plpnt[2] = box->pltbl[2][2];
-		plpnt[3] = box->pltbl[2][3];
-		break;
-	case (N_Zn):
-		//Polygon #1
-		vect_point = boxAxis->zp1;
-		vect_norm = box->UVNZ;
-		plpnt[0] = box->pltbl[1][0];
-		plpnt[1] = box->pltbl[1][1];
-		plpnt[2] = box->pltbl[1][2];
-		plpnt[3] = box->pltbl[1][3];
-		break;
-	case (N_Yp):
-		//Polygon #3
-		vect_point = boxAxis->yp0;
-		vect_norm = box->UVY;
-		plpnt[0] = box->pltbl[3][0];
-		plpnt[1] = box->pltbl[3][1];
-		plpnt[2] = box->pltbl[3][2];
-		plpnt[3] = box->pltbl[3][3];
-		break;
-	}
-	
-		if(line_hit_plane_here(pp0, pp1, vect_point, vect_norm, zPt, 16384, intersections[0]))
-		{
-			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[0], discard, 12))
-			{
-				return true;
-			}
-		}
-		if(line_hit_plane_here(pp1, pp2, vect_point, vect_norm, zPt, 16384, intersections[1]))
-		{
-			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[1], discard, 12))
-			{
-				return true;
-			}
-		}
-		if(line_hit_plane_here(pp2, pp3, vect_point, vect_norm, zPt, 16384, intersections[2]))
-		{
-			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[2], discard, 12))
-			{
-				return true;
-			}
-		}
-		if(line_hit_plane_here(pp3, pp0, vect_point, vect_norm, zPt, 16384, intersections[3]))
-		{
-			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[3], discard, 12))
-			{
-				return true;
-			}
-		}
-		
-	return false;
-	
-}
-
 int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift)
 {
 	
@@ -343,6 +216,134 @@ int edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int di
 	// slPrintFX(right, slLocate(18, 8 + (prntidx * 2)));
 	//prntidx++;
 }
+
+int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard)
+{
+	
+	/*
+	Edge Projection Test
+	
+	Hitherto shall be constructed a vector from each edge of the polygon supplied as:
+	(pp0 -> pp1)
+	(pp1 -> pp2)
+	(pp2 -> pp3)
+	(pp3 -> pp0)
+
+	What does the code do now?
+	It takes the (discard) and applies the (discard) as:
+	vect_point, vect_norm, and polygon points.
+	So if N_Xp, all of those will point back to X+ face/normal/center.
+	Furthermore, the discard, to check if within the face, will proceed with (discard).
+	
+	So if we want to actually check a polygon that might face X+ but be a shape that won't collide with its center,
+	we need to do this test with Z+/- and Y+/-.
+	
+	We could do a simple test to check the sign of the difference between the box and the polygon, center to center.
+	This way, we could confine the test to only two walls (eight projections), instead of four walls (sixteen projections);
+	this is still a very intense solution and there is absolutely a simpler way.
+
+	*/
+	
+	if(box->status[3] != 'B') return false;
+	
+	static int intersections[4][3];
+
+	int * vect_point;
+	int * vect_norm;
+	int * plpnt[4];
+
+	switch(discard)
+	{
+	case (N_Xp):
+		//Polygon #5
+		vect_point = boxAxis->xp0;
+		vect_norm = box->UVX;
+		plpnt[0] = box->pltbl[5][0];
+		plpnt[1] = box->pltbl[5][1];
+		plpnt[2] = box->pltbl[5][2];
+		plpnt[3] = box->pltbl[5][3];
+		break;
+	case (N_Zp):
+		//Polygon #4
+		vect_point = boxAxis->zp0;
+		vect_norm = box->UVZ;
+		plpnt[0] = box->pltbl[4][0];
+		plpnt[1] = box->pltbl[4][1];
+		plpnt[2] = box->pltbl[4][2];
+		plpnt[3] = box->pltbl[4][3];
+		break;
+	case (N_Yn):
+	default:
+		//Polygon #0
+		vect_point = boxAxis->yp1;
+		vect_norm = box->UVNY;
+		plpnt[0] = box->pltbl[0][0];
+		plpnt[1] = box->pltbl[0][1];
+		plpnt[2] = box->pltbl[0][2];
+		plpnt[3] = box->pltbl[0][3];
+		break;
+	case (N_Xn):
+		//Polygon #2
+		vect_point = boxAxis->xp1;
+		vect_norm = box->UVNX;
+		plpnt[0] = box->pltbl[2][0];
+		plpnt[1] = box->pltbl[2][1];
+		plpnt[2] = box->pltbl[2][2];
+		plpnt[3] = box->pltbl[2][3];
+		break;
+	case (N_Zn):
+		//Polygon #1
+		vect_point = boxAxis->zp1;
+		vect_norm = box->UVNZ;
+		plpnt[0] = box->pltbl[1][0];
+		plpnt[1] = box->pltbl[1][1];
+		plpnt[2] = box->pltbl[1][2];
+		plpnt[3] = box->pltbl[1][3];
+		break;
+	case (N_Yp):
+		//Polygon #3
+		vect_point = boxAxis->yp0;
+		vect_norm = box->UVY;
+		plpnt[0] = box->pltbl[3][0];
+		plpnt[1] = box->pltbl[3][1];
+		plpnt[2] = box->pltbl[3][2];
+		plpnt[3] = box->pltbl[3][3];
+		break;
+	}
+	
+		if(line_hit_plane_here(pp0, pp1, vect_point, vect_norm, zPt, 16384, intersections[0]))
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[0], discard, 12))
+			{
+				return true;
+			}
+		}
+		if(line_hit_plane_here(pp1, pp2, vect_point, vect_norm, zPt, 16384, intersections[1]))
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[1], discard, 12))
+			{
+				return true;
+			}
+		}
+		if(line_hit_plane_here(pp2, pp3, vect_point, vect_norm, zPt, 16384, intersections[2]))
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[2], discard, 12))
+			{
+				return true;
+			}
+		}
+		if(line_hit_plane_here(pp3, pp0, vect_point, vect_norm, zPt, 16384, intersections[3]))
+		{
+			if(edge_wind_test(plpnt[0], plpnt[1], plpnt[2], plpnt[3], intersections[3], discard, 12))
+			{
+				return true;
+			}
+		}
+		
+	return false;
+	
+}
+
 
 Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 {
@@ -985,18 +986,6 @@ void	player_collision_test_loop(void)
 	}
 	
 	ldata_manager();
-	
-	nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
-	nbg_sprintf(2, 8, "curSector:(%i)", you.curSector);
-	nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
-	
-	int alltilect = 0;
-	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
-	{
-		alltilect += sectors[you.curSector].nbTile[i];
-	}
-	
-	nbg_sprintf(2, 10, "sctTile:(%i)", alltilect);
 	
 	//////////////////////////////////////////////
 	// Process should create:

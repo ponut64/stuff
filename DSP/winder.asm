@@ -225,7 +225,7 @@
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 4,ct0	
-	jmp NZS,IN_01
+	jmp NS,IN_01
 	nop										mov 3,ct2	; CT0 = 4 (clip flag for OUT of 0->1)
 				mov m0,p	mov m2,a					;
 	or						mov alu,a					;
@@ -266,7 +266,7 @@
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 5,ct0	
-	jmp NZS,IN_12
+	jmp NS,IN_12
 	nop										mov 3,ct2	; CT0 = 5 (clip flag for OUT of 1->2)
 				mov m0,p	mov m2,a					;
 	or						mov alu,a					;
@@ -307,7 +307,7 @@
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 6,ct0	
-	jmp NZS,IN_23
+	jmp NS,IN_23
 	nop										mov 3,ct2	; CT0 = 6 (clip flag for OUT of 2->3)
 				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
 	or						mov alu,a					; 
@@ -348,7 +348,7 @@
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
 				mov m3,p	clr a			
 	ad2						mov alu,a		mov 7,ct0	
-	jmp NZS,IN_30
+	jmp NS,IN_30
 	nop										mov 3,ct2	; CT0 = 7 (clip flag for OUT of 3->0)
 				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
 	or						mov alu,a					; 

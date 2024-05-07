@@ -410,10 +410,8 @@ void	subdivide_x(_subdivision_settings * set)
 }
 
 
-void	subdivide_plane(short start_point, short overwritten_polygon, short num_divisions, short total_divisions)
+void	subdivide_plane(short overwritten_polygon, short num_divisions, short total_divisions)
 {
-	//if((start_point+4) >= MAX_IN_TILE) return;
-	//if((overwritten_polygon+4) >= MAX_IN_TILE) return;
 	//"Load" the original points (code shortening operation)
 	FIXED * ptv[4];
 	static char new_rule;
@@ -457,24 +455,24 @@ void	subdivide_plane(short start_point, short overwritten_polygon, short num_div
 	case(SUBDIVIDE_XY):
 	subdivide_xy(&sub);
 
-	subdivide_plane(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1);
-	subdivide_plane(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1);
-	subdivide_plane(sub_vert_cnt, semaphore_poly_c, num_divisions-1, total_divisions+1);
-	subdivide_plane(sub_vert_cnt, semaphore_poly_d, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_a, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_b, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_c, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_d, num_divisions-1, total_divisions+1);
 		
 	break;
 	case(SUBDIVIDE_Y):
 	subdivide_y(&sub);
 
-	subdivide_plane(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1);
-	subdivide_plane(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_a, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_b, num_divisions-1, total_divisions+1);
 
 	break;
 	case(SUBDIVIDE_X):
 	subdivide_x(&sub);
 
-	subdivide_plane(sub_vert_cnt, semaphore_poly_a, num_divisions-1, total_divisions+1);
-	subdivide_plane(sub_vert_cnt, semaphore_poly_b, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_a, num_divisions-1, total_divisions+1);
+	subdivide_plane(semaphore_poly_b, num_divisions-1, total_divisions+1);
 
 	break;
 	default:
@@ -538,7 +536,7 @@ void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress)
 		sub_vert_cnt += 4;
 		sub_poly_cnt += 1;
 		
-		subdivide_plane(sub_vert_cnt, 0, 3, 0);
+		subdivide_plane(0, 3, 0);
 		
 		//After this, the subdivided plane/polygon buffers should be full of tile data for this plane.
 		//These points are in model-space / mesh-space.
@@ -661,6 +659,11 @@ void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress)
 	sct->nbTileVert = tvNew;
 	workAddress += sct->nbTileVert * sizeof(POINT);
 	
+	//At this point, we need to allocate memory for the sector's screen transform region and view transform region.
+	sct->viewspace_tvtbl = (void*)workAddress;
+	workAddress += sct->nbTileVert * sizeof(vertex_t);
+	sct->scrnspace_tvtbl = (void*)workAddress;
+	workAddress += sct->nbTileVert * sizeof(vertex_t);
 	//Now that we have removed duplicates from the vertex list, the vertex list size has changed.
 	//Doing so has unpredictably changed the index of each vertex in the list, meaning the polygon list is now invalid.
 	//We have allocated a copy of the original list to sct->tltbl and have the duplicates-removed list at tile_poly_buf.
@@ -1368,75 +1371,40 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 
 }
 
-//////////////////////////////////////////////////////////////////
-//Sector drawing routine
-// Warning: Assembly ahead
-// The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
-//////////////////////////////////////////////////////////////////
-void	draw_sector(entity_t * ent, int sector_number, int viewport_sector)
+void	transform_verts_for_sector(int sector_number,  int viewport_sector, MATRIX * msMatrix)
 {
-	///////////////////////////////////////////
-	// If the file is not yet loaded, do not try and render it.
-	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
-	///////////////////////////////////////////
 	_sector * sct = &sectors[sector_number];
+	entity_t * ent = sct->ent; 
 	if(ent->file_done != true) return;
 	if(ent->type != MODEL_TYPE_SECTORED) return;
 	if(!sct->nbPoint || !sct->pntbl) return; 
 	GVPLY * mesh = ent->pol;
 	
-	sub_poly_cnt = 0;
-	sub_vert_cnt = 0;
-	unsigned short	colorBank = 0;
-	int 	luma = 0;
-	int 	zDepthTgt = 0;
-	unsigned short	flags = 0;
-	unsigned short	flip = 0;
-	unsigned short	pclp = 0;
+    static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	vertex_t * ptv[5];
-	int * stv[4];
+	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
+	
+	mmtx[0] = newMtx[0];
+	mmtx[1] = newMtx[1];
+	mmtx[2] = newMtx[2];
+	mmtx[3] = newMtx[9];
+	
+	mmtx[4] = newMtx[3];
+	mmtx[5] = newMtx[4];
+	mmtx[6] = newMtx[5];
+	mmtx[7] = newMtx[10];
+	
+	mmtx[8] = newMtx[6];
+	mmtx[9] = newMtx[7];
+	mmtx[10] = newMtx[8];
+	mmtx[11] = newMtx[11];
 
-    static MATRIX newMtx;
-	static FIXED mmtx[12];
+vertex_t * screenspace_verts = (vertex_t *)sct->scrnspace_tvtbl;
+vertex_t * viewspace_verts = (vertex_t *)sct->viewspace_tvtbl;
 	
-	//These can't have an orienation... eh, we'll do it anyway.
-	slMultiMatrix((POINT *)ent->prematrix);
-    slGetMatrix(newMtx);
-	
-	mmtx[0] = newMtx[X][X];
-	mmtx[1] = newMtx[Y][X];
-	mmtx[2] = newMtx[Z][X];
-	mmtx[3] = newMtx[3][X];
-	
-	mmtx[4] = newMtx[X][Y];
-	mmtx[5] = newMtx[Y][Y];
-	mmtx[6] = newMtx[Z][Y];
-	mmtx[7] = newMtx[3][Y];
-	
-	mmtx[8] = newMtx[X][Z];
-	mmtx[9] = newMtx[Y][Z];
-	mmtx[10] = newMtx[Z][Z];
-	mmtx[11] = newMtx[3][Z];
-
-	/**
-	Rendering Planes
-	Right now, this is slow. Very slow.
-	**/
-	
-	int specific_texture = 0;
-	int dual_plane = 0;
-	int cue;
-	
-	//nbg_sprintf(2, 4, "pnts(%i)", sct->nbPoint);
-	//nbg_sprintf(2, 5, "ply(%i)", sct->nbPoint);
-	//nbg_sprintf(2, 6, "addr_pnt(%i)", sct->pntbl);
-	//nbg_sprintf(2, 7, "addr_ply(%i)", sct->pltbl);
-//First: Transform all of the vertices of the mesh to a buffer.
-//We must use the sector's pntbl with an extra layer of deference to get the right vertex in the mesh's pntbl.
-
-
 transVerts[0]+= sct->nbTileVert;
+
 //	int		inverseZ = 0;
 //for(unsigned int i = 0; i < sct->nbTileVert; i++)
 //{
@@ -1446,33 +1414,31 @@ transVerts[0]+= sct->nbTileVert;
 //		//Vertex ID aliasing
 //		int * v = sct->tvtbl[i];
 //        /**calculate z**/
-//        screen_transform_buffer[i].pnt[Z] = trans_pt_by_component(v, m2z);
-//		sub_transform_buffer[i][Z] = screen_transform_buffer[i].pnt[Z];
-//		screen_transform_buffer[i].pnt[Z] = (screen_transform_buffer[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? screen_transform_buffer[i].pnt[Z] : NEAR_PLANE_DISTANCE;
+//        scrn_buf[i].pnt[Z] = trans_pt_by_component(v, &mmtx[8]);
+//		sub_buf[i][Z] = scrn_buf[i].pnt[Z];
+//		scrn_buf[i].pnt[Z] = (scrn_buf[i].pnt[Z] > NEAR_PLANE_DISTANCE) ? scrn_buf[i].pnt[Z] : NEAR_PLANE_DISTANCE;
 //         /**Starts the division**/
-//      //  SetFixDiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+//      //  SetFixDiv(scrn_dist, scrn_buf[i].pnt[Z]);
 //
 //        /**Calculates X and Y while waiting for screenDist/z **/
-//        sub_transform_buffer[i][Y] = trans_pt_by_component(v, m1y);
-//        sub_transform_buffer[i][X] = trans_pt_by_component(v, m0x);
+//        sub_buf[i][Y] = trans_pt_by_component(v, &mmtx[4]);
+//        sub_buf[i][X] = trans_pt_by_component(v, &mmtx[0]);
 //		
 //        /** Retrieves the result of the division **/
 //		//inverseZ = *DVDNTL;
-//		inverseZ = zTable[(screen_transform_buffer[i].pnt[Z]>>16)];
-//		//inverseZ = fxdiv(scrn_dist, screen_transform_buffer[i].pnt[Z]);
+//		inverseZ = zTable[(scrn_buf[i].pnt[Z]>>16)];
 //        /**Transform X and Y to screen space**/
-//       // screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
-//       // screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
-//        screen_transform_buffer[i].pnt[X] = fxm(sub_transform_buffer[i][X], inverseZ)>>SCR_SCALE_X;
-//        screen_transform_buffer[i].pnt[Y] = fxm(sub_transform_buffer[i][Y], inverseZ)>>SCR_SCALE_Y;
+//        scrn_buf[i].pnt[X] = fxm(sub_buf[i][X], inverseZ)>>SCR_SCALE_X;
+//        scrn_buf[i].pnt[Y] = fxm(sub_buf[i][Y], inverseZ)>>SCR_SCALE_Y;
 // 
 //        //Screen Clip Flags for on-off screen decimation
-//		screen_transform_buffer[i].clipFlag = ((screen_transform_buffer[i].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
-//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
-//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
-//		screen_transform_buffer[i].clipFlag |= ((screen_transform_buffer[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+//		scrn_buf[i].clipFlag = ((scrn_buf[i].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+//		scrn_buf[i].clipFlag |= ((scrn_buf[i].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
+//		scrn_buf[i].clipFlag |= ((scrn_buf[i].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
+//		scrn_buf[i].clipFlag |= ((scrn_buf[i].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
+//		scrn_buf[i].clipFlag |= ((scrn_buf[i].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
 //}
+
 	clip_settings[5] = (unsigned int)&mmtx[0];
 	asm(
 	"mov.w @(8,%[sct]),r0;" //Move sct->nbTileVert to r0. Used as loop count. (Decrement method)
@@ -1497,8 +1463,8 @@ transVerts[0]+= sct->nbTileVert;
 	"add #-16,r2;" //sub_transform_buffer[i] = sub_transform_buffer[i-1]	
 	"add #-12,r8;" //sct->tvtbl[i] = sct->tvtbl[i-1]
 	"mov.l @(16,%[clpSet]),r4;" //Move SUBDIVISION_NEAR_PLANE to r4
+	"mov.l @(20,%[clpSet]),r3;" //Move &mmtx[0] to r3 (from clpSet[5]) (Loop Initial Condition, before Delayed Branch execution)
 	"FORI:"
-	"mov.l @(20,%[clpSet]),r3;" //Move &mmtx[0] to r3 (from clpSet[5])
 	//I can use r5, r6, and r7 for the components
 	"clrmac;"		//Clear the accumulator
 	"mac.l @r3+,@r8+;" //mtx[0] * tvtbl[i][X] +
@@ -1533,11 +1499,11 @@ transVerts[0]+= sct->nbTileVert;
 	"add r5,r6;"		//add mtx[11] to Z vector to get Z position
 	"mov.l r6,@(8,r2);"	//move to sub_transform_buffer[i][Z]
 	
-	"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation
 	"mov.l @(8,r2),r3;" //Move sub_transform_buffer[i][Z] to r3
 
 	"cmp/gt r3,r4;" //If r4 > r3 (otherwise read as r3 < r4); if SUBDIVISION_NEAR_PLANE > pnt[Z]; T bit to 1
-	"bf GUDZA;" //If T bit is 0,jump to HIGHZ
+	"bf/s GUDZA;" //If T bit is 0,jump to HIGHZ
+	"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation (Delayed Branch Execution)
 	"mov r4,r3;" //Set used Z in r3 to SUBDIVISION_NEAR_PLANE
 	"mov #16,r5;" //Move CLIP_Z (literal #16) to clipFlag
 	"GUDZA:"
@@ -1555,18 +1521,19 @@ transVerts[0]+= sct->nbTileVert;
 	
 	"mov.l @%[clpSet],r3;" //Move clpSet[0] to r3 (TV_HALF_WIDTH)
 	"cmp/gt r3,r7;" //Perform if(pnt[X] > TV_HALF_WIDTH), T = 1
-	"bf NOCLIPXA;" //If T = 0, do not clip X; jump ahead.
+	"bf/s NOCLIPXA;" //If T = 0, do not clip X; jump ahead.
+	"add #-24,r8;" //sct->tvtbl[i+1] = sct->tvtbl[i-1] (Delayed Branch Execution)
 	"mov #1,r3;" //Clobber R3; replace with constant #1 to represent SCRN_CLIP_X
 	"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
 	"NOCLIPXA:" //(Proceeding to test if X is < -TV_HALF_WIDTH)
 	"mov.l @(4,%[clpSet]),r3;" //Move -TV_HALF_WIDTH from clip_settings to r3
 	"cmp/gt r7,r3;" //Perform if(-TV_HALF_WIDTH > pnt[X]), T = 1
-	"bf NOCLIPNXA;" //If T = 0, do not clip NX; jump ahead.
+	"bf/s NOCLIPNXA;" //If T = 0, do not clip NX; jump ahead.
+	"mov.l @(4,r2),r7;" //Move sub_pnts[i][Y] to r7 (Delayed Branch Execution)
 	"mov #2,r3;" //Clobber R3; replace with constant #2 to represent SCRN_CLIP_NX
 	"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
 	"NOCLIPNXA:"
 
-	"mov.l @(4,r2),r7;" //Move sub_pnts[i][Y] to r7
 	"dmuls.l r7,r6;" //pnt[Y] * inverse_z -> MACH/MACL
 	"sts mach,r7;" //get upper 32 bits of that operation (should not be more than 16, to be fair)
 	"mov.l r7,@(4,r1);"//Move pnt[Y] to screen_transform_buffer.pnt[Y]
@@ -1579,27 +1546,36 @@ transVerts[0]+= sct->nbTileVert;
 	"NOCLIPYA:" //(Proceeding to test if Y is < -TV_HALF_HEIGHT)
 	"mov.l @(12,%[clpSet]),r3;"
 	"cmp/gt r7,r3;" //Perform if(-TV_HALF_HEIGHT > pnt[X]), T = 1
-	"bf NOCLIPNYA;" //If T = 0, do not clip NX; jump ahead.
+	"bf/s NOCLIPNYA;" //If T = 0, do not clip NX; jump ahead.
+	"add #-16,r2;" //sub_transform_buffer[i] = sub_transform_buffer[i-1] (Delayed Branch Execution)
 	"mov #8,r3;" //Clobber R3; replace with constant #8 to represent SCRN_CLIP_NY
 	"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
 	"NOCLIPNYA:"
 	
 	"mov.l r5,@(12,r1);" //Move clipFlag to screen_transform_buffer[i].clipFlag
 	"add #-16,r1;" //screen_transform_buffer[i] = screen_transform_buffer[i-1]
-	"add #-16,r2;" //sub_transform_buffer[i] = sub_transform_buffer[i-1]
-	"add #-24,r8;" //sct->tvtbl[i+1] = sct->tvtbl[i-1]
+
 	"dt r0;" //Decrement R0 (r0 = r0 - 1)
-	"bf FORI;" //In case R0 >= 0, branch to loop
-	"nop;"
+	"bf/s FORI;" //In case R0 >= 0, branch to loop
+	"mov.l @(20,%[clpSet]),r3;" //Move &mmtx[0] to r3 (from clpSet[5]) (Delayed Branch Execution)
 	: 																//OUT
-	:	[scrn_pnts] "p" (&screen_transform_buffer[0]), [sub_pnts] "p" (&sub_transform_buffer[0]), [zTbl] "p" (&zTable[0]), [sct] "p" (sct), [clpSet] "p" (&clip_settings[0]) //IN
+	:	[scrn_pnts] "p" (&screenspace_verts[0]), [sub_pnts] "p" (&viewspace_verts[0]), [zTbl] "p" (&zTable[0]), [sct] "p" (sct), [clpSet] "p" (&clip_settings[0]) //IN
 	:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "r8", "mach", "macl"										//CLOBBERS
 	); //5 input registers
-
-//Copy the portal list 
-//If we are in sector A, we should disable the portals when drawing sector A.
+	
+	
+volatile int check_dsp = 0;
+do{
+	check_dsp = dsp_noti_addr[0];
+	__asm__("nop;");
+} while(!check_dsp);
+	
+//Copy the portal list according to the portal restrictions
+//I should really precalculate this beforehand; then again, it's going to have to be done somewhere, at sometime. may as well do it now.
 int intersecting_portal = 0;
 int adjacent_has_portal = 0;
+int used_port_ct = 0;
+int offscreen_portals = 0;
 int is_adjacent = adjacentSectors[sector_number];
 
 for(int  i = 0; i < (*current_portal_count); i++)
@@ -1637,17 +1613,17 @@ for(int  i = 0; i < (*current_portal_count); i++)
 		continue;
 	}
 	//If we are in the sector the portal belongs to and the portal is NOT backfaced, disable it.
-	if(scene_port->sectorA == viewport_sector && scene_port->backface == 1)
-	{
-		used_port->type = 0;
-		continue;
-	}
-	//If we are NOT in the sector belongs to and the portal IS backfaced, disable it.
-	if(scene_port->sectorA != viewport_sector && scene_port->backface == 0)
-	{
-		used_port->type = 0;
-		continue;
-	}
+	//if(scene_port->sectorA == viewport_sector && scene_port->backface == 1)
+	//{
+	//	used_port->type = 0;
+	//	continue;
+	//}
+	////If we are NOT in the sector belongs to and the portal IS backfaced, disable it.
+	//if(scene_port->sectorA != viewport_sector && scene_port->backface == 0)
+	//{
+	//	used_port->type = 0;
+	//	continue;
+	//}
 	
 	//Now, for branches in which the sector drawn IS a primary adjacent:
 	if(is_adjacent)
@@ -1675,12 +1651,64 @@ for(int  i = 0; i < (*current_portal_count); i++)
 			continue;
 		}
 
-	}		
+	} else {
+		//If it is NOT a primary adjacent:
+		//A portal should not apply for a sector if the two sectors that portal borders do not list that sector as an adjacent.
+		//However, if the portal borders that sector, the portal should be used.
+		_sector * sctA = &sectors[scene_port->sectorA];
+		_sector * sctB = &sectors[scene_port->sectorB];
+		int is_listed = 0;
 	
+		if(scene_port->sectorA == sector_number || scene_port->sectorB == sector_number) is_listed = 1;
+	
+		for(int r = 0; r < MAX_SECTORS; r++)
+		{
+			if((r >= sctA->nbAdjacent && r >= sctB->nbAdjacent) || is_listed) break;
+			
+			if(r < sctA->nbAdjacent)
+			{
+				if(sctA->pvs[r+1] == sector_number) is_listed = 1;
+			}
+			
+			if(r < sctB->nbAdjacent)
+			{
+				if(sctB->pvs[r+1] == sector_number) is_listed = 1;
+			}
+		}
+	
+		if(!is_listed)
+		{
+			used_port->type = 0;
+			continue;
+		}
+	}
 	
 	*used_port = *scene_port;
+	used_port_ct++;
 }
 
+for(int i = 0; i < (*current_portal_count); i++)
+{
+	_portal * used_port = &used_portals[i];
+	if(used_port->type == 0) continue;
+	if(used_port->type & PORTAL_OFFSCREEN)
+	{
+		offscreen_portals++;
+		//used_port->type = 0;
+	}
+}
+//If all portals that would normally be used to draw this sector are off-screen, do not draw the sector.
+//However, we need to except this in case the sector is a primary adjacent.
+//if(used_port_ct != 0 && offscreen_portals == used_port_ct && (!is_adjacent || adjacent_has_portal)) return;
+if(used_port_ct != 0 && offscreen_portals == used_port_ct && (!is_adjacent))
+{
+	sct->ready_this_frame = 1;
+	sct->draw_this_frame = 0;
+	return;
+} else {
+	sct->draw_this_frame = 1;
+}
+	
 //If this sector has a portal that is intersecting the view plane, and we are in sectorA or sectorB of the portal,
 //disable all portals which pertain to drawing sectorA and sectorB.
 //This is explicitly structured so it does not disable portals for sectors that pertain to sectorA OR sectorB;
@@ -1695,8 +1723,102 @@ if(intersecting_portal || (is_adjacent && !adjacent_has_portal))
 	}
 }
 
+run_winder_prog(sct->nbTileVert, current_portal_count, (void*)sct->scrnspace_tvtbl);
+	
+	sct->ready_this_frame = 1;
+	
+}
 
-run_winder_prog(sct->nbTileVert, current_portal_count, (void*)&screen_transform_buffer[0]);
+//////////////////////////////////////////////////////////////////
+//Sector drawing routine
+// Warning: Assembly ahead
+// The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
+//////////////////////////////////////////////////////////////////
+void	draw_sector(entity_t * ent, int sector_number)
+{
+	///////////////////////////////////////////
+	// If the file is not yet loaded, do not try and render it.
+	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
+	///////////////////////////////////////////
+	_sector * sct = &sectors[sector_number];
+	if(ent->file_done != true) return;
+	if(ent->type != MODEL_TYPE_SECTORED) return;
+	if(!sct->nbPoint || !sct->pntbl) return; 
+	
+	if(!sct->ready_this_frame)
+	{
+		volatile unsigned short * uncached_flag = (unsigned short *)(((unsigned int)&sct->ready_this_frame)|UNCACHE);
+		volatile int check;
+		do
+		{
+			check = *uncached_flag;
+			__asm__("nop;");
+		}while(!check);
+	}
+	
+	if(!sct->draw_this_frame)
+	{
+		return;
+	}
+
+	
+	GVPLY * mesh = ent->pol;
+	
+	sub_poly_cnt = 0;
+	sub_vert_cnt = 0;
+	unsigned short	colorBank = 0;
+	int 	luma = 0;
+	int 	zDepthTgt = 0;
+	unsigned short	flags = 0;
+	unsigned short	flip = 0;
+	unsigned short	pclp = 0;
+
+	vertex_t * ptv[5];
+	int * stv[4];
+
+	static MATRIX newMtx;
+	static FIXED mmtx[12];
+	
+	//These can't have an orienation... eh, we'll do it anyway.
+	//So, um, not sure how I am going to do this part; I'l have to figure it out.
+	slMultiMatrix((POINT *)ent->prematrix);
+    slGetMatrix(newMtx);
+	
+	mmtx[0] = newMtx[X][X];
+	mmtx[1] = newMtx[Y][X];
+	mmtx[2] = newMtx[Z][X];
+	mmtx[3] = newMtx[3][X];
+	
+	mmtx[4] = newMtx[X][Y];
+	mmtx[5] = newMtx[Y][Y];
+	mmtx[6] = newMtx[Z][Y];
+	mmtx[7] = newMtx[3][Y];
+	
+	mmtx[8] = newMtx[X][Z];
+	mmtx[9] = newMtx[Y][Z];
+	mmtx[10] = newMtx[Z][Z];
+	mmtx[11] = newMtx[3][Z];
+
+	/**
+	Rendering Planes
+	Right now, this is slow. Very slow.
+	**/
+	
+	int specific_texture = 0;
+	int dual_plane = 0;
+	int cue;
+	
+	//nbg_sprintf(2, 4, "pnts(%i)", sct->nbPoint);
+	//nbg_sprintf(2, 5, "ply(%i)", sct->nbPoint);
+	//nbg_sprintf(2, 6, "addr_pnt(%i)", sct->pntbl);
+	//nbg_sprintf(2, 7, "addr_ply(%i)", sct->pltbl);
+
+//////////////////////////////////////
+// These buffers had their data filled earlier in the frame by Master SH2 and SCU-DSP.
+//////////////////////////////////////
+vertex_t * screenspace_verts = (vertex_t *)sct->scrnspace_tvtbl;
+vertex_t * viewspace_verts = (vertex_t *)sct->viewspace_tvtbl;
+
 
 //Draw Route:
 // Per Plane
@@ -1732,7 +1854,7 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		t_norm[0] = fxdot(mesh->nmtbl[alias], &mmtx[0]);
 		t_norm[1] = fxdot(mesh->nmtbl[alias], &mmtx[4]);
 		t_norm[2] = fxdot(mesh->nmtbl[alias], &mmtx[8]);
-		int tdot = fxdot(t_norm, sub_transform_buffer[sct->tltbl[sct->plStart[p]].vertices[0]]);
+		int tdot = fxdot(t_norm, viewspace_verts[sct->tltbl[sct->plStart[p]].vertices[0]].pnt);
 		if(tdot > 0) continue;
 	} else {
 		dual_plane = 1;
@@ -1761,10 +1883,10 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		// These use aliased polygons in the sector because they deal with memory in the transform buffer.
 		// This is a small optimization to avoid doing the address calculation for each point multiple times
 		//////////////////////////////////////////////////////////////
-		ptv[0] = &screen_transform_buffer[tile->vertices[0]];
-		ptv[1] = &screen_transform_buffer[tile->vertices[1]];
-		ptv[2] = &screen_transform_buffer[tile->vertices[2]];
-		ptv[3] = &screen_transform_buffer[tile->vertices[3]];
+		ptv[0] = &screenspace_verts[tile->vertices[0]];
+		ptv[1] = &screenspace_verts[tile->vertices[1]];
+		ptv[2] = &screenspace_verts[tile->vertices[2]];
+		ptv[3] = &screenspace_verts[tile->vertices[3]];
 
 		//////////////////////////////////////////////////////////////
 		// This looks ugly, but I'm surprised it works... this is pretty efficient.
@@ -1782,10 +1904,10 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		//If the tile is off-screen, don't draw it or any part of it.
 		if(check & JUST_CLIP_FLAGS) continue;
 		
-		stv[0] = &sub_transform_buffer[tile->vertices[0]][X];
-		stv[1] = &sub_transform_buffer[tile->vertices[1]][X];
-		stv[2] = &sub_transform_buffer[tile->vertices[2]][X];
-		stv[3] = &sub_transform_buffer[tile->vertices[3]][X];
+		stv[0] = &viewspace_verts[tile->vertices[0]].pnt[X];
+		stv[1] = &viewspace_verts[tile->vertices[1]].pnt[X];
+		stv[2] = &viewspace_verts[tile->vertices[2]].pnt[X];
+		stv[3] = &viewspace_verts[tile->vertices[3]].pnt[X];
 		
 		//At this point, we know we have at least four vertices.
 		sub_vert_cnt = 4;
@@ -1881,11 +2003,11 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			"add #-16,r2;" //subdivided_points[v] = subdivided_points[v-1]	
 			"mov.l @(16,%[clpSet]),r4;" //Move SUBDIVISION_NEAR_PLANE to r4
 			"FORV:"
-			"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation
 			"mov.l @(8,r2),r3;" //Move subdivided_points[v][Z] to r3
 
 			"cmp/gt r3,r4;" //If r4 > r3 (otherwise read as r3 < r4); if SUBDIVISION_NEAR_PLANE > pnt[Z]; T bit to 1
-			"bf GUDZ;" //If T bit is 0,jump to HIGHZ
+			"bf/s GUDZ;" //If T bit is 0,jump to HIGHZ
+			"mov #0,r5;" //Move literal 0 to r5 in preparation for clipFlag calculation (Delayed Branch Execution)
 			"mov r4,r3;" //Set used Z in r3 to SUBDIVISION_NEAR_PLANE
 			"mov #16,r5;" //Move CLIP_Z (literal #16) to clipFlag
 			"GUDZ:"
@@ -1909,19 +2031,20 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			"NOCLIPX:" //(Proceeding to test if X is < -TV_HALF_WIDTH)
 			"mov.l @(4,%[clpSet]),r3;" //Move -TV_HALF_WIDTH from clip_settings to r3
 			"cmp/gt r7,r3;" //Perform if(-TV_HALF_WIDTH > pnt[X]), T = 1
-			"bf NOCLIPNX;" //If T = 0, do not clip NX; jump ahead.
+			"bf/s NOCLIPNX;" //If T = 0, do not clip NX; jump ahead.
+			"mov.l @(4,r2),r7;" //Move sub_pnts[v][Y] to r7 (Delayed Branch Execution)
 			"mov #2,r3;" //Clobber R3; replace with constant #2 to represent SCRN_CLIP_NX
 			"or r3,r5;" //OR SCRN_CLIP_NX with r5 (clipFlag)
 			"NOCLIPNX:"
-
-			"mov.l @(4,r2),r7;" //Move sub_pnts[v][Y] to r7
+			
 			"dmuls.l r7,r6;" //pnt[Y] * inverse_z -> MACH/MACL
 			"sts mach,r7;" //get upper 32 bits of that operation (should not be more than 16, to be fair)
 			"mov.l r7,@(4,r1);"//Move pnt[Y] to ssh2VertArea.pnt[Y]
 			
 			"mov.l @(8,%[clpSet]),r3;" //Move TV_HALF_HEIGHT from clpSet[2] to r3
 			"cmp/gt r3,r7;" //Perform if(pnt[Y] > TV_HALF_HEIGHT), T = 1
-			"bf NOCLIPY;" //If T = 0, do not clip X; jump ahead.
+			"bf/s NOCLIPY;" //If T = 0, do not clip X; jump ahead. 
+			"add #-16,r2;" //subdivided_points[v] = subdivided_points[v-1] (Delayed Branch Execution)
 			"mov #4,r3;" //Clobber R3; replace with constant #4 to represent SCRN_CLIP_Y
 			"or r3,r5;" //OR SCRN_CLIP_X with r5 (clipFlag)
 			"NOCLIPY:" //(Proceeding to test if Y is < -TV_HALF_HEIGHT)
@@ -1933,11 +2056,10 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			"NOCLIPNY:"
 			
 			"mov.l r5,@(12,r1);" //Move clipFlag to ssh2VertArea[v].clipFlag
-			"add #-16,r1;" //ssh2VertArea[v] = ssh2VertArea[v-1]
-			"add #-16,r2;" //subdivided_points[v] = subdivided_points[v-1]
+
 			"dt r0;" //Decrement R0 (r0 = r0 - 1)
-			"bf FORV;" //In case R0 >= 0, branch to loop
-			"nop;"
+			"bf/s FORV;" //In case R0 >= 0, branch to loop
+			"add #-16,r1;" //ssh2VertArea[v] = ssh2VertArea[v-1] (Delayed Branch Execution)
 			: 																//OUT
 			:	[scrn_pnts] "p" (&ssh2VertArea[0]), [sub_pnts] "p" (&subdivided_points[0]), [zTbl] "p" (&zTable[0]), [subCnt] "p" (&sub_vert_cnt), [clpSet] "p" (&clip_settings[0]) //IN
 			:	"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7", "mach", "macl"										//CLOBBERS
@@ -2020,6 +2142,8 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	}
 
 }
+
+	sct->ready_this_frame = 0;
 
 }
 

@@ -38,6 +38,7 @@ void	fxrotY(int * v_in, int * v_out, int angle);
 void	fxrotZ(int * v_in, int * v_out, int angle);
 void	fxRotLocalAxis(int * mtx, int * axis, int angle);
 void	fxMatrixMul(int * matrix_1, int * matrix_2, int * output_matrix);
+void	fxMatrixApplyTranslation(int * matrix);
 void	zero_matrix(int * mtx);
 void	copy_matrix(int * mtx_dst, int * mtx_src);
 

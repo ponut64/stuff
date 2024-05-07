@@ -22,8 +22,10 @@ extern entity_t shadow;
 extern entity_t wings;
 //Texture Tables
 extern entity_t txtbl_e[5];
-//Root perspective matrix, including translation and rotation of third-person camera (or first person, if not?)
+//Root screen matrix (for view model)
 extern MATRIX perspective_root;
+//Root world matrix (for world models)
+extern MATRIX world_root;
 
 extern int scrn_z_fwd[3];
 
@@ -32,8 +34,7 @@ void	set_camera(void);
 void	master_draw_stats(void);
 void	scene_draw(void);
 void	menu_draw(void);
-void	prep_map_mtx(void);
-void	map_draw_prep(void);
+void	sector_vertex_remittance(void);
 void	master_draw(void);
 
 

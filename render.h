@@ -115,7 +115,7 @@ Render data flags:
 	
 	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
 	#define PORTAL_INTERSECTING	(1<<1)	//Flag applied when portal is intersecting view plane
-
+	#define PORTAL_OFFSCREEN	(1<<2)	//Flag applied when portal is off-screen (mutually exclusive with intersecting)
 
 typedef struct {
 	union {
@@ -288,7 +288,8 @@ extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 //subrender.c
 void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
 void	plane_rendering_with_subdivision(entity_t * ent);
-void	draw_sector(entity_t * ent, int sector_number, int viewport_sector);
+void	transform_verts_for_sector(int sector_number, int viewport_sector, MATRIX * msMatrix);
+void	draw_sector(entity_t * ent, int sector_number);
 //2drender.c
 short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
@@ -320,7 +321,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
-void	collect_portals_from_sector(int sector_number, int viewport_sector);
+void	collect_portals_from_sector(int sector_number, int viewport_sector,  MATRIX * msMatrix);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	depth_cueing(int * depth, int * cue);
