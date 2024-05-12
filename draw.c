@@ -229,12 +229,6 @@ void	obj_draw_queue(void)
 			plane_rendering_with_subdivision(&entities[objDRAW[i]]);
 			break;
 			case(MODEL_TYPE_SECTORED):
-			for(int s = 0; s < nearSectorCt; s++)
-			{
-				slPushMatrix();
-				draw_sector(&entities[objDRAW[i]], drawSectorList[s]);
-				slPopMatrix();
-			}
 			break;
 			default:
 			ssh2DrawModel(&entities[objDRAW[i]]);
@@ -278,6 +272,11 @@ void	obj_draw_queue(void)
 		}
 	}
 	
+	for(int s = 0; s < nearSectorCt; s++)
+	{
+		draw_sector(drawSectorList[s], you.curSector, (MATRIX*)&world_box);
+	}
+	
 }
 
 void	scene_draw(void)
@@ -313,10 +312,6 @@ void	scene_draw(void)
 	//Take care about the order of the matrix transformations!
 	slRotX((you.viewRot[X]));
 	slRotY((you.viewRot[Y]));
-	
-	player_animation();
-	player_draw(DRAW_SLAVE);
-	shadow_draw(DRAW_SLAVE);
 
 	//Adjustments are made on the Y to account for the height of the player (in first-person camera)
 	slTranslate(you.pos[X], you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16)), you.pos[Z]);
@@ -405,7 +400,7 @@ void	sector_vertex_remittance(void)
 
 	bound_box_starter.x_location = you.pos[X];
 	bound_box_starter.y_location = you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16));
-	bound_box_starter.z_location = you.pos[Z];
+	bound_box_starter.z_location = you.pos[Z] - (1<<16);
 	
 	bound_box_starter.x_rotation = -you.viewRot[X];
 	bound_box_starter.y_rotation = you.viewRot[Y] + (32768);
@@ -420,7 +415,10 @@ void	sector_vertex_remittance(void)
 	/////////////////////////////////////////////////////////////////////
 	makeBoundBox(&bound_box_starter, EULER_OPTION_XYZ);
 	//we copy off perspective_root to have the world matrix before translations are applied
-	copy_matrix((int*)&perspective_root, (int*)&world_box);
+	copy_matrix((int*)&perspective_root, (int*)&world_box); 
+	perspective_root[3][X] = 0;
+	perspective_root[3][Y] = 0;
+	perspective_root[3][Z] = 0;
 	fxMatrixApplyTranslation((int*)&world_box);
 
 	scrn_z_fwd[X] = world_box.UVZ[X];
@@ -432,20 +430,28 @@ void	sector_vertex_remittance(void)
 	////////////////////////////////////////////////////////
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		collect_portals_from_sector(drawSectorList[s], you.curSector, (MATRIX*)&world_box);
+		collect_portals_from_sector(visibleSectors[s], (MATRIX*)&world_box);
 	}
 	/////////////////////////////////////////////////////////
 	// Sector Vertex Transform Loop (includes DSP portal processing)
 	////////////////////////////////////////////////////////
 	dsp_noti_addr[0] = 1;
-	for(int i = 0; i < nearSectorCt; i++)
+	for(int s = 0; s < nearSectorCt; s++)
 	{
-		transform_verts_for_sector(visibleSectors[i], you.curSector, (MATRIX*)&world_box);
+		transform_verts_for_sector(visibleSectors[s], (MATRIX*)&world_box);
 	}
 	
-	nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
-	nbg_sprintf(2, 8, "curSector:(%i)", you.curSector);
-	nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	//vertex_t * screenspace_verts = (vertex_t*)sectors[1].scrnspace_tvtbl;
+	//for(int i = 0; i < 4; i++)
+	//{
+	//	nbg_sprintf(2, 8+i, "clip(%x)", screenspace_verts[i].clipFlag);	
+	//}
+	
+	
+
+	//nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
+	nbg_sprintf(2, 6, "curSector:(%i)", you.curSector);
+	//nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
 	
 	int alltilect = 0;
 	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
@@ -453,7 +459,7 @@ void	sector_vertex_remittance(void)
 		alltilect += sectors[you.curSector].nbTile[i];
 	}
 	
-	nbg_sprintf(2, 10, "sctTile:(%i)", alltilect);
+	//nbg_sprintf(2, 10, "sctTile:(%i)", alltilect);
 
 }
 
@@ -473,9 +479,9 @@ void	master_draw(void)
 	
 	interim_time = get_time_in_frame();
 	//
-	//player_animation();
-	//player_draw(DRAW_MASTER);
-	//shadow_draw(DRAW_MASTER);
+	player_animation();
+	player_draw(DRAW_MASTER);
+	shadow_draw(DRAW_MASTER);
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
 	interim_time = get_time_in_frame();

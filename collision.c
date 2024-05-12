@@ -989,17 +989,22 @@ void	player_collision_test_loop(void)
 	
 	//////////////////////////////////////////////
 	// Process should create:
-	// adjacentSectors as a boolean flag which states which sectors are and which are not adjacent.
+	// sectorIsAdjacent as a boolean flag which states which sectors are and which are not adjacent.
 	// Every frame, it is purged such that all sectors are not adjacent.
 	// Then, the correct sectors from the PVS are written in as "1", for true, adjacent.
 	for(unsigned int s = 0; s < MAX_SECTORS; s++)
 	{
-		adjacentSectors[s] = 0;
+		sectorIsAdjacent[s] = 0;
+		sectorIsVisible[s] = 0;
 	}
 	for(unsigned int p = 0; p < sectors[you.curSector].nbAdjacent; p++)
 	{
 		//+1 from the PVS list to bypass the sector self-identifier
-		adjacentSectors[sectors[you.curSector].pvs[p+1]] = 1;
+		sectorIsAdjacent[sectors[you.curSector].pvs[p+1]] = 1;
+	}
+	for(unsigned int p = 0; p < sectors[you.curSector].nbVisible; p++)
+	{
+		sectorIsVisible[sectors[you.curSector].pvs[p]] = 1;
 	}
 	
 	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbVisible);

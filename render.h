@@ -52,14 +52,27 @@
 #define SCRN_CLIP_Y		(1<<2)
 #define SCRN_CLIP_NY	(1<<3)
 #define SCRN_CLIP_FLAGS	(0xF)
-#define DSP_PORT_01		(1<<4)
-#define DSP_PORT_12		(1<<5)
-#define DSP_PORT_23		(1<<6)
-#define DSP_PORT_30		(1<<7)
-#define CLIP_Z 			(1<<8)
+////////////////////////////////////
+// Warning:
+//	These clip flags that the DSP uses will inherently be shifted left by four (more accurately, multiplied by 16).
+//	So the reason that the applied values as read here overlap with CLIP_Z and DSP_CLIP_CHECK is because these values are effectively <<4.
+#define DSP_PORT_01		((1)<<4)
+#define DSP_PORT_12		((1<<1)<<4)
+#define DSP_PORT_23		((1<<2)<<4)
+#define DSP_PORT_30		((1<<3)<<4)
+//
+#define CLIP_Z 			(1<<4)
 #define DSP_CLIP_IN		(0x0)
-#define DSP_CLIP_CHECK	(1<<9) //When the DSP performs portal processing, ALL processed vertices will receive this flag.
-#define JUST_CLIP_FLAGS	(0x1FF)
+#define DSP_CLIP_CHECK	(1<<5) //When the DSP performs portal processing, ALL processed vertices will receive this flag.
+#define JUST_CLIP_FLAGS	(0xFFFFFF1F)
+#define JUST_PORT_FLAGS	(0xFFFFFF00)
+
+#define DSP_PORT6		(0xF0000000)
+#define DSP_PORT5		(0xF000000)
+#define DSP_PORT4		(0xF00000)
+#define DSP_PORT3		(0xF0000)
+#define DSP_PORT2		(0xF000)
+#define DSP_PORT1		(0xF00)
 
 #define CLIP_TO_SCRN_X(xcoord) ((xcoord > TV_HALF_WIDTH) ? TV_HALF_WIDTH : (xcoord < -TV_HALF_WIDTH) ? -TV_HALF_WIDTH : xcoord)
 #define CLIP_TO_SCRN_Y(ycoord) ((ycoord > TV_HALF_HEIGHT) ? TV_HALF_HEIGHT : (ycoord < -TV_HALF_HEIGHT) ? -TV_HALF_HEIGHT : ycoord)
@@ -107,6 +120,8 @@ Render data flags:
 	#define GV_SORT_MAX			(0x40)
 	#define GV_SORT_CEN			(0x80)
 	#define GV_SORT_MIN			(0xC0)
+	#define GV_SCTR_BACKFACE	(0xC0) //Unique backfaced flag for sectors, since the drawing system overrides Z sorting rules there.
+	#define GV_SCTR_FRNTFACE	(0xFF3F)
 	#define GV_FLIP_V			(0x20)
 	#define GV_FLIP_H			(0x10)
 	#define GV_FLIP_HV			(0x30)
@@ -155,7 +170,7 @@ typedef struct {
 //////////////////////////////////
 typedef struct {
     POINT  pnt;		//x = 0, y = 4, z = 8
-	int clipFlag;	// = 12
+	unsigned int clipFlag;	// = 12
 } vertex_t; //16 bytes each
 
 //////////////////////////////////
@@ -246,7 +261,8 @@ typedef struct
 
 extern _portal * scene_portals;
 extern _portal * used_portals;
-extern unsigned short adjacentSectors[MAX_SECTORS];
+extern unsigned short sectorIsAdjacent[MAX_SECTORS];
+extern unsigned short sectorIsVisible[MAX_SECTORS];
 extern unsigned short visibleSectors[MAX_SECTORS];
 extern unsigned short drawSectorList[MAX_SECTORS];
 extern int nearSectorCt;
@@ -288,8 +304,8 @@ extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 //subrender.c
 void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
 void	plane_rendering_with_subdivision(entity_t * ent);
-void	transform_verts_for_sector(int sector_number, int viewport_sector, MATRIX * msMatrix);
-void	draw_sector(entity_t * ent, int sector_number);
+void	transform_verts_for_sector(int sector_number, MATRIX * msMatrix);
+void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix);
 //2drender.c
 short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);
@@ -321,7 +337,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
-void	collect_portals_from_sector(int sector_number, int viewport_sector,  MATRIX * msMatrix);
+void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	depth_cueing(int * depth, int * cue);

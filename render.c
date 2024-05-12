@@ -25,7 +25,10 @@ _portal used_portal_host[MAX_USED_PORTALS];
 _portal * scene_portals;
 _portal * used_portals;
 
-unsigned short adjacentSectors[MAX_SECTORS];
+//Booleans: These contain boolean flags for all sectors, in order of their existence
+unsigned short sectorIsAdjacent[MAX_SECTORS];
+unsigned short sectorIsVisible[MAX_SECTORS];
+//Lists: These list sector numbers
 unsigned short visibleSectors[MAX_SECTORS];
 unsigned short drawSectorList[MAX_SECTORS];
 int nearSectorCt = 0;
@@ -227,7 +230,7 @@ inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint
    
 }
 
-void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
+void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix)
 {
 	_sector * sct = &sectors[sector_number];
 	if(sct->ent->file_done != true) return;
@@ -255,7 +258,7 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX 
 	mmtx[11] = newMtx[11];
 	
 	int post[3];
-	int center[3];
+	int center[3] = {0,0,0};
 	
 	GVPLY * mesh = sct->ent->pol;
 	vertex_t * ptv[4];
@@ -286,7 +289,7 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX 
 		post[Y] = msh2VertArea[k].pnt[Y];
 		post[Z] = msh2VertArea[k].pnt[Z];
 		//Clip by Z (do portals need to do this?) (yes, they unfortunately do)
-		msh2VertArea[k].pnt[Z] = (msh2VertArea[k].pnt[Z] > 0) ? msh2VertArea[k].pnt[Z] : 0;
+		msh2VertArea[k].pnt[Z] = (msh2VertArea[k].pnt[Z] < (SUPER_NEAR_PLANE)) ? SUPER_NEAR_PLANE : msh2VertArea[k].pnt[Z];
 		//Get 1/z from table
 		//Note the table is contributing something special here; a magic number for dividing by zero.
 		inverseZ = zTable[(msh2VertArea[k].pnt[Z]>>16)];
@@ -299,7 +302,7 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX 
 		msh2VertArea[k].clipFlag |= ((msh2VertArea[k].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
 		msh2VertArea[k].clipFlag |= ((msh2VertArea[k].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
 		msh2VertArea[k].clipFlag |= ((msh2VertArea[k].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
-		msh2VertArea[k].clipFlag |= ((msh2VertArea[k].pnt[Z]) <= (1<<16)) ? CLIP_Z : 0;
+		msh2VertArea[k].clipFlag |= ((msh2VertArea[k].pnt[Z]) <= (SUPER_NEAR_PLANE)) ? CLIP_Z : 0;
 			
 		//We don't know if this portal is going to be active yet, but it is convenient to do this here.
 		port->verts[k][X] = ptv[k]->pnt[X];
@@ -329,21 +332,6 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX 
 		t_norm[2] = fxdot(mesh->nmtbl[sct->portals[i]], &mmtx[8]);
 		int tdot = fxdot(t_norm, post);
 		port->backface = (tdot > 0) ? 0 : 1;
-		//Expansion
-		//Sometimes, vertices are on the portal's borders.
-		//We don't want to clip right on the edge. I could adjust the DSP's math to do that, or I could do this.
-		//(really, i need to fix the DSP program so it doesn't reject on the edge)
-		//for(int k = 0; k < 4; k++)
-		//{
-		//	post[X] = center[X] - port->verts[k][X];
-		//	post[Y] = center[Y] - port->verts[k][Y];
-		//	post[Z] = JO_ABS(port->verts[k][Z])>>22;
-		//
-		//	if(post[X] < 0) port->verts[k][X] += post[Z];
-		//	if(post[X] >= 0) port->verts[k][X] -= post[Z];
-		//	if(post[Y] < 0) port->verts[k][Y] += post[Z];
-		//	if(post[Y] >= 0) port->verts[k][Y] -= post[Z];
-		//}
 		
 		//Todo: Type?
 	
@@ -357,7 +345,24 @@ void	collect_portals_from_sector(int sector_number, int viewport_sector, MATRIX 
 		{
 			port->type |= PORTAL_OFFSCREEN;
 		} else {
-			port->type |= (ztarget <= NEAR_PLANE_DISTANCE) ? PORTAL_INTERSECTING : 0;
+			port->type |= (ztarget <= SUPER_NEAR_PLANE) ? PORTAL_INTERSECTING : 0;
+		}
+		//Expansion
+		//Sometimes, vertices are on the portal's borders.
+		//The DSP code clips exclusively outside and inclusively disables clipping inside, but that's not enough.
+		//Additionally, the portal code can have trouble with especially small (particularly, slim) portals; so we should expand them.
+		for(int k = 0; k < 4; k++)
+		{
+			post[X] = center[X] - port->verts[k][X];
+			post[Y] = center[Y] - port->verts[k][Y];
+			post[Z] = JO_ABS(port->verts[k][Z])>>22;
+			int xpansion = 4;
+			int ypansion = 3;
+		
+			if(post[X] < 0) port->verts[k][X] += xpansion;
+			if(post[X] >= 0) port->verts[k][X] -= xpansion;
+			if(post[Y] < 0) port->verts[k][Y] += ypansion;
+			if(post[Y] >= 0) port->verts[k][Y] -= ypansion;
 		}
 		
 		port->sectorA = sector_number;

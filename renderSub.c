@@ -1371,7 +1371,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 
 }
 
-void	transform_verts_for_sector(int sector_number,  int viewport_sector, MATRIX * msMatrix)
+void	transform_verts_for_sector(int sector_number, MATRIX * msMatrix)
 {
 	_sector * sct = &sectors[sector_number];
 	entity_t * ent = sct->ent; 
@@ -1564,169 +1564,44 @@ transVerts[0]+= sct->nbTileVert;
 	); //5 input registers
 	
 	
-volatile int check_dsp = 0;
-do{
-	check_dsp = dsp_noti_addr[0];
-	__asm__("nop;");
-} while(!check_dsp);
 	
-//Copy the portal list according to the portal restrictions
-//I should really precalculate this beforehand; then again, it's going to have to be done somewhere, at sometime. may as well do it now.
-int intersecting_portal = 0;
-int adjacent_has_portal = 0;
-int used_port_ct = 0;
-int offscreen_portals = 0;
-int is_adjacent = adjacentSectors[sector_number];
-
-for(int  i = 0; i < (*current_portal_count); i++)
+for(unsigned int p = 0; p < sct->nbPolygon; p++)
 {
-	_portal * scene_port = &scene_portals[i];
-	_portal * used_port = &used_portals[i];
-	
-	if(sector_number == viewport_sector)
+	//Polygon ID alias
+	int alias = sct->pltbl[p];
+	unsigned short flags = mesh->attbl[alias].render_data_flags;
+	mesh->attbl[alias].render_data_flags &= GV_SCTR_FRNTFACE;
+	if(!(flags & GV_FLAG_DISPLAY)) continue;
+	//////////////////////////////////////////////////////////////
+	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
+	//////////////////////////////////////////////////////////////
+	if(flags & GV_FLAG_SINGLE)
 	{
-		used_port->type = 0;
-		continue;
+		//Why does this work? What is this doing?
+		//This is pretty much following Wikipedia's article on backface culling. Note the other method used in render.c kind of also does.
+		//The difference is this is view-space, but not screenspace.
+		//In screenspace, you can use a cross product to find the normal of the polygon. This fails for polygons distorted by the near plane.
+		//Instead, we can do the math in view-space. However, doing the math in view-space requires us to transform the normal.
+		//That is why this method is technically inferior, but it is a very similar idea: is the normal facing towards or away the polygon.
+		//In screen-space, that polygon in/out vector coincides with the screen's Z axis.
+		//In view-space, that polygon in/out vector coincides with the plane of the polygon. The normal, you understand?
+		//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
+		//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
+		int t_norm[3] = {0, 0, 0};
+		t_norm[0] = fxdot(mesh->nmtbl[alias], &mmtx[0]);
+		t_norm[1] = fxdot(mesh->nmtbl[alias], &mmtx[4]);
+		t_norm[2] = fxdot(mesh->nmtbl[alias], &mmtx[8]);
+		int tdot = fxdot(t_norm, viewspace_verts[sct->tltbl[sct->plStart[p]].vertices[0]].pnt);
+		if(tdot > 0) mesh->attbl[alias].render_data_flags |= GV_SCTR_BACKFACE;
 	}
-	
-	if(((scene_port->sectorB == sector_number && scene_port->sectorA == viewport_sector)
-		|| (scene_port->sectorB == viewport_sector && scene_port->sectorA == sector_number))
-		&& scene_port->type & PORTAL_INTERSECTING)
-	{
-		intersecting_portal = 1;
-	}
-	
-	if(scene_port->sectorA == INVALID_SECTOR || scene_port->sectorB == INVALID_SECTOR)
-	{
-		used_port->type = 0;
-		continue;
-	}
-	
-	if(scene_port->sectorA == viewport_sector && sector_number == scene_port->sectorA)
-	{
-		used_port->type = 0;
-		continue;
-	}
-	if(scene_port->sectorB == viewport_sector && sector_number == scene_port->sectorB)
-	{
-		used_port->type = 0;
-		continue;
-	}
-	//If we are in the sector the portal belongs to and the portal is NOT backfaced, disable it.
-	//if(scene_port->sectorA == viewport_sector && scene_port->backface == 1)
-	//{
-	//	used_port->type = 0;
-	//	continue;
-	//}
-	////If we are NOT in the sector belongs to and the portal IS backfaced, disable it.
-	//if(scene_port->sectorA != viewport_sector && scene_port->backface == 0)
-	//{
-	//	used_port->type = 0;
-	//	continue;
-	//}
-	
-	//Now, for branches in which the sector drawn IS a primary adjacent:
-	if(is_adjacent)
-	{
-		//Bro, this is really, really complicated.
-		//We have built a negatively-biased system; there are conditions which DISABLE the portal, otherwise it's turned on.
-		//This might not have been the smartest way to do it...
-		//These conditions check if the adjacent sector has any portals which border the two sectors.
-		//In case there aren't any which border an adjacent sector, no portals should be used to draw that sector.
-		if(scene_port->sectorA == sector_number && scene_port->sectorB == viewport_sector)
-		{
-			adjacent_has_portal = 1;
-		}
-		if(scene_port->sectorB == sector_number && scene_port->sectorA == viewport_sector)
-		{
-			adjacent_has_portal = 1;
-		}
 		
-		//For a primary adjacent sector, what conditions DISABLE the portal?
-		//If the sector is not sectorA and not sectorB.
-		//
-		if(scene_port->sectorA != sector_number && scene_port->sectorB != sector_number)
-		{
-			used_port->type = 0;
-			continue;
-		}
+}
+	
+//////////////
+// The compiler was doing something whacky with these. Have to ensure they are handled as pointers, and put in RAM.
+volatile unsigned short * uc_ready = (unsigned short *)(((unsigned int)&sct->ready_this_frame)|UNCACHE);
+	*uc_ready = 1;
 
-	} else {
-		//If it is NOT a primary adjacent:
-		//A portal should not apply for a sector if the two sectors that portal borders do not list that sector as an adjacent.
-		//However, if the portal borders that sector, the portal should be used.
-		_sector * sctA = &sectors[scene_port->sectorA];
-		_sector * sctB = &sectors[scene_port->sectorB];
-		int is_listed = 0;
-	
-		if(scene_port->sectorA == sector_number || scene_port->sectorB == sector_number) is_listed = 1;
-	
-		for(int r = 0; r < MAX_SECTORS; r++)
-		{
-			if((r >= sctA->nbAdjacent && r >= sctB->nbAdjacent) || is_listed) break;
-			
-			if(r < sctA->nbAdjacent)
-			{
-				if(sctA->pvs[r+1] == sector_number) is_listed = 1;
-			}
-			
-			if(r < sctB->nbAdjacent)
-			{
-				if(sctB->pvs[r+1] == sector_number) is_listed = 1;
-			}
-		}
-	
-		if(!is_listed)
-		{
-			used_port->type = 0;
-			continue;
-		}
-	}
-	
-	*used_port = *scene_port;
-	used_port_ct++;
-}
-
-for(int i = 0; i < (*current_portal_count); i++)
-{
-	_portal * used_port = &used_portals[i];
-	if(used_port->type == 0) continue;
-	if(used_port->type & PORTAL_OFFSCREEN)
-	{
-		offscreen_portals++;
-		//used_port->type = 0;
-	}
-}
-//If all portals that would normally be used to draw this sector are off-screen, do not draw the sector.
-//However, we need to except this in case the sector is a primary adjacent.
-//if(used_port_ct != 0 && offscreen_portals == used_port_ct && (!is_adjacent || adjacent_has_portal)) return;
-if(used_port_ct != 0 && offscreen_portals == used_port_ct && (!is_adjacent))
-{
-	sct->ready_this_frame = 1;
-	sct->draw_this_frame = 0;
-	return;
-} else {
-	sct->draw_this_frame = 1;
-}
-	
-//If this sector has a portal that is intersecting the view plane, and we are in sectorA or sectorB of the portal,
-//disable all portals which pertain to drawing sectorA and sectorB.
-//This is explicitly structured so it does not disable portals for sectors that pertain to sectorA OR sectorB;
-//only those which border sectorA AND sectorB, wherein the viewport_sector and drawn sector must be A and B.
-//This also disables portals in case we are drawing an adjacent sector and there are no portals which border viewport_sector<->sector_number.
-if(intersecting_portal || (is_adjacent && !adjacent_has_portal))
-{
-	for(int  i = 0; i < (*current_portal_count); i++)
-	{
-		_portal * used_port = &used_portals[i];
-		used_port->type = 0;
-	}
-}
-
-run_winder_prog(sct->nbTileVert, current_portal_count, (void*)sct->scrnspace_tvtbl);
-	
-	sct->ready_this_frame = 1;
-	
 }
 
 //////////////////////////////////////////////////////////////////
@@ -1734,31 +1609,31 @@ run_winder_prog(sct->nbTileVert, current_portal_count, (void*)sct->scrnspace_tvt
 // Warning: Assembly ahead
 // The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
 //////////////////////////////////////////////////////////////////
-void	draw_sector(entity_t * ent, int sector_number)
+void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
 {
 	///////////////////////////////////////////
 	// If the file is not yet loaded, do not try and render it.
 	// If the entity type is not 'B' for BUILDING, do not try and render it as it won't have proper textures.
 	///////////////////////////////////////////
 	_sector * sct = &sectors[sector_number];
+	entity_t * ent = sct->ent;
 	if(ent->file_done != true) return;
 	if(ent->type != MODEL_TYPE_SECTORED) return;
 	if(!sct->nbPoint || !sct->pntbl) return; 
 	
+	//This condition is necessary; it has to work one way or another. However, without a time limit on the hold, it locks up.
+	//That is a bug of unknown cause; the time limit (npCnt) is a work-around.
 	if(!sct->ready_this_frame)
 	{
 		volatile unsigned short * uncached_flag = (unsigned short *)(((unsigned int)&sct->ready_this_frame)|UNCACHE);
 		volatile int check;
+		volatile int npCnt = 0;
 		do
 		{
 			check = *uncached_flag;
+			npCnt++;
 			__asm__("nop;");
-		}while(!check);
-	}
-	
-	if(!sct->draw_this_frame)
-	{
-		return;
+		}while(!check && npCnt < 1000);
 	}
 
 	
@@ -1775,29 +1650,26 @@ void	draw_sector(entity_t * ent, int sector_number)
 
 	vertex_t * ptv[5];
 	int * stv[4];
+	
+    static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	static MATRIX newMtx;
-	static FIXED mmtx[12];
+	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
 	
-	//These can't have an orienation... eh, we'll do it anyway.
-	//So, um, not sure how I am going to do this part; I'l have to figure it out.
-	slMultiMatrix((POINT *)ent->prematrix);
-    slGetMatrix(newMtx);
+	mmtx[0] = newMtx[0];
+	mmtx[1] = newMtx[1];
+	mmtx[2] = newMtx[2];
+	mmtx[3] = newMtx[9];
 	
-	mmtx[0] = newMtx[X][X];
-	mmtx[1] = newMtx[Y][X];
-	mmtx[2] = newMtx[Z][X];
-	mmtx[3] = newMtx[3][X];
+	mmtx[4] = newMtx[3];
+	mmtx[5] = newMtx[4];
+	mmtx[6] = newMtx[5];
+	mmtx[7] = newMtx[10];
 	
-	mmtx[4] = newMtx[X][Y];
-	mmtx[5] = newMtx[Y][Y];
-	mmtx[6] = newMtx[Z][Y];
-	mmtx[7] = newMtx[3][Y];
-	
-	mmtx[8] = newMtx[X][Z];
-	mmtx[9] = newMtx[Y][Z];
-	mmtx[10] = newMtx[Z][Z];
-	mmtx[11] = newMtx[3][Z];
+	mmtx[8] = newMtx[6];
+	mmtx[9] = newMtx[7];
+	mmtx[10] = newMtx[8];
+	mmtx[11] = newMtx[11];
 
 	/**
 	Rendering Planes
@@ -1813,11 +1685,150 @@ void	draw_sector(entity_t * ent, int sector_number)
 	//nbg_sprintf(2, 6, "addr_pnt(%i)", sct->pntbl);
 	//nbg_sprintf(2, 7, "addr_ply(%i)", sct->pltbl);
 
+
+
 //////////////////////////////////////
 // These buffers had their data filled earlier in the frame by Master SH2 and SCU-DSP.
 //////////////////////////////////////
 vertex_t * screenspace_verts = (vertex_t *)sct->scrnspace_tvtbl;
 vertex_t * viewspace_verts = (vertex_t *)sct->viewspace_tvtbl;
+	
+//Copy the portal list according to the portal restrictions
+//I should really precalculate this beforehand; then again, it's going to have to be done somewhere, at sometime. may as well do it now.
+int intersecting_adjacent_portal = 0;
+int adjacent_has_portal = 0;
+int used_port_ct = 0;
+int adjacent = sectorIsAdjacent[sector_number];
+int offscreen_portals = 0;
+
+for(int  i = 0; i < (*current_portal_count); i++)
+{
+	_portal * scene_port = &scene_portals[i];
+	_portal * used_port = &used_portals[i];
+
+	//Inclusive Conditions...
+	int both_sectors_visible = 0;
+	int adjacent_with_portal = 0;
+	int adjacent_uses_portal = 0;
+	
+	int secondary_adjacent_with_portal = 0;
+	int offscreen = 0;
+	int intersecting = 0;
+	int sectorA = scene_port->sectorA;
+	int sectorB = scene_port->sectorB;
+	int adjacentToA = 0;
+	int adjacentToB = 0;
+	int use_this_portal = 0;
+	
+	if(viewport_sector == sector_number)
+	{
+		used_port->type = 0;
+		continue;
+	}
+	
+	if(sectorIsVisible[sectorA] && sectorIsVisible[sectorB]) both_sectors_visible = 1;
+	
+	if(sectorIsAdjacent[sectorA] || sectorIsAdjacent[sectorB]) adjacent_with_portal = 1;
+	
+	if(scene_port->type & PORTAL_OFFSCREEN) offscreen = 1;
+	
+	if(scene_port->type & PORTAL_INTERSECTING) intersecting = 1;
+	
+	
+	//Anyway, we need to check specifically if an adjacent WITH portal has the portal listing the viewport_sector.
+	if(adjacent_with_portal)
+	{
+		if(sectorA == viewport_sector && sectorB == sector_number) adjacent_uses_portal = 1;
+		if(sectorB == viewport_sector && sectorA == sector_number) adjacent_uses_portal = 1;
+	}
+	
+	if(both_sectors_visible)
+	{
+		if(adjacent && adjacent_uses_portal)
+		{
+			use_this_portal = 1;
+			adjacent_has_portal = 1;
+			if(intersecting) intersecting_adjacent_portal = 1;
+		}
+		
+		if(!adjacent)
+		{
+			if(sector_number == sectorA || sector_number == sectorB)
+			{
+				use_this_portal = 1;
+			} else {
+				_sector * sctA = &sectors[sectorA];
+				_sector * sctB = &sectors[sectorB];
+				for(int r = 0; r < MAX_SECTORS; r++)
+				{
+					if(r >= sctA->nbAdjacent && r >= sctB->nbAdjacent) break;
+					
+					if(r < sctA->nbAdjacent)
+					{
+						if(sctA->pvs[r+1] == sector_number) adjacentToA = 1;
+					}
+					
+					if(r < sctB->nbAdjacent)
+					{
+						if(sctB->pvs[r+1] == sector_number) adjacentToB = 1;
+					}
+				}
+				//Okay, we are almost there.
+				//At this point, we need an extra condition; an exclusionary logic.
+				//We need to know if the portal exists between the viewport_sector and the sector_number.
+				//We shall check first which sectors adjacent to viewport_sector are adjacent to sector_number.
+				//Then we will check if there is only *one* sector adjacent to viewport_sector and sector_number,
+				//and if that sector is sectorA or sectorB. If it is neither, we shouldn't use the portal.
+				for(int r = 0; r < sct->nbAdjacent; r++)
+				{
+					int snnj = sct->pvs[r+1];
+					if(sectorIsAdjacent[snnj])
+					{
+						if(snnj == sectorA || snnj == sectorB) secondary_adjacent_with_portal++;
+					}
+				}
+				if(adjacentToA && !adjacentToB && secondary_adjacent_with_portal == 1) use_this_portal = 1;
+				if(adjacentToB && !adjacentToA && secondary_adjacent_with_portal == 1) use_this_portal = 1;
+						
+			}
+			
+		}
+	}
+	
+	if(use_this_portal)
+	{
+		if(offscreen) offscreen_portals++;
+		used_port_ct++;
+		*used_port = *scene_port;
+	} else {
+		used_port->type = 0;
+	}
+
+}
+
+if(intersecting_adjacent_portal)
+{
+	for(int i = 0; i < (*current_portal_count); i++)
+	{
+		used_portals[i].type = 0;
+	}
+}
+
+
+//////////////
+// The compiler was doing something whacky with these. Have to ensure they are handled as pointers, and put in RAM.
+volatile unsigned short * uc_port_ct = (unsigned short *)(((unsigned int)&sct->used_port_ct)|UNCACHE);
+
+
+if(viewport_sector == sector_number || (offscreen_portals != used_port_ct) || (adjacent && !adjacent_has_portal) || used_port_ct == 0)
+{
+	*uc_port_ct = used_port_ct;
+} else {
+	return;
+}
+
+
+run_winder_prog(sct->nbTileVert, current_portal_count, (void*)sct->scrnspace_tvtbl);
 
 
 //Draw Route:
@@ -1834,31 +1845,8 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 	flags = mesh->attbl[alias].render_data_flags;
 	if(!(flags & GV_FLAG_DISPLAY)) continue;
 	
-	//////////////////////////////////////////////////////////////
-	// Screen-space back face culling segment. Will also avoid if the plane is flagged as dual-plane.
-	//////////////////////////////////////////////////////////////
-	if(flags & GV_FLAG_SINGLE)
-	{
-		dual_plane = 0;
-		//Why does this work? What is this doing?
-		//This is pretty much following Wikipedia's article on backface culling. Note the other method used in render.c kind of also does.
-		//The difference is this is view-space, but not screenspace.
-		//In screenspace, you can use a cross product to find the normal of the polygon. This fails for polygons distorted by the near plane.
-		//Instead, we can do the math in view-space. However, doing the math in view-space requires us to transform the normal.
-		//That is why this method is technically inferior, but it is a very similar idea: is the normal facing towards or away the polygon.
-		//In screen-space, that polygon in/out vector coincides with the screen's Z axis.
-		//In view-space, that polygon in/out vector coincides with the plane of the polygon. The normal, you understand?
-		//So we are just trying to find out if the normal, in VIEW-SPACE, is facing away or towards the polygon.
-		//If it is facing away, that polygon is therefore facing away from the perspective, and should be culled.
-		int t_norm[3] = {0, 0, 0};
-		t_norm[0] = fxdot(mesh->nmtbl[alias], &mmtx[0]);
-		t_norm[1] = fxdot(mesh->nmtbl[alias], &mmtx[4]);
-		t_norm[2] = fxdot(mesh->nmtbl[alias], &mmtx[8]);
-		int tdot = fxdot(t_norm, viewspace_verts[sct->tltbl[sct->plStart[p]].vertices[0]].pnt);
-		if(tdot > 0) continue;
-	} else {
-		dual_plane = 1;
-	}
+	dual_plane = (flags & GV_FLAG_SINGLE) ? 0 : 1;
+	if(flags & GV_SCTR_BACKFACE) continue;
 	
 	///////////////////////////////////////////
 	// Just a side note:
@@ -1899,10 +1887,23 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		do{
 			check = *flag0 & *flag1 & *flag2 & *flag3;
 			__asm__("nop;");
-		}while((!(check & DSP_CLIP_CHECK)) && *current_portal_count);
-		
-		//If the tile is off-screen, don't draw it or any part of it.
-		if(check & JUST_CLIP_FLAGS) continue;
+		}while((!(check & DSP_CLIP_CHECK)) && sct->used_port_ct);
+		//Processing:
+		//The DSP applies clipFlags on a per-portal basis.
+		//What we want to do is clip the polygon out only if it is outside of *all* portals on the same side.
+		//Hmm.. how shall I do that?
+		if(check & SCRN_CLIP_FLAGS) continue;
+		if(sct->used_port_ct && check & JUST_PORT_FLAGS)
+		{
+			unsigned int clipOutCt = 0;
+			if(check & DSP_PORT6) clipOutCt++;
+			if(check & DSP_PORT5) clipOutCt++;
+			if(check & DSP_PORT4) clipOutCt++;
+			if(check & DSP_PORT3) clipOutCt++;
+			if(check & DSP_PORT2) clipOutCt++;
+			if(check & DSP_PORT1) clipOutCt++;
+			if(clipOutCt >= (sct->used_port_ct)) continue;	
+		}
 		
 		stv[0] = &viewspace_verts[tile->vertices[0]].pnt[X];
 		stv[1] = &viewspace_verts[tile->vertices[1]].pnt[X];

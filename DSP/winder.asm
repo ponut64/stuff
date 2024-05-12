@@ -72,9 +72,6 @@
 	;	
 	;
 	;------------------------------------------------------------------------
-	; Clear RAM3[30] to use as reporting data: reports the # of vertices marked as within the portal/occluder
-								clr a		mov 30,ct3
-											mov all,mc3		; CT3 = 30
 	DMAH2 D0,MC0,8											; CT3 = 31
 											mov 62,ct3		; CT0 = 4 ; Inputs to RAM0 0 ; 
 											mov 0,ct0		; CT1 = 12 ; CT3 = 62
@@ -142,6 +139,7 @@
 	;	RAM2[20] : Portal count for this vertex
 	;	RAM3[62] : Portal address
 	;	RAM3[59] : Copied portal address
+	; 	RAM1[22] : Portal clipFlag multiplier
 											mov 3,ct2
 								mov m2,a	mov 21,ct1	; CT2 = 3
 											mov all,mc1 ; CT1 = 21
@@ -164,15 +162,24 @@
 	;	5. Decrement copied portal count. RAM2[20]
 	;	5a. Move copied portal address to RA0. RAM3[59]
 	sub							mov alu,a	mov 59,ct3
-								clr a		mov all,mc2	; CT3 = 59
+											mov all,mc2	; CT3 = 59
 											mov m3,RA0
+	;	RAM1[22] : Store clipFlag multiplier
+	sl							mov alu,a	mov 22,ct1
+	sl							mov alu,a	mov 8,PL
+								clr a		mov all,LOP
+	add							mov alu,a	
+	lps
+	sl							mov alu,a
+											mov all,mc1
 	;	---------------------------------------------------------------------
 	;	DMA in the portal 14 units at RAM1[0].
 	;	6. DMA in portal. 
 	;	6a. Add to copied portal address.
+											mov 0,ct1
 	DMAH2 D0,MC1,14
 								mov m3,a	mov 14,PL
-	add							mov alu,a
+	add							mov alu,a	
 											mov all,mc3
 	; -------------------------------------------------------
 	;	7. Check portal. If disabled, go to step #4.
@@ -223,11 +230,11 @@
 	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
 	; -----------------------------------------------------------------------
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
-				mov m3,p	clr a			
+				mov m3,p	clr a			mov 22,ct1
 	ad2						mov alu,a		mov 4,ct0	
 	jmp NS,IN_01
-	nop										mov 3,ct2	; CT0 = 4 (clip flag for OUT of 0->1)
-				mov m0,p	mov m2,a					;
+				mov m1,x	mov m0,y		mov 3,ct2	; CT0 = 4 (clip flag for OUT of 0->1)
+				mov mul,p	mov m2,a					;
 	or						mov alu,a					;
 											mov all,mc2 ; PL = 1
 	IN_01:
@@ -236,7 +243,7 @@
 	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
 				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
 	ad2						mov alu,a		mov 1,PL	; CT1 = 20
-	jmp ZS,TEST_12
+	jmp S,TEST_12
 	nop						mov m1,a					; PL = 1 (delayed branch)
 	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
 											mov all,mc1 ; EDGE_IN+1
@@ -264,11 +271,11 @@
 	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
 	; -----------------------------------------------------------------------
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
-				mov m3,p	clr a			
+				mov m3,p	clr a			mov 22,ct1
 	ad2						mov alu,a		mov 5,ct0	
 	jmp NS,IN_12
-	nop										mov 3,ct2	; CT0 = 5 (clip flag for OUT of 1->2)
-				mov m0,p	mov m2,a					;
+				mov m1,x	mov m0,y		mov 3,ct2	; CT0 = 5 (clip flag for OUT of 1->2)
+				mov mul,p	mov m2,a					;
 	or						mov alu,a					;
 											mov all,mc2 ; PL = 1
 	IN_12:
@@ -277,7 +284,7 @@
 	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
 				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
 	ad2						mov alu,a		mov 1,PL	; CT1 = 20
-	jmp ZS,TEST_23
+	jmp S,TEST_23
 	nop						mov m1,a					; PL = 1 (delayed branch)
 	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
 											mov all,mc1 ; EDGE_IN+1
@@ -305,11 +312,11 @@
 	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
 	; -----------------------------------------------------------------------
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
-				mov m3,p	clr a			
+				mov m3,p	clr a			mov 22,ct1
 	ad2						mov alu,a		mov 6,ct0	
 	jmp NS,IN_23
-	nop										mov 3,ct2	; CT0 = 6 (clip flag for OUT of 2->3)
-				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
+				mov m1,x	mov m0,y		mov 3,ct2	; CT0 = 6 (clip flag for OUT of 2->3)
+				mov mul,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
 	or						mov alu,a					; 
 											mov all,mc2 ;
 	IN_23:
@@ -318,7 +325,7 @@
 	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
 				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
 	ad2						mov alu,a		mov 1,PL	; CT1 = 20
-	jmp ZS,TEST_30
+	jmp S,TEST_30
 	nop						mov m1,a					; PL = 1 (delayed branch)
 	add						mov alu,a					; RAM1[20] (EDGE_IN count) to A
 											mov all,mc1 ; EDGE_IN+1
@@ -346,11 +353,11 @@
 	nop													; CT0 = 0 ; CT1 = 13 ; CT2 = 5 ; CT3 = 2
 	; -----------------------------------------------------------------------
 	;	9. Apply clip flags if needed. This is in case of clip OUT (portal).
-				mov m3,p	clr a			
+				mov m3,p	clr a			mov 22,ct1
 	ad2						mov alu,a		mov 7,ct0	
 	jmp NS,IN_30
-	nop										mov 3,ct2	; CT0 = 7 (clip flag for OUT of 3->0)
-				mov m0,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
+				mov m1,x	mov m0,y		mov 3,ct2	; CT0 = 7 (clip flag for OUT of 3->0)
+				mov mul,p	mov m2,a					; CT2 = 3 (vertex clipFlag)
 	or						mov alu,a					; 
 											mov all,mc2 ; 
 	IN_30:
@@ -359,7 +366,7 @@
 	;	If RAM3[2] is >= 0, add 1 to EDGE_IN count (RAM1[20])
 				mov m3,p	clr a			mov 20,ct1	; CT2 = 4
 	ad2						mov alu,a		mov 1,PL	; CT1 = 20
-	jmp ZS,REPORTAL
+	jmp S,REPORTAL
 	nop						mov m1,a					; PL = 1 (delayed branch)
 	add						mov alu,a		mov 4,PL	; RAM1[20] (EDGE_IN count) to A
 											mov all,mc1 ; EDGE_IN+1

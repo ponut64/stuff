@@ -16,10 +16,10 @@ I know that'll be a week time-sink to plan the script and shoot, but it might be
 
 Portal restrictions:
 
-There are a few more glitches to work out in the portal implementation.
-
-There's a few crashes/lockups to work out too.
-I'm not sure which part of the code is not working correctly at that point.
+Some things have to be worked out.
+I have to go back to square 1 on the portal restrictions/applications.
+Step #1 is I NEED a way to determine if a portal is between the (viewport_sector) and the (sector_number).
+If it is NOT, it should not apply.
 
 The master<->dsp<->slave workflow for sector processing was successful.
 The Master CPU is now in "frametime jeopardy", but it can give a few milliseconds.
