@@ -657,7 +657,7 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 	//So this code is shit and we could end up down here past the goto, i guess? Nah, probably not.
 }
 
-void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
+void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
 		if(ent->file_done != true) return;
@@ -692,9 +692,9 @@ void	collide_in_sector_of_entity(entity_t * ent, int * ent_pos, _sector * sct, _
 		plane_center[Z] = 0;
 		for(int u = 0; u < 4; u++)
 		{
-		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent_pos[X] ); 
-		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent_pos[Y] ); 
-		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent_pos[Z] );
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent->prematrix[9] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent->prematrix[10] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent->prematrix[11] );
 		//Add to the plane's center
 		plane_center[X] += plane_points[u][X];
 		plane_center[Y] += plane_points[u][Y];

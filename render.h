@@ -261,10 +261,9 @@ typedef struct
 
 extern _portal * scene_portals;
 extern _portal * used_portals;
-extern unsigned short sectorIsAdjacent[MAX_SECTORS];
-extern unsigned short sectorIsVisible[MAX_SECTORS];
-extern unsigned short visibleSectors[MAX_SECTORS];
-extern unsigned short drawSectorList[MAX_SECTORS];
+extern unsigned short * sectorIsAdjacent;
+extern unsigned short * sectorIsVisible;
+extern unsigned short * visibleSectors;
 extern int nearSectorCt;
 extern entity_t * drawn_entity_list[64];
 extern short drawn_entity_count;
@@ -290,6 +289,7 @@ extern int * transPolys;
 extern int * timeComm;
 extern int * current_portal_count;
 extern int * masterIsDoneDrawing;
+extern int * sectorToDrawFrom;
 extern paletteCode * pcoTexDefs;
 
 extern point_light * active_lights;
@@ -337,7 +337,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 void	init_render_area(short desired_horizontal_fov);
 void	vblank_requirements(void);
 void	frame_render_prep(void);
-void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix);
+void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix, int * viewport_position);
 void	setFramebufferEraseRegion(int xtl, int ytl, int xbr, int ybr);
 void	determine_colorbank(unsigned short * colorBank, int * luma);
 void	depth_cueing(int * depth, int * cue);

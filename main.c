@@ -243,7 +243,7 @@ void	game_frame(void)
 	*masterIsDoneDrawing = 0;
 	update_gamespeed();
 	master_draw_stats();
-
+	frame_render_prep();
 	slSlaveFunc(scene_draw, 0); //Get SSH2 busy with its drawing stack ASAP
 	slCashPurge();
 	sector_vertex_remittance();

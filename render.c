@@ -25,15 +25,15 @@ _portal used_portal_host[MAX_USED_PORTALS];
 _portal * scene_portals;
 _portal * used_portals;
 
+unsigned short sectorNumberBlob[(MAX_SECTORS+1) * 6]; //Static allocation for sector # data
 //Booleans: These contain boolean flags for all sectors, in order of their existence
-unsigned short sectorIsAdjacent[MAX_SECTORS];
-unsigned short sectorIsVisible[MAX_SECTORS];
+unsigned short * sectorIsAdjacent;
+unsigned short * sectorIsVisible;
 //Lists: These list sector numbers
-unsigned short visibleSectors[MAX_SECTORS];
-unsigned short drawSectorList[MAX_SECTORS];
+unsigned short * visibleSectors;
 int nearSectorCt = 0;
 
-int dummy[7];
+int dummy[8];
 int * ssh2SentPolys;
 int * msh2SentPolys;
 int * transVerts;
@@ -41,6 +41,7 @@ int * transPolys;
 int * timeComm;
 int * current_portal_count;
 int * masterIsDoneDrawing;
+int * sectorToDrawFrom;
 int anims; //Current active animation count; increments animation control data work array.
 int scrn_dist; //Distance to projection screen surface
 
@@ -109,9 +110,14 @@ void	init_render_area(short desired_horizontal_fov)
 	timeComm = (int *)(((unsigned int)&dummy[4])|UNCACHE);
 	current_portal_count = (int *)(((unsigned int)&dummy[5])|UNCACHE);
 	masterIsDoneDrawing = (int *)(((unsigned int)&dummy[6])|UNCACHE);
+	sectorToDrawFrom = (int *)(((unsigned int)&dummy[7])|UNCACHE);
 	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
 	used_portals = (_portal *)(((unsigned int)&used_portal_host[0])|UNCACHE);
 	scene_portals = (_portal *)(((unsigned int)&scene_portal_host[0])|UNCACHE);
+	
+	sectorIsAdjacent = (unsigned short *)(((unsigned int)&sectorNumberBlob[0])|UNCACHE);
+	sectorIsVisible = (unsigned short *)(((unsigned int)&sectorNumberBlob[MAX_SECTORS+1])|UNCACHE);
+	visibleSectors = (unsigned short *)(((unsigned int)&sectorNumberBlob[(MAX_SECTORS+1) * 2])|UNCACHE);
 }
 
 void	frame_render_prep(void)
@@ -124,6 +130,7 @@ void	frame_render_prep(void)
 	anims = 0;
 	drawn_entity_count = 0;
 	*current_portal_count = 0;
+	*sectorToDrawFrom = you.prevSector;
 	vert_clip_x = TV_HALF_WIDTH;
 	vert_clip_nx = -TV_HALF_WIDTH;
 	vert_clip_y = TV_HALF_HEIGHT;
@@ -229,8 +236,8 @@ inline void		msh2SetCommand(FIXED * p1, FIXED * p2, FIXED * p3, FIXED * p4, Uint
    user_sprite->DMMY=(drawPrty>>17);
    
 }
-
-void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix)
+#include "collision.h"
+void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix, int * viewport_position)
 {
 	_sector * sct = &sectors[sector_number];
 	if(sct->ent->file_done != true) return;
@@ -259,6 +266,13 @@ void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix)
 	
 	int post[3];
 	int center[3] = {0,0,0};
+	static int used_normal[3] = {0,0,0};
+	static int plane_center[3] = {0,0,0};
+	static int plane_points[4][3];
+	static int used_pos[3];
+	used_pos[X] = -viewport_position[X];
+	used_pos[Y] = -viewport_position[Y];
+	used_pos[Z] = -viewport_position[Z];
 	
 	GVPLY * mesh = sct->ent->pol;
 	vertex_t * ptv[4];
@@ -269,8 +283,10 @@ void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix)
 		//Lazy Processor
 		//Portals are unlikely to share vertices, so it should be okay to do this.
 		//Establish the pointer to the portal's vertices
-		_quad * plane = &mesh->pltbl[sct->portals[i]];
+		int alias = sct->portals[i];
+		_quad * plane = &mesh->pltbl[alias];
 		_portal * port = &scene_portals[*current_portal_count];
+		port = (_portal*)(((unsigned int)port)|UNCACHE);
 		for(int k = 0; k < 4; k++)
 		{
 		int		inverseZ = 0;
@@ -321,32 +337,55 @@ void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix)
 		
 		//If the portal is too far away, don't add it.
 		if(ztarget > FAR_PLANE_DISTANCE) continue;
-
 		//Otherwise, we should be able to log this portal.
+		port->type = PORTAL_TYPE_ACTIVE;
+		//
+		used_normal[X] = mesh->nmtbl[alias][X];
+		used_normal[Y] = mesh->nmtbl[alias][Y];
+		used_normal[Z] = mesh->nmtbl[alias][Z];
 		//Backface Determinant
 		//We have to do this in a more complicated manner because the polygons we are dealing with are frequently large.
 		//The screenspace backface culling method will not work reliably enough for these.
 		int t_norm[3] = {0, 0, 0};
-		t_norm[0] = fxdot(mesh->nmtbl[sct->portals[i]], &mmtx[0]);
-		t_norm[1] = fxdot(mesh->nmtbl[sct->portals[i]], &mmtx[4]);
-		t_norm[2] = fxdot(mesh->nmtbl[sct->portals[i]], &mmtx[8]);
+		t_norm[0] = fxdot(used_normal, &mmtx[0]);
+		t_norm[1] = fxdot(used_normal, &mmtx[4]);
+		t_norm[2] = fxdot(used_normal, &mmtx[8]);
 		int tdot = fxdot(t_norm, post);
-		port->backface = (tdot > 0) ? 0 : 1;
-		
-		//Todo: Type?
-	
-		port->type = PORTAL_TYPE_ACTIVE;
-		
-		//Complications:
-		//We do not want to decimate off-screen portals; they are still useful.
-		//However, we do not want to disable the use of portals if in case a portal is behind or off the screen and intersecting view.
-		//I'll need to find a more precise way to express this.
-		if(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag)
+		port->backface = (tdot >= 0) ? 0 : 1;
+
+		//I need a better way to determine if a portal is very close to intersecting the view plane.
+		//I need to do it in world-space; I think I will have to project the viewpoint along the portal's normal.
+		//If the worldspace distance to the portal is small, then we shall consider it intersecting.
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
+		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + sct->ent->prematrix[9] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + sct->ent->prematrix[10] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + sct->ent->prematrix[11] );
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], used_pos, mesh->maxtbl[alias], 12))
+		{
+			//Okay, now we just need to get the **world-space** distance to the portal.
+			//We use a function which shifts the output down to suppress overflows.
+			//As a consequence, the value we test it against must also be shifted.
+			int plane_dist = ptalt_plane(used_pos, used_normal, plane_center);
+			plane_dist = JO_ABS(plane_dist);
+			if(plane_dist <= (NEAR_PLANE_DISTANCE>>7)) port->type |= PORTAL_INTERSECTING;
+		} else if(ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag)
 		{
 			port->type |= PORTAL_OFFSCREEN;
-		} else {
-			port->type |= (ztarget <= SUPER_NEAR_PLANE) ? PORTAL_INTERSECTING : 0;
 		}
+		
 		//Expansion
 		//Sometimes, vertices are on the portal's borders.
 		//The DSP code clips exclusively outside and inclusively disables clipping inside, but that's not enough.
@@ -402,15 +441,6 @@ void	sort_master_polys(void)
     Uint32 ** Zentry = (Uint32**)(Zbuffer + (128 + ((user_sprite->DMMY>>3)))*4  ); //Get Z distance as entry into Z buffer
     user_sprite->NEXT=*Zentry; //Link current polygon to last entry at that Z distance in Zbuffer [*Zentry is a pointer to the last polygon]
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry [*Zentry becomes a pointer to this polygon]
-	}
-	
-	//Random:
-	//This is the correct time to set all sectors as "not ready for drawing".
-	//Both the MSH2 and SSH2 are done with all sectors at this point.
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		sectors[i].ready_this_frame = 0;
-		sectors[i].draw_this_frame = 0;
 	}
 	
 	*timeComm = 1;

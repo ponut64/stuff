@@ -1685,8 +1685,6 @@ void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
 	//nbg_sprintf(2, 6, "addr_pnt(%i)", sct->pntbl);
 	//nbg_sprintf(2, 7, "addr_ply(%i)", sct->pltbl);
 
-
-
 //////////////////////////////////////
 // These buffers had their data filled earlier in the frame by Master SH2 and SCU-DSP.
 //////////////////////////////////////
@@ -1694,17 +1692,19 @@ vertex_t * screenspace_verts = (vertex_t *)sct->scrnspace_tvtbl;
 vertex_t * viewspace_verts = (vertex_t *)sct->viewspace_tvtbl;
 	
 //Copy the portal list according to the portal restrictions
-//I should really precalculate this beforehand; then again, it's going to have to be done somewhere, at sometime. may as well do it now.
-int intersecting_adjacent_portal = 0;
+//It is most efficient for the slave to do this now, immediately before portal processing via DSP.
 int adjacent_has_portal = 0;
-int used_port_ct = 0;
 int adjacent = sectorIsAdjacent[sector_number];
 int offscreen_portals = 0;
+int intersect_ct = 0;
+
+static int used_port_ct;
+used_port_ct = 0;
 
 for(int  i = 0; i < (*current_portal_count); i++)
 {
 	_portal * scene_port = &scene_portals[i];
-	_portal * used_port = &used_portals[i];
+	_portal * used_port = &used_portals[used_port_ct];
 
 	//Inclusive Conditions...
 	int both_sectors_visible = 0;
@@ -1720,11 +1720,8 @@ for(int  i = 0; i < (*current_portal_count); i++)
 	int adjacentToB = 0;
 	int use_this_portal = 0;
 	
-	if(viewport_sector == sector_number)
-	{
-		used_port->type = 0;
-		continue;
-	}
+	if(viewport_sector == sector_number) continue;
+	if(!scene_port->type) continue;
 	
 	if(sectorIsVisible[sectorA] && sectorIsVisible[sectorB]) both_sectors_visible = 1;
 	
@@ -1733,7 +1730,6 @@ for(int  i = 0; i < (*current_portal_count); i++)
 	if(scene_port->type & PORTAL_OFFSCREEN) offscreen = 1;
 	
 	if(scene_port->type & PORTAL_INTERSECTING) intersecting = 1;
-	
 	
 	//Anyway, we need to check specifically if an adjacent WITH portal has the portal listing the viewport_sector.
 	if(adjacent_with_portal)
@@ -1748,7 +1744,6 @@ for(int  i = 0; i < (*current_portal_count); i++)
 		{
 			use_this_portal = 1;
 			adjacent_has_portal = 1;
-			if(intersecting) intersecting_adjacent_portal = 1;
 		}
 		
 		if(!adjacent)
@@ -1798,37 +1793,48 @@ for(int  i = 0; i < (*current_portal_count); i++)
 	if(use_this_portal)
 	{
 		if(offscreen) offscreen_portals++;
+		if(intersecting) intersect_ct++;
 		used_port_ct++;
 		*used_port = *scene_port;
-	} else {
-		used_port->type = 0;
 	}
 
 }
 
-if(intersecting_adjacent_portal)
+if(intersect_ct)
 {
-	for(int i = 0; i < (*current_portal_count); i++)
+	for(int i = 0; i < used_port_ct; i++)
 	{
 		used_portals[i].type = 0;
 	}
 }
-
 
 //////////////
 // The compiler was doing something whacky with these. Have to ensure they are handled as pointers, and put in RAM.
 volatile unsigned short * uc_port_ct = (unsigned short *)(((unsigned int)&sct->used_port_ct)|UNCACHE);
 
 
+// if(sector_number == 2)
+// {
+	// nbg_sprintf(2, 6, "prts:(%i),intr(%i)", used_port_ct, intersect_ct);
+	// for(int i = 0; i < *current_portal_count; i++)
+	// {
+		// nbg_sprintf(2, 7+i, "ptype:(%i),ct(%i)", used_portals[i].type, i);
+		
+	// }
+	
+// }
+
 if(viewport_sector == sector_number || (offscreen_portals != used_port_ct) || (adjacent && !adjacent_has_portal) || used_port_ct == 0)
 {
 	*uc_port_ct = used_port_ct;
 } else {
+
 	return;
 }
 
 
-run_winder_prog(sct->nbTileVert, current_portal_count, (void*)sct->scrnspace_tvtbl);
+
+run_winder_prog(sct->nbTileVert, &used_port_ct, (void*)sct->scrnspace_tvtbl);
 
 
 //Draw Route:
@@ -1887,22 +1893,22 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		do{
 			check = *flag0 & *flag1 & *flag2 & *flag3;
 			__asm__("nop;");
-		}while((!(check & DSP_CLIP_CHECK)) && sct->used_port_ct);
+		}while((!(check & DSP_CLIP_CHECK)) && used_port_ct);
 		//Processing:
 		//The DSP applies clipFlags on a per-portal basis.
 		//What we want to do is clip the polygon out only if it is outside of *all* portals on the same side.
 		//Hmm.. how shall I do that?
 		if(check & SCRN_CLIP_FLAGS) continue;
-		if(sct->used_port_ct && check & JUST_PORT_FLAGS)
+		if(used_port_ct && check & JUST_PORT_FLAGS)
 		{
-			unsigned int clipOutCt = 0;
+			int clipOutCt = 0;
 			if(check & DSP_PORT6) clipOutCt++;
 			if(check & DSP_PORT5) clipOutCt++;
 			if(check & DSP_PORT4) clipOutCt++;
 			if(check & DSP_PORT3) clipOutCt++;
 			if(check & DSP_PORT2) clipOutCt++;
 			if(check & DSP_PORT1) clipOutCt++;
-			if(clipOutCt >= (sct->used_port_ct)) continue;	
+			if(clipOutCt >= used_port_ct) continue;	
 		}
 		
 		stv[0] = &viewspace_verts[tile->vertices[0]].pnt[X];

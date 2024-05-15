@@ -942,9 +942,7 @@ void	player_collision_test_loop(void)
 			nearSectorCt = sct->nbVisible;
 			for(unsigned int s = 0; s < sct->nbVisible; s++)
 			{
-				
-				visibleSectors[s] = sct->pvs[s];
-				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
+				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
 
 				you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->pvs[s]]);
 				you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
@@ -986,32 +984,6 @@ void	player_collision_test_loop(void)
 	}
 	
 	ldata_manager();
-	
-	//////////////////////////////////////////////
-	// Process should create:
-	// sectorIsAdjacent as a boolean flag which states which sectors are and which are not adjacent.
-	// Every frame, it is purged such that all sectors are not adjacent.
-	// Then, the correct sectors from the PVS are written in as "1", for true, adjacent.
-	for(unsigned int s = 0; s < MAX_SECTORS; s++)
-	{
-		sectorIsAdjacent[s] = 0;
-		sectorIsVisible[s] = 0;
-	}
-	for(unsigned int p = 0; p < sectors[you.curSector].nbAdjacent; p++)
-	{
-		//+1 from the PVS list to bypass the sector self-identifier
-		sectorIsAdjacent[sectors[you.curSector].pvs[p+1]] = 1;
-	}
-	for(unsigned int p = 0; p < sectors[you.curSector].nbVisible; p++)
-	{
-		sectorIsVisible[sectors[you.curSector].pvs[p]] = 1;
-	}
-	
-	//nbg_sprintf(2, 6, "adjct(%i)", sectors[you.curSector].nbVisible);
-	//for(int i = 0; i < sectors[you.curSector].nbVisible; i++)
-	//{
-	//	spr_sprintf(16, (7 * 12) + (i * 12), "to(%i)", sectors[you.curSector].pvs[i]);
-	//}
 
 //	nbg_sprintf(0, 14, "(%i)E", numBoxChecks);
 	numBoxChecks = 0;

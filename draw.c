@@ -274,7 +274,16 @@ void	obj_draw_queue(void)
 	
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		draw_sector(drawSectorList[s], you.curSector, (MATRIX*)&world_box);
+		draw_sector(visibleSectors[s], *sectorToDrawFrom, (MATRIX*)&world_box);
+	}
+	
+	//Random:
+	//This is the correct time to set all sectors as "not ready for drawing".
+	//Both the MSH2 and SSH2 are done with all sectors at this point.
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		sectors[i].ready_this_frame = 0;
+		sectors[i].draw_this_frame = 0;
 	}
 	
 }
@@ -282,7 +291,6 @@ void	obj_draw_queue(void)
 void	scene_draw(void)
 {
 	*timeComm = 0;
-	frame_render_prep();
 	/////////////////////////////////////////////
 	// Important first-step
 	// Sometimes the master will finish preparing the drawing list while the slave is working on them.
@@ -297,10 +305,6 @@ void	scene_draw(void)
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		DBBs[i] = RBBs[i];
-	}
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		drawSectorList[i] = visibleSectors[i];
 	}
 
 	computeLight();
@@ -393,14 +397,19 @@ void	background_draw(void)
 
 void	sector_vertex_remittance(void)
 {
+	static int viewport_pos[3];
+	viewport_pos[X] = you.pos[X];
+	viewport_pos[Y] = you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16));
+	viewport_pos[Z] = you.pos[Z] - (1<<16);
+	
 	/////////////////////////////////////////////////////////
 	// World matrix processing 
 	/////////////////////////////////////////////////////////
 	bound_box_starter.modified_box = &world_box;
 
-	bound_box_starter.x_location = you.pos[X];
-	bound_box_starter.y_location = you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16));
-	bound_box_starter.z_location = you.pos[Z] - (1<<16);
+	bound_box_starter.x_location = viewport_pos[X];
+	bound_box_starter.y_location = viewport_pos[Y];
+	bound_box_starter.z_location = viewport_pos[Z];
 	
 	bound_box_starter.x_rotation = -you.viewRot[X];
 	bound_box_starter.y_rotation = you.viewRot[Y] + (32768);
@@ -409,6 +418,7 @@ void	sector_vertex_remittance(void)
 	bound_box_starter.x_radius = 1;
 	bound_box_starter.y_radius = 1;
 	bound_box_starter.z_radius = 1;
+
 
 	/////////////////////////////////////////////////////////////////////
 	// world pos?
@@ -425,12 +435,37 @@ void	sector_vertex_remittance(void)
 	scrn_z_fwd[Y] = world_box.UVZ[Y];
 	scrn_z_fwd[Z] = world_box.UVZ[Z];
 	
+	
+	
 	/////////////////////////////////////////////////////////
 	// Pre-loop portal processing
 	////////////////////////////////////////////////////////
+	_sector * sct = &sectors[*sectorToDrawFrom];
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		collect_portals_from_sector(visibleSectors[s], (MATRIX*)&world_box);
+		visibleSectors[s] = sct->pvs[s];
+		collect_portals_from_sector(visibleSectors[s], (MATRIX*)&world_box, &viewport_pos[0]);
+	}
+	
+	//////////////////////////////////////////////
+	// Process should create:
+	// sectorIsAdjacent as a boolean flag which states which sectors are and which are not adjacent.
+	// Every frame, it is purged such that all sectors are not adjacent.
+	// Then, the correct sectors from the PVS are written in as "1", for true, adjacent.
+	// This information is used to short-hand operations when determining sector visibility based on the portal information.
+	for(unsigned int s = 0; s < MAX_SECTORS; s++)
+	{
+		sectorIsAdjacent[s] = 0;
+		sectorIsVisible[s] = 0;
+	}
+	for(unsigned int p = 0; p < sct->nbAdjacent; p++)
+	{
+		//+1 from the PVS list to bypass the sector self-identifier
+		sectorIsAdjacent[sct->pvs[p+1]] = 1;
+	}
+	for(unsigned int p = 0; p < sct->nbVisible; p++)
+	{
+		sectorIsVisible[sct->pvs[p]] = 1;
 	}
 	/////////////////////////////////////////////////////////
 	// Sector Vertex Transform Loop (includes DSP portal processing)
@@ -449,9 +484,10 @@ void	sector_vertex_remittance(void)
 	
 	
 
-	//nbg_sprintf(2, 7, "adj:(%i),vis:(%i)", sectors[you.curSector].nbAdjacent, sectors[you.curSector].nbVisible);
-	nbg_sprintf(2, 6, "curSector:(%i)", you.curSector);
-	//nbg_sprintf(2, 9, "sctPlane:(%i)", sectors[you.curSector].nbPolygon);
+	//nbg_sprintf(2, 6, "prts:(%i)", *used_portal_ct);
+	//nbg_sprintf(2, 6, "drwSector:(%i)", *sectorToDrawFrom);
+	//nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	//nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
 	
 	int alltilect = 0;
 	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
