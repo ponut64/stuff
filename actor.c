@@ -79,16 +79,10 @@ path table 1 step
 maintain path table
 etc?
 
-So I have noticed a giant hole in this plan:
-The levels will have to be built out of multiple smaller entities which do not reference the same pntbl/pltbl.
-I am **NOT** going to go as far as to build a sector-based engine; that's a little too much work for me.
-What I understand how to do is a portal-based engine, where you can decide what is and isn't drawn based on which portals
-you have or haven't passed though.
-This has some serious flaws, but perhaps quick-and-dirty can be done.
-Then there is a question of, what restrictions will the environments demand?
-
-I think I have made some pretty good progress here so far, but I need to step back and evaluate how the game will be made.
-
+Okay, so after all that sector bullshit was done, we're back here.
+I need to create a collision function which sweeps for which sector the actor is in, and then
+I need to create a collision function to operate sector-by-sector for the actor, and then
+I need to create a pathing abstraction which allows the actor to navigate all sectors
 */
 
 int		actorLineOfSight(_actor * act, int * pos)

@@ -1808,11 +1808,6 @@ if(intersect_ct)
 	}
 }
 
-//////////////
-// The compiler was doing something whacky with these. Have to ensure they are handled as pointers, and put in RAM.
-volatile unsigned short * uc_port_ct = (unsigned short *)(((unsigned int)&sct->used_port_ct)|UNCACHE);
-
-
 // if(sector_number == 2)
 // {
 	// nbg_sprintf(2, 6, "prts:(%i),intr(%i)", used_port_ct, intersect_ct);
@@ -1826,7 +1821,7 @@ volatile unsigned short * uc_port_ct = (unsigned short *)(((unsigned int)&sct->u
 
 if(viewport_sector == sector_number || (offscreen_portals != used_port_ct) || (adjacent && !adjacent_has_portal) || used_port_ct == 0)
 {
-	*uc_port_ct = used_port_ct;
+	__asm__("nop;");
 } else {
 
 	return;

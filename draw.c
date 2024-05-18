@@ -283,7 +283,6 @@ void	obj_draw_queue(void)
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
 		sectors[i].ready_this_frame = 0;
-		sectors[i].draw_this_frame = 0;
 	}
 	
 }
@@ -468,7 +467,7 @@ void	sector_vertex_remittance(void)
 		sectorIsVisible[sct->pvs[p]] = 1;
 	}
 	/////////////////////////////////////////////////////////
-	// Sector Vertex Transform Loop (includes DSP portal processing)
+	// Sector Vertex Transform Loop
 	////////////////////////////////////////////////////////
 	dsp_noti_addr[0] = 1;
 	for(int s = 0; s < nearSectorCt; s++)

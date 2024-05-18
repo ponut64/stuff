@@ -138,8 +138,6 @@ typedef struct
 	unsigned short nbPortal; //Stores the # of portals in the sector															54
 	unsigned short nbAdjacent; //# of sectors which are primary adjacent to this sector (immediately, physically touching)		56
 	volatile unsigned short ready_this_frame; //Boolean; 0 if sector is not ready to draw this frame, 1 if it is.				58
-	volatile unsigned short draw_this_frame; //Boolean; 0 if sector will be not be drawn this frame at all, 1 if it will be.	60
-	volatile unsigned short	used_port_ct; //# of portals used to draw this portal this frame.									62
 } _sector;
 extern _sector sectors[MAX_SECTORS+1];
 

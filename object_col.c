@@ -257,97 +257,6 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	
 }
 
-//Exhaustive process here...
-int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitPolyID, entity_t * ent, int * mesh_position, _sector * sct)
-{
-	GVPLY * mesh = ent->pol;
-	
-	//To hitscan every plane, we want to minimize the amount of work done.
-	//Thus, we want to:
-	//1. Discard backfaced planes (very important!)
-	//2. Discard planes that are not collidable
-	static POINT trash = {0, 0, 0};
-	static POINT possible_hit = {0,0,0};
-	static int plane_center[3] = {0,0,0};
-	static int plane_points[4][3];
-	int hasHit = 0;
-	
-	if(ent->type != MODEL_TYPE_SECTORED) sct = &sectors[INVALID_SECTOR];
-	if(sct == NULL) sct = &sectors[INVALID_SECTOR];
-	
-	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
-	
-	
-	for(unsigned int i = 0; i < ply_limit; i++)
-	{		
-		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
-		int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
-		if(mesh->attbl[alias].render_data_flags & GV_FLAG_PORTAL) continue;
-		if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
-		{
-			if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;
-		}
-		
-		plane_center[X] = 0;
-		plane_center[Y] = 0;
-		plane_center[Z] = 0;
-		for(int u = 0; u < 4; u++)
-		{
-		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X]) + mesh_position[X];
-		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y]) + mesh_position[Y];
-		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z]) + mesh_position[Z];
-		//Add to the plane's center
-		plane_center[X] += plane_points[u][X];
-		plane_center[Y] += plane_points[u][Y];
-		plane_center[Z] += plane_points[u][Z];
-		}
-		//Divide sum of plane points by 4 to average all the points
-		plane_center[X] >>=2;
-		plane_center[Y] >>=2;
-		plane_center[Z] >>=2;
-
-		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[alias], plane_center, possible_hit);
-
-		//It can almost work without this. Might be an investigation point to find another shortcut.
-		//(this cuts collisions behind the origin point, so we are only left with things in front)
-		trash[X] = ray_pos[X] - possible_hit[X];
-		trash[Y] = ray_pos[Y] - possible_hit[Y];
-		trash[Z] = ray_pos[Z] - possible_hit[Z];
-		int scale_to_phit = fxdot(trash, ray_normal);
-		if(scale_to_phit > 0) continue;
-		
-		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], possible_hit, mesh->maxtbl[alias], 16))
-			{
-				//Distance test "possible hit" to "ray_pos"
-				//Can be very far, must use integers.
-				//This is a process to filter multiple potential hits to the closest one.
-				//We do however need to do this only when we have a hit at all.
-				unsigned int possible_hit_scale = 0;
-				unsigned int hit_scale = 0;
-				if(hasHit)
-				{
-					trash[X] = (possible_hit[X] - ray_pos[X])>>16;
-					trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
-					trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
-					possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-					trash[X] = (hit[X] - ray_pos[X])>>16;
-					trash[Y] = (hit[Y] - ray_pos[Y])>>16;
-					trash[Z] = (hit[Z] - ray_pos[Z])>>16;
-					hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-				}
-				if(possible_hit_scale < hit_scale || !hasHit)
-				{
-					hit[X] = possible_hit[X];
-					hit[Y] = possible_hit[Y];
-					hit[Z] = possible_hit[Z];
-					*hitPolyID = alias;
-					hasHit = 1;
-				}
-			}
-	}
-	return hasHit;
-}
-
 void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 {
 	//Step 1: Is this a valid entity type?
@@ -657,6 +566,98 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 	//So this code is shit and we could end up down here past the goto, i guess? Nah, probably not.
 }
 
+
+//Exhaustive process here...
+int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int * hit, int * hitPolyID, entity_t * ent, int * mesh_position, _sector * sct)
+{
+	GVPLY * mesh = ent->pol;
+	
+	//To hitscan every plane, we want to minimize the amount of work done.
+	//Thus, we want to:
+	//1. Discard backfaced planes (very important!)
+	//2. Discard planes that are not collidable
+	static POINT trash = {0, 0, 0};
+	static POINT possible_hit = {0,0,0};
+	static int plane_center[3] = {0,0,0};
+	static int plane_points[4][3];
+	int hasHit = 0;
+	
+	if(ent->type != MODEL_TYPE_SECTORED) sct = &sectors[INVALID_SECTOR];
+	if(sct == NULL) sct = &sectors[INVALID_SECTOR];
+	
+	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
+	
+	
+	for(unsigned int i = 0; i < ply_limit; i++)
+	{		
+		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
+		int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
+		if(mesh->attbl[alias].render_data_flags & GV_FLAG_PORTAL) continue;
+		if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
+		{
+			if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;
+		}
+		
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
+		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X]) + mesh_position[X];
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y]) + mesh_position[Y];
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z]) + mesh_position[Z];
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+
+		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[alias], plane_center, possible_hit);
+
+		//It can almost work without this. Might be an investigation point to find another shortcut.
+		//(this cuts collisions behind the origin point, so we are only left with things in front)
+		trash[X] = ray_pos[X] - possible_hit[X];
+		trash[Y] = ray_pos[Y] - possible_hit[Y];
+		trash[Z] = ray_pos[Z] - possible_hit[Z];
+		int scale_to_phit = fxdot(trash, ray_normal);
+		if(scale_to_phit > 0) continue;
+		
+		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], possible_hit, mesh->maxtbl[alias], 16))
+			{
+				//Distance test "possible hit" to "ray_pos"
+				//Can be very far, must use integers.
+				//This is a process to filter multiple potential hits to the closest one.
+				//We do however need to do this only when we have a hit at all.
+				unsigned int possible_hit_scale = 0;
+				unsigned int hit_scale = 0;
+				if(hasHit)
+				{
+					trash[X] = (possible_hit[X] - ray_pos[X])>>16;
+					trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
+					trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
+					possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+					trash[X] = (hit[X] - ray_pos[X])>>16;
+					trash[Y] = (hit[Y] - ray_pos[Y])>>16;
+					trash[Z] = (hit[Z] - ray_pos[Z])>>16;
+					hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				}
+				if(possible_hit_scale < hit_scale || !hasHit)
+				{
+					hit[X] = possible_hit[X];
+					hit[Y] = possible_hit[Y];
+					hit[Z] = possible_hit[Z];
+					*hitPolyID = alias;
+					hasHit = 1;
+				}
+			}
+	}
+	return hasHit;
+}
+
 void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
@@ -850,500 +851,187 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 // This function is running on Master SH2. The rendering functions are running on Slave SH2.
 // In this condition, the setting of the prematrix is controlled by the Slave SH2.
 // Hitherto, the correct prematrix may not be set for testing collision. The position must be pointed to instead of changing the prematrix.
-void	per_poly_collide(entity_t * ent, _boundBox * mover, FIXED * mesh_position, _lineTable * moverCFs, _lineTable * moverTimeAxis)
+void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable * realTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
 		if(ent->file_done != true) return;
-
-GVPLY * mesh = ent->pol;
-static unsigned short testing_planes[MAX_COLLISION_PLANES];
-static unsigned char backfaced[MAX_COLLISION_PLANES];
-static unsigned short last_hit_floor = 0;
-static entity_t * last_floor_entity = 0;
-short total_planes = 0;
-static POINT discard_vector = {0, 0, 0};
-static POINT plane_center = {0, 0, 0};
-Bool hitY = false;
-Bool hitXZ = false;
-Bool shadowStruck = false;
-
-	discard_vector[X] = JO_ABS(mesh_position[X] + mover->nextPos[X]) - JO_ABS(fxm(mover->velocity[X], time_fixed_scale));
-	discard_vector[Y] = JO_ABS(mesh_position[Y] + mover->nextPos[Y]) - JO_ABS(fxm(mover->velocity[Y], time_fixed_scale));
-	discard_vector[Z] = JO_ABS(mesh_position[Z] + mover->nextPos[Z]) - JO_ABS(fxm(mover->velocity[Z], time_fixed_scale));
-
-	//If the player is farther away from the object than its radius, cease the test.
-	if(discard_vector[X] > ((ent->radius[X])<<17) ||
-	discard_vector[Y] > ((ent->radius[Y])<<17) ||
-	discard_vector[Z] > ((ent->radius[Z])<<17)) return;
+		if(ent->type != MODEL_TYPE_BUILDING) return;
+		
+		//Primary Flaw:
+		//We are testing collision with the *next* position of the box.
+		//In doing so, we find the collision point on the *next* frame.
+		//For walls, this is correct.
+		//For floors, it's correct to test for the next frame, but we need to snap to where we are *this* frame.
+		
+		GVPLY * mesh = ent->pol;
+		
+	static int plane_center[3];
+	static int plane_points[4][3];
+	static int anchor_to_plane[3];
+	static int used_normal[3];
+	static int possible_floor[3];
+	static int possible_wall[3];
 	
-	/**
-	This test can only be performed on un-rotated meshes.
-	(DO NOT rotate the mesh!) (Rotate to desired orientation before exporting!)
-	Summary:
-	First, use a normal-based discard to throw out polygons/planes that face away from where the player is.
-	That builds a list of which polygons/planes to test for collision.
-	Then, draw a point from every major axis of the player's bounding box to every polygon.
-	If no point is inside the box, move on to the next polygon.
-	If a point is inside the box, also test that point against the polygon with a 2D edge winding test.
-	If it is inside the polygon and inside the player's bounding box, collision has occurred.
-	**/
-	
-	//////////////////////////////////////////////////////////////
-	// Normal-based discard of planes
-	// If the plane's normal is facing away from where the player is,
-	// it will not be put into the pile of planes to collision test.
-	// This test will also discard polygons which are too far away to possibly be collided with.
-	// This assists greatly with levels made of plane data only.
-	// PDATA vector space is inverted, so we negate them
-	// Also watch out for overflows here: large polygons can cause problems.
-	// Or small polygons can cause underflows.
-	//////////////////////////////////////////////////////////////
-	for(unsigned int dst_poly = 0; dst_poly < mesh->nbPolygon; dst_poly++)
+	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
-		//Need to use your *next* position, not your current, or last.
-		discard_vector[X] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][X])
-		- mover->nextPos[X] - mesh_position[X])>>4;
-		discard_vector[Y] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Y])
-		- mover->nextPos[Y] - mesh_position[Y])>>4;
-		discard_vector[Z] = (-(mesh->pntbl[mesh->pltbl[dst_poly].vertices[0]][Z])
-		- mover->nextPos[Z] - mesh_position[Z])>>4;
-
-		int normal_discard = fxdot(discard_vector, mesh->nmtbl[dst_poly]);
-		//This component should not be signed (distance).
-		discard_vector[X] = JO_ABS(discard_vector[X]);
-		discard_vector[Y] = JO_ABS(discard_vector[Y]);
-		discard_vector[Z] = JO_ABS(discard_vector[Z]);
-		int max_axis = 0;
-		switch(mesh->maxtbl[dst_poly])
+		
+		//////////////////////////////////////////////////////////////
+		// Add the position of the mesh to the position of its points
+		// PDATA vector space is inverted, so we negate them
+		// "Get world-space point position"
+		//////////////////////////////////////////////////////////////
+		int alias = i;
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
 		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent->prematrix[9] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent->prematrix[10] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent->prematrix[11] );
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+		
+		used_normal[X] = mesh->nmtbl[alias][X];
+		used_normal[Y] = mesh->nmtbl[alias][Y];
+		used_normal[Z] = mesh->nmtbl[alias][Z];
+		
+		//Exceptor: if the plane is not single-plane (i.e. must collide on both sides), we need to find which side we're on.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE))
+		{
+			anchor_to_plane[X] = (mover->pos[X] - plane_center[X])>>16;
+			anchor_to_plane[Y] = (mover->pos[Y] - plane_center[Y])>>16;
+			anchor_to_plane[Z] = (mover->pos[Z] - plane_center[Z])>>16;
+			
+			int anchor_scale = (anchor_to_plane[X] * mesh->nmtbl[alias][X]) + (anchor_to_plane[Y] * mesh->nmtbl[alias][Y]) + (anchor_to_plane[Z] * mesh->nmtbl[alias][Z]);
+			
+			if(anchor_scale < 0) 
+			{
+				used_normal[X] = -mesh->nmtbl[alias][X];
+				used_normal[Y] = -mesh->nmtbl[alias][Y];
+				used_normal[Z] = -mesh->nmtbl[alias][Z];
+			}
+		}
+		
+		//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
+		
+		switch(mesh->maxtbl[alias])
+		{
+			//case(N_Yp):
+			case(N_Yn):
+			
+			//////////////////////////////////////////////////////////////
+			// Floor branch
+			//////////////////////////////////////////////////////////////
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(mover->UVY, mover->nextPos, used_normal, plane_center, possible_floor);
+				
+				// nbg_sprintf_decimal(2, 7, possible_floor[X]);
+				// nbg_sprintf_decimal(2, 8, possible_floor[Y]);
+				// nbg_sprintf_decimal(2, 9, possible_floor[Z]);
+				
+				// nbg_sprintf_decimal(2, 11, mover->nextPos[X]);
+				// nbg_sprintf_decimal(2, 12, mover->nextPos[Y]);
+				// nbg_sprintf_decimal(2, 13, mover->nextPos[Z]);
+				
+				if(isPointonSegment(possible_floor, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				{
+					//
+					you.hitSurface = true;
+					you.floorNorm[X] = used_normal[X]; 
+					you.floorNorm[Y] = used_normal[Y];
+					you.floorNorm[Z] = used_normal[Z];
+					
+					//Subtract the velocity added to the projection from the position to snap to.
+					//Potentially an issue; if serious, just reproject at current position.
+					you.floorPos[X] = -(possible_floor[X] - fxm(mover->velocity[X], time_fixed_scale));
+					you.floorPos[Y] = -(possible_floor[Y] - fxm(mover->velocity[Y], time_fixed_scale));
+					you.floorPos[Z] = -(possible_floor[Z] - fxm(mover->velocity[Z], time_fixed_scale));
+				}
+			}
+			break;
 			case(N_Xp):
 			case(N_Xn):
-			max_axis = JO_MAX(discard_vector[Y], discard_vector[Z])>>1;
-			break;
-			case(N_Yp):
-			case(N_Yn):
-			max_axis = JO_MAX(discard_vector[X], discard_vector[Z])>>1;
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(mover->UVX, mover->nextPos, used_normal, plane_center, possible_wall);
+				if(isPointonSegment(possible_wall, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				{
+					you.hitWall = true;
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+					
+					you.wallPos[X] = possible_wall[X];
+					you.wallPos[Y] = possible_wall[Y];
+					you.wallPos[Z] = possible_wall[Z];
+				}
+			} else {
+				//This stuff is supposed to catch edge-face collision. Hm.
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zp))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}
+				
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zn))
+				{
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}	
+			}
 			break;
 			case(N_Zp):
 			case(N_Zn):
-			max_axis = JO_MAX(discard_vector[Y], discard_vector[X])>>1;
-			break;
-			default:
-			break;
-		}
-		int polygon_scale = (mesh->attbl[dst_poly].plane_information & 0x3) ? SUBDIVISION_SCALE<<1 : SUBDIVISION_SCALE;
-		polygon_scale += (mesh->attbl[dst_poly].plane_information & 0xC) ? SUBDIVISION_SCALE : 0;
-		polygon_scale += (mesh->attbl[dst_poly].plane_information & 0x30) ? SUBDIVISION_SCALE : 0;
-		polygon_scale <<= 16;
-		//mesh->attbl[dst_poly].render_data_flags &= (GV_FLAG_MESH ^ 0xFFFF);
-		if(polygon_scale < normal_discard || polygon_scale < max_axis) continue;
-	// slPrint("Discard vector:", slLocate(1, 9));
-	// slPrintFX(discard_vector[X], slLocate(2, 10));
-	// slPrintFX(discard_vector[Y], slLocate(2, 11));
-	// slPrintFX(discard_vector[Z], slLocate(2, 12));
-	// slPrint("Dot product:", slLocate(1, 13));
-	// slPrintFX(normal_discard, slLocate(2, 14));
-			
-
-		if(!(mesh->attbl[dst_poly].render_data_flags & GV_FLAG_SINGLE) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < MAX_COLLISION_PLANES)
-		{
-		/////////
-		// Dual-plane handling
-		/////////
-			//mesh->attbl[dst_poly].render_data_flags |= GV_FLAG_MESH;
-		
-			testing_planes[total_planes] = dst_poly;
-			backfaced[total_planes] = (normal_discard >= 0) ? 0 : 1;
-			total_planes++;
-			continue;
-		} else if(normal_discard >= -(5<<16) && (mesh->attbl[dst_poly].render_data_flags & GV_FLAG_PHYS) && total_planes < MAX_COLLISION_PLANES)
-		{
-		/////////
-		// Single-plane handling
-		///////// 
-			//mesh->attbl[dst_poly].render_data_flags |= GV_FLAG_MESH;
-		
-			testing_planes[total_planes] = dst_poly;
-			backfaced[total_planes] = 0;
-			total_planes++;
-		}
-	}
-	discard_vector[X] = 0;
-	discard_vector[Y] = 0;
-	discard_vector[Z] = 0;
-	//nbg_sprintf(1, 15, "Total planes: (%i)", total_planes);
-
-POINT plane_points[4];
-VECTOR used_normal;
-int dominant_axis = N_Yp;
-Bool lineChecks[3];
-POINT lineEnds[3];
-
-//////////////////////////////////////////////////////////////
-//	Shortcut: If we have already collided with a floor plane on the previous frame,
-//	we will store the polygon ID of that floor plane.
-//	If we are currently determined to be standing on a floor this frame,
-//	we sill first collision test with that plane, the last one we were standing on.
-//	If we still collide with that floor properly, don't test for any other floor collision.
-//////////////////////////////////////////////////////////////
-// nbg_sprintf(1, 7, "(%x)", last_floor_entity);
-// nbg_sprintf(1, 8, "(%x)", ent);
-//__builtin_expect((unsigned int)last_floor_entity == (unsigned int)ent, (unsigned int)NULL);
-if(you.hitSurface && last_floor_entity == ent && !you.setJet)
-{
-	//slPrint("Testing Old Floor", slLocate(2, 6));
-	
-	plane_center[X] = 0;
-	plane_center[Y] = 0;
-	plane_center[Z] = 0;
-	for(int u = 0; u < 4; u++)
-	{
-	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][X]) - mesh_position[X];
-	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][Y]) - mesh_position[Y];
-	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[last_hit_floor].vertices[u]][Z]) - mesh_position[Z];
-	//Add to the plane's center
-	plane_center[X] += plane_points[u][X];
-	plane_center[Y] += plane_points[u][Y];
-	plane_center[Z] += plane_points[u][Z];
-	}
-	//Divide sum of plane points by 4 to average all the points
-	plane_center[X] >>=2;
-	plane_center[Y] >>=2;
-	plane_center[Z] >>=2;
-	//////////////////////////////////////////////////////////////
-	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
-	if(backfaced[last_hit_floor])
-	{
-		used_normal[X] = -mesh->nmtbl[last_hit_floor][X];
-		used_normal[Y] = -mesh->nmtbl[last_hit_floor][Y];
-		used_normal[Z] = -mesh->nmtbl[last_hit_floor][Z];
-	} else {
-		used_normal[X] = mesh->nmtbl[last_hit_floor][X];
-		used_normal[Y] = mesh->nmtbl[last_hit_floor][Y];
-		used_normal[Z] = mesh->nmtbl[last_hit_floor][Z];
-	}
-	dominant_axis = mesh->maxtbl[last_hit_floor];
-	//////////////////////////////////////////////////////////////
-	// Project the lines to the plane
-	// We are only testing the Y axis right now, because we are specifically testing something previously determined to be a floor.
-	// Note the second to last argument here: This is the tolerance level for collision.
-	// The tolerance level for a collision here is double the normal tolerance for hitting a floor.
-	// We prefer to have the player stick to surfaces they are standing on a little more strongly.
-	//////////////////////////////////////////////////////////////
-	lineChecks[Y] = line_hit_plane_here(moverCFs->yp0, moverCFs->yp1, plane_center, used_normal, discard_vector, 2<<16, lineEnds[Y]);
-	//////////////////////////////////////////////////////////////
-	// Proceed with edge wind testing if the line is still in the right spot.
-	// Notice there are a few conditions here which are either manually inserted to a fixed value or omitted:
-	// 1. We do not check the dominant axis. At this point, we already assume it is N_Yn, since it should be a floor.
-	// 2. We do not check the backface of the plane. At this point, we already assume it met the backface condition to be a floor.
-	// 3. We do not do any checks against it as if it were a wall. We already know it's supposed to be the floor.
-	//////////////////////////////////////////////////////////////
-	if(lineChecks[Y])
-	{
-		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
-		{
-			you.floorNorm[X] = used_normal[X]; 
-			you.floorNorm[Y] = used_normal[Y];
-			you.floorNorm[Z] = used_normal[Z];
-			
-			if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_CLIMBABLE)
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[alias], 12))
 			{
-				you.climbing = true;
-				if(mesh->attbl[last_hit_floor].render_data_flags & GV_FLAG_LADDER)
+				ray_to_plane(mover->UVZ, mover->nextPos, used_normal, plane_center, possible_wall);
+				if(isPointonSegment(possible_wall, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
 				{
-					if(slCos(you.rot2[Y]) >= 0)
-					{
-						you.rot2[Y] = 0;
-					} else {
-						you.rot2[Y] = 32768;
-					}
-					you.ladder = true;
+					you.hitWall = true;
+					you.wallNorm[X] = used_normal[X];
+					you.wallNorm[Y] = used_normal[Y];
+					you.wallNorm[Z] = used_normal[Z];
+					
+					you.wallPos[X] = possible_wall[X];
+					you.wallPos[Y] = possible_wall[Y];
+					you.wallPos[Z] = possible_wall[Z];
 				}
 			} else {
-			you.shadowPos[X] = lineEnds[Y][X];
-			you.shadowPos[Y] = lineEnds[Y][Y];
-			you.shadowPos[Z] = lineEnds[Y][Z];
-			you.aboveObject = true;
-			}
-			standing_surface_alignment(you.floorNorm);
-			you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
-			you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-			you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-			
-
-			
-			you.hitSurface = true;
-			you.hitObject = true;
-			hitY = true; 
-		}
-	}
-//End of early floor test
-}
-
-
-for(int i = 0; i < total_planes; i++)
-{
-	if(testing_planes[i] == last_hit_floor && last_floor_entity == ent && hitY) continue;
-	plane_center[X] = 0;
-	plane_center[Y] = 0;
-	plane_center[Z] = 0;
-	//////////////////////////////////////////////////////////////
-	// Add the position of the mesh to the position of its points
-	// PDATA vector space is inverted, so we negate them
-	// "Get world-space point position"
-	//////////////////////////////////////////////////////////////
-	for(int u = 0; u < 4; u++)
-	{
-	plane_points[u][X] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][X]) - mesh_position[X];
-	plane_points[u][Y] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][Y]) - mesh_position[Y];
-	plane_points[u][Z] = -(mesh->pntbl[mesh->pltbl[testing_planes[i]].vertices[u]][Z]) - mesh_position[Z];
-	//Add to the plane's center
-	plane_center[X] += plane_points[u][X];
-	plane_center[Y] += plane_points[u][Y];
-	plane_center[Z] += plane_points[u][Z];
-	}
-	//Divide sum of plane points by 4 to average all the points
-	plane_center[X] >>=2;
-	plane_center[Y] >>=2;
-	plane_center[Z] >>=2;
-
-	//////////////////////////////////////////////////////////////
-	// Grab dominant axis and set normal
-	//////////////////////////////////////////////////////////////
-	dominant_axis = mesh->maxtbl[testing_planes[i]];
-	// If it is a dual-plane which was determined to be otherwise back-facing, negate the normal.
-	if(backfaced[i])
-	{
-		used_normal[X] = -mesh->nmtbl[testing_planes[i]][X];
-		used_normal[Y] = -mesh->nmtbl[testing_planes[i]][Y];
-		used_normal[Z] = -mesh->nmtbl[testing_planes[i]][Z];
-	} else {
-		used_normal[X] = mesh->nmtbl[testing_planes[i]][X];
-		used_normal[Y] = mesh->nmtbl[testing_planes[i]][Y];
-		used_normal[Z] = mesh->nmtbl[testing_planes[i]][Z];
-	}
-	//////////////////////////////////////////////////////////////
-	// Project the lines to the plane
-	// Y first, then Z, then X
-	// We separate the Y axis collision check with the X-Z axis collision checks.
-	// The Y axis check is the only one which will plant the player on a floor,
-	// so we want to continue checking after the first positive collision check of Y to see if we hit a wall or not.
-	// Conversely, if we have hit a wall, it's possible we're hitting the floor on a different plane too.
-	//////////////////////////////////////////////////////////////
-	if(__builtin_expect(!hitY, 0))
-	{
-	lineChecks[Y] = line_hit_plane_here(moverCFs->yp0, moverCFs->yp1, plane_center, used_normal, discard_vector, 1<<16, lineEnds[Y]);
-	} else {
-	lineChecks[Y] = false;
-	}
-	if(__builtin_expect (!hitXZ, 0))
-	{
-	lineChecks[Z] = line_hit_plane_here(moverCFs->zp0, moverCFs->zp1, plane_center, used_normal, discard_vector, 32768, lineEnds[Z]);
-	lineChecks[X] = line_hit_plane_here(moverCFs->xp0, moverCFs->xp1, plane_center, used_normal, discard_vector, 32768, lineEnds[X]);	
-	} else {
-	lineChecks[Z] = false;
-	lineChecks[X] = false;
-	}
-
-	//////////////////////////////////////////////////////////////
-	// Shadow Position
-	// Just uses the Y line off the player.
-	//////////////////////////////////////////////////////////////
- 	if((!shadowStruck || !hitY) && (lineEnds[Y][Y] < you.pos[Y]))
-	{	
-		if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
-		{
-			shadowStruck = true;
-			you.aboveObject = true;
-			you.shadowPos[X] = lineEnds[Y][X];
-			you.shadowPos[Y] = lineEnds[Y][Y];
-			you.shadowPos[Z] = lineEnds[Y][Z];
-		}
-	}
-	if(!lineChecks[0] && !lineChecks[1] && !lineChecks[2]) { continue; }
-	//////////////////////////////////////////////////////////////
-	// If we reach this point, at least one of the lines project to a point that is inside the player's bounding box.
-	// Since we know that, we can start with a winding test comparing the point to the plane.
-	// When we do this, we will discard the major axis of the normal to make it 2D.
-	//////////////////////////////////////////////////////////////
-
-	//////////////////////////////////////////////////////////////
-	// Line Checks Y
-	//////////////////////////////////////////////////////////////
-	unsigned short climder = (mesh->attbl[testing_planes[i]].render_data_flags & GV_FLAG_LADDER) |
-							(mesh->attbl[testing_planes[i]].render_data_flags & GV_FLAG_CLIMBABLE);
-	if(!hitY)
-	{
-		if(lineChecks[Y])
-		{
-			//slPrint("Testing Y", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Y], dominant_axis, 12))
-			{
-				if((dominant_axis == N_Yn && !backfaced[i] && !you.setJet) || climder)
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xp))
 				{
-					you.floorNorm[X] = used_normal[X]; 
-					you.floorNorm[Y] = used_normal[Y];
-					you.floorNorm[Z] = used_normal[Z];
-					
-					if(climder & GV_FLAG_CLIMBABLE)
-					{
-						you.climbing = true;
-						if(climder & GV_FLAG_LADDER)
-						{
-							if(slCos(you.rot2[Y]) >= 0)
-							{
-								you.rot2[Y] = 0;
-							} else {
-								you.rot2[Y] = 32768;
-							}
-							you.ladder = true;
-						}
-					} else {
-					you.shadowPos[X] = lineEnds[Y][X];
-					you.shadowPos[Y] = lineEnds[Y][Y];
-					you.shadowPos[Z] = lineEnds[Y][Z];
-					last_hit_floor = testing_planes[i];
-					last_floor_entity = ent;
-					}
-					
-					standing_surface_alignment(you.floorNorm);
-					
-					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-					
-					you.hitSurface = true;
-				} else {
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					you.wallPos[X] = -lineEnds[Y][X];
-					you.wallPos[Y] = -lineEnds[Y][Y];
-					you.wallPos[Z] = -lineEnds[Y][Z];
-					
-					you.hitWall = true;
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
 				}
-			you.aboveObject = true;
-			you.hitObject = true;
-			hitY = true; 
-			}
-		}
-	}
-	//////////////////////////////////////////////////////////////
-	// Line Checks Z
-	//////////////////////////////////////////////////////////////
-	if(!hitXZ)
-	{
-		if(lineChecks[Z])
-		{
-			//slPrint("Testing Z", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[Z], dominant_axis, 12))
-			{
-				if(climder)
+				
+				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xn))
 				{
-					you.floorNorm[X] = used_normal[X]; 
-					you.floorNorm[Y] = used_normal[Y];
-					you.floorNorm[Z] = used_normal[Z];
-					
-					if(climder & GV_FLAG_CLIMBABLE)
-					{
-						you.climbing = true;
-						if(climder & GV_FLAG_LADDER)
-						{
-							if(slCos(you.rot2[Y]) >= 0)
-							{
-								you.rot2[Y] = 0;
-							} else {
-								you.rot2[Y] = 32768;
-							}
-							you.ladder = true;
-							you.IPaccel = 0;
-						}
-					}
-					
-					standing_surface_alignment(you.floorNorm);
-					
-					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-					
-					you.hitSurface = true;
-				} else {
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					you.wallPos[X] = -lineEnds[Z][X];
-					you.wallPos[Y] = -lineEnds[Z][Y];
-					you.wallPos[Z] = -lineEnds[Z][Z];
-					
-					you.hitWall = true;
-				}
-				you.hitObject = true;
-				hitXZ = true;
+					//you.hitWall = true;
+					//you.wallNorm[X] = used_normal[X];
+					//you.wallNorm[Y] = used_normal[Y];
+					//you.wallNorm[Z] = used_normal[Z];
+				}	
 			}
+			break;
 		}
-	//////////////////////////////////////////////////////////////
-	// Line Checks X
-	//////////////////////////////////////////////////////////////
-		if(lineChecks[X])
-		{
-			//slPrint("Testing X", slLocate(2, 6));
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], lineEnds[X], dominant_axis, 12))
-			{
-				if(climder)
-				{
-					you.floorNorm[X] = used_normal[X]; 
-					you.floorNorm[Y] = used_normal[Y];
-					you.floorNorm[Z] = used_normal[Z];
-					
-					if(climder & GV_FLAG_CLIMBABLE)
-					{
-						you.climbing = true;
-						if(climder & GV_FLAG_LADDER)
-						{
-							if(slCos(you.rot2[Y]) >= 0)
-							{
-								you.rot2[Y] = 0;
-							} else {
-								you.rot2[Y] = 32768;
-							}
-							you.ladder = true;
-							you.IPaccel = 0;
-						}
-					}
-					
-					standing_surface_alignment(you.floorNorm);
-					
-					you.floorPos[X] = (lineEnds[Y][X]);// - mover->Yneg[X] - moverTimeAxis->yp1[X];
-					you.floorPos[Y] = (lineEnds[Y][Y]);// - mover->Yneg[Y] - moverTimeAxis->yp1[Y];
-					you.floorPos[Z] = (lineEnds[Y][Z]);// - mover->Yneg[Z] - moverTimeAxis->yp1[Z];
-					
-					you.hitSurface = true;
-				} else {
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					you.wallPos[X] = -lineEnds[X][X];
-					you.wallPos[Y] = -lineEnds[X][Y];
-					you.wallPos[Z] = -lineEnds[X][Z];
-						
-					you.hitWall = true;
-				}
-				you.hitObject = true;
-				hitXZ = true;
-			}
-		}
+	
 	}
-	//////////////////////////////////////////////////////////////
-	// If we've hit both XZ (a wall) and Y (the floor), stop testing further.
-	//////////////////////////////////////////////////////////////
-	if(hitXZ && hitY) return;
-	//////////////////////////////////////////////////////////////
-	// Per testing plane loop end stub
-	//////////////////////////////////////////////////////////////
-}
-	//////////////////////////////////////////////////////////////
-	// Per polygon collision function end stub
-	//////////////////////////////////////////////////////////////
+	
+	
 }
 
