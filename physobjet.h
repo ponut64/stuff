@@ -264,13 +264,14 @@ typedef struct {
 
 typedef struct {
 	int		pos[XYZ];
-	short 	pix[XY];
-	ANGLE	rot[XYZ];
-	_sobject type;
 	int		dist; 
+	_sobject type;
+	unsigned short	curSector;
+	unsigned short	prevSector;
 	unsigned short	more_data;
 	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
 	short	garbage; //Stuff for garbage collector
+	ANGLE	rot[XYZ];
 } _declaredObject;
 
 //extern _declaredObject dWorldObjects[257];
@@ -342,7 +343,8 @@ typedef struct {
 	int totalFriction;
 	short rot[3];
 	short dRot[3];
-	short pix[2];
+	unsigned short curSector;
+	unsigned short prevSector;
 	unsigned short health;
 	unsigned short maxHealth;
 	unsigned short boxID;
@@ -360,5 +362,5 @@ extern unsigned char * adjPolyStackMax;
 void	init_pathing_system(void);
 
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
-void	manage_actors(int * ppix, int * ppos);
+void	manage_actors(int * ppos);
 

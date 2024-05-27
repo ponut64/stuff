@@ -183,8 +183,8 @@ void	testing_level_data(Sint8 * filename, void * destination)
 
 void declarations(void)
 {
-	//declare_object_at_cell(0, -(2000 - 0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
-	//declare_object_at_cell(0, -(2000 - 0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(0, -(2000 - 0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(0, -(2000 - 0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
 	
 
 }
@@ -205,15 +205,23 @@ void	level_data_basic(void)
 		//////////////////////////////////
 	for(int i = 0; i < objNEW; i++)
 	{
+		_declaredObject * obj = &dWorldObjects[i];
 		//The following condition should indicate that we've found a declared player start and it hasn't been used yet.
-		if((dWorldObjects[i].type.ext_dat & LDATA_TYPE) == PSTART && (dWorldObjects[i].type.ext_dat & ETYPE) == LDATA)
+		if((obj->type.ext_dat & LDATA_TYPE) == PSTART && (obj->type.ext_dat & ETYPE) == LDATA)
 		{
 			//They're negative because of COORDINATE SYSTEM MAYHEM.
-			you.startPos[X] = -dWorldObjects[i].pos[X];
-			you.startPos[Y] = -dWorldObjects[i].pos[Y];
-			you.startPos[Z] = -dWorldObjects[i].pos[Z];
+			you.startPos[X] = -obj->pos[X];
+			you.startPos[Y] = -obj->pos[Y];
+			you.startPos[Z] = -obj->pos[Z];
 			reset_player();
-			dWorldObjects[i].type.ext_dat |= 0x8000;
+			obj->type.ext_dat |= 0x8000;
+		}
+		
+		if(entities[obj->type.entity_ID].type == MODEL_TYPE_SECTORED)
+		{
+			levelPos[X] = obj->pos[X];
+			levelPos[Y] = obj->pos[Y];
+			levelPos[Z] = obj->pos[Z];
 		}
 	}
 

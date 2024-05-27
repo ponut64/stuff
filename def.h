@@ -290,6 +290,7 @@ extern unsigned char * dirty_buf;
 extern unsigned char * dirtier_buf;
 extern void * currentAddress;
 extern volatile Uint32 * scuireg;
+extern int levelPos[3];
 
 void	p64MapRequest(short levelNo);
 

@@ -13,6 +13,7 @@ int		edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int d
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
 void	finalize_alignment(_boundBox * fmtx);
+int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_sector);
 int		hitscan_vector_from_position_box(int * ray_normal, int * ray_pos, int * hit, int * hitNormal, _boundBox * box);
 void	player_collision_test_loop(void);
 

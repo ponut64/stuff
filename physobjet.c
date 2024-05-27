@@ -60,15 +60,6 @@ _declaredObject * get_first_in_object_list(unsigned short object_type_specificat
 	}
 }
 
-void	align_object_to_object(int index1, int index2)
-{
-	//Note that we only need the X/Z vector, or the XY of the map location.
-	int posDif[XYZ] = {((dWorldObjects[index1].pix[X] - dWorldObjects[index2].pix[X]) * CELL_SIZE)>>8, 0,
-					((dWorldObjects[index1].pix[Y] - dWorldObjects[index2].pix[Y]) * CELL_SIZE)>>8};
-	accurate_normalize(posDif, posDif);
-	dWorldObjects[index1].rot[Y] = slAtan(posDif[Z], posDif[X]) + (180 * 182);
-}
-
 void	purge_object_list(void)
 {
 	for(int i = 0; i < objNEW; i++)
@@ -85,8 +76,7 @@ void	declare_object_at_cell(short posX, short height, short posZ, short type, AN
 			dWorldObjects[objNEW].pos[X] = -(posX<<16);
 			dWorldObjects[objNEW].pos[Z] = -(posZ<<16);
 			dWorldObjects[objNEW].pos[Y] = height<<16; //Vertical offset from ground
-			dWorldObjects[objNEW].pix[X] = -(posX / CELL_SIZE_INT);
-			dWorldObjects[objNEW].pix[Y] = -(posZ / CELL_SIZE_INT);
+			dWorldObjects[objNEW].curSector = INVALID_SECTOR;
 			dWorldObjects[objNEW].type = *objList[type];
 			dWorldObjects[objNEW].type.ext_dat |= eeOrData;
 			if((dWorldObjects[objNEW].type.ext_dat & ETYPE) != BUILD)
@@ -139,8 +129,7 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	//If the root object does not possess the entity ID of the item's root entity, do not add it.
 	if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
 	{
-		dWorldObjects[objNEW].pix[X] = root_object->pix[X];
-		dWorldObjects[objNEW].pix[Y] = root_object->pix[Y];
+		dWorldObjects[objNEW].curSector = INVALID_SECTOR;
 		dWorldObjects[objNEW].type = *objList[building_item->object_type];
 		dWorldObjects[objNEW].rot[X] = 0;
 		dWorldObjects[objNEW].rot[Y] = 0;
@@ -211,44 +200,48 @@ void	object_control_loop(int ppos[XY])
 	//////////////////////////////////////////////////////////////////////
 		return;
 	}		//Just in case.
-	static int difX = 0;
-	static int difY = 0;
-	static int difH = 0;
 	static int position_difference[XYZ] = {0,0,0};
 	objUP = 0; //Should we start this at -1, because -1 will mean there are no objects in scene?
-
+	static _declaredObject * obj;
 	//nbg_sprintf(5, 10, "size(%i)", sizeof(xdata));
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 	for(int i = 0; i < objNEW; i++)
 	{
-		
+		obj = &dWorldObjects[i];
 		//nbg_sprintf(0, 0, "(VDP1_BASE_CMDCTRL)"); //Debug ONLY
 		
-		difX = fxm(JO_ABS((ppos[X] * CELL_SIZE) + dWorldObjects[i].pos[X]) - (dWorldObjects[i].type.radius[X]<<16), INV_CELL_SIZE)>>16; 
-		difY = fxm(JO_ABS((ppos[Y] * CELL_SIZE) + dWorldObjects[i].pos[Z]) - (dWorldObjects[i].type.radius[Z]<<16), INV_CELL_SIZE)>>16; 
-		difH = JO_ABS(you.pos[Y] + dWorldObjects[i].pos[Y]);
+		//Since we are transitioning to a sector-based engine, all objects need a valid sector.
+		//So we have to make sure everything with an invalid sector is given a valid one.
+		if(entities[obj->type.entity_ID].type == MODEL_TYPE_SECTORED)
+		{
+			continue;
+		} else if(obj->curSector == INVALID_SECTOR)
+		{
+			obj->curSector = broad_phase_sector_finder(obj->pos, levelPos, &sectors[obj->curSector]);
+		}
 		
-		int etype = dWorldObjects[i].type.ext_dat & ETYPE;
-		unsigned short * obj_edat = (&dWorldObjects[i].type.ext_dat);
-		if(etype == SPAWNER && difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST)
+		
+		int etype = obj->type.ext_dat & ETYPE;
+		unsigned short * obj_edat = (&obj->type.ext_dat);
+		if(etype == SPAWNER && sectorIsVisible[obj->curSector])
 		{
 			if((*obj_edat) & SPAWNER_DISABLED) continue;
 			if((*obj_edat) & SPAWNER_ACTIVE) continue;
 			
-			create_actor_from_spawner(&dWorldObjects[i], i);
+			create_actor_from_spawner(obj, i);
 			
 		} else if(etype == LDATA)
 		{ 		
 				////////////////////////////////////////////////////
 				//If the object type declared is LDATA (level data), use a different logic branch.
 				////////////////////////////////////////////////////
-				if(difH < HEIGHT_CULLING_DIST && difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED) 
+				if(sectorIsVisible[obj->curSector]) 
 				{
 					//Get the position difference. This is uniquely used for level data collision.
 					//For now, at least.
-					position_difference[X] = JO_ABS(you.pos[X] + dWorldObjects[i].pos[X]);
-					position_difference[Y] = JO_ABS(you.pos[Y] + dWorldObjects[i].pos[Y]);
-					position_difference[Z] = JO_ABS(you.pos[Z] + dWorldObjects[i].pos[Z]);
+					position_difference[X] = JO_ABS(you.pos[X] + obj->pos[X]);
+					position_difference[Y] = JO_ABS(you.pos[Y] + obj->pos[Y]);
+					position_difference[Z] = JO_ABS(you.pos[Z] + obj->pos[Z]);
 					
 					// slPrintFX(position_difference[X], slLocate(2, 7));
 					// slPrintFX(position_difference[Y], slLocate(2, 8));
@@ -256,21 +249,21 @@ void	object_control_loop(int ppos[XY])
 					
 					if(((*obj_edat) & LDATA_TYPE) == EVENT_TRIG && !((*obj_edat) & OBJPOP))
 					{	
-						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
-						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
-						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16))
+						if(position_difference[X] < (obj->type.radius[X]<<16)
+						&& position_difference[Y] < (obj->type.radius[Y]<<16)
+						&& position_difference[Z] < (obj->type.radius[Z]<<16))
 						{
 							if(((*obj_edat) & TRIGGER_TYPE) == TRIGGER_TYPE_PCM)
 							{
-								pcm_play(dWorldObjects[i].more_data & MDAT_NUMBER, PCM_PROTECTED, dWorldObjects[i].more_data>>8);
+								pcm_play(obj->more_data & MDAT_NUMBER, PCM_PROTECTED, obj->more_data>>8);
 								(*obj_edat) |= OBJPOP;
 							} else if(((*obj_edat) & TRIGGER_TYPE) == TRIGGER_TYPE_ADX)
 							{
-								start_adx_stream(stmsnd[dWorldObjects[i].more_data & MDAT_NUMBER], dWorldObjects[i].more_data>>8);
+								start_adx_stream(stmsnd[obj->more_data & MDAT_NUMBER], obj->more_data>>8);
 								(*obj_edat) |= OBJPOP;
 							} else if(((*obj_edat) & TRIGGER_TYPE) == TRIGGER_TYPE_HUD)
 							{
-								start_hud_event(dWorldObjects[i].more_data & MDAT_NUMBER);
+								start_hud_event(obj->more_data & MDAT_NUMBER);
 							}
 						}
 					} else if(((*obj_edat) & LDATA_TYPE) == LEVEL_CHNG)
@@ -278,9 +271,9 @@ void	object_control_loop(int ppos[XY])
 						// We've found a level change trigger close to the player.
 						// If we are close enough to the level change trigger and it is enabled, change levels.
 						
-						if(position_difference[X] < (dWorldObjects[i].type.radius[X]<<16)
-						&& position_difference[Y] < (dWorldObjects[i].type.radius[Y]<<16)
-						&& position_difference[Z] < (dWorldObjects[i].type.radius[Z]<<16)
+						if(position_difference[X] < (obj->type.radius[X]<<16)
+						&& position_difference[Y] < (obj->type.radius[Y]<<16)
+						&& position_difference[Z] < (obj->type.radius[Z]<<16)
 						//Enabling Booleans
 						&& !((*obj_edat) & OBJPOP) && ((*obj_edat) & 0x80))
 						{
@@ -292,7 +285,7 @@ void	object_control_loop(int ppos[XY])
 						}
 					}
 				}
-		} else if(difX < CELL_CULLING_DIST_MED && difY < CELL_CULLING_DIST_MED && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
+		} else if((sectorIsVisible[obj->curSector] && objUP < MAX_PHYS_PROXY))
 			{
 				//Exit rendering for collected items or inactive objects
 				if(etype == ITEM && ((*obj_edat) & ITEM_COLLECTED)) continue;
@@ -307,12 +300,7 @@ void	object_control_loop(int ppos[XY])
 					////////////////////////////////////////////////////
 					bound_box_starter.modified_box = &RBBs[objUP];
 					bound_box_starter.x_location = dWorldObjects[i].pos[X];
-					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-					- (main_map[
-					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-					]<<(MAP_V_SCALE));*/
-					//
+					bound_box_starter.y_location = dWorldObjects[i].pos[Y];
 					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 					bound_box_starter.x_rotation = dWorldObjects[i].rot[X];
 					bound_box_starter.y_rotation = dWorldObjects[i].rot[Y];
@@ -352,12 +340,7 @@ void	object_control_loop(int ppos[XY])
 						////////////////////////////////////////////////////
 					bound_box_starter.modified_box = &RBBs[objUP];
 					bound_box_starter.x_location = dWorldObjects[i].pos[X];
-					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-					- (main_map[
-					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-					]<<(MAP_V_SCALE));*/
-					//
+					bound_box_starter.y_location = dWorldObjects[i].pos[Y];
 					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
 					bound_box_starter.x_rotation = 0;
 					bound_box_starter.y_rotation = 0;
@@ -386,67 +369,27 @@ void	object_control_loop(int ppos[XY])
 					activeObjects[objUP] = i;
 					//This tells you how many objects were updated.
 					objUP++; 
-				}
 			////////////////////////////////////////////////////
 			// Object in render-range end stub
 			////////////////////////////////////////////////////
-		} else if(difX < CELL_CULLING_DIST_LONG && difY < CELL_CULLING_DIST_LONG && difH < HEIGHT_CULLING_DIST && objUP < MAX_PHYS_PROXY)
-			{
-				if(dWorldObjects[i].type.light_bright != 0)
-				{
-				////////////////////////////////////////////////////
-				//If a non-building light-emitting object is in this larger range, add its light data to the light list.
-				//But do not flag it to render or be collision-tested.
-				////////////////////////////////////////////////////
-					bound_box_starter.modified_box = &RBBs[objUP];
-					bound_box_starter.x_location = dWorldObjects[i].pos[X];
-					//Y location has to find the value of a pixel of the map and add it with object height off ground + Y radius
-					bound_box_starter.y_location = dWorldObjects[i].pos[Y];/* - ((used_radius[Y])<<16)
-					- (main_map[
-					(-dWorldObjects[i].pix[X] + (main_map_x_pix * dWorldObjects[i].pix[Y]) + (main_map_total_pix>>1)) 
-					]<<(MAP_V_SCALE));*/
-					//
-					bound_box_starter.z_location = dWorldObjects[i].pos[Z];
-					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
-					RBBs[objUP].boxID = i;
-						////////////////////////////////////////////////////
-						//Set the box status. This branch of the logic dictates the box is:
-						// 1. Not render-able
-						// 2. Not collide-able
-						// 3. May emit light
-						////////////////////////////////////////////////////
-						RBBs[objUP].status[0] = 'N';
-						RBBs[objUP].status[1] = 'N';
-						RBBs[objUP].status[2] = 'L';
-					//Bit 15 of ext_dat is a flag that will tell the system if the object is on or not.
-					(*obj_edat) |= OBJPOP;
-					//This array is meant as a list where iterative searches find the entity type drawn.
-					objPREP[objUP] = dWorldObjects[i].type.entity_ID;
-					//This array is meant on a list where iterative searches can find the right object in the entire declared list.
-					activeObjects[objUP] = i;
-					//This tells you how many objects were updated.
-					objUP++; 
 				}
-			////////////////////////////////////////////////////
-			// Object in light-range end stub
-			////////////////////////////////////////////////////
 				} else {
-					////////////////////////////////////////////////////
-					//If the declared object was not in range, specify it as being unpopulated.
-					////////////////////////////////////////////////////
-					activeObjects[objUP] = 256;
-					(*obj_edat) &= UNPOP; //Axe bit 15 but keep all other data.
-					////////////////////////////////////////////////////
-					//If the declared object had a collision-approved type, re-set some collision parameters.
-					////////////////////////////////////////////////////
-					dWorldObjects[i].dist = 0;
-				}
+				////////////////////////////////////////////////////
+				//If the declared object was not in range, specify it as being unpopulated.
+				////////////////////////////////////////////////////
+				activeObjects[objUP] = 256;
+				(*obj_edat) &= UNPOP; //Axe bit 15 but keep all other data.
+				////////////////////////////////////////////////////
+				//If the declared object had a collision-approved type, re-set some collision parameters.
+				////////////////////////////////////////////////////
+				dWorldObjects[i].dist = 0;
+			}
 			////////////////////////////////////////////////////
 			//Object control loop end stub
 			////////////////////////////////////////////////////
 		}
 		
-		manage_actors(you.cellPos, you.pos);
+		manage_actors(you.pos);
 		
 	// nbg_sprintf(12, 6, "objUP:(%i)", objUP);
 	// nbg_sprintf(12, 7, "objNW:(%i)", objNEW);
@@ -551,8 +494,6 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	// Then what the hell is the rule?! If it's not CW or CCW, HUH?!
 	//
 	
-	//if(dWorldObjects[obj_id1].pix[X] < dWorldObjects[obj_id2].pix[X]) return;
-	//if(dWorldObjects[obj_id1].pix[Y] < dWorldObjects[obj_id2].pix[Y]) return;
 	if(entities[dWorldObjects[obj_id1].type.entity_ID].file_done != true) return;
 	
 	static POINT fenceA;
@@ -569,7 +510,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	//Order the objects so the face always has the same normal
 	// A - B
 	// D - C
-	//Extrapolate a quad out of the pix given
+	//Extrapolate a quad out of the pos given
 	fenceA[X] = -dWorldObjects[obj_id1].pos[X];
 	fenceA[Y] = -dWorldObjects[obj_id1].pos[Y] + (dWorldObjects[obj_id1].type.radius[Y]<<16);
 	fenceA[Z] = -dWorldObjects[obj_id1].pos[Z];

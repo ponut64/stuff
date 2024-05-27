@@ -130,7 +130,9 @@ void controls(void)
 	
 	//The game does weird stuff when master isn't busy for long enough for the controls handler to work.
 	//Or... too busy? No idea...
-	if(is_key_struck(DIGI_C))
+	static int inputTimer;
+	if(is_key_up(DIGI_C)) inputTimer = 0;
+	if(is_key_down(DIGI_C) && inputTimer < 256)
 	{
 		int mark[3] = {0,0,0};
 		mark[X] = -(you.shootDir[X]<<2);
@@ -144,6 +146,7 @@ void controls(void)
 		you.guidePos[X] = you.hitscanPt[X];
 		you.guidePos[Y] = you.hitscanPt[Y];
 		you.guidePos[Z] = you.hitscanPt[Z];
+		inputTimer += delta_time;
 	}
 		
 	you.rot[Y] = you.rot2[Y] - you.viewRot[Y];

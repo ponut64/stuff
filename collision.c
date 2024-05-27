@@ -904,6 +904,18 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 
 	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, test_sector);
 		
+	if(!abovePolygon)
+	{
+		//If we were not in that sector, we need to instead check all sectors visible from that sector.
+		for(int i = 0; i < test_sector->nbVisible; i++)
+		{
+			_sector * sct = &sectors[test_sector->pvs[i]];
+			abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, sct);
+			if(abovePolygon) break;
+		}
+	}
+	
+	//If we are STILL not above a polygon...
 	if(!abovePolygon) return INVALID_SECTOR;
 	
 	return mesh->attbl[hitPolyID].first_sector;
@@ -922,6 +934,25 @@ void	player_collision_test_loop(void)
 	int boxType;
 	int edata;
 	static int hitscanPly = 0;
+	
+	//First, find the player's sector and build sector lists.
+	you.curSector = broad_phase_sector_finder(you.wpos, levelPos, &sectors[you.curSector]);
+	//This is also the moment where we should build the adjacent / visible sector list.
+	//Use the current sector's adjacent list as the draw list.
+	_sector * sct = &sectors[you.curSector];
+	nearSectorCt = sct->nbVisible;
+	for(unsigned int s = 0; s < sct->nbVisible; s++)
+	{
+		collide_in_sector_of_entity(sct->ent, &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
+
+		you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		you.hitscanNm[X] = sct->ent->pol->nmtbl[hitscanPly][X];
+		you.hitscanNm[Y] = sct->ent->pol->nmtbl[hitscanPly][Y];
+		you.hitscanNm[Z] = sct->ent->pol->nmtbl[hitscanPly][Z];
+
+	}
+	
+	
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
@@ -929,29 +960,6 @@ void	player_collision_test_loop(void)
 		edata = dWorldObjects[activeObjects[i]].type.ext_dat;
 		boxType = edata & (0xF000);
 		//Check if object # is a collision-approved type
-		if(entities[dWorldObjects[activeObjects[i]].type.entity_ID].type == MODEL_TYPE_SECTORED)
-		{
-			//if(you.curSector == INVALID_SECTOR)
-			//{
-				you.curSector = broad_phase_sector_finder(you.wpos, RBBs[i].pos, &sectors[you.curSector]);
-				if(you.curSector != INVALID_SECTOR) you.prevSector = you.curSector;
-			//}
-			//This is also the moment where we should build the adjacent / visible sector list.
-			//Use the current sector's adjacent list as the draw list.
-			_sector * sct = &sectors[you.prevSector];
-			nearSectorCt = sct->nbVisible;
-			for(unsigned int s = 0; s < sct->nbVisible; s++)
-			{
-				collide_in_sector_of_entity(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
-
-				you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, &sectors[sct->pvs[s]]);
-				you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
-				you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
-				you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
-
-			}
-			continue;
-		}
 		
 		switch(boxType)
 		{

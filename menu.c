@@ -84,8 +84,8 @@ void	debug_menu_layer(__basic_menu * mnu)
 	{
 	spr_sprintf(8,		(-12) + (60),	"Height:(%i)", rdobj->pos[Y]>>16);
 	spr_sprintf(8,		0  + (60),		"Object:(%i)", dPreview);
-	spr_sprintf(8,		12 + (60),		"X:(%i)", rdobj->pix[X]);
-	spr_sprintf(72,		12 + (60),		"Y:(%i)", rdobj->pix[Y]);
+	spr_sprintf(8,		12 + (60),		"Sctr:(%i)", rdobj->curSector);
+	spr_sprintf(72,		12 + (60),		"PrSctr:(%i)", rdobj->prevSector);
 	spr_sprintf(8,		24 + (60),		"eID:(%i)", rdobj->type.entity_ID);
 	spr_sprintf(8,		36 + (60),		"Rad:x(%i)", rdobj->type.radius[X]);
 	spr_sprintf(112,	36 + (60),		",y(%i)", rdobj->type.radius[Y]);

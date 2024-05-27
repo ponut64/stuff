@@ -542,6 +542,18 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 		switch(mesh->maxtbl[i])
 		{
 			case(N_Yp):
+			//////////////////////////////////////////////////////////////
+			// Ceiling branch (treated as wall)
+			//////////////////////////////////////////////////////////////
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
+			{
+				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, act->wallPos);
+				if(isPointonSegment(act->wallPos, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				{
+					actor_hit_wall(act, used_normal);
+				}
+			}
+			break;
 			case(N_Yn):
 			
 			//////////////////////////////////////////////////////////////
@@ -551,7 +563,7 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, act->floorPos);
 				if(isPointonSegment(act->floorPos, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
-				{
+				{	
 					act->info.flags.hitFloor = 1;
 				}
 			}
@@ -566,15 +578,15 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 					actor_hit_wall(act, used_normal);
 				}
 			} else {
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zp))
-				{
-					actor_hit_wall(act, used_normal);
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zn))
-				{
-					actor_hit_wall(act, used_normal);
-				}	
+				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zp))
+				//{
+				//	actor_hit_wall(act, used_normal);
+				//}
+				//
+				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zn))
+				//{
+				//	actor_hit_wall(act, used_normal);
+				//}	
 			}
 			break;
 			case(N_Zp):
@@ -587,15 +599,15 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 					actor_hit_wall(act, used_normal);
 				}
 			} else {
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xp))
-				{
-					actor_hit_wall(act, used_normal);
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xn))
-				{
-					actor_hit_wall(act, used_normal);
-				}	
+				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xp))
+				//{
+				//	actor_hit_wall(act, used_normal);
+				//}
+				//
+				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xn))
+				//{
+				//	actor_hit_wall(act, used_normal);
+				//}	
 			}
 			break;
 		}
@@ -657,8 +669,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->dRot[Y] = 0;
 	act->dRot[Z] = 0;
 	act->totalFriction = 0;
-	act->pix[X] = spawner->pix[X];
-	act->pix[Y] = spawner->pix[Y];
+	act->curSector = spawner->curSector;
 	
 	act->spawner = spawner;
 	act->entity_ID = spawner->type.entity_ID;
@@ -683,7 +694,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	return actor_number;
 }
 
-void	manage_actors(int * ppix, int * ppos)
+void	manage_actors(int * ppos)
 {
 	//Goal:
 	//Check each actor in the actor list
@@ -698,23 +709,15 @@ void	manage_actors(int * ppix, int * ppos)
 	// 4. Collision test the actor with the types that this type of actor should collide with
 	// 5. Instigate the necessary collision response
 	
-	// It is at a point like this where I understand the value of frustum culling.
-	// ...	but I can use the grid to do that.
 	_actor * act;
-	int grid_dif[3];
+
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		
 		act = &spawned_actors[i];
+		act->prevSector = act->curSector;
 		
-		//why - and not +?
-		//shoot me
-		grid_dif[X] = act->pix[X] + ppix[X];
-		grid_dif[Y] = act->pix[Y] + ppix[Y];
-		//(height difference)
-		grid_dif[Z] = act->pos[Y] + ppos[Y];
-		
-		if(grid_dif[X] < CELL_CULLING_DIST_LONG && grid_dif[Y] < CELL_CULLING_DIST_LONG && grid_dif[Z] < HEIGHT_CULLING_DIST)
+		if(sectorIsVisible[act->curSector])
 		{
 			//Mark as active
 			act->info.flags.active = 1;
@@ -725,6 +728,8 @@ void	manage_actors(int * ppix, int * ppos)
 				act->spawner->type.ext_dat |= SPAWNER_DISABLED;
 				continue;
 			}
+			
+			act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->prevSector]);
 			///////////////////////////////////////////////
 			//At this point, an actor should be alive and active.
 			///////////////////////////////////////////////
@@ -748,9 +753,7 @@ void	manage_actors(int * ppix, int * ppos)
 			act->nextPos[X] = act->pos[X] + fxm(act->velocity[X], time_fixed_scale);
 			act->nextPos[Y] = act->pos[Y] + fxm(act->velocity[Y], time_fixed_scale);
 			act->nextPos[Z] = act->pos[Z] + fxm(act->velocity[Z], time_fixed_scale);
-			
-			act->pix[X] = (act->pos[X]>>16) / CELL_SIZE_INT;
-			act->pix[Y] = (act->pos[Z]>>16) / CELL_SIZE_INT;
+
 			///////////////////////////////////////////////
 			// Rotation change
 			///////////////////////////////////////////////
@@ -851,7 +854,6 @@ void	manage_actors(int * ppix, int * ppos)
 
 					break;
 					case(BUILD | OBJPOP):
-					
 					actor_per_polygon_collision(act, &cur_actor_line_table, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
 					break;
 					default:
@@ -877,7 +879,11 @@ void	manage_actors(int * ppix, int * ppos)
 				
 				act->info.flags.losTarget = actorCheckPathOK(act);
 				
-					nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+					//nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+				
+					//nbg_sprintf_decimal(5, 12, act->pos[X]);
+					//nbg_sprintf_decimal(5, 13, act->pos[Y]);
+					//nbg_sprintf_decimal(5, 14, act->pos[Z]);
 				
 				act->totalFriction = 32768;
 				
@@ -886,7 +892,12 @@ void	manage_actors(int * ppix, int * ppos)
 			act->info.flags.hitFloor = 0;
 		} else {
 			act->info.flags.active = 0;
-			
+		
+			if(act->curSector == INVALID_SECTOR)
+			{
+				act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->curSector]);
+			}
+		
 		}
 	
 	}

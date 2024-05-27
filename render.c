@@ -130,7 +130,7 @@ void	frame_render_prep(void)
 	anims = 0;
 	drawn_entity_count = 0;
 	*current_portal_count = 0;
-	*sectorToDrawFrom = you.prevSector;
+	*sectorToDrawFrom = you.curSector;
 	vert_clip_x = TV_HALF_WIDTH;
 	vert_clip_nx = -TV_HALF_WIDTH;
 	vert_clip_y = TV_HALF_HEIGHT;

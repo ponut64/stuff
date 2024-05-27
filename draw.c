@@ -434,12 +434,17 @@ void	sector_vertex_remittance(void)
 	scrn_z_fwd[Y] = world_box.UVZ[Y];
 	scrn_z_fwd[Z] = world_box.UVZ[Z];
 	
-	
+	//Because the world geometry is drawn independent of the object system, we have to make a valid prematrix for it.
+	static int world_prematrix[12] = {1<<16, 0, 0, 0, 1<<16, 0, 0, 0, 1<<16, 0,0,0};
+	world_prematrix[9] = levelPos[X];
+	world_prematrix[10] = levelPos[Y];
+	world_prematrix[11] = levelPos[Z];
 	
 	/////////////////////////////////////////////////////////
 	// Pre-loop portal processing
 	////////////////////////////////////////////////////////
 	_sector * sct = &sectors[*sectorToDrawFrom];
+	sct->ent->prematrix = &world_prematrix[0];
 	for(int s = 0; s < nearSectorCt; s++)
 	{
 		visibleSectors[s] = sct->pvs[s];
