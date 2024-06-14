@@ -135,9 +135,11 @@ typedef struct
 	unsigned short * portals; //Stores the polygon IDs in ent->pol->attbl and ent->pol->pltbl and ent->pol->pntbl				44
 	void * viewspace_tvtbl; //Memory allocated for the viewspace transform of the tvtbl	(sized of vertex_t)						48
 	void * scrnspace_tvtbl; //Memory allocated for the screenspace transform of tvtbl (sized of vertex_t)						52
-	unsigned short nbPortal; //Stores the # of portals in the sector															54
-	unsigned short nbAdjacent; //# of sectors which are primary adjacent to this sector (immediately, physically touching)		56
-	volatile unsigned short ready_this_frame; //Boolean; 0 if sector is not ready to draw this frame, 1 if it is.				58
+	int	center_pos[3]; //World-space center guidemark of the sector																56
+	int radius[3]; //Radius of the sector from center																			68
+	unsigned short nbPortal; //Stores the # of portals in the sector															80
+	unsigned short nbAdjacent; //# of sectors which are primary adjacent to this sector (immediately, physically touching)		82
+	volatile unsigned short ready_this_frame; //Boolean; 0 if sector is not ready to draw this frame, 1 if it is.				84
 } _sector;
 extern _sector sectors[MAX_SECTORS+1];
 

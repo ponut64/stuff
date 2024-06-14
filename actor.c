@@ -79,10 +79,28 @@ path table 1 step
 maintain path table
 etc?
 
-Okay, so after all that sector bullshit was done, we're back here.
-I need to create a collision function which sweeps for which sector the actor is in, and then
-I need to create a collision function to operate sector-by-sector for the actor, and then
-I need to create a pathing abstraction which allows the actor to navigate all sectors
+1 ->
+Do we proceed with building global path tables, or not?
+Is it only important to navigate TO a sector, rather than within a sector?
+-> Navigation can be simple, as long as the level adheres to rules.
+-> Sectors can have pathGuides which actors can follow to enter/exit the sector.
+-> Within a sector, an actor can:
+	a. Move to destination normally, if it is within the sector
+	b. Move to a pathGuide of the sector, which might be the center of the sector, or points which guide to other sectors
+	
+This idea fails on L or U shaped sectors; basically, any situation where the actor might walk off the floor into the abyss or into a wall.
+I know it generates a shitload of data, but the old system which simply checked adjacent floors seems objectively superior.
+The issue might be the amount of data it generates.
+
+Moreover, a best solution is one which sectors have pathGuides in and out, for faster actor navigation; this is yet MORE data,
+because in this scenario the sector and every floor has guidance.
+
+I see that arguing over this is pointless right now. I need to establish a functional pathing system, then understand its failings,
+and work from there.
+
+Okay. I should start with a simple function that checks the navigation point for the actor.
+It will check if it is on the same floor as the actor, is the first check. If it is, go straight to it.
+If it is not, well, we can start attempting navigation.
 */
 
 int		actorLineOfSight(_actor * act, int * pos)
@@ -206,7 +224,7 @@ int	actorCheckPathOK(_actor * act)
 		{
 			case(OBJPOP):
 			case(SPAWNER):
-			possibleFloor += hitscan_vector_from_position_box(towardsFloor, actorPathProxy, floorProxy, floorNorm, &RBBs[c]);
+			//possibleFloor += hitscan_vector_from_position_box(towardsFloor, actorPathProxy, floorProxy, floorNorm, &RBBs[c]);
 			break;
 			case(ITEM | OBJPOP):
 			break;
@@ -219,6 +237,18 @@ int	actorCheckPathOK(_actor * act)
 			default:
 			break;
 		}
+	}
+	
+	//Check sectors for LOS
+	_sector * sct = &sectors[act->curSector];
+	//Rather than check everything in the sector's PVS for collision,
+	//we will only check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		floorNorm[X] = sct->ent->pol->nmtbl[hitFloorPly][X];
+		floorNorm[Y] = sct->ent->pol->nmtbl[hitFloorPly][Y];
+		floorNorm[Z] = sct->ent->pol->nmtbl[hitFloorPly][Z];
 	}
 	
 	//If there was no possible floor, path is not OK.
@@ -239,7 +269,7 @@ int	actorCheckPathOK(_actor * act)
 void	buildAdjacentFloorList(int entity_id)
 {
 	//Step 1: Is this a valid entity type?
-	if(entities[entity_id].type != MODEL_TYPE_BUILDING) return;
+	if(entities[entity_id].type != MODEL_TYPE_SECTORED) return;
 	if(!entities[entity_id].file_done) return;
 	
 	GVPLY * mesh = entities[entity_id].pol;
@@ -342,9 +372,10 @@ void	buildAdjacentFloorList(int entity_id)
 			{
 				//Aggravating Necessity: Push c_plane towards t_plane slightly
 				//This is so the chirality test does not fail
-				c_plane[k][X] += normal_to_tc[X]<<1;
-				c_plane[k][Y] += normal_to_tc[Y]<<1;
-				c_plane[k][Z] += normal_to_tc[Z]<<1;
+				//oops, doesn't work :)
+				//c_plane[k][X] += normal_to_tc[X]<<1;
+				//c_plane[k][Y] += normal_to_tc[Y]<<1;
+				//c_plane[k][Z] += normal_to_tc[Z]<<1;
 				vert_within_shape[k] = 0;
 				//I need to know *exactly* which edge is adjacent.
 				//I can do this by checking every vertex, and then seeing which pair is adjacent.
@@ -379,17 +410,29 @@ void	buildAdjacentFloorList(int entity_id)
 			
 			//So we think these floor polygons are adjacent.
 			//First, state that 'p' (the other polygon we are testing) is adjacent to the current plane being tested for.
-			ent->pathGuides[cur_plane_num].adjacent_plane_id[adjacent_planes] = p;
-			
-			//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
-			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-			ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
-			
+			//Safety check: if the polygon we are testing adjacency to was already registered as adjacent, don't register it again.
+			for(int k = 0; k < 4; k++)
+			{
+				if(ent->pathGuides[cur_plane_num].adjacent_plane_id[k] == p)
+				{
+					within_shape_ct = 0;
+					break;
+				}
+			}
+			if(within_shape_ct)
+			{
+				ent->pathGuides[cur_plane_num].adjacent_plane_id[adjacent_planes] = p;
+				
+				//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
+				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+			}
 			//Second, we also need to tell 'p' that it is adjacent to the current plane.
 			//We don't know if we have tested it yet, so we need to look through its plane list to see if there is an empty spot.
 			for(int k = 0; k < 4; k++)
 			{
+				if(ent->pathGuides[p].adjacent_plane_id[k] == cur_plane_num) break;
 				if(ent->pathGuides[p].adjacent_plane_id[k] == INVALID_PLANE)
 				{
 					ent->pathGuides[p].adjacent_plane_id[k] = cur_plane_num;
@@ -399,7 +442,7 @@ void	buildAdjacentFloorList(int entity_id)
 					ent->pathGuides[p].guidance_points[k][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
 					ent->pathGuides[p].guidance_points[k][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
 					ent->pathGuides[p].guidance_points[k][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
-					
+					break;
 					//total_adj_planes++;
 				}
 			}
@@ -488,6 +531,7 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	static int plane_points[4][3];
 	static int anchor_to_plane[3];
 	static int used_normal[3];
+	static int potential_hit[3];
 	
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
@@ -547,23 +591,29 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			//////////////////////////////////////////////////////////////
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, act->wallPos);
-				if(isPointonSegment(act->wallPos, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
 				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
 				}
 			}
 			break;
 			case(N_Yn):
-			
+			if(act->info.flags.hitFloor) break;
 			//////////////////////////////////////////////////////////////
 			// Floor branch
 			//////////////////////////////////////////////////////////////
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, act->floorPos);
-				if(isPointonSegment(act->floorPos, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
 				{	
+					act->floorPos[X] = potential_hit[X];
+					act->floorPos[Y] = potential_hit[Y];
+					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
 				}
 			}
@@ -572,9 +622,12 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			case(N_Xn):
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVX, act->nextPos, used_normal, plane_center, act->wallPos);
-				if(isPointonSegment(act->wallPos, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				ray_to_plane(box->UVX, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
 				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
 				}
 			} else {
@@ -593,9 +646,12 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			case(N_Zn):
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVZ, act->nextPos, used_normal, plane_center, act->wallPos);
-				if(isPointonSegment(act->wallPos, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
+				ray_to_plane(box->UVZ, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
 				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
 				}
 			} else {
@@ -608,6 +664,144 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 				//{
 				//	actor_hit_wall(act, used_normal);
 				//}	
+			}
+			break;
+		}
+	
+	}
+	
+}
+
+
+void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * sct, int * ent_pos)
+{
+	
+	if(!sct->nbPolygon) return;
+	
+	entity_t * ent = sct->ent;
+	GVPLY * mesh = ent->pol;
+	_boundBox * box = act->box;
+	static int plane_center[3];
+	static int plane_points[4][3];
+	static int anchor_to_plane[3];
+	static int used_normal[3];
+	static int potential_hit[3];
+	
+	for(unsigned int i = 0; i < sct->nbPolygon; i++)
+	{
+		int alias = sct->pltbl[i];
+		//////////////////////////////////////////////////////////////
+		// Add the position of the mesh to the position of its points
+		// PDATA vector space is inverted, so we negate them
+		// "Get world-space point position"
+		//////////////////////////////////////////////////////////////
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		for(int u = 0; u < 4; u++)
+		{
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent_pos[X] ); 
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent_pos[Y] ); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent_pos[Z] );
+		//Add to the plane's center
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+		
+		used_normal[X] = mesh->nmtbl[alias][X];
+		used_normal[Y] = mesh->nmtbl[alias][Y];
+		used_normal[Z] = mesh->nmtbl[alias][Z];
+		
+		//Exceptor: if the plane is not single-plane (i.e. must collide on both sides), we need to find which side we're on.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE))
+		{
+			anchor_to_plane[X] = (act->pos[X] - plane_center[X])>>16;
+			anchor_to_plane[Y] = (act->pos[Y] - plane_center[Y])>>16;
+			anchor_to_plane[Z] = (act->pos[Z] - plane_center[Z])>>16;
+			
+			int anchor_scale = (anchor_to_plane[X] * used_normal[X]) + (anchor_to_plane[Y] * used_normal[Y]) + (anchor_to_plane[Z] * used_normal[Z]);
+			
+			if(anchor_scale < 0) 
+			{
+				used_normal[X] = -mesh->nmtbl[alias][X];
+				used_normal[Y] = -mesh->nmtbl[alias][Y];
+				used_normal[Z] = -mesh->nmtbl[alias][Z];
+			}
+		}
+		
+		//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
+		
+		switch(mesh->maxtbl[alias])
+		{
+			case(N_Yp):
+			//////////////////////////////////////////////////////////////
+			// Ceiling branch (treated as wall)
+			//////////////////////////////////////////////////////////////
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
+					actor_hit_wall(act, used_normal);
+				}
+			}
+			break;
+			case(N_Yn):
+			if(act->info.flags.hitFloor) break;
+			//////////////////////////////////////////////////////////////
+			// Floor branch
+			//////////////////////////////////////////////////////////////
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				{	
+					act->floorPos[X] = potential_hit[X];
+					act->floorPos[Y] = potential_hit[Y];
+					act->floorPos[Z] = potential_hit[Z];
+					act->info.flags.hitFloor = 1;
+					
+					nbg_sprintf(5, 12, "ad0(%i)", ent->pathGuides[alias].adjacent_plane_id[0]);
+					nbg_sprintf(5, 13, "ad1(%i)", ent->pathGuides[alias].adjacent_plane_id[1]);
+					nbg_sprintf(5, 14, "ad2(%i)", ent->pathGuides[alias].adjacent_plane_id[2]);
+				}
+			}
+			break;
+			case(N_Xp):
+			case(N_Xn):
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(box->UVX, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
+					actor_hit_wall(act, used_normal);
+				}
+			}
+			break;
+			case(N_Zp):
+			case(N_Zn):
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[alias], 12))
+			{
+				ray_to_plane(box->UVZ, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
+				{
+					act->wallPos[X] = potential_hit[X];
+					act->wallPos[Y] = potential_hit[Y];
+					act->wallPos[Z] = potential_hit[Z];
+					actor_hit_wall(act, used_normal);
+				}
 			}
 			break;
 		}
@@ -729,7 +923,7 @@ void	manage_actors(int * ppos)
 				continue;
 			}
 			
-			act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->prevSector]);
+			act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->curSector]);
 			///////////////////////////////////////////////
 			//At this point, an actor should be alive and active.
 			///////////////////////////////////////////////
@@ -841,6 +1035,7 @@ void	manage_actors(int * ppos)
 			{
 				//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
 				if(RBBs[c].status[1] != 'C') continue;
+				if(dWorldObjects[activeObjects[c]].curSector != act->curSector) continue;
 				unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
 				unsigned short boxType = edata & (0xF000);
 				//Check if object # is a collision-approved type
@@ -860,6 +1055,15 @@ void	manage_actors(int * ppos)
 					break;
 				}
 			}
+			
+			//Sector Collision
+			_sector * sct = &sectors[act->curSector];
+			//Rather than check everything in the sector's PVS for collision,
+			//we will only check the sector itself + primary adjacents.
+			//for(int s = 0; s < (sct->nbAdjacent+1); s++)
+			//{
+				actor_sector_collision(act, &cur_actor_line_table, sct, levelPos);
+			//}
 			
 			//Debug
 			act->pathTarget[X] = you.guidePos[X];

@@ -587,7 +587,6 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	
 	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
 	
-	
 	for(unsigned int i = 0; i < ply_limit; i++)
 	{		
 		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
@@ -782,23 +781,6 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 					you.wallPos[Y] = possible_wall[Y];
 					you.wallPos[Z] = possible_wall[Z];
 				}
-			} else {
-				//This stuff is supposed to catch edge-face collision. Hm.
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zp))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zn))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}	
 			}
 			break;
 			case(N_Zp):
@@ -817,22 +799,6 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 					you.wallPos[Y] = possible_wall[Y];
 					you.wallPos[Z] = possible_wall[Z];
 				}
-			} else {
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xp))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xn))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}	
 			}
 			break;
 		}
@@ -935,14 +901,6 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 			{
 				ray_to_plane(mover->UVY, mover->nextPos, used_normal, plane_center, possible_floor);
 				
-				// nbg_sprintf_decimal(2, 7, possible_floor[X]);
-				// nbg_sprintf_decimal(2, 8, possible_floor[Y]);
-				// nbg_sprintf_decimal(2, 9, possible_floor[Z]);
-				
-				// nbg_sprintf_decimal(2, 11, mover->nextPos[X]);
-				// nbg_sprintf_decimal(2, 12, mover->nextPos[Y]);
-				// nbg_sprintf_decimal(2, 13, mover->nextPos[Z]);
-				
 				if(isPointonSegment(possible_floor, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
 				{
 					//
@@ -975,23 +933,6 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 					you.wallPos[Y] = possible_wall[Y];
 					you.wallPos[Z] = possible_wall[Z];
 				}
-			} else {
-				//This stuff is supposed to catch edge-face collision. Hm.
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zp))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Zn))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}	
 			}
 			break;
 			case(N_Zp):
@@ -1010,22 +951,6 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 					you.wallPos[Y] = possible_wall[Y];
 					you.wallPos[Z] = possible_wall[Z];
 				}
-			} else {
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xp))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}
-				
-				if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, mover, N_Xn))
-				{
-					//you.hitWall = true;
-					//you.wallNorm[X] = used_normal[X];
-					//you.wallNorm[Y] = used_normal[Y];
-					//you.wallNorm[Z] = used_normal[Z];
-				}	
 			}
 			break;
 		}

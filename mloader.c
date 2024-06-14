@@ -186,6 +186,59 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		}
 	writeAddress+= sectors[k].nbPortal * sizeof(unsigned short);
 	}
+	
+	//For optimization purposes, we should accrue a center and radius of the sector.
+	//The center shall first be placed at model-space; later the game engine will update it to world-space.
+	_sector * sct;
+	int accumulated_verts[3] = {0,0,0};
+	int maxAxis[3] = {0,0,0};
+	for(unsigned int s = 0; s < MAX_SECTORS; s++)
+	{
+		sct = &sectors[s];
+		if(sct->nbPoint == 0) continue;
+		accumulated_verts[X] = 0;
+		accumulated_verts[Y] = 0;
+		accumulated_verts[Z] = 0;
+		maxAxis[X] = 0;
+		maxAxis[Y] = 0;
+		maxAxis[Z] = 0;
+		
+		for(unsigned int i = 0; i < sct->nbPoint; i++)
+		{
+			int alias = sct->pntbl[i];
+			
+			accumulated_verts[X] += (mesh->pntbl[alias][X]>>16);
+			accumulated_verts[Y] += (mesh->pntbl[alias][Y]>>16);
+			accumulated_verts[Z] += (mesh->pntbl[alias][Z]>>16);
+		}
+		
+		accumulated_verts[X] = (accumulated_verts[X] / sct->nbPoint)<<16;
+		accumulated_verts[Y] = (accumulated_verts[Y] / sct->nbPoint)<<16;
+		accumulated_verts[Z] = (accumulated_verts[Z] / sct->nbPoint)<<16;
+		//We must negate the applied value due to the inversion of the projection space.
+		sct->center_pos[X] = -accumulated_verts[X];
+		sct->center_pos[Y] = -accumulated_verts[Y];
+		sct->center_pos[Z] = -accumulated_verts[Z];
+		
+		for(unsigned int i = 0; i < sct->nbPoint; i++)
+		{
+			int alias = sct->pntbl[i];
+			
+			accumulated_verts[X] = JO_ABS(mesh->pntbl[alias][X] + sct->center_pos[X]);
+			accumulated_verts[Y] = JO_ABS(mesh->pntbl[alias][Y] + sct->center_pos[Y]);
+			accumulated_verts[Z] = JO_ABS(mesh->pntbl[alias][Z] + sct->center_pos[Z]);
+			
+			maxAxis[X] = (accumulated_verts[X] > maxAxis[X]) ? accumulated_verts[X] : maxAxis[X];
+			maxAxis[Y] = (accumulated_verts[Y] > maxAxis[Y]) ? accumulated_verts[Y] : maxAxis[Y];
+			maxAxis[Z] = (accumulated_verts[Z] > maxAxis[Z]) ? accumulated_verts[Z] : maxAxis[Z];
+			
+		}
+		//Add a margin to it.
+		sct->radius[X] = maxAxis[X] + (64<<16);
+		sct->radius[Y] = maxAxis[Y] + (64<<16);
+		sct->radius[Z] = maxAxis[Z] + (64<<16);
+		
+	}
 
 	nbg_sprintf(1, 7, "sct(%i),ply(%i),vts(%i)", sectors_made, sectored_polygons, sectored_verts);
 	workAddress = (void *)writeAddress;

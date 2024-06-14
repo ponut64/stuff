@@ -493,6 +493,14 @@ void	sector_vertex_remittance(void)
 	//nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
 	//nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
 	
+	// nbg_sprintf(16, 8, "ctrX:(%i)",  sectors[you.curSector].center_pos[X]>>16);
+	// nbg_sprintf(16, 9, "ctrY:(%i)",  sectors[you.curSector].center_pos[Y]>>16);
+	// nbg_sprintf(16, 10, "ctrZ:(%i)", sectors[you.curSector].center_pos[Z]>>16);
+	
+	// nbg_sprintf(16, 12, "radX:(%i)", sectors[you.curSector].radius[X]>>16);
+	// nbg_sprintf(16, 13, "radY:(%i)", sectors[you.curSector].radius[Y]>>16);
+	// nbg_sprintf(16, 14, "radZ:(%i)", sectors[you.curSector].radius[Z]>>16);
+	
 	int alltilect = 0;
 	for(int i = 0; i < sectors[you.curSector].nbPolygon; i++)
 	{

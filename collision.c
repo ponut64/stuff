@@ -900,6 +900,7 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 	GVPLY * mesh = ent->pol;
 	static int testDirection[3] = {0, 65535, 0};
 	static int pHit[3] = {0, 0, 0};
+	int wdist[3] = {0,0,0};
 	static int hitPolyID = 0;
 
 	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, test_sector);
@@ -910,8 +911,18 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 		for(int i = 0; i < test_sector->nbVisible; i++)
 		{
 			_sector * sct = &sectors[test_sector->pvs[i]];
-			abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, sct);
-			if(abovePolygon) break;
+			
+			//Broad-phase: Check radius
+			wdist[X] = JO_ABS(pos[X] - (mesh_position[X] - sct->center_pos[X]));
+			wdist[Y] = JO_ABS(pos[Y] - (mesh_position[Y] - sct->center_pos[Y]));
+			wdist[Z] = JO_ABS(pos[Z] - (mesh_position[Z] - sct->center_pos[Z]));
+			
+			if(wdist[X] < sct->radius[X] && wdist[Y] < sct->radius[Y] && wdist[Z] < sct->radius[Z])
+			{
+
+				abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, sct);
+				if(abovePolygon) break;
+			}
 		}
 	}
 	
@@ -941,16 +952,16 @@ void	player_collision_test_loop(void)
 	//Use the current sector's adjacent list as the draw list.
 	_sector * sct = &sectors[you.curSector];
 	nearSectorCt = sct->nbVisible;
-	for(unsigned int s = 0; s < sct->nbVisible; s++)
-	{
-		collide_in_sector_of_entity(sct->ent, &sectors[sct->pvs[s]], &you.box, &you.realTimeAxis);
+	
+	collide_in_sector_of_entity(sct->ent, sct, &you.box, &you.realTimeAxis);
 
-		you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
-		you.hitscanNm[X] = sct->ent->pol->nmtbl[hitscanPly][X];
-		you.hitscanNm[Y] = sct->ent->pol->nmtbl[hitscanPly][Y];
-		you.hitscanNm[Z] = sct->ent->pol->nmtbl[hitscanPly][Z];
-
-	}
+	//for(unsigned int s = 0; s < (sct->nbAdjacent+1); s++)
+	//{
+		// you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		// you.hitscanNm[X] = sct->ent->pol->nmtbl[hitscanPly][X];
+		// you.hitscanNm[Y] = sct->ent->pol->nmtbl[hitscanPly][Y];
+		// you.hitscanNm[Z] = sct->ent->pol->nmtbl[hitscanPly][Z];
+	//}
 	
 	
 	for(int i = 0; i < MAX_PHYS_PROXY; i++)
@@ -965,7 +976,7 @@ void	player_collision_test_loop(void)
 		{
 			case(OBJPOP):
 			case(SPAWNER):
-			you.hasValidAim += hitscan_vector_from_position_box(you.uview, you.viewPos, you.hitscanPt, you.hitscanNm, &RBBs[i]);
+			//you.hasValidAim += hitscan_vector_from_position_box(you.uview, you.viewPos, you.hitscanPt, you.hitscanNm, &RBBs[i]);
 			player_collide_boxes(&RBBs[i], &pl_RBB, &you.bwd_world_faces, &you.time_axis, edata);
 			subtype_collision_logic(&dWorldObjects[activeObjects[i]], &RBBs[i], &pl_RBB);
 			break;
@@ -973,10 +984,10 @@ void	player_collision_test_loop(void)
 			item_collision(i, &pl_RBB);
 			break;
 			case(BUILD | OBJPOP):
-			you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, NULL);
-			you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
-			you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
-			you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
+			//you.hasValidAim += hitscan_vector_from_position_building(you.uview, you.viewPos, you.hitscanPt, &hitscanPly, &entities[dWorldObjects[activeObjects[i]].type.entity_ID], RBBs[i].pos, NULL);
+			//you.hitscanNm[X] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][X];
+			//you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
+			//you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
 
 			collide_per_polygon_of_mesh(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &you.box, &you.realTimeAxis);
 			if(you.hitObject  == true)
