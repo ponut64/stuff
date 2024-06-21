@@ -87,14 +87,30 @@ typedef struct {
 	unsigned char * lumatbl;	/* Lighting table, as <<9 units. */
 } GVPLY ;
 
+//
+// I need to re-do this to store:
+// # of adjacent planes,
+// pointer to plane ID list,
+// pointer to guidance point list
+//
+
 typedef struct {
-	unsigned short adjacent_plane_id[4];
-	int guidance_points[4][3];
+	POINT guide_pt;
+	unsigned short floor_id;
 } _pathGuide;
+
+typedef struct {
+	unsigned short id;
+	unsigned short numGuides;
+	_pathGuide * guides;
+	// unsigned short adjacent_plane_id[4];
+	// int guidance_points[4][3];
+} _path;
 
 typedef struct
 {
 	int z_plane;	//Boolean. 0 for far, 1 for near.
+	int numFloor;
 	unsigned int size;
 	short file_done;
 	short was_loaded_from_CD;
@@ -110,7 +126,7 @@ typedef struct
     anim_struct * animation[64];
 	GVPLY * pol;
 	FIXED * prematrix;
-	_pathGuide * pathGuides;
+	_path * paths;
 } entity_t;
 
 

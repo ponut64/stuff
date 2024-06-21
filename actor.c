@@ -25,82 +25,28 @@ unsigned char * pathTableHeap;
 unsigned char * adjPolyStackPtr;
 unsigned char * adjPolyStackMax;
 /*
-Next steps:
-Guiding the actor by a path
 
-What we need to do:
-Per frame, iterate a pathing step towards (target)
+I need to reconfigure the path tables to work with the sectors.
+This is the only way it can work with n-depth navigation.
 
-When starting:
-Check pathing (target)
-Find out if a straight, unobstructed, floor path exists to the target
-If so, just walk towards target.
-Also check if the (pathing condition) is met. If so, stop pathing.
-"Pathing Conditions" might be:
-Within min/max distance, in line of sight, without line of sight, etc.
+I should reorient like this:
+- The mesh is checked for floor polygons whom touch each other and have different sectors.
+	- Fault: We want to make a navigation point here, but the edges can have vastly different spans.
+		-Solution: The navigation point made from the span is the one which is on both edges, not just one of them.
+		If neither point lies on both edges, then obviously we can't navigate with that.
+So sectors will have navigation points to other sectors.
 
-If a straight path does not exist, we need to start building a path table.
+Then, we need fallback guides for actors to use to go between sectors.
 
-However, I'd like to get to building a path table, but I have bigger problems.
+The issue is if we need fallback guides on a per-polygon basis, then no matter what, 
+I need to develop the navigation system on the fallback guides, and implement the sector navigation as an optimization.
 
-The first problem is that I need to determine *if* i need a path table, and this is a complex problem.
+So thus, I have identified a few faults:
+1 - There are failures to identify adjacent floors
+2 - Capping the number of adjacent floors at 4 is a fault; it must be at least 8, or uncapped.
+I wonder if storing a pointer to the cap list is more efficient than just storing 8.
+Ah, well-because of the navigation points, it would be more efficient to store pointers.
 
-I have to be careful about the placement of the target. If it is directly on the floor, there could be issues.
-
-Anyway, first is checking what floor sector the target is at.
-Then you check if you have line of sight to the target, and if you can path to that floor sector without going off/in a wall.
-
-The second question (of whether you can even reach it) is simplest to be calculated procedurally.
-Just walk towards it, and see if **on the NEXT frame** you will hit a wall or walk off of a floor.
-
-It is probably easier to raycast for walls, but checking if walking off a floor is harder.
-A unified solution is to just check a single point in the direction towards the target, and then see
-if the segment between that point and the actor crosses a wall, and if the floor height beneath that point is good.
-
-check target
-walk towards target
-if about to hit wall or walk off floor, STOP, path back to current floor center
-start building path trees (while still moving)
-path tree is built by right-hand rule, very simple for now
-go to first step in path tree 
-
-if about to hit wall or walk off floor, STOP, path back to current floor center
-path to guidance point towards that floor
-once destination is reached, path to next floor center
-if about to hit wall or walk off floor, STOP, exception - maybe don't even test for this and keep walking
-
-once next floor center is reached, this step is passed, next step
-
-needed functions:
-actor line of sight
-actor check movement state OK
-
-path table 1 step
-maintain path table
-etc?
-
-1 ->
-Do we proceed with building global path tables, or not?
-Is it only important to navigate TO a sector, rather than within a sector?
--> Navigation can be simple, as long as the level adheres to rules.
--> Sectors can have pathGuides which actors can follow to enter/exit the sector.
--> Within a sector, an actor can:
-	a. Move to destination normally, if it is within the sector
-	b. Move to a pathGuide of the sector, which might be the center of the sector, or points which guide to other sectors
-	
-This idea fails on L or U shaped sectors; basically, any situation where the actor might walk off the floor into the abyss or into a wall.
-I know it generates a shitload of data, but the old system which simply checked adjacent floors seems objectively superior.
-The issue might be the amount of data it generates.
-
-Moreover, a best solution is one which sectors have pathGuides in and out, for faster actor navigation; this is yet MORE data,
-because in this scenario the sector and every floor has guidance.
-
-I see that arguing over this is pointless right now. I need to establish a functional pathing system, then understand its failings,
-and work from there.
-
-Okay. I should start with a simple function that checks the navigation point for the actor.
-It will check if it is on the same floor as the actor, is the first check. If it is, go straight to it.
-If it is not, well, we can start attempting navigation.
 */
 
 int		actorLineOfSight(_actor * act, int * pos)
@@ -281,18 +227,27 @@ void	buildAdjacentFloorList(int entity_id)
 	//we start over max, stop
 	if(adjPolyStackPtr > adjPolyStackMax) return;
 	//
-	ent->pathGuides = (_pathGuide*)adjPolyStackPtr;
-	adjPolyStackPtr += (mesh->nbPolygon * sizeof(_pathGuide));
-	//we over max, stop
-	if(adjPolyStackPtr > adjPolyStackMax) return;
-	//Initialize the path guides
+	ent->paths = (_path*)adjPolyStackPtr;
+	
+	//Step 1: We need to find out how many floor polygons we have to put in the guide list.
+	//We must do it in this inefficient order because we are allocating memory.
+	int numFloor = 0;
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
-		ent->pathGuides[i].adjacent_plane_id[0] = INVALID_PLANE;
-		ent->pathGuides[i].adjacent_plane_id[1] = INVALID_PLANE;
-		ent->pathGuides[i].adjacent_plane_id[2] = INVALID_PLANE;
-		ent->pathGuides[i].adjacent_plane_id[3] = INVALID_PLANE;
+		if(mesh->maxtbl[i] != N_Yn) continue;
+		if(!(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)) continue;
+		ent->paths[numFloor].id = i;
+		ent->paths[numFloor].numGuides = 0;
+		numFloor++;
 	}
+	
+	adjPolyStackPtr += numFloor * sizeof(_path);
+	ent->numFloor = numFloor;
+	
+	int pass_number = 0;
+	
+
+
 	int t_plane[4][3];
 	int t_center[3] = {0, 0, 0};
 	int c_plane[4][3];
@@ -302,52 +257,51 @@ void	buildAdjacentFloorList(int entity_id)
 	int y_min = 0;
 	int y_max = 0;
 	int within_span = 0;
-	unsigned int cur_plane_num = 0;
 	int within_shape_ct = 0;
 	int vert_within_shape[4] = {0,0,0,0};
-	int adjacent_planes = 0;
 	
-	//int total_adj_planes = 0;
+	//GOTO Label:
+	//On the first pass of this loop, we will count up the number of adjacents, then allocate memory based on that number.
+	//On the second pass, we will fill that allocated memory with valid data.
+	PASS:
 
-	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
+	for(int i = 0; i < numFloor; i++)
 	{
-		if(mesh->maxtbl[i] != N_Yn) continue;
-		if(!(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)) continue;
+		int alias = ent->paths[i].id;
 		
-		y_min = mesh->pntbl[mesh->pltbl[i].vertices[0]][Y];
-		y_max = mesh->pntbl[mesh->pltbl[i].vertices[0]][Y];
+		y_min = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
+		y_max = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
 		for(int k = 0; k < 4; k++)
 		{
-			t_plane[k][X] = mesh->pntbl[mesh->pltbl[i].vertices[k]][X];
-			t_plane[k][Y] = mesh->pntbl[mesh->pltbl[i].vertices[k]][Y];
-			t_plane[k][Z] = mesh->pntbl[mesh->pltbl[i].vertices[k]][Z];
+			t_plane[k][X] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][X];
+			t_plane[k][Y] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][Y];
+			t_plane[k][Z] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][Z];
 			t_center[X] += t_plane[k][X];
 			t_center[Y] += t_plane[k][Y];
 			t_center[Z] += t_plane[k][Z];
 			y_min = (t_plane[k][Y] < y_min) ? t_plane[k][Y] : y_min;
 			y_max = (t_plane[k][Y] > y_max) ? t_plane[k][Y] : y_max;
 		}
-		t_center[X] >>=2;
-		t_center[Y] >>=2;
-		t_center[Z] >>=2;
-		cur_plane_num = i;
+		t_center[X] >>=4;
+		t_center[Y] >>=4;
+		t_center[Z] >>=4;
 		
 		//Add some margin of error
-		y_min -= 1<<16;
-		y_max += 1<<16;
+		//This will be a quarter meter, or (16<<16)
+		y_min -= 16<<16;
+		y_max += 16<<16;
 		
-		adjacent_planes = 0;
-		for(unsigned int p = 0; p < mesh->nbPolygon; p++)
+		for(int p = 0; p < numFloor; p++)
 		{
-			if(p == cur_plane_num) continue;
-			if(mesh->maxtbl[p] != N_Yn) continue;
-			if(!(mesh->attbl[p].render_data_flags & GV_FLAG_SINGLE)) continue;
+			int alias2 = ent->paths[p].id;
+			if(i == p) continue;
+			
 			within_span = 0;
 			for(int k = 0; k < 4; k++)
 			{
-				c_plane[k][X] = mesh->pntbl[mesh->pltbl[p].vertices[k]][X];
-				c_plane[k][Y] = mesh->pntbl[mesh->pltbl[p].vertices[k]][Y];
-				c_plane[k][Z] = mesh->pntbl[mesh->pltbl[p].vertices[k]][Z];
+				c_plane[k][X] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][X];
+				c_plane[k][Y] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][Y];
+				c_plane[k][Z] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][Z];
 				if((t_plane[k][Y] > y_min) && (t_plane[k][Y] < y_max)) within_span = 1;
 				c_center[X] += c_plane[k][X];
 				c_center[Y] += c_plane[k][Y];
@@ -355,13 +309,16 @@ void	buildAdjacentFloorList(int entity_id)
 			}
 			if(!within_span) continue;
 			
-			c_center[X] >>=2;
-			c_center[Y] >>=2;
-			c_center[Z] >>=2;
+			c_center[X] >>=4;
+			c_center[Y] >>=4;
+			c_center[Z] >>=4;
 			
-			vector_to_tc[X] = t_center[X] - c_center[X];
-			vector_to_tc[Y] = t_center[Y] - c_center[Y];
-			vector_to_tc[Z] = t_center[Z] - c_center[Z];
+			vector_to_tc[X] = c_center[X] - t_center[X];
+			vector_to_tc[Y] = c_center[Y] - t_center[Y];
+			vector_to_tc[Z] = c_center[Z] - t_center[Z];
+			normal_to_tc[X] = 0;
+			normal_to_tc[Y] = 0;
+			normal_to_tc[Z] = 0;
 			
 			accurate_normalize(vector_to_tc, normal_to_tc);
 			//Method for detecting adjacency:
@@ -387,6 +344,14 @@ void	buildAdjacentFloorList(int entity_id)
 			}
 			if(within_shape_ct < 2) continue;
 			
+			if(pass_number == 0)
+			{
+				ent->paths[p].numGuides++;
+				ent->paths[i].numGuides++;
+				continue;
+			}
+			
+			
 			//This logic chunk assigns which edge was adjacent (0->1, 1->2, 2->3, 3->0)
 			int fk = 0;
 			int sk = 0;
@@ -411,9 +376,9 @@ void	buildAdjacentFloorList(int entity_id)
 			//So we think these floor polygons are adjacent.
 			//First, state that 'p' (the other polygon we are testing) is adjacent to the current plane being tested for.
 			//Safety check: if the polygon we are testing adjacency to was already registered as adjacent, don't register it again.
-			for(int k = 0; k < 4; k++)
+			for(int k = 0; k < ent->paths[i].numGuides; k++)
 			{
-				if(ent->pathGuides[cur_plane_num].adjacent_plane_id[k] == p)
+				if(ent->paths[i].guides[k].floor_id == alias2)
 				{
 					within_shape_ct = 0;
 					break;
@@ -421,37 +386,61 @@ void	buildAdjacentFloorList(int entity_id)
 			}
 			if(within_shape_ct)
 			{
-				ent->pathGuides[cur_plane_num].adjacent_plane_id[adjacent_planes] = p;
-				
-				//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
-				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-				ent->pathGuides[cur_plane_num].guidance_points[adjacent_planes][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+				for(int k = 0; k < ent->paths[i].numGuides; k++)
+				{
+					if(ent->paths[i].guides[k].floor_id != INVALID_PLANE) continue;
+
+					ent->paths[i].guides[k].floor_id = alias2;
+					
+					//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
+					ent->paths[i].guides[k].guide_pt[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+					ent->paths[i].guides[k].guide_pt[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+					ent->paths[i].guides[k].guide_pt[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+					break;
+				}
 			}
 			//Second, we also need to tell 'p' that it is adjacent to the current plane.
 			//We don't know if we have tested it yet, so we need to look through its plane list to see if there is an empty spot.
-			for(int k = 0; k < 4; k++)
+			for(int k = 0; k < ent->paths[p].numGuides; k++)
 			{
-				if(ent->pathGuides[p].adjacent_plane_id[k] == cur_plane_num) break;
-				if(ent->pathGuides[p].adjacent_plane_id[k] == INVALID_PLANE)
+				if(ent->paths[p].guides[k].floor_id == alias) break;
+				if(ent->paths[p].guides[k].floor_id == INVALID_PLANE)
 				{
-					ent->pathGuides[p].adjacent_plane_id[k] = cur_plane_num;
+					ent->paths[p].guides[k].floor_id = alias;
 					
 					//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
 					//This is a valid guidance point for both polygons, because it is the center of the gateway edge.
-					ent->pathGuides[p].guidance_points[k][X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-					ent->pathGuides[p].guidance_points[k][Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-					ent->pathGuides[p].guidance_points[k][Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+					ent->paths[p].guides[k].guide_pt[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+					ent->paths[p].guides[k].guide_pt[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+					ent->paths[p].guides[k].guide_pt[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
 					break;
-					//total_adj_planes++;
+
 				}
 			}
-			
-			adjacent_planes++;
-			//total_adj_planes++;
-			if(adjacent_planes >= 4) break;
 		}
 	}
+	
+	
+	//We will reach this point on first and second pass.
+	//After the first pass (pass_number == 0), we need to allocate memory for each path guide according to the number of possible guides.
+	if(pass_number == 0)
+	{
+		for(int i = 0; i < numFloor; i++)
+		{
+			ent->paths[i].guides = (_pathGuide*)adjPolyStackPtr;
+			adjPolyStackPtr += ent->paths[i].numGuides * sizeof(_pathGuide);
+			//If we've exceeded the memory limit, abort.
+			if(adjPolyStackPtr > adjPolyStackMax) return;
+			//Initialize that memory
+			for(int k = 0; k < ent->paths[i].numGuides; k++)
+			{
+				ent->paths[i].guides[k].floor_id = INVALID_PLANE;
+			}
+		}
+		pass_number = 1;
+		goto PASS;
+	}
+	
 	//nbg_sprintf(3, 10, "tajp(%i)", total_adj_planes);
 }
 
@@ -770,9 +759,28 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
 					
-					nbg_sprintf(5, 12, "ad0(%i)", ent->pathGuides[alias].adjacent_plane_id[0]);
-					nbg_sprintf(5, 13, "ad1(%i)", ent->pathGuides[alias].adjacent_plane_id[1]);
-					nbg_sprintf(5, 14, "ad2(%i)", ent->pathGuides[alias].adjacent_plane_id[2]);
+					nbg_sprintf(5, 10, "this(%i)", alias);
+					
+					for(int f = 0; f < ent->numFloor; f++)
+					{
+						if(ent->paths[f].id == alias)
+						{
+							nbg_sprintf(5, 11, "ad_ct(%i)", ent->paths[f].numGuides);
+							
+							for(int g = 0; g < ent->paths[f].numGuides; g++)
+							{
+								nbg_sprintf(5, 13+g, "id(%i)", ent->paths[f].guides[g].floor_id);
+							}
+						}
+					}
+					
+					// nbg_sprintf(20, 12, "stc(%x)", adjPolyStackPtr);
+					// nbg_sprintf(20, 13, "max(%x)", adjPolyStackMax);
+					
+					//nbg_sprintf(5, 11, "ad0(%i)", ent->paths[alias]);
+					// nbg_sprintf(5, 12, "ad1(%i)", ent->pathGuides[alias].adjacent_plane_id[1]);
+					// nbg_sprintf(5, 13, "ad2(%i)", ent->pathGuides[alias].adjacent_plane_id[2]);
+					// nbg_sprintf(5, 14, "ad3(%i)", ent->pathGuides[alias].adjacent_plane_id[3]);
 				}
 			}
 			break;
