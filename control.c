@@ -15,6 +15,7 @@ This file is compiled separately.
 #include "particle.h"
 
 #include "control.h"
+#include "physobjet.h"
 
 int spdfactr;
 int fixCamRot;
@@ -143,9 +144,18 @@ void controls(void)
 		mark[Z] += you.wvel[Z];
 		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark);
 		
-		you.guidePos[X] = you.hitscanPt[X];
-		you.guidePos[Y] = you.hitscanPt[Y];
-		you.guidePos[Z] = you.hitscanPt[Z];
+		for(int i = 0; i < MAX_PHYS_PROXY; i++)
+		{
+			_actor * act = &spawned_actors[i];
+			
+			if(act->info.flags.active)
+			{
+				actorPopulateGoalInfo(act, you.wpos);
+			}
+		}
+		//you.guidePos[X] = you.wpos[X];//you.hitscanPt[X];
+		//you.guidePos[Y] = you.wpos[Y];//you.hitscanPt[Y];
+		//you.guidePos[Z] = you.wpos[Z];//you.hitscanPt[Z];
 		inputTimer += delta_time;
 	}
 		

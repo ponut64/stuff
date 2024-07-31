@@ -296,7 +296,7 @@ void	post_ldata_init_building_object_search(void);
 
 void	declarations(void);
 
-void	object_control_loop(int ppos[XY]);
+void	object_control_loop(void);
 
 void	light_control_loop(void);
 
@@ -333,6 +333,7 @@ typedef struct {
 	int dirUV[3];
 	int pathUV[3];
 	int pathTarget[3];
+	int pathGoal[3];
 	_boundBox * box;
 	int entity_ID;
 	_declaredObject * spawner;
@@ -348,6 +349,8 @@ typedef struct {
 	unsigned short health;
 	unsigned short maxHealth;
 	unsigned short boxID;
+	unsigned short curFloorID;
+	unsigned short goalFloorID;
 	_actor_info info;
 	unsigned char type;
 
@@ -360,7 +363,8 @@ extern unsigned char * adjPolyStackPtr;
 extern unsigned char * adjPolyStackMax;
 
 void	init_pathing_system(void);
+void	actorPopulateGoalInfo(_actor * act, int * goal);
 
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
-void	manage_actors(int * ppos);
+void	manage_actors(void);
 

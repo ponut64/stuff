@@ -7,8 +7,6 @@
 //
 /**
 
-jackie's birthday is july 1st
-
 Sector-based engine has been implemented in its first steps.
 
 when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
@@ -30,10 +28,7 @@ There are some bugs in this implementation; we need to synchronize the matrices 
 
 I also need to test \ implement actors in the sector system.
 
-i wanna play Dragon Force
-
 i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
-
 
 **/
 //

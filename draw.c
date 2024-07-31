@@ -488,7 +488,7 @@ void	sector_vertex_remittance(void)
 	
 	
 
-	//nbg_sprintf(2, 6, "prts:(%i)", *used_portal_ct);
+	//nbg_sprintf(2, 6, "prts:(%i)", *current_portal_count);
 	//nbg_sprintf(2, 6, "drwSector:(%i)", *sectorToDrawFrom);
 	//nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
 	//nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
@@ -537,6 +537,11 @@ void	master_draw(void)
 	operate_particles();
 	hud_menu();
 
+	// nbg_sprintf(2, 6, "prts:(%i)", *current_portal_count);
+	// nbg_sprintf(2, 6, "drwSector:(%i)", *sectorToDrawFrom);
+	// nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	// nbg_sprintf(2, 8, "surface:(%i)", you.hitSurface);
+
 	//
 		//No Touch Order -- Affects animations/mechanics
 		controls();
@@ -548,7 +553,7 @@ void	master_draw(void)
 	interim_time = get_time_in_frame();
 	flush_boxes(0);
 	light_control_loop(); //lit
-	object_control_loop(you.dispPos);
+	object_control_loop();
 	time_of_object_management = get_time_in_frame() - interim_time;
 	*masterIsDoneDrawing = 1;
 		//

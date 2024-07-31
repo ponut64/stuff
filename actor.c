@@ -41,175 +41,12 @@ Then, we need fallback guides for actors to use to go between sectors.
 The issue is if we need fallback guides on a per-polygon basis, then no matter what, 
 I need to develop the navigation system on the fallback guides, and implement the sector navigation as an optimization.
 
-So thus, I have identified a few faults:
-1 - There are failures to identify adjacent floors
-2 - Capping the number of adjacent floors at 4 is a fault; it must be at least 8, or uncapped.
-I wonder if storing a pointer to the cap list is more efficient than just storing 8.
-Ah, well-because of the navigation points, it would be more efficient to store pointers.
+So we should be ready to start guiding by floors.
+I wonder how I can test that?
+
+i needa get back to this
 
 */
-
-int		actorLineOfSight(_actor * act, int * pos)
-{
-	//Goal:
-	//Check line-of-sight from (actor) to (pos)
-	//This involves all collision-enabled proxies
-	
-	static int vector_to_pos[3] = {0,0,0};
-	static int normal_to_pos[3] = {0,0,0};
-	static int vector_to_hit[3] = {0,0,0};
-	static int hit[3] = {0,0,0};
-	static int nHit[3];
-	static int hitPly = 0;
-	int possibleObstruction = 0;
-	
-	hit[X] = 0;
-	hit[Y] = 0;
-	hit[Z] = 0;
-	
-	vector_to_pos[X] = (pos[X] - act->pos[X])>>4;
-	vector_to_pos[Y] = (pos[Y] - act->pos[Y])>>4;
-	vector_to_pos[Z] = (pos[Z] - act->pos[Z])>>4;
-	
-	accurate_normalize(vector_to_pos, normal_to_pos);
-	
-	//Methods needed:
-	//well i have them
-	
-	for(int c = 0; c < MAX_PHYS_PROXY; c++)
-	{
-		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
-		if(RBBs[c].status[1] != 'C') continue;
-		if(RBBs[c].boxID == act->box->boxID) continue;
-		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
-		unsigned short boxType = edata & (0xF000);
-		//Check if object # is a collision-approved type
-		switch(boxType)
-		{
-			case(OBJPOP):
-			case(SPAWNER):
-			possibleObstruction += hitscan_vector_from_position_box(normal_to_pos, act->pos, hit, nHit, &RBBs[c]);
-			break;
-			case(ITEM | OBJPOP):
-			break;
-			case(BUILD | OBJPOP):
-			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
-			break;
-			default:
-			break;
-		}
-	}
-	//What we should have returned now is the closest hit point to the actor (hit).
-	//We need to know if (hit) is between (actor) and (pos).
-	//What we will do is see if the hit is on the right side of pos using the normal to it.
-	//Of course, if there was no hit, there is no obstruction to line-of-sight.
-	if(!possibleObstruction)
-	{
-		return 1;
-	}
-	
-	vector_to_hit[X] = (pos[X] - hit[X]);
-	vector_to_hit[Y] = (pos[Y] - hit[Y]);
-	vector_to_hit[Z] = (pos[Z] - hit[Z]);
-	
-	//(1<<16 being used as some tolerance in case the target position is exactly the hit position, as may sometimes happen)
-	if(fxdot(vector_to_hit, normal_to_pos) > (1<<16))
-	{
-		return 0;
-	}
-	//No obstruction conditions were met; line-of-sight is achieved.
-	return 1;
-	
-}
-
-int	actorCheckPathOK(_actor * act)
-{
-	//Step 1: Create an arbitrary point some distance in the direction the actor is moving, scaled by velocity.
-	static int actorPathProxy[3];
-	static int towardsFloor[3] = {0, (1<<16), 0};
-	static int floorProxy[3];
-	static int floorNorm[3];
-	static int hitFloorPly = 0;
-	static int losToProxy = 0;
-	
-	//(we add the Z axis because that's forward)
-	actorPathProxy[X] = act->pos[X] + fxm(act->velocity[X]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[X]);
-	actorPathProxy[Z] = act->pos[Z] + fxm(act->velocity[Z]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[Z]);
-	
-	//We are going to do something that in many circumstances we would not want to do.
-	//We are going to ignore the Y axis of the path proxy; it will retain the Y axis of the actor.
-	//This is a simplification of representing the allowable movement of the actor.
-	//You don't want them to think they can path to a point up a vertical wall; the wall should block them,
-	//and make them find another path.
-	actorPathProxy[Y] = act->pos[Y];
-
-	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
-	sprite_prep.info.drawOnce = 1;
-	sprite_prep.info.mesh = 0;
-	sprite_prep.info.sorted = 0;
-	static short sprSpan[3] = {10,10,10};
-	add_to_sprite_list(actorPathProxy, sprSpan, 'A', 5, sprite_prep, 0, 0);
-	
-	//Step 2: Check line-of-sight to this point.
-	losToProxy = actorLineOfSight(act, actorPathProxy);
-	
-	//If no line of sight, path is not ok.
-	if(!losToProxy) return 0;
-	
-	//Step 3: Get a floor position/normal.
-	int possibleFloor = 0;
-	for(int c = 0; c < MAX_PHYS_PROXY; c++)
-	{
-		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
-		if(RBBs[c].status[1] != 'C') continue;
-		if(RBBs[c].boxID == act->box->boxID) continue;
-		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
-		unsigned short boxType = edata & (0xF000);
-		//Check if object # is a collision-approved type
-		switch(boxType)
-		{
-			case(OBJPOP):
-			case(SPAWNER):
-			//possibleFloor += hitscan_vector_from_position_box(towardsFloor, actorPathProxy, floorProxy, floorNorm, &RBBs[c]);
-			break;
-			case(ITEM | OBJPOP):
-			break;
-			case(BUILD | OBJPOP):
-			possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
-			floorNorm[X] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][X];
-			floorNorm[Y] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][Y];
-			floorNorm[Z] = entities[dWorldObjects[activeObjects[c]].type.entity_ID].pol->nmtbl[hitFloorPly][Z];
-			break;
-			default:
-			break;
-		}
-	}
-	
-	//Check sectors for LOS
-	_sector * sct = &sectors[act->curSector];
-	//Rather than check everything in the sector's PVS for collision,
-	//we will only check the sector itself + primary adjacents.
-	for(int s = 0; s < (sct->nbAdjacent+1); s++)
-	{
-		possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
-		floorNorm[X] = sct->ent->pol->nmtbl[hitFloorPly][X];
-		floorNorm[Y] = sct->ent->pol->nmtbl[hitFloorPly][Y];
-		floorNorm[Z] = sct->ent->pol->nmtbl[hitFloorPly][Z];
-	}
-	
-	//If there was no possible floor, path is not OK.
-	if(!possibleFloor) return 0;
-	
-	//If the floor height difference is outside the tolerance, path is not OK.
-	if(JO_ABS((act->pos[Y] + act->box->radius[Y]) - floorProxy[Y]) > (act->box->radius[Y]>>1)) return 0;
-	
-	//If this wasn't actually a floor at all, path is not OK.
-	if(floorNorm[Y] > (-32768)) return 0;
-	
-	//Otherwise, path should be OK.
-	return 1;
-	
-}
 
 
 void	buildAdjacentFloorList(int entity_id)
@@ -271,6 +108,9 @@ void	buildAdjacentFloorList(int entity_id)
 		
 		y_min = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
 		y_max = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
+		t_center[X] = 0;
+		t_center[Y] = 0;
+		t_center[Z] = 0;
 		for(int k = 0; k < 4; k++)
 		{
 			t_plane[k][X] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][X];
@@ -297,6 +137,9 @@ void	buildAdjacentFloorList(int entity_id)
 			if(i == p) continue;
 			
 			within_span = 0;
+			c_center[X] = 0;
+			c_center[Y] = 0;
+			c_center[Z] = 0;
 			for(int k = 0; k < 4; k++)
 			{
 				c_plane[k][X] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][X];
@@ -329,10 +172,9 @@ void	buildAdjacentFloorList(int entity_id)
 			{
 				//Aggravating Necessity: Push c_plane towards t_plane slightly
 				//This is so the chirality test does not fail
-				//oops, doesn't work :)
-				//c_plane[k][X] += normal_to_tc[X]<<1;
-				//c_plane[k][Y] += normal_to_tc[Y]<<1;
-				//c_plane[k][Z] += normal_to_tc[Z]<<1;
+				c_plane[k][X] -= normal_to_tc[X];
+				c_plane[k][Y] -= normal_to_tc[Y];
+				c_plane[k][Z] -= normal_to_tc[Z];
 				vert_within_shape[k] = 0;
 				//I need to know *exactly* which edge is adjacent.
 				//I can do this by checking every vertex, and then seeing which pair is adjacent.
@@ -452,6 +294,199 @@ void	init_pathing_system(void)
 		buildAdjacentFloorList(i);
 	}
 }
+
+int		actorLineOfSight(_actor * act, int * pos)
+{
+	//Goal:
+	//Check line-of-sight from (actor) to (pos)
+	//This involves all collision-enabled proxies
+	
+	static int vector_to_pos[3] = {0,0,0};
+	static int normal_to_pos[3] = {0,0,0};
+	static int vector_to_hit[3] = {0,0,0};
+	static int hit[3] = {0,0,0};
+	//static int nHit[3];
+	static int hitPly = 0;
+	int possibleObstruction = 0;
+	
+	hit[X] = 0;
+	hit[Y] = 0;
+	hit[Z] = 0;
+	
+	vector_to_pos[X] = (pos[X] - act->pos[X])>>4;
+	vector_to_pos[Y] = (pos[Y] - act->pos[Y])>>4;
+	vector_to_pos[Z] = (pos[Z] - act->pos[Z])>>4;
+	
+	accurate_normalize(vector_to_pos, normal_to_pos);
+	
+	//Methods needed:
+	//well i have them
+	
+/* 	for(int c = 0; c < MAX_PHYS_PROXY; c++)
+	{
+		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+		if(RBBs[c].status[1] != 'C') continue;
+		if(RBBs[c].boxID == act->box->boxID) continue;
+		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
+		unsigned short boxType = edata & (0xF000);
+		//Check if object # is a collision-approved type
+		switch(boxType)
+		{
+			case(OBJPOP):
+			case(SPAWNER):
+			possibleObstruction += hitscan_vector_from_position_box(normal_to_pos, act->pos, hit, nHit, &RBBs[c]);
+			break;
+			case(ITEM | OBJPOP):
+			break;
+			case(BUILD | OBJPOP):
+			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
+			break;
+			default:
+			break;
+		}
+	} */
+	
+
+	//Check sectors for LOS
+	_sector * sct = &sectors[act->curSector];
+	//Rather than check everything in the sector's PVS for collision,
+	//we will only check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		if(possibleObstruction) break;
+		hit[X] = 0;
+		hit[Y] = 0;
+		hit[Z] = 0;
+	}
+	
+	// nbg_sprintf(5, 10, "this(%i)", hitFloorPly);
+	
+	// for(int f = 0; f < sct->ent->numFloor; f++)
+	// {
+		// if(sct->ent->paths[f].id == hitFloorPly)
+		// {
+			// nbg_sprintf(5, 11, "ad_ct(%i)", sct->ent->paths[f].numGuides);
+			
+			// for(int g = 0; g < sct->ent->paths[f].numGuides; g++)
+			// {
+				// nbg_sprintf(5, 13+g, "id(%i)", sct->ent->paths[f].guides[g].floor_id);
+			// }
+		// }
+	// }
+	
+	
+	//What we should have returned now is the closest hit point to the actor (hit).
+	//We need to know if (hit) is between (actor) and (pos).
+	//What we will do is see if the hit is on the right side of pos using the normal to it.
+	//Of course, if there was no hit, there is no obstruction to line-of-sight.
+	if(!possibleObstruction)
+	{
+		return 1;
+	}
+	
+	vector_to_hit[X] = (pos[X] - hit[X]);
+	vector_to_hit[Y] = (pos[Y] - hit[Y]);
+	vector_to_hit[Z] = (pos[Z] - hit[Z]);
+	
+	//(1<<16 being used as some tolerance in case the target position is exactly the hit position, as may sometimes happen)
+	if(fxdot(vector_to_hit, normal_to_pos) > (1<<16))
+	{
+		return 0;
+	}
+	//No obstruction conditions were met; line-of-sight is achieved.
+	return 1;
+	
+}
+
+int	actorCheckPathOK(_actor * act)
+{
+	//Step 1: Create an arbitrary point some distance in the direction the actor is moving, scaled by velocity.
+	static int actorPathProxy[3];
+	static int towardsFloor[3] = {0, (1<<16), 0};
+	static int floorProxy[3];
+	//static int floorNorm[3];
+	static int hitFloorPly = 0;
+	static int losToProxy = 0;
+	
+	//(we add the Z axis because that's forward)
+	actorPathProxy[X] = act->pos[X] + fxm(act->velocity[X]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[X]);
+	actorPathProxy[Z] = act->pos[Z] + fxm(act->velocity[Z]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, act->pathUV[Z]);
+	
+	//We are going to do something that in many circumstances we would not want to do.
+	//We are going to ignore the Y axis of the path proxy; it will retain the Y axis of the actor.
+	//This is a simplification of representing the allowable movement of the actor.
+	//You don't want them to think they can path to a point up a vertical wall; the wall should block them,
+	//and make them find another path.
+	actorPathProxy[Y] = act->pos[Y];
+
+	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
+	sprite_prep.info.drawOnce = 1;
+	sprite_prep.info.mesh = 0;
+	sprite_prep.info.sorted = 0;
+	static short sprSpan[3] = {10,10,10};
+	add_to_sprite_list(actorPathProxy, sprSpan, 'A', 5, sprite_prep, 0, 0);
+	
+	//Step 2: Check line-of-sight to this point.
+	losToProxy = actorLineOfSight(act, actorPathProxy);
+	
+	//If no line of sight, path is not ok.
+	if(!losToProxy) return 0;
+	
+	//Step 3: Get a floor position/normal.
+	int possibleFloor = 0;
+
+	//Check sectors for LOS
+	_sector * sct = &sectors[act->curSector];
+	//Rather than check everything in the sector's PVS for collision,
+	//we will only check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		//floorNorm[X] = sct->ent->pol->nmtbl[hitFloorPly][X];
+		//floorNorm[Y] = sct->ent->pol->nmtbl[hitFloorPly][Y];
+		//floorNorm[Z] = sct->ent->pol->nmtbl[hitFloorPly][Z];
+	}
+	
+	//If there was no possible floor, path is not OK.
+	//if(!possibleFloor) return 0;
+	
+
+	
+	//If the floor height difference is outside the tolerance, path is not OK.
+	// I'll have to use some other method to validate whether or not the guidance point is on a floor or not.
+	//if(JO_ABS((act->pos[Y] + act->box->radius[Y]) - floorProxy[Y]) > (act->box->radius[Y]>>1)) return 0;
+	
+	//If this wasn't actually a floor at all, path is not OK.
+	//if(floorNorm[Y] > (-32768)) return 0;
+	
+	//Otherwise, path should be OK.
+	return 1;
+	
+}
+
+//Handler function which will populate the goal position and goal floor ID.
+void	actorPopulateGoalInfo(_actor * act, int * goal)
+{
+	act->pathGoal[X] = goal[X];
+	act->pathGoal[Y] = goal[Y];
+	act->pathGoal[Z] = goal[Z];
+	
+	static int towardsFloor[3] = {0, (1<<16), 0};
+	static int floorProxy[3];
+	static int hitFloorPly = 0;
+	
+	//With the goal position set, we need to know which floor the goal sits on.
+	//As a practical matter, we're going to end up raycasting every floor to find the sector anyway, so we will shortcut
+	//to just checking every sector. This is inefficient, but it works.
+	hitscan_vector_from_position_building(towardsFloor, act->pathGoal, floorProxy, &hitFloorPly, sectors[act->curSector].ent, levelPos, NULL);
+
+	act->goalFloorID = hitFloorPly;
+	
+	
+	
+}
+
 
 void	actorMoveToPos(_actor * act, int * target, int rate, int gap)
 {
@@ -705,14 +740,15 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 		used_normal[X] = mesh->nmtbl[alias][X];
 		used_normal[Y] = mesh->nmtbl[alias][Y];
 		used_normal[Z] = mesh->nmtbl[alias][Z];
+
 		
 		//Exceptor: if the plane is not single-plane (i.e. must collide on both sides), we need to find which side we're on.
 		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE))
 		{
+			
 			anchor_to_plane[X] = (act->pos[X] - plane_center[X])>>16;
 			anchor_to_plane[Y] = (act->pos[Y] - plane_center[Y])>>16;
 			anchor_to_plane[Z] = (act->pos[Z] - plane_center[Z])>>16;
-			
 			int anchor_scale = (anchor_to_plane[X] * used_normal[X]) + (anchor_to_plane[Y] * used_normal[Y]) + (anchor_to_plane[Z] * used_normal[Z]);
 			
 			if(anchor_scale < 0) 
@@ -723,6 +759,8 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 			}
 		}
 		
+
+		
 		//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
 		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
 		
@@ -732,7 +770,7 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 			//////////////////////////////////////////////////////////////
 			// Ceiling branch (treated as wall)
 			//////////////////////////////////////////////////////////////
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[alias], 12))
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp1, mesh->maxtbl[alias], 12))
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
 				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
@@ -758,21 +796,22 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->floorPos[Y] = potential_hit[Y];
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
+					act->curFloorID = alias;
 					
-					nbg_sprintf(5, 10, "this(%i)", alias);
+					// nbg_sprintf(5, 10, "this(%i)", alias);
 					
-					for(int f = 0; f < ent->numFloor; f++)
-					{
-						if(ent->paths[f].id == alias)
-						{
-							nbg_sprintf(5, 11, "ad_ct(%i)", ent->paths[f].numGuides);
+					// for(int f = 0; f < ent->numFloor; f++)
+					// {
+						// if(ent->paths[f].id == alias)
+						// {
+							// nbg_sprintf(5, 11, "ad_ct(%i)", ent->paths[f].numGuides);
 							
-							for(int g = 0; g < ent->paths[f].numGuides; g++)
-							{
-								nbg_sprintf(5, 13+g, "id(%i)", ent->paths[f].guides[g].floor_id);
-							}
-						}
-					}
+							// for(int g = 0; g < ent->paths[f].numGuides; g++)
+							// {
+								// nbg_sprintf(5, 13+g, "id(%i)", ent->paths[f].guides[g].floor_id);
+							// }
+						// }
+					// }
 					
 					// nbg_sprintf(20, 12, "stc(%x)", adjPolyStackPtr);
 					// nbg_sprintf(20, 13, "max(%x)", adjPolyStackMax);
@@ -873,6 +912,12 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->totalFriction = 0;
 	act->curSector = spawner->curSector;
 	
+	act->pathGoal[X] = 0;
+	act->pathGoal[Y] = 0;
+	act->pathGoal[Z] = 0;
+	act->curFloorID = 0;
+	act->goalFloorID = 0;
+	
 	act->spawner = spawner;
 	act->entity_ID = spawner->type.entity_ID;
 	act->info.flags.active = 1;
@@ -896,7 +941,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	return actor_number;
 }
 
-void	manage_actors(int * ppos)
+void	manage_actors(void)
 {
 	//Goal:
 	//Check each actor in the actor list
@@ -931,7 +976,8 @@ void	manage_actors(int * ppos)
 				continue;
 			}
 			
-			act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->curSector]);
+			
+			//nbg_sprintf(5, 11, "ac_sct(%i)", act->curSector);
 			///////////////////////////////////////////////
 			//At this point, an actor should be alive and active.
 			///////////////////////////////////////////////
@@ -1037,6 +1083,8 @@ void	manage_actors(int * ppos)
 				accurate_normalize(path_delta, act->pathUV);
 				
 			}
+			//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
+			act->curSector = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
 			//this is going to get very expensive, because we must:
 			//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
 			for(int c = 0; c < MAX_PHYS_PROXY; c++)
@@ -1074,9 +1122,9 @@ void	manage_actors(int * ppos)
 			//}
 			
 			//Debug
-			act->pathTarget[X] = you.guidePos[X];
-			act->pathTarget[Y] = you.guidePos[Y];
-			act->pathTarget[Z] = you.guidePos[Z];
+			act->pathTarget[X] = act->pathGoal[X];
+			act->pathTarget[Y] = act->pathGoal[Y];
+			act->pathTarget[Z] = act->pathGoal[Z];
 			
 			if(!act->info.flags.hitFloor)
 			{
@@ -1091,7 +1139,13 @@ void	manage_actors(int * ppos)
 				
 				act->info.flags.losTarget = actorCheckPathOK(act);
 				
-					//nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+				
+				
+					// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+					// nbg_sprintf(5, 11, "ast(%i)", act->curSector);
+					nbg_sprintf(5, 10, "cur(%i)", act->curFloorID);
+					nbg_sprintf(5, 11, "goal(%i)", act->goalFloorID);
+				
 				
 					//nbg_sprintf_decimal(5, 12, act->pos[X]);
 					//nbg_sprintf_decimal(5, 13, act->pos[Y]);

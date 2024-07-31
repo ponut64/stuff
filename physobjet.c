@@ -187,7 +187,7 @@ void	post_ldata_init_building_object_search(void)
 }
 
 
-void	object_control_loop(int ppos[XY])
+void	object_control_loop(void)
 {	
 	if(ldata_ready != true) 
 	{
@@ -389,7 +389,7 @@ void	object_control_loop(int ppos[XY])
 			////////////////////////////////////////////////////
 		}
 		
-		manage_actors(you.pos);
+		manage_actors();
 		
 	// nbg_sprintf(12, 6, "objUP:(%i)", objUP);
 	// nbg_sprintf(12, 7, "objNW:(%i)", objNEW);
