@@ -111,9 +111,9 @@ void	master_draw_stats(void)
 		} else if(viewInfoTxt == 2)
 		{
 			
-			slPrintFX(you.pos[X], slLocate(9, 1));
-			slPrintFX(you.pos[Y], slLocate(19, 1));
-			slPrintFX(you.pos[Z], slLocate(29, 1));
+			slPrintFX(you.wpos[X], slLocate(9, 1));
+			slPrintFX(you.wpos[Y], slLocate(19, 1));
+			slPrintFX(you.wpos[Z], slLocate(29, 1));
 			
 			slPrintFX(you.velocity[X], slLocate(9, 2));
 			slPrintFX(you.velocity[Y], slLocate(19, 2));
@@ -136,8 +136,8 @@ void	master_draw_stats(void)
 			nbg_sprintf(29, 6, "rRZ:(%i)", you.renderRot[Z]);
 			
 			nbg_sprintf(2, 7, "hitWall:(%i)", you.hitWall);
-			nbg_sprintf(2, 8, "hitSurf:(%i)", you.hitSurface);
-			nbg_sprintf(20, 8,"hitItm:(%i)", pl_RBB.collisionID);
+			nbg_sprintf(14, 7, "hitSurf:(%i)", you.hitSurface);
+			nbg_sprintf(24, 7,"hitItm:(%i)", pl_RBB.collisionID);
 			
 		}
 }

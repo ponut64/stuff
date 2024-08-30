@@ -542,6 +542,9 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 			sct->nbVisible = actual_nbVisible;
 			sct->pvs = actual_pvs;
 			writeAddress += sct->nbVisible;
+			
+			sct->paths = (_pathNodes *)writeAddress;
+			writeAddress += sct->nbAdjacent * sizeof(_pathNodes);
 		} 
 		
 		nbg_sprintf(1, 6, "adjacents:(%i)", adjSector);

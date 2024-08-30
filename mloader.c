@@ -12,6 +12,7 @@
 
 entity_t entities[MAX_MODELS];
 _sector sectors[MAX_SECTORS+1];
+_pathHost * pathing;
 
 void	*	load_sectors(entity_t * ent, void * workAddress)
 {

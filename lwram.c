@@ -50,5 +50,7 @@ void	init_lwram(void)
 
 	init_ztable();
 //I have detected a 'black spot' in LWRAM, between bytes 512 - 768 of LWRAM /something/ bad happens.
+//Pathing Guides - approx. 42 kb
+	pathing = (void*)(LWRAM);
 }
 

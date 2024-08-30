@@ -349,8 +349,7 @@ typedef struct {
 	unsigned short health;
 	unsigned short maxHealth;
 	unsigned short boxID;
-	unsigned short curFloorID;
-	unsigned short goalFloorID;
+	unsigned short goalSector;
 	_actor_info info;
 	unsigned char type;
 
@@ -363,7 +362,7 @@ extern unsigned char * adjPolyStackPtr;
 extern unsigned char * adjPolyStackMax;
 
 void	init_pathing_system(void);
-void	actorPopulateGoalInfo(_actor * act, int * goal);
+void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);
 
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
 void	manage_actors(void);

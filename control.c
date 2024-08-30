@@ -150,7 +150,7 @@ void controls(void)
 			
 			if(act->info.flags.active)
 			{
-				actorPopulateGoalInfo(act, you.wpos);
+				actorPopulateGoalInfo(act, you.wpos, you.curSector);
 			}
 		}
 		//you.guidePos[X] = you.wpos[X];//you.hitscanPt[X];

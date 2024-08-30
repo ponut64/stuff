@@ -26,64 +26,84 @@ unsigned char * adjPolyStackPtr;
 unsigned char * adjPolyStackMax;
 /*
 
-I need to reconfigure the path tables to work with the sectors.
-This is the only way it can work with n-depth navigation.
+Navigation via floor polygons as the basis for pathing and guiding will probably work,
+but the core computational fault is the complexity of building paths this way.
+Short-hand path guides need to be made which guide an actor through a sector.
 
-I should reorient like this:
-- The mesh is checked for floor polygons whom touch each other and have different sectors.
-	- Fault: We want to make a navigation point here, but the edges can have vastly different spans.
-		-Solution: The navigation point made from the span is the one which is on both edges, not just one of them.
-		If neither point lies on both edges, then obviously we can't navigate with that.
-So sectors will have navigation points to other sectors.
+These don't have to work all of the time; it does not need to be perfect.
+It only needs to work most of the time.
 
-Then, we need fallback guides for actors to use to go between sectors.
+The more important part is understanding how to use these path nodes to have an actor follow a short, logical path towards a goal.
+The primary method is to:
+1 - Actor checks LOS to target point.
+1a. If LOS checks out, walk towards it. No extra steps.
+2 - Sector of target is checked.
+2a. If in immediately adjacent sector, use guidance points to sector. When in sector, walk towards it. No extra steps.
+3 - Now for the forking checking model.
+Path tables are made based on the number of adjacent sectors followed through.
+If in sector 6 and adjacent to sector 48 and 12, guiding to sector 7, we might:
+- Add sector 48 and sector 12 to two separate possible path lists.
+- Sector 48 is adjacent to two other sectors.
+-- That makes two more lists; sector 48 to 47 and sector 48 to 13.
+- Sector 12 is adjacent to two othr sectors.
+-- Sector 12 and 13 and Sector 12 and 9.
+- There are a total of four lists now.
+Repeat that expanding process until one list counts sector 7 as adjacent.
+The first list that counts sector 7 as adjacent (in the least sector steps) is considered the valid path, and is followed.
 
-The issue is if we need fallback guides on a per-polygon basis, then no matter what, 
-I need to develop the navigation system on the fallback guides, and implement the sector navigation as an optimization.
+I think this is a much more reasonable system.
+The problem is it means I have to go back and reinvent the system such that sectors make and list guidance nodes:
+1 - Center
+2 - ToSector for each sector
 
-So we should be ready to start guiding by floors.
-I wonder how I can test that?
+so I need to do different maths.
+I need to first sweep each sector: every floor polygon in a sector must be checked if it is adjacent to another given sector or not.
+Since we already use logic like this to check for adjacent sectors (used in the PVS), we can just check that part of the PVS for the sectors.
 
-i needa get back to this
+Then, the center of the intersecting edge of each intersecting floor polygon is added as a navigation point to that sector.
+Handy to have more guidance points, maybe, probably not.
+
+So we have the following in SECTOR data:
+
+typedef struct {
+	int numNodes;
+	POINT * nodes;
+} _pathNodes;
+
+contained in:
+_pathNodes * sectorPathNodes; //Path nodes to other sectors, of size <nbAdjacent>
+
+Okay, we're kind of building the guide tables right now.
+But there's something wrong with it. Hmm.
 
 */
 
 
-void	buildAdjacentFloorList(int entity_id)
+void	buildAdjacentFloorList(unsigned int sector_id)
 {
-	//Step 1: Is this a valid entity type?
-	if(entities[entity_id].type != MODEL_TYPE_SECTORED) return;
-	if(!entities[entity_id].file_done) return;
+	if(sector_id > MAX_SECTORS || sector_id == INVALID_SECTOR) return;
+	_sector * sct = &sectors[sector_id];
+	//Step 1: Is this sector populated?
+	if(!sct->nbPolygon) return;
+	if(!sct->ent) return;
+	//Step 2: Is it pointing to a valid entity?
+	if(sct->ent->type != MODEL_TYPE_SECTORED) return;
+	if(!sct->ent->file_done) return;
 	
-	GVPLY * mesh = entities[entity_id].pol;
-	entity_t * ent = &entities[entity_id];
-	//The concept is to build an adjacent plane list for each polygon of the mesh.
+	GVPLY * mesh = sct->ent->pol;
+	//The concept is to generate path nodes that segregate adjacent floors between sectors of the level,
+	//such that the path nodes represent a point that can be navigated towards to go from one sector to another.
 	//The first problem is finding RAM suitable to allocate for this purpose.
 
 	//Gotta be carefuL: hopefully this doesn't get misaligned.
 	//we start over max, stop
 	if(adjPolyStackPtr > adjPolyStackMax) return;
 	//
-	ent->paths = (_path*)adjPolyStackPtr;
-	
-	//Step 1: We need to find out how many floor polygons we have to put in the guide list.
-	//We must do it in this inefficient order because we are allocating memory.
-	int numFloor = 0;
-	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
-	{
-		if(mesh->maxtbl[i] != N_Yn) continue;
-		if(!(mesh->attbl[i].render_data_flags & GV_FLAG_SINGLE)) continue;
-		ent->paths[numFloor].id = i;
-		ent->paths[numFloor].numGuides = 0;
-		numFloor++;
-	}
-	
-	adjPolyStackPtr += numFloor * sizeof(_path);
-	ent->numFloor = numFloor;
+	sct->paths = (_pathNodes*)adjPolyStackPtr;
+	//To make it simple, we are just going to guess on the number of possible paths being 6.
+	adjPolyStackPtr += 6 * sizeof(_pathNodes);
 	
 	int pass_number = 0;
-	
-
 
 	int t_plane[4][3];
 	int t_center[3] = {0, 0, 0};
@@ -96,16 +116,23 @@ void	buildAdjacentFloorList(int entity_id)
 	int within_span = 0;
 	int within_shape_ct = 0;
 	int vert_within_shape[4] = {0,0,0,0};
+	int guidance_point[3] = {0,0,0};
 	
+	_sector * sct2;
 	//GOTO Label:
 	//On the first pass of this loop, we will count up the number of adjacents, then allocate memory based on that number.
 	//On the second pass, we will fill that allocated memory with valid data.
-	PASS:
 
-	for(int i = 0; i < numFloor; i++)
+	pass_number = 0;
+	PASS:
+for(int s = 0; s < sct->nbAdjacent; s++)
+{
+	sct2 = &sectors[sct->pvs[s+1]];
+	sct->paths[s].numNodes = 0;
+	for(int i = 0; i < sct->nbPolygon; i++)
 	{
-		int alias = ent->paths[i].id;
-		
+		int alias = sct->pltbl[i];
+		if(mesh->maxtbl[alias] != N_Yn) continue;
 		y_min = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
 		y_max = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
 		t_center[X] = 0;
@@ -131,10 +158,10 @@ void	buildAdjacentFloorList(int entity_id)
 		y_min -= 16<<16;
 		y_max += 16<<16;
 		
-		for(int p = 0; p < numFloor; p++)
+		for(int p = 0; p < sct2->nbPolygon; p++)
 		{
-			int alias2 = ent->paths[p].id;
-			if(i == p) continue;
+			int alias2 = sct2->pltbl[p];
+			if(mesh->maxtbl[alias2] != N_Yn) continue;
 			
 			within_span = 0;
 			c_center[X] = 0;
@@ -188,8 +215,7 @@ void	buildAdjacentFloorList(int entity_id)
 			
 			if(pass_number == 0)
 			{
-				ent->paths[p].numGuides++;
-				ent->paths[i].numGuides++;
+				sct->paths[s].numNodes++;
 				continue;
 			}
 			
@@ -215,68 +241,53 @@ void	buildAdjacentFloorList(int entity_id)
 				sk = 0;
 			}
 			
-			//So we think these floor polygons are adjacent.
-			//First, state that 'p' (the other polygon we are testing) is adjacent to the current plane being tested for.
-			//Safety check: if the polygon we are testing adjacency to was already registered as adjacent, don't register it again.
-			for(int k = 0; k < ent->paths[i].numGuides; k++)
-			{
-				if(ent->paths[i].guides[k].floor_id == alias2)
-				{
-					within_shape_ct = 0;
-					break;
-				}
-			}
+
 			if(within_shape_ct)
 			{
-				for(int k = 0; k < ent->paths[i].numGuides; k++)
-				{
-					if(ent->paths[i].guides[k].floor_id != INVALID_PLANE) continue;
+				//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
+				guidance_point[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
+				guidance_point[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
+				guidance_point[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
+				sct->paths[s].nodes[sct->paths[s].numNodes][X] = guidance_point[X];
+				sct->paths[s].nodes[sct->paths[s].numNodes][Y] = guidance_point[Y];
+				sct->paths[s].nodes[sct->paths[s].numNodes][Z] = guidance_point[Z];
+				//add a direction to the path node - first calculate a vector from guidance pt to center
+				vector_to_tc[X] = JO_ABS((t_center[X] - (guidance_point[X]>>2))>>4);
+				vector_to_tc[Y] = JO_ABS((t_center[Y] - (guidance_point[Y]>>2))>>4);
+				vector_to_tc[Z] = JO_ABS((t_center[Z] - (guidance_point[Z]>>2))>>4);
 
-					ent->paths[i].guides[k].floor_id = alias2;
-					
-					//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
-					ent->paths[i].guides[k].guide_pt[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-					ent->paths[i].guides[k].guide_pt[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-					ent->paths[i].guides[k].guide_pt[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
-					break;
-				}
+				accurate_normalize(vector_to_tc, sct->paths[s].dir[sct->paths[s].numNodes]);
+				
+				sct->paths[s].fromSector = sector_id;
+				sct->paths[s].toSector = sct->pvs[s+1];
+				
+				sct->paths[s].numNodes++;
 			}
-			//Second, we also need to tell 'p' that it is adjacent to the current plane.
-			//We don't know if we have tested it yet, so we need to look through its plane list to see if there is an empty spot.
-			for(int k = 0; k < ent->paths[p].numGuides; k++)
-			{
-				if(ent->paths[p].guides[k].floor_id == alias) break;
-				if(ent->paths[p].guides[k].floor_id == INVALID_PLANE)
-				{
-					ent->paths[p].guides[k].floor_id = alias;
-					
-					//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
-					//This is a valid guidance point for both polygons, because it is the center of the gateway edge.
-					ent->paths[p].guides[k].guide_pt[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-					ent->paths[p].guides[k].guide_pt[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-					ent->paths[p].guides[k].guide_pt[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
-					break;
-
-				}
-			}
+			
 		}
 	}
-	
-	
+
+}	
+
 	//We will reach this point on first and second pass.
-	//After the first pass (pass_number == 0), we need to allocate memory for each path guide according to the number of possible guides.
+	//After the first pass (pass_number == 0), we need to allocate memory:
+	//according to the number of adjacent floors in each adjacent sector to the sector being tested
+	//On second pass (pass_number == 1), we should just be able to exit the function.
 	if(pass_number == 0)
 	{
-		for(int i = 0; i < numFloor; i++)
+		for(int i = 0; i < sct->nbAdjacent; i++)
 		{
-			ent->paths[i].guides = (_pathGuide*)adjPolyStackPtr;
-			adjPolyStackPtr += ent->paths[i].numGuides * sizeof(_pathGuide);
+			sct->paths[i].fromSector = INVALID_SECTOR;
+			sct->paths[i].toSector = INVALID_SECTOR;
+			sct->paths[i].nodes = (POINT *)adjPolyStackPtr;
+			adjPolyStackPtr += sct->paths[i].numNodes * sizeof(POINT);
+			sct->paths[i].dir = (VECTOR *)adjPolyStackPtr;
+			adjPolyStackPtr += sct->paths[i].numNodes * sizeof(VECTOR);
 			//If we've exceeded the memory limit, abort.
-			if(adjPolyStackPtr > adjPolyStackMax) return;
-			//Initialize that memory
-			for(int k = 0; k < ent->paths[i].numGuides; k++)
+			if(adjPolyStackPtr > adjPolyStackMax)
 			{
-				ent->paths[i].guides[k].floor_id = INVALID_PLANE;
+				nbg_sprintf(0,0, "Error: path tables out of memory");
+				return;
 			}
 		}
 		pass_number = 1;
@@ -286,13 +297,94 @@ void	buildAdjacentFloorList(int entity_id)
 	//nbg_sprintf(3, 10, "tajp(%i)", total_adj_planes);
 }
 
+//What do I want here?
+//I want a list which contains a sequence of pointers to all path nodes between two given sectors.
+//i.e. if you are in <A> going to <B>, there is a pointer at paths[a][b]
+// which points to another list of pointers which makes an inclusive list of all path nodes between A and B.
+void	reconcile_pathing_lists(void)
+{
+	_sector * sct;
+	
+	if(adjPolyStackPtr > adjPolyStackMax)
+	{
+		nbg_sprintf(0,0, "Error: path tables out of memory");
+		return;
+	}
+	
+	//Initialize table
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		for(int k = 0; k < MAX_SECTORS; k++)
+		{
+			pathing->count[i][k] = 0;
+		}
+	}
+	
+	//Count up intersecting paths
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		sct = &sectors[i];
+		if(sct->nbAdjacent == 0 || sct->nbVisible == 0) continue;
+		
+		for(int j = 0; j < sct->nbAdjacent; j++)
+		{
+			int sctA = sct->paths[j].fromSector;
+			int sctB = sct->paths[j].toSector;
+			pathing->count[sctA][sctB]+=1;
+		}
+	}
+	
+	//Allocate memory for each intersection
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		for(int k = 0; k < MAX_SECTORS; k++)
+		{
+			if(pathing->count[i][k] != 0)
+			{
+				if(adjPolyStackPtr > adjPolyStackMax)
+				{
+					nbg_sprintf(0,0, "Error: path tables out of memory");
+					return;
+				}
+				pathing->guides[i][k] = (_pathNodes**)adjPolyStackPtr;
+				adjPolyStackPtr += pathing->count[i][k] * sizeof(void *);
+				//Initialize
+				for(int f = 0; f < pathing->count[i][k]; f++)
+				{
+					pathing->guides[i][k][f] = sectors[INVALID_SECTOR].paths;
+				}
+			}
+			pathing->count[i][k] = 0;
+		}
+	}
+	
+	//Populate the allocated memory
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		sct = &sectors[i];
+		if(sct->nbAdjacent == 0 || sct->nbVisible == 0) continue;
+		
+		for(int j = 0; j < sct->nbAdjacent; j++)
+		{
+			int sctA = sct->paths[j].fromSector;
+			int sctB = sct->paths[j].toSector;
+			pathing->guides[sctA][sctB][pathing->count[sctA][sctB]] = &sct->paths[j];
+			pathing->count[sctA][sctB]++;
+		}
+	}
+	
+	
+}
+
 void	init_pathing_system(void)
 {
-	for(int i = 0; i < MAX_MODELS; i++)
+	for(int i = 0; i < MAX_SECTORS; i++)
 	{
 		nbg_sprintf(0,0, "Building path tables...");
 		buildAdjacentFloorList(i);
 	}
+	
+	reconcile_pathing_lists();
 }
 
 int		actorLineOfSight(_actor * act, int * pos)
@@ -466,25 +558,18 @@ int	actorCheckPathOK(_actor * act)
 }
 
 //Handler function which will populate the goal position and goal floor ID.
-void	actorPopulateGoalInfo(_actor * act, int * goal)
+void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)
 {
+
 	act->pathGoal[X] = goal[X];
 	act->pathGoal[Y] = goal[Y];
 	act->pathGoal[Z] = goal[Z];
 	
-	static int towardsFloor[3] = {0, (1<<16), 0};
-	static int floorProxy[3];
-	static int hitFloorPly = 0;
+	act->pathTarget[X] = goal[X];
+	act->pathTarget[Y] = goal[Y];
+	act->pathTarget[Z] = goal[Z];
 	
-	//With the goal position set, we need to know which floor the goal sits on.
-	//As a practical matter, we're going to end up raycasting every floor to find the sector anyway, so we will shortcut
-	//to just checking every sector. This is inefficient, but it works.
-	hitscan_vector_from_position_building(towardsFloor, act->pathGoal, floorProxy, &hitFloorPly, sectors[act->curSector].ent, levelPos, NULL);
-
-	act->goalFloorID = hitFloorPly;
-	
-	
-	
+	act->goalSector = broad_phase_sector_finder(act->pathGoal, levelPos, &sectors[target_sector]);
 }
 
 
@@ -796,30 +881,6 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->floorPos[Y] = potential_hit[Y];
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
-					act->curFloorID = alias;
-					
-					// nbg_sprintf(5, 10, "this(%i)", alias);
-					
-					// for(int f = 0; f < ent->numFloor; f++)
-					// {
-						// if(ent->paths[f].id == alias)
-						// {
-							// nbg_sprintf(5, 11, "ad_ct(%i)", ent->paths[f].numGuides);
-							
-							// for(int g = 0; g < ent->paths[f].numGuides; g++)
-							// {
-								// nbg_sprintf(5, 13+g, "id(%i)", ent->paths[f].guides[g].floor_id);
-							// }
-						// }
-					// }
-					
-					// nbg_sprintf(20, 12, "stc(%x)", adjPolyStackPtr);
-					// nbg_sprintf(20, 13, "max(%x)", adjPolyStackMax);
-					
-					//nbg_sprintf(5, 11, "ad0(%i)", ent->paths[alias]);
-					// nbg_sprintf(5, 12, "ad1(%i)", ent->pathGuides[alias].adjacent_plane_id[1]);
-					// nbg_sprintf(5, 13, "ad2(%i)", ent->pathGuides[alias].adjacent_plane_id[2]);
-					// nbg_sprintf(5, 14, "ad3(%i)", ent->pathGuides[alias].adjacent_plane_id[3]);
 				}
 			}
 			break;
@@ -915,8 +976,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->pathGoal[X] = 0;
 	act->pathGoal[Y] = 0;
 	act->pathGoal[Z] = 0;
-	act->curFloorID = 0;
-	act->goalFloorID = 0;
+	act->goalSector = INVALID_SECTOR;
 	
 	act->spawner = spawner;
 	act->entity_ID = spawner->type.entity_ID;
@@ -1122,9 +1182,9 @@ void	manage_actors(void)
 			//}
 			
 			//Debug
-			act->pathTarget[X] = act->pathGoal[X];
-			act->pathTarget[Y] = act->pathGoal[Y];
-			act->pathTarget[Z] = act->pathGoal[Z];
+			// act->pathTarget[X] = act->pathGoal[X];
+			// act->pathTarget[Y] = act->pathGoal[Y];
+			// act->pathTarget[Z] = act->pathGoal[Z];
 			
 			if(!act->info.flags.hitFloor)
 			{
@@ -1138,13 +1198,41 @@ void	manage_actors(void)
 				act->pos[Z] = act->floorPos[Z];
 				
 				act->info.flags.losTarget = actorCheckPathOK(act);
+				if(!act->info.flags.losTarget)
+				{
+					//If we lose valid LOS to target, go to a path node, if there is one
+					if(act->goalSector != act->curSector)
+					{
+						_pathNodes * guide = pathing->guides[act->curSector][act->goalSector][0];
+						act->pathTarget[X] = levelPos[X] + guide->nodes[0][X];
+						act->pathTarget[Y] = levelPos[Y] + (guide->nodes[0][Y] - act->box->radius[Y]);
+						act->pathTarget[Z] = levelPos[Z] + guide->nodes[0][Z];
+					}
+				}
 				
+				nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
+				nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
+				nbg_sprintf_decimal(3, 12, act->pathTarget[Z]);
 				
-				
-					// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
-					// nbg_sprintf(5, 11, "ast(%i)", act->curSector);
-					nbg_sprintf(5, 10, "cur(%i)", act->curFloorID);
-					nbg_sprintf(5, 11, "goal(%i)", act->goalFloorID);
+				// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+		
+/* 				nbg_sprintf(5, 8, "ast(%i)", act->curSector);
+				nbg_sprintf(5, 9, "ast(%i)", you.curSector);
+				nbg_sprintf(5, 10, "guide(%i)", pathing->count[act->curSector][you.curSector]);
+				int rcnp = 0;
+				for(int g = 0; g < pathing->count[act->curSector][you.curSector]; g++)
+				{
+					_pathNodes * guide = pathing->guides[act->curSector][you.curSector][g];
+					
+						// nbg_sprintf_decimal(3, 10+rcnp, node->nodes[j][X]);
+						// rcnp++;                        
+						// nbg_sprintf_decimal(3, 10+rcnp, node->nodes[j][Y]);
+						// rcnp++;                         
+						// nbg_sprintf_decimal(3, 10+rcnp, node->nodes[j][Z]);
+						// rcnp++;
+					nbg_sprintf(3, 12+rcnp, "Ei:(%i)", guide->numNodes);
+					rcnp++;
+				}	 */	
 				
 				
 					//nbg_sprintf_decimal(5, 12, act->pos[X]);

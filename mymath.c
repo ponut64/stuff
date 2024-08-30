@@ -449,6 +449,7 @@ void	cpy3(FIXED * dst, FIXED * src)
 	dst[Z] = src[Z];
 }
 
+//note: vector_in cannot have negative components
 void	normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
@@ -459,6 +460,7 @@ void	normalize(FIXED * vector_in, FIXED * vector_out)
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
+//note: vector_in cannot have negative components
 void	double_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
@@ -469,6 +471,7 @@ void	double_normalize(FIXED * vector_in, FIXED * vector_out)
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
+//note: vector_in cannot have negative components
 void	accurate_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.

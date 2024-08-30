@@ -87,30 +87,9 @@ typedef struct {
 	unsigned char * lumatbl;	/* Lighting table, as <<9 units. */
 } GVPLY ;
 
-//
-// I need to re-do this to store:
-// # of adjacent planes,
-// pointer to plane ID list,
-// pointer to guidance point list
-//
-
-typedef struct {
-	POINT guide_pt;
-	unsigned short floor_id;
-} _pathGuide;
-
-typedef struct {
-	unsigned short id;
-	unsigned short numGuides;
-	_pathGuide * guides;
-	// unsigned short adjacent_plane_id[4];
-	// int guidance_points[4][3];
-} _path;
-
 typedef struct
 {
 	int z_plane;	//Boolean. 0 for far, 1 for near.
-	int numFloor;
 	unsigned int size;
 	short file_done;
 	short was_loaded_from_CD;
@@ -126,9 +105,21 @@ typedef struct
     anim_struct * animation[64];
 	GVPLY * pol;
 	FIXED * prematrix;
-	_path * paths;
 } entity_t;
 
+
+typedef struct {
+	short fromSector;
+	short toSector;
+	int numNodes; //number of navigation nodes to this particular adjacent sector, sizes <nnodes>
+	VECTOR * dir; //Direction to face when moving through this node
+	POINT * nodes; //navigation nodes to another sector, given by entry in <paths> and sized by <numNodes> 
+} _pathNodes;
+
+typedef struct {
+	short count[MAX_SECTORS][MAX_SECTORS];
+	_pathNodes ** guides[MAX_SECTORS][MAX_SECTORS];
+} _pathHost;
 
 /////////////////////////////////
 // Sector Data
@@ -151,6 +142,7 @@ typedef struct
 	unsigned short * portals; //Stores the polygon IDs in ent->pol->attbl and ent->pol->pltbl and ent->pol->pntbl				44
 	void * viewspace_tvtbl; //Memory allocated for the viewspace transform of the tvtbl	(sized of vertex_t)						48
 	void * scrnspace_tvtbl; //Memory allocated for the screenspace transform of tvtbl (sized of vertex_t)						52
+	_pathNodes * paths; //Memory allocated for sector path nodes, size <nbAdjacent>
 	int	center_pos[3]; //World-space center guidemark of the sector																56
 	int radius[3]; //Radius of the sector from center																			68
 	unsigned short nbPortal; //Stores the # of portals in the sector															80
@@ -158,6 +150,7 @@ typedef struct
 	volatile unsigned short ready_this_frame; //Boolean; 0 if sector is not ready to draw this frame, 1 if it is.				84
 } _sector;
 extern _sector sectors[MAX_SECTORS+1];
+extern _pathHost * pathing;
 
 /**Store all your PDATA meshes here**/
 extern entity_t entities[MAX_MODELS];
