@@ -37,20 +37,20 @@ void	init_lwram(void)
 	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
 // Building (Source Data) Object Table
 	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
-//Pathing Table Heap. This is sized according to the max pathing step count, multiplied by the max active actors.
-	pathTableHeap = (void*)((unsigned int)(BuildingPayload-(sizeof(_quad) * (MAX_PATHING_STEPS * MAX_PHYS_PROXY))));
 //Adjacent Quad Table. This has an arbitrary size.
-	adjacentPolyHeap = (void*)((unsigned int)(pathTableHeap - (32 * 1024)));
-	adjPolyStackPtr = (void*)(adjacentPolyHeap);
-	adjPolyStackMax = (void*)(pathTableHeap);
+	sectorPathHeap = (void*)((unsigned int)(BuildingPayload - (32 * 1024)));
+	pathStackPtr = (void*)(sectorPathHeap);
+	pathStackMax = (void*)(sectorPathHeap + (32 * 1024));
 //Z-Table - this will be used with signed offsets; its size is actually 256kb
-	zTable = (void*)((unsigned int)(adjacentPolyHeap - (128 * 1024)));
-//Space used from end of LWRAM: about 512 KB
+	zTable = (void*)((unsigned int)(sectorPathHeap - (128 * 1024)));
+//Space used from end of LWRAM: about 512 KB (451,072, thereabouts)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	init_ztable();
 //I have detected a 'black spot' in LWRAM, between bytes 512 - 768 of LWRAM /something/ bad happens.
 //Pathing Guides - approx. 42 kb
-	pathing = (void*)(LWRAM);
+	pathStepHeap = (void*)(LWRAM);
+//Pathing Table Heap. This is sized according to the max pathing step count, multiplied by the max active actors.
+	pathing = (void*)((unsigned int)(LWRAM+sizeof(_pathStepHost)));
 }
 

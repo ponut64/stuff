@@ -18,374 +18,30 @@
 _actor spawned_actors[MAX_PHYS_PROXY];
 
 _lineTable cur_actor_line_table;
+_pathStepHost * pathStepHeap;
 
-unsigned char * adjacentPolyHeap;
-unsigned char * pathTableHeap;
+unsigned char * sectorPathHeap;
 
-unsigned char * adjPolyStackPtr;
-unsigned char * adjPolyStackMax;
+unsigned char * pathStackPtr;
+unsigned char * pathStackMax;
 /*
 
-Navigation via floor polygons as the basis for pathing and guiding will probably work,
-but the core computational fault is the complexity of building paths this way.
-Short-hand path guides need to be made which guide an actor through a sector.
-
-These don't have to work all of the time; it does not need to be perfect.
-It only needs to work most of the time.
-
-The more important part is understanding how to use these path nodes to have an actor follow a short, logical path towards a goal.
-The primary method is to:
-1 - Actor checks LOS to target point.
-1a. If LOS checks out, walk towards it. No extra steps.
-2 - Sector of target is checked.
-2a. If in immediately adjacent sector, use guidance points to sector. When in sector, walk towards it. No extra steps.
-3 - Now for the forking checking model.
-Path tables are made based on the number of adjacent sectors followed through.
-If in sector 6 and adjacent to sector 48 and 12, guiding to sector 7, we might:
-- Add sector 48 and sector 12 to two separate possible path lists.
-- Sector 48 is adjacent to two other sectors.
--- That makes two more lists; sector 48 to 47 and sector 48 to 13.
-- Sector 12 is adjacent to two othr sectors.
--- Sector 12 and 13 and Sector 12 and 9.
-- There are a total of four lists now.
-Repeat that expanding process until one list counts sector 7 as adjacent.
-The first list that counts sector 7 as adjacent (in the least sector steps) is considered the valid path, and is followed.
-
-I think this is a much more reasonable system.
-The problem is it means I have to go back and reinvent the system such that sectors make and list guidance nodes:
-1 - Center
-2 - ToSector for each sector
-
-so I need to do different maths.
-I need to first sweep each sector: every floor polygon in a sector must be checked if it is adjacent to another given sector or not.
-Since we already use logic like this to check for adjacent sectors (used in the PVS), we can just check that part of the PVS for the sectors.
-
-Then, the center of the intersecting edge of each intersecting floor polygon is added as a navigation point to that sector.
-Handy to have more guidance points, maybe, probably not.
-
-So we have the following in SECTOR data:
-
-typedef struct {
-	int numNodes;
-	POINT * nodes;
-} _pathNodes;
-
-contained in:
-_pathNodes * sectorPathNodes; //Path nodes to other sectors, of size <nbAdjacent>
-
-Okay, we're kind of building the guide tables right now.
-But there's something wrong with it. Hmm.
+okay:
+1. check endpoint LOS to navpoint
+2. if not OK, start path tree
+what are we doing in path tree?
+	- look at all sectors adjacent to target sector.
+	if any one is the sector the actor is in, we can conclude pathing linearly from there.
+	- if not, we have to use a recursive search program
+	- i need a static allocation for path searching, as opposed to path storage
+	- store in the path search tree the iteration number and the previous iteration number and the search result
+	- we are searching through every sector adjacent to every sector to find if it is the sector the actor is in
+	- the path search tree which first ends in the sector the actor is in is then rebuilt and saved as the search result
+	- the actor will then path through that tree backwards, from the sector they are in, to the target sector
 
 */
 
 
-void	buildAdjacentFloorList(unsigned int sector_id)
-{
-	if(sector_id > MAX_SECTORS || sector_id == INVALID_SECTOR) return;
-	_sector * sct = &sectors[sector_id];
-	//Step 1: Is this sector populated?
-	if(!sct->nbPolygon) return;
-	if(!sct->ent) return;
-	//Step 2: Is it pointing to a valid entity?
-	if(sct->ent->type != MODEL_TYPE_SECTORED) return;
-	if(!sct->ent->file_done) return;
-	
-	GVPLY * mesh = sct->ent->pol;
-	//The concept is to generate path nodes that segregate adjacent floors between sectors of the level,
-	//such that the path nodes represent a point that can be navigated towards to go from one sector to another.
-	//The first problem is finding RAM suitable to allocate for this purpose.
-
-	//Gotta be carefuL: hopefully this doesn't get misaligned.
-	//we start over max, stop
-	if(adjPolyStackPtr > adjPolyStackMax) return;
-	//
-	sct->paths = (_pathNodes*)adjPolyStackPtr;
-	//To make it simple, we are just going to guess on the number of possible paths being 6.
-	adjPolyStackPtr += 6 * sizeof(_pathNodes);
-	
-	int pass_number = 0;
-
-	int t_plane[4][3];
-	int t_center[3] = {0, 0, 0};
-	int c_plane[4][3];
-	int c_center[3] = {0, 0, 0};
-	int vector_to_tc[3];
-	int normal_to_tc[3];
-	int y_min = 0;
-	int y_max = 0;
-	int within_span = 0;
-	int within_shape_ct = 0;
-	int vert_within_shape[4] = {0,0,0,0};
-	int guidance_point[3] = {0,0,0};
-	
-	_sector * sct2;
-	//GOTO Label:
-	//On the first pass of this loop, we will count up the number of adjacents, then allocate memory based on that number.
-	//On the second pass, we will fill that allocated memory with valid data.
-
-	pass_number = 0;
-	PASS:
-for(int s = 0; s < sct->nbAdjacent; s++)
-{
-	sct2 = &sectors[sct->pvs[s+1]];
-	sct->paths[s].numNodes = 0;
-	for(int i = 0; i < sct->nbPolygon; i++)
-	{
-		int alias = sct->pltbl[i];
-		if(mesh->maxtbl[alias] != N_Yn) continue;
-		y_min = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
-		y_max = mesh->pntbl[mesh->pltbl[alias].vertices[0]][Y];
-		t_center[X] = 0;
-		t_center[Y] = 0;
-		t_center[Z] = 0;
-		for(int k = 0; k < 4; k++)
-		{
-			t_plane[k][X] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][X];
-			t_plane[k][Y] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][Y];
-			t_plane[k][Z] = mesh->pntbl[mesh->pltbl[alias].vertices[k]][Z];
-			t_center[X] += t_plane[k][X];
-			t_center[Y] += t_plane[k][Y];
-			t_center[Z] += t_plane[k][Z];
-			y_min = (t_plane[k][Y] < y_min) ? t_plane[k][Y] : y_min;
-			y_max = (t_plane[k][Y] > y_max) ? t_plane[k][Y] : y_max;
-		}
-		t_center[X] >>=4;
-		t_center[Y] >>=4;
-		t_center[Z] >>=4;
-		
-		//Add some margin of error
-		//This will be a quarter meter, or (16<<16)
-		y_min -= 16<<16;
-		y_max += 16<<16;
-		
-		for(int p = 0; p < sct2->nbPolygon; p++)
-		{
-			int alias2 = sct2->pltbl[p];
-			if(mesh->maxtbl[alias2] != N_Yn) continue;
-			
-			within_span = 0;
-			c_center[X] = 0;
-			c_center[Y] = 0;
-			c_center[Z] = 0;
-			for(int k = 0; k < 4; k++)
-			{
-				c_plane[k][X] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][X];
-				c_plane[k][Y] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][Y];
-				c_plane[k][Z] = mesh->pntbl[mesh->pltbl[alias2].vertices[k]][Z];
-				if((t_plane[k][Y] > y_min) && (t_plane[k][Y] < y_max)) within_span = 1;
-				c_center[X] += c_plane[k][X];
-				c_center[Y] += c_plane[k][Y];
-				c_center[Z] += c_plane[k][Z];
-			}
-			if(!within_span) continue;
-			
-			c_center[X] >>=4;
-			c_center[Y] >>=4;
-			c_center[Z] >>=4;
-			
-			vector_to_tc[X] = c_center[X] - t_center[X];
-			vector_to_tc[Y] = c_center[Y] - t_center[Y];
-			vector_to_tc[Z] = c_center[Z] - t_center[Z];
-			normal_to_tc[X] = 0;
-			normal_to_tc[Y] = 0;
-			normal_to_tc[Z] = 0;
-			
-			accurate_normalize(vector_to_tc, normal_to_tc);
-			//Method for detecting adjacency:
-			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
-			//If they are, they probably share an edge.
-			within_shape_ct = 0;
-			for(int k = 0; k < 4; k++)
-			{
-				//Aggravating Necessity: Push c_plane towards t_plane slightly
-				//This is so the chirality test does not fail
-				c_plane[k][X] -= normal_to_tc[X];
-				c_plane[k][Y] -= normal_to_tc[Y];
-				c_plane[k][Z] -= normal_to_tc[Z];
-				vert_within_shape[k] = 0;
-				//I need to know *exactly* which edge is adjacent.
-				//I can do this by checking every vertex, and then seeing which pair is adjacent.
-				if(edge_wind_test(t_plane[0], t_plane[1], t_plane[2], t_plane[3], c_plane[k], N_Yn, 12))
-				{
-					within_shape_ct++;
-					vert_within_shape[k] = 1;
-				}
-			}
-			if(within_shape_ct < 2) continue;
-			
-			if(pass_number == 0)
-			{
-				sct->paths[s].numNodes++;
-				continue;
-			}
-			
-			
-			//This logic chunk assigns which edge was adjacent (0->1, 1->2, 2->3, 3->0)
-			int fk = 0;
-			int sk = 0;
-			if(vert_within_shape[0] && vert_within_shape[1])
-			{
-				fk = 0;
-				sk = 1;
-			} else if(vert_within_shape[1] && vert_within_shape[2])
-			{
-				fk = 1;
-				sk = 2;
-			} else if(vert_within_shape[2] && vert_within_shape[3])
-			{
-				fk = 2;
-				sk = 3;
-			} else if(vert_within_shape[3] && vert_within_shape[0])
-			{
-				fk = 3;
-				sk = 0;
-			}
-			
-
-			if(within_shape_ct)
-			{
-				//Mark the guidance point of (adjacent_planes) as the center of [FK]->[SK]
-				guidance_point[X] = (c_plane[fk][X] + c_plane[sk][X])>>1;
-				guidance_point[Y] = (c_plane[fk][Y] + c_plane[sk][Y])>>1;
-				guidance_point[Z] = (c_plane[fk][Z] + c_plane[sk][Z])>>1;		
-				sct->paths[s].nodes[sct->paths[s].numNodes][X] = guidance_point[X];
-				sct->paths[s].nodes[sct->paths[s].numNodes][Y] = guidance_point[Y];
-				sct->paths[s].nodes[sct->paths[s].numNodes][Z] = guidance_point[Z];
-				//add a direction to the path node - first calculate a vector from guidance pt to center
-				vector_to_tc[X] = JO_ABS((t_center[X] - (guidance_point[X]>>2))>>4);
-				vector_to_tc[Y] = JO_ABS((t_center[Y] - (guidance_point[Y]>>2))>>4);
-				vector_to_tc[Z] = JO_ABS((t_center[Z] - (guidance_point[Z]>>2))>>4);
-
-				accurate_normalize(vector_to_tc, sct->paths[s].dir[sct->paths[s].numNodes]);
-				
-				sct->paths[s].fromSector = sector_id;
-				sct->paths[s].toSector = sct->pvs[s+1];
-				
-				sct->paths[s].numNodes++;
-			}
-			
-		}
-	}
-
-}	
-
-	//We will reach this point on first and second pass.
-	//After the first pass (pass_number == 0), we need to allocate memory:
-	//according to the number of adjacent floors in each adjacent sector to the sector being tested
-	//On second pass (pass_number == 1), we should just be able to exit the function.
-	if(pass_number == 0)
-	{
-		for(int i = 0; i < sct->nbAdjacent; i++)
-		{
-			sct->paths[i].fromSector = INVALID_SECTOR;
-			sct->paths[i].toSector = INVALID_SECTOR;
-			sct->paths[i].nodes = (POINT *)adjPolyStackPtr;
-			adjPolyStackPtr += sct->paths[i].numNodes * sizeof(POINT);
-			sct->paths[i].dir = (VECTOR *)adjPolyStackPtr;
-			adjPolyStackPtr += sct->paths[i].numNodes * sizeof(VECTOR);
-			//If we've exceeded the memory limit, abort.
-			if(adjPolyStackPtr > adjPolyStackMax)
-			{
-				nbg_sprintf(0,0, "Error: path tables out of memory");
-				return;
-			}
-		}
-		pass_number = 1;
-		goto PASS;
-	}
-	
-	//nbg_sprintf(3, 10, "tajp(%i)", total_adj_planes);
-}
-
-//What do I want here?
-//I want a list which contains a sequence of pointers to all path nodes between two given sectors.
-//i.e. if you are in <A> going to <B>, there is a pointer at paths[a][b]
-// which points to another list of pointers which makes an inclusive list of all path nodes between A and B.
-void	reconcile_pathing_lists(void)
-{
-	_sector * sct;
-	
-	if(adjPolyStackPtr > adjPolyStackMax)
-	{
-		nbg_sprintf(0,0, "Error: path tables out of memory");
-		return;
-	}
-	
-	//Initialize table
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		for(int k = 0; k < MAX_SECTORS; k++)
-		{
-			pathing->count[i][k] = 0;
-		}
-	}
-	
-	//Count up intersecting paths
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		sct = &sectors[i];
-		if(sct->nbAdjacent == 0 || sct->nbVisible == 0) continue;
-		
-		for(int j = 0; j < sct->nbAdjacent; j++)
-		{
-			int sctA = sct->paths[j].fromSector;
-			int sctB = sct->paths[j].toSector;
-			pathing->count[sctA][sctB]+=1;
-		}
-	}
-	
-	//Allocate memory for each intersection
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		for(int k = 0; k < MAX_SECTORS; k++)
-		{
-			if(pathing->count[i][k] != 0)
-			{
-				if(adjPolyStackPtr > adjPolyStackMax)
-				{
-					nbg_sprintf(0,0, "Error: path tables out of memory");
-					return;
-				}
-				pathing->guides[i][k] = (_pathNodes**)adjPolyStackPtr;
-				adjPolyStackPtr += pathing->count[i][k] * sizeof(void *);
-				//Initialize
-				for(int f = 0; f < pathing->count[i][k]; f++)
-				{
-					pathing->guides[i][k][f] = sectors[INVALID_SECTOR].paths;
-				}
-			}
-			pathing->count[i][k] = 0;
-		}
-	}
-	
-	//Populate the allocated memory
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		sct = &sectors[i];
-		if(sct->nbAdjacent == 0 || sct->nbVisible == 0) continue;
-		
-		for(int j = 0; j < sct->nbAdjacent; j++)
-		{
-			int sctA = sct->paths[j].fromSector;
-			int sctB = sct->paths[j].toSector;
-			pathing->guides[sctA][sctB][pathing->count[sctA][sctB]] = &sct->paths[j];
-			pathing->count[sctA][sctB]++;
-		}
-	}
-	
-	
-}
-
-void	init_pathing_system(void)
-{
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		nbg_sprintf(0,0, "Building path tables...");
-		buildAdjacentFloorList(i);
-	}
-	
-	reconcile_pathing_lists();
-}
 
 int		actorLineOfSight(_actor * act, int * pos)
 {
@@ -569,11 +225,13 @@ void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)
 	act->pathTarget[Y] = goal[Y];
 	act->pathTarget[Z] = goal[Z];
 	
+	act->curPathStep = 0;
+	
 	act->goalSector = broad_phase_sector_finder(act->pathGoal, levelPos, &sectors[target_sector]);
 }
 
 
-void	actorMoveToPos(_actor * act, int * target, int rate, int gap)
+int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 {
 	static int target_dif[3];
 	static int dif_norm[3];
@@ -588,13 +246,148 @@ void	actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	target_dif[Y] = JO_ABS(target_dif[Y]>>12);
 	target_dif[Z] = JO_ABS(target_dif[Z]>>12);
 	
-	if((target_dif[X] + target_dif[Y] + target_dif[Z]) < gap) return;
+	if((target_dif[X] + target_dif[Y] + target_dif[Z]) < gap) return 1;
 
 	act->dV[X] += fxm(dif_norm[X], rate);
 	act->dV[Y] += fxm(dif_norm[Y], rate);
 	act->dV[Z] += fxm(dif_norm[Z], rate);
 	
+	return 0;
 }
+
+
+void	checkInPathSteps(int actor_id)
+{
+	_actor * act = &spawned_actors[actor_id];
+	if(act->curPathStep == INVALID_SECTOR) return;
+	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	if(act->curPathStep > *numSteps) act->curPathStep = *numSteps;
+	//register which path we are looking at
+	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	//register the step
+	_pathStep * step = &stepList[act->curPathStep];
+	//simple test: if we are in the sector that this step is going towards, we should change steps.
+	if((act->curSector == step->toSector) && act->curPathStep > 0)
+	{
+		act->curPathStep--;
+	}
+	
+	nbg_sprintf(3, 15, "stp(%i)", act->curPathStep);
+	nbg_sprintf(3, 16, "sc1(%i)", step->fromSector);
+	nbg_sprintf(3, 17, "sc2(%i)", step->toSector);
+	
+	if(act->curPathStep > 0)
+	{
+	step = &stepList[act->curPathStep];
+	act->pathTarget[X] = levelPos[X] + step->pos[X];
+	act->pathTarget[Y] = levelPos[Y] + (step->pos[Y] - act->box->radius[Y]);
+	act->pathTarget[Z] = levelPos[Z] + step->pos[Z];
+	} else {
+	if(act->info.flags.losTarget)
+	{
+		act->pathTarget[X] = act->pathGoal[X];
+		act->pathTarget[Y] = act->pathGoal[Y];
+		act->pathTarget[Z] = act->pathGoal[Z];
+		actorMoveToPos(act, act->pathTarget, 32768, 33);
+	}
+	return;
+	}
+	//iterate towards the step
+	int onPathNode = actorMoveToPos(act, act->pathTarget, 32768, 33);
+	//if on the path node ( = 1), we need to do something else.
+	//each path node has a direction; we need to follow that direction until we are in the sector of the next node.
+	if(onPathNode && act->curSector != step->toSector)
+	{
+		act->dV[X] += fxm(step->dir[X], 32768);
+		act->dV[Y] += fxm(step->dir[Y], 32768);
+		act->dV[Z] += fxm(step->dir[Z], 32768);
+	}
+	
+	
+}
+
+void	findPathTo(int targetSector, int actor_id)
+{
+	_actor * act = &spawned_actors[actor_id];
+	_sector * sctA = &sectors[act->curSector];
+	_sector * sctB = &sectors[targetSector];
+	if(sctA->nbAdjacent == 0) return;
+	if(sctB->nbAdjacent == 0) return;
+	
+	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	*numSteps = -1;
+	//register which path we are looking at
+	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	
+	//reconciliation: the final path step is always to the pathGoal, so add it
+	stepList[0].fromSector = targetSector;
+	stepList[0].toSector = targetSector;
+	stepList[0].pos = &act->pathGoal[0];
+	stepList[0].dir = &act->dirUV[0];
+	stepList[0].actorID = actor_id;
+	*numSteps += 1;
+
+	//first a sanity check
+	//if sector A is adjacent to sector B, then our path table is one step
+	for(int i = 0; i < sctA->nbAdjacent; i++)
+	{
+		if(sctA->pvs[i+1] == targetSector)
+		{
+			if(!pathing->count[act->curSector][targetSector]) return;
+			//the target sector was found as adjacent to the actor's current sector
+			//add this to the path table
+			stepList[1].fromSector = act->curSector;
+			stepList[1].toSector = targetSector;
+			_pathNodes * path = pathing->guides[act->curSector][targetSector][0];
+			stepList[1].pos = path[0].nodes[0];
+			stepList[1].dir = path[0].dir[0];
+			stepList[1].actorID = actor_id;
+			*numSteps += 1;
+			act->curPathStep = *numSteps;
+			return;
+		}
+	}
+	
+	//Objective:
+	//Iterate through each adjacent sector to find the targetSector. 
+	//This process must be done in away where each iteration is limited such that every path is allowed to process up to the same limit.
+	//This is so that the shortest path is found within the limit, which increases every iteration.
+	int next_step = INVALID_SECTOR;
+	static int iterations = 0;
+	iterations = 0;
+	do{
+		for(int i = 0; i < sctA->nbAdjacent; i++)
+		{
+			if(actor_recursive_path_from_sector_to_sector(sctA->pvs[i+1], targetSector, 0, iterations))
+			{
+				next_step = sctA->pvs[i+1];
+				break;
+			}
+		}
+	iterations++;
+	}while(iterations <= MAX_PATHING_STEPS && next_step == INVALID_SECTOR);
+	
+	//In case no valid path was found, make no changes to the path table.
+	if(next_step == INVALID_SECTOR) return;
+	
+	//Otherwise, start pathing with the set sector as the next step.
+	//Note that within this function, we can only start a path; perhaps I need a code cleanup so there is:
+	//clearPath
+	//findPath (<- this function)
+	//runPath (<- will operate if toSector is not targetSector)
+	
+	stepList[1].fromSector = act->curSector;
+	stepList[1].toSector = next_step;
+	_pathNodes * path = pathing->guides[act->curSector][next_step][0];
+	stepList[1].pos = path[0].nodes[0];
+	stepList[1].dir = path[0].dir[0];
+	stepList[1].actorID = actor_id;
+	*numSteps += 1;
+	act->curPathStep = *numSteps;
+	return;
+	
+}
+
 
 void	actor_hit_wall(_actor * act, int * wall_norm)
 {
@@ -972,6 +765,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->dRot[Z] = 0;
 	act->totalFriction = 0;
 	act->curSector = spawner->curSector;
+	act->curPathStep = INVALID_SECTOR;
 	
 	act->pathGoal[X] = 0;
 	act->pathGoal[Y] = 0;
@@ -1200,15 +994,12 @@ void	manage_actors(void)
 				act->info.flags.losTarget = actorCheckPathOK(act);
 				if(!act->info.flags.losTarget)
 				{
-					//If we lose valid LOS to target, go to a path node, if there is one
-					if(act->goalSector != act->curSector)
-					{
-						_pathNodes * guide = pathing->guides[act->curSector][act->goalSector][0];
-						act->pathTarget[X] = levelPos[X] + guide->nodes[0][X];
-						act->pathTarget[Y] = levelPos[Y] + (guide->nodes[0][Y] - act->box->radius[Y]);
-						act->pathTarget[Z] = levelPos[Z] + guide->nodes[0][Z];
-					}
+					findPathTo(act->goalSector, i);
 				}
+				
+				nbg_sprintf(20, 16, "cur(%i)", act->curSector);
+				nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
+				nbg_sprintf(20, 15, "cta(%i)", pathing->count[act->curSector][act->goalSector]);
 				
 				nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
 				nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
@@ -1233,15 +1024,13 @@ void	manage_actors(void)
 					nbg_sprintf(3, 12+rcnp, "Ei:(%i)", guide->numNodes);
 					rcnp++;
 				}	 */	
-				
-				
 					//nbg_sprintf_decimal(5, 12, act->pos[X]);
 					//nbg_sprintf_decimal(5, 13, act->pos[Y]);
 					//nbg_sprintf_decimal(5, 14, act->pos[Z]);
 				
 				act->totalFriction = 32768;
 				
-				if(act->info.flags.losTarget) actorMoveToPos(act, act->pathTarget, 32768, 100);
+				checkInPathSteps(i);
 			}
 			act->info.flags.hitFloor = 0;
 		} else {

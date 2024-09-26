@@ -9,7 +9,7 @@
 
 #include "tga.h"
 
-unsigned char * GLOBAL_img_addr = (unsigned char *)LWRAM;
+unsigned char * GLOBAL_img_addr = (unsigned char *)NULL;
 unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
 
 unsigned int sprPaletteCopy[256];

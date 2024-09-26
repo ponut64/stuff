@@ -16,6 +16,7 @@
 #include "physobjet.h"
 #include "object_definitions.c"
 
+#include "pathing.c"
 #include "actor.c"
 
 _declaredObject * dWorldObjects; //In LWRAM - see lwram.c

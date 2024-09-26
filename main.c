@@ -80,7 +80,7 @@ extern Sint8 SynchConst; //SGL System Variable
 unsigned char * dirty_buf;
 unsigned char * dirtier_buf;
 
-int * zTable = (int *)LWRAM;
+int * zTable = (int *)NULL;
 
 void * currentAddress;
 

@@ -310,7 +310,22 @@ void	ldata_manager(void);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // used for actor.c
 
-#define MAX_PATHING_STEPS	(30)
+#define MAX_PATHING_STEPS	(16)
+
+typedef struct {
+	int * pos; //the position of the path step
+	int * dir; //the direction out of the path step (may not be used)
+	short actorID; //the ID of the actor or actor group using this path
+	unsigned char fromSector; //sector to path from
+	unsigned char toSector; //sector to path to
+} _pathStep;
+
+typedef struct {
+	int numStepsUsed[MAX_PHYS_PROXY];
+	_pathStep steps[MAX_PHYS_PROXY][MAX_PATHING_STEPS];
+} _pathStepHost;
+
+extern _pathStepHost * pathStepHeap;
 
 typedef struct {
 	union {
@@ -344,6 +359,7 @@ typedef struct {
 	int totalFriction;
 	short rot[3];
 	short dRot[3];
+	short curPathStep;
 	unsigned short curSector;
 	unsigned short prevSector;
 	unsigned short health;
@@ -356,10 +372,9 @@ typedef struct {
 } _actor;
 
 extern _actor spawned_actors[MAX_PHYS_PROXY];
-extern unsigned char * adjacentPolyHeap;
-extern unsigned char * pathTableHeap;
-extern unsigned char * adjPolyStackPtr;
-extern unsigned char * adjPolyStackMax;
+extern unsigned char * sectorPathHeap;
+extern unsigned char * pathStackPtr;
+extern unsigned char * pathStackMax;
 
 void	init_pathing_system(void);
 void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);

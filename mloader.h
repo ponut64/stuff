@@ -109,15 +109,15 @@ typedef struct
 
 
 typedef struct {
-	short fromSector;
-	short toSector;
-	int numNodes; //number of navigation nodes to this particular adjacent sector, sizes <nnodes>
 	VECTOR * dir; //Direction to face when moving through this node
 	POINT * nodes; //navigation nodes to another sector, given by entry in <paths> and sized by <numNodes> 
+	int numNodes; //number of navigation nodes to this particular adjacent sector, sizes <nnodes>
+	short fromSector;
+	short toSector;
 } _pathNodes;
 
 typedef struct {
-	short count[MAX_SECTORS][MAX_SECTORS];
+	int count[MAX_SECTORS][MAX_SECTORS];
 	_pathNodes ** guides[MAX_SECTORS][MAX_SECTORS];
 } _pathHost;
 
