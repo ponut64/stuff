@@ -471,6 +471,7 @@ void		pcm_stream_host(void(*game_code)(void))
 	RESTART:
 
 	cd_init();
+	//GFS_Close(MNG_FILE((GfsMng *)gfsLibWork)); 
 
 	while(1)
 	{

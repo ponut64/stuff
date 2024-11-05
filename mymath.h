@@ -44,9 +44,8 @@ void	copy_matrix(int * mtx_dst, int * mtx_src);
 
 void	cpy3(FIXED * dst, FIXED * src);
 
-void	normalize(FIXED * vector_in, FIXED * vector_out);
-void	double_normalize(FIXED * vector_in, FIXED * vector_out);
-void	accurate_normalize(FIXED * vector_in, FIXED * vector_out);
+void	quick_normalize(FIXED * vector_in, FIXED * vector_out);
+void	accurate_normalize(FIXED * vector_in, FIXED * vector_out, int accuracy);
 int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out);
 int		line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB, FIXED * intersection);
 void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output);

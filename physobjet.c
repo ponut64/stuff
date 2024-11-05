@@ -543,7 +543,7 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	cross[Y] = cross[Y]>>4;
 	cross[Z] = cross[Z]>>4;
 	
-	accurate_normalize(cross, used_normal);
+	quick_normalize(cross, used_normal);
 
 
 	//////////////////////////////////////////////////////////////

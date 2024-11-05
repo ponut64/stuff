@@ -210,7 +210,7 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		if(radius > 65535)
 		{
 		int final_radius = (radius + fxm(radius, getRandom()))>>1;
-		accurate_normalize(part->velocity, part->dirUV);
+		quick_normalize(part->velocity, part->dirUV);
 		part->spr->pos[X] += fxm(part->dirUV[X], final_radius);
 		part->spr->pos[Y] += fxm(part->dirUV[Y], final_radius);
 		part->spr->pos[Z] += fxm(part->dirUV[Z], final_radius);
@@ -219,31 +219,6 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		part->velocity[Z] += inertia[Z];
 		}
 	}
-}
-
-void	player_sliding_particles(void)
-{
-	static int effectTimeLimit = 8192;
-	static int effectTimeCount = 0;
-	
-	int particle_pos[3];
-	particle_pos[X] = -(pl_RBB.pos[X] + pl_RBB.Yneg[X]);
-	particle_pos[Y] = -(pl_RBB.pos[Y] + pl_RBB.Yneg[Y]);
-	particle_pos[Z] = -(pl_RBB.pos[Z] + pl_RBB.Yneg[Z]);
-	
-	int p_int[3] = {-you.velocity[X], -you.velocity[Y], -you.velocity[Z]};
-	
-	p_int[X] -= pl_RBB.UVY[X];
-	p_int[Y] -= pl_RBB.UVY[Y];
-	p_int[Z] -= pl_RBB.UVY[Z];
-	
-	if(effectTimeCount > effectTimeLimit)
-	{
-	emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, particle_pos, p_int, 2<<16, 65536, 3);
-	effectTimeCount = 0;
-	}
-	effectTimeCount += delta_time;
-	
 }
 
 // Mostly particle effect processor, but also arbitrates other effects e.g. scale
@@ -553,7 +528,7 @@ void	operate_particles(void)
 		if(particles[i].type.info.collide)
 		{
 				//Used for collisions
-				accurate_normalize(particles[i].velocity, particles[i].dirUV);
+				quick_normalize(particles[i].velocity, particles[i].dirUV);
 				pHit = false;
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)
 				{
@@ -579,7 +554,7 @@ void	operate_particles(void)
 		} else if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 		{
 			//Exception: If it's a line, we still need this data to display it.
-			normalize(particles[i].velocity, particles[i].dirUV);
+			quick_normalize(particles[i].velocity, particles[i].dirUV);
 			//Set the data
 			particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
 			particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;

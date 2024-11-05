@@ -311,6 +311,7 @@ void	ldata_manager(void);
 // used for actor.c
 
 #define MAX_PATHING_STEPS	(16)
+#define ACTOR_PATH_EXCEPTION_TIME (1<<16) //(maybe i should scale this based on actor's size or speed)
 
 typedef struct {
 	int * pos; //the position of the path step
@@ -349,6 +350,9 @@ typedef struct {
 	int pathUV[3];
 	int pathTarget[3];
 	int pathGoal[3];
+	int exceptionPos[3];
+	int exceptionDir[3];
+	int blockedLOSNorm[3];
 	_boundBox * box;
 	int entity_ID;
 	_declaredObject * spawner;
@@ -357,15 +361,18 @@ typedef struct {
 	int floorPos[3];
 	int wallPos[3];
 	int totalFriction;
+	int exceptionTimer;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;
+	short exceptionStep;
 	unsigned short curSector;
 	unsigned short prevSector;
 	unsigned short health;
 	unsigned short maxHealth;
 	unsigned short boxID;
 	unsigned short goalSector;
+	unsigned short pathingLatch;
 	_actor_info info;
 	unsigned char type;
 

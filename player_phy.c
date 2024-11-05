@@ -539,17 +539,16 @@ void	player_phys_affect(void)
 	if(you.hitWall == true)
 	{
 			//Push away.
-			you.dV[X] -= you.wallNorm[X]>>2;
-			you.dV[Y] -= you.wallNorm[Y]>>2;
-			you.dV[Z] -= you.wallNorm[Z]>>2;
-			/*
-	This code is inspired by/taken partly from Tribes.
-	I wouldn't have independently come up with a solution that works this well.
-	Instead, I was fixated on simply multiplying the wallNorm by velocity and subtracting that away from velocity.
-	My goal with that was to zero-out all direction towards the wall. That only mostly works.
-	This code however will let you bounce off of surfaces by an amount from 0-1 determined by the rebound elasticity.
-	Most notably, this works even if rebound elasticity is set to zero.
-			*/
+			//This might be the factor which is making this less functional,
+			//considering 1 meter has gone from 8 units to 64 units.
+			you.dV[X] -= you.wallNorm[X]<<1;
+			you.dV[Y] -= you.wallNorm[Y]<<1;
+			you.dV[Z] -= you.wallNorm[Z]<<1;
+			
+			you.IPaccel = fxm(you.IPaccel, 32768);
+			
+			//this should be restructured to be less bouncy and more strict
+			
 			deflectionFactor = fxdot(you.velocity, you.wallNorm);
 			//This shouldn't be time-scaled, should it?
 			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
@@ -558,7 +557,7 @@ void	player_phys_affect(void)
 		
 			you.hitWall = false;
 			
-			if(you.sanics >= 7<<16 && !you.setJet && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
+			//if(you.sanics >= 7<<16 && !you.setJet && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
 			
 			if(you.sanics >= 3<<16)
 			{
@@ -593,7 +592,7 @@ void	player_phys_affect(void)
 	tempDif[X] = you.pos[X] - you.prevPos[X];
 	tempDif[Y] = you.pos[Y] - you.prevPos[Y];
 	tempDif[Z] = you.pos[Z] - you.prevPos[Z];
-	normalize(tempDif, you.DirUV);
+	quick_normalize(tempDif, you.DirUV);
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
 	you.sanics = fxm((you.sanics>>5), time_delta_scale);
 	//Set prev pos
@@ -658,7 +657,7 @@ void	player_phys_affect(void)
 		passa[X] = (you.shootPos[X] - you.hitscanPt[X])>>4;
 		passa[Y] = (you.shootPos[Y] - you.hitscanPt[Y])>>4;
 		passa[Z] = (you.shootPos[Z] - you.hitscanPt[Z])>>4;
-		accurate_normalize(passa, you.shootDir);
+		quick_normalize(passa, you.shootDir);
 	} else {
 		you.shootDir[X] = -you.uview[X];
 		you.shootDir[Y] = -you.uview[Y];

@@ -513,8 +513,8 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 	//colr2 = 47;
 }
 
-accurate_normalize(plane_matrix[X], plane_matrix[X]);
-accurate_normalize(plane_matrix[Z], plane_matrix[Z]);
+accurate_normalize(plane_matrix[X], plane_matrix[X], 5);
+accurate_normalize(plane_matrix[Z], plane_matrix[Z], 5);
 
 //Use an axis-relative rotation.
 /**
@@ -705,9 +705,9 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		
 		standing_surface_alignment(you.floorNorm);
 			
-		you.floorPos[X] = -(hitPt[X]) - (mover->Yneg[X]) - moverTimeAxis->yp1[X];
-		you.floorPos[Y] = -(hitPt[Y]) - (mover->Yneg[Y]) - moverTimeAxis->yp1[Y];
-		you.floorPos[Z] = -(hitPt[Z]) - (mover->Yneg[Z]) - moverTimeAxis->yp1[Z];
+		you.floorPos[X] = -(hitPt[X]) - moverTimeAxis->yp1[X];
+		you.floorPos[Y] = -(hitPt[Y]) - moverTimeAxis->yp1[Y];
+		you.floorPos[Z] = -(hitPt[Z]) - moverTimeAxis->yp1[Z];
 		you.shadowPos[X] = -hitPt[X];
 		you.shadowPos[Y] = -hitPt[Y];
 		you.shadowPos[Z] = -hitPt[Z];
@@ -905,6 +905,10 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 	int wdist[3] = {0,0,0};
 	static int hitPolyID = 0;
 
+	//Must re-set this variable in order for the hitscan function to be able to properly filter the nearest hit
+	pHit[X] = 32766<<16;
+	pHit[Y] = 32766<<16;
+	pHit[Z] = 32766<<16;
 	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, test_sector);
 		
 	if(!abovePolygon)

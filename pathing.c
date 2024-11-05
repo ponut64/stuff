@@ -122,7 +122,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 			normal_to_tc[Y] = 0;
 			normal_to_tc[Z] = 0;
 			
-			accurate_normalize(vector_to_tc, normal_to_tc);
+			accurate_normalize(vector_to_tc, normal_to_tc, 5);
 			//Method for detecting adjacency:
 			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
 			//If they are, they probably share an edge.
@@ -338,7 +338,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 			normal_to_tc[Y] = 0;
 			normal_to_tc[Z] = 0;
 			
-			accurate_normalize(vector_to_tc, normal_to_tc);
+			accurate_normalize(vector_to_tc, normal_to_tc, 5);
 			//Method for detecting adjacency:
 			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
 			//If they are, they probably share an edge.
@@ -450,6 +450,14 @@ void	cross_compartment_path_nodes(int sector_num)
 		{
 			//(setting this to zero overwrites entry 0, which is uninitialized)
 			original_ct = 0;
+			//Now we need to check for an unpopulared intersection.
+			//In this case, the pathing system needs the number zeroed out such that it can quickly know there is no valid path.
+			if((sct2->paths[bt].nodes[0][X] & sct2->paths[bt].nodes[0][Y] & sct2->paths[bt].nodes[0][Z]) == -1)
+			{
+				sct->paths[s].numNodes = 0;
+				sct2->paths[bt].numNodes = 0;
+				continue;
+			}
 		}
 		
 		for(int i = 0; i < add_ct; i++)
@@ -464,6 +472,7 @@ void	cross_compartment_path_nodes(int sector_num)
 		}
 		
 	}	
+	
 }
 
 
@@ -497,7 +506,7 @@ void	reconcile_pathing_lists(void)
 		{
 			int sctA = sct->paths[j].fromSector;
 			int sctB = sct->paths[j].toSector;
-			pathing->count[sctA][sctB]+=1;
+			if(sct->paths[j].numNodes) pathing->count[sctA][sctB]+=1;
 		}
 	}
 	
@@ -535,8 +544,12 @@ void	reconcile_pathing_lists(void)
 		{
 			int sctA = sct->paths[j].fromSector;
 			int sctB = sct->paths[j].toSector;
-			pathing->guides[sctA][sctB][pathing->count[sctA][sctB]] = &sct->paths[j];
-			pathing->count[sctA][sctB]++;
+			//(must account for cases wherein there is no valid path for adjacent sectors)
+			if(sct->paths[j].numNodes)
+			{
+				pathing->guides[sctA][sctB][pathing->count[sctA][sctB]] = &sct->paths[j];
+				pathing->count[sctA][sctB]++;
+			}
 		}
 	}
 	
@@ -574,6 +587,52 @@ void	init_pathing_system(void)
 }
 
 
+void	actor_hit_wall(_actor * act, int * wall_norm)
+{
+	
+	int deflectionFactor = -fxdot(act->velocity, wall_norm);
+		
+	act->dV[X] += fxm(wall_norm[X], deflectionFactor + REBOUND_ELASTICITY);// - (normal[X]>>4);
+	act->dV[Y] += fxm(wall_norm[Y], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Y]>>4);
+	act->dV[Z] += fxm(wall_norm[Z], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Z]>>4);
+	//Small push to secure surface release
+	act->pos[X] += wall_norm[X];
+	act->pos[Y] += wall_norm[Y];
+	act->pos[Z] += wall_norm[Z];
+	
+	act->info.flags.hitWall = 1;
+	
+}
+
+
+int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
+{
+	static int target_dif[3];
+	static int dif_norm[3];
+	
+	target_dif[X] = (target[X] - act->pos[X])>>4;
+	target_dif[Y] = (target[Y] - act->pos[Y])>>4;
+	target_dif[Z] = (target[Z] - act->pos[Z])>>4;
+	
+	//Flatten the dif according to the allowable movement of the actor
+	target_dif[Y] = 0;
+	
+	quick_normalize(target_dif, dif_norm);
+	
+	target_dif[X] = JO_ABS(target_dif[X]>>12);
+	target_dif[Y] = JO_ABS(target_dif[Y]>>12);
+	target_dif[Z] = JO_ABS(target_dif[Z]>>12);
+	
+	if((target_dif[X] + target_dif[Y] + target_dif[Z]) < gap) return 1;
+
+	act->dV[X] += fxm(dif_norm[X], rate);
+	act->dV[Y] += fxm(dif_norm[Y], rate);
+	act->dV[Z] += fxm(dif_norm[Z], rate);
+	
+	return 0;
+}
+
+
 //Allows each search for the target sector to iterate through each sector's adjacent sector list up to the iteration limit.
 //There are really two iteration limits; the one set here for this function to allow each branch to find the shortest path,
 //(by limiting each recursive path to a certain number of iterations such that the longer iterations return 0 and thus allow to continue),
@@ -592,12 +651,524 @@ int	actor_recursive_path_from_sector_to_sector(int from_sector, int to_sector, i
 	for(int i = 0; i < source->nbAdjacent; i++)
 	{
 		int check_id = source->pvs[i+1];
-		
+		//If there is no valid path between these adjacent sectors, don't bother checking with it.
+		if(!pathing->count[from_sector][check_id]) continue;
 		if(check_id == to_sector) return 1;
 		
 		if(actor_recursive_path_from_sector_to_sector(check_id, to_sector, iterations, iter_limit)) return 1;
 	}
 	
 	return 0;
+}
+
+
+
+int		actorLineOfSight(_actor * act, int * pos)
+{
+	//Goal:
+	//Check line-of-sight from (actor) to (pos)
+	//This involves all collision-enabled proxies
+	
+	static int vector_to_pos[3] = {0,0,0};
+	static int normal_to_pos[3] = {0,0,0};
+	static int vector_to_hit[3] = {0,0,0};
+	static int hit[3] = {0,0,0};
+	//static int nHit[3];
+	static int hitPly = 0;
+	int possibleObstruction = 0;
+	
+	hit[X] = 32767<<16;
+	hit[Y] = 32767<<16;
+	hit[Z] = 32767<<16;
+	
+	vector_to_pos[X] = (pos[X] - act->pos[X])>>4;
+	vector_to_pos[Y] = (pos[Y] - act->pos[Y])>>4;
+	vector_to_pos[Z] = (pos[Z] - act->pos[Z])>>4;
+	
+	quick_normalize(vector_to_pos, normal_to_pos);
+	
+	//Methods needed:
+	//well i have them
+	
+/* 	for(int c = 0; c < MAX_PHYS_PROXY; c++)
+	{
+		//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+		if(RBBs[c].status[1] != 'C') continue;
+		if(RBBs[c].boxID == act->box->boxID) continue;
+		unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
+		unsigned short boxType = edata & (0xF000);
+		//Check if object # is a collision-approved type
+		switch(boxType)
+		{
+			case(OBJPOP):
+			case(SPAWNER):
+			possibleObstruction += hitscan_vector_from_position_box(normal_to_pos, act->pos, hit, nHit, &RBBs[c]);
+			break;
+			case(ITEM | OBJPOP):
+			break;
+			case(BUILD | OBJPOP):
+			possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos, NULL);
+			break;
+			default:
+			break;
+		}
+	} */
+	
+
+	//Check sectors for LOS
+	_sector * sct = &sectors[act->curSector];
+	//Rather than check everything in the sector's PVS for collision,
+	//we will only check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleObstruction += hitscan_vector_from_position_building(normal_to_pos, act->pos, hit, &hitPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		if(possibleObstruction) break;
+		hit[X] = 0;
+		hit[Y] = 0;
+		hit[Z] = 0;
+	}
+	
+	//What we should have returned now is the closest hit point to the actor (hit).
+	//We need to know if (hit) is between (actor) and (pos).
+	//What we will do is see if the hit is on the right side of pos using the normal to it.
+	//Of course, if there was no hit, there is no obstruction to line-of-sight.
+	if(!possibleObstruction)
+	{
+		return 1;
+	}
+	
+	vector_to_hit[X] = (pos[X] - hit[X]);
+	vector_to_hit[Y] = (pos[Y] - hit[Y]);
+	vector_to_hit[Z] = (pos[Z] - hit[Z]);
+	
+	//(1<<16 being used as some tolerance in case the target position is exactly the hit position, as may sometimes happen)
+	if(fxdot(vector_to_hit, normal_to_pos) > (1<<16))
+	{
+		act->blockedLOSNorm[X] = sct->ent->pol->nmtbl[hitPly][X];
+		act->blockedLOSNorm[Y] = sct->ent->pol->nmtbl[hitPly][Y];
+		act->blockedLOSNorm[Z] = sct->ent->pol->nmtbl[hitPly][Z];
+		return 0;
+	}
+	//No obstruction conditions were met; line-of-sight is achieved.
+	return 1;
+	
+}
+
+
+int	actorCheckPathOK(_actor * act, int * path_dir)
+{
+	//Step 1: Create an arbitrary point some distance in the direction the actor is moving, scaled by velocity.
+	static int actorPathProxy[3];
+	static int towardsFloor[3] = {0, (1<<16), 0};
+	static int floorProxy[3];
+	//static int floorNorm[3];
+	static int hitFloorPly = 0;
+	static int losToProxy = 0;
+	
+	//First Pass
+	//If a wall is likely to be in the way in the first place, consider that the path is not OK.
+	//In this case, the path target is significantly above the actor; it cannot reach it directly.
+	if((JO_ABS((act->pos[Y] + act->box->radius[Y]) - act->pathTarget[Y]) > (act->box->radius[Y]<<1)) && act->curPathStep == 0 && act->curSector != act->goalSector)
+	{
+		return 0;
+	}
+	
+	//(we add the Z axis because that's forward)
+	actorPathProxy[X] = act->pos[X] + fxm(act->velocity[X]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, path_dir[X]);
+	actorPathProxy[Z] = act->pos[Z] + fxm(act->velocity[Z]<<1, time_fixed_scale) + fxm(act->box->radius[Z]<<1, path_dir[Z]);
+	
+	//We are going to do something that in many circumstances we would not want to do.
+	//We are going to ignore the Y axis of the path proxy; it will retain the Y axis of the actor.
+	//This is a simplification of representing the allowable movement of the actor.
+	//You don't want them to think they can path to a point up a vertical wall; the wall should block them,
+	//and make them find another path.
+	actorPathProxy[Y] = act->pos[Y];
+
+	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
+	sprite_prep.info.drawOnce = 1;
+	sprite_prep.info.mesh = 0;
+	sprite_prep.info.sorted = 0;
+	static short sprSpan[3] = {10,10,10};
+	add_to_sprite_list(actorPathProxy, sprSpan, 'A', 5, sprite_prep, 0, 0);
+	
+	//Step 2: Check line-of-sight to this point.
+	losToProxy = actorLineOfSight(act, actorPathProxy);
+	
+	//If no line of sight, path is not ok.
+	if(!losToProxy) return 0;
+	
+	//Step 3: Get a floor position/normal.
+	int possibleFloor = 0;
+
+	//Check sectors for LOS
+	_sector * sct = &sectors[act->curSector];
+	//We can't forget to re-set these.
+	floorProxy[X] = -(32765<<16);
+	floorProxy[Y] = -(32765<<16);
+	floorProxy[Z] = -(32765<<16);
+	//Rather than check everything in the sector's PVS for collision,
+	//we will only check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+		//floorNorm[X] = sct->ent->pol->nmtbl[hitFloorPly][X];
+		//floorNorm[Y] = sct->ent->pol->nmtbl[hitFloorPly][Y];
+		//floorNorm[Z] = sct->ent->pol->nmtbl[hitFloorPly][Z];
+	}
+	
+	//If there was no possible floor, path is not OK.
+	//if(!possibleFloor) return 0;
+	
+
+	
+	//If the floor height difference is outside the tolerance, path is not OK.
+	// I'll have to use some other method to validate whether or not the guidance point is on a floor or not.
+	if(JO_ABS((act->pos[Y] + act->box->radius[Y]) - floorProxy[Y]) > (act->box->radius[Y]<<1))
+	{
+		//Stand-in data
+		act->blockedLOSNorm[X] = -path_dir[X];
+		act->blockedLOSNorm[Y] = 0;
+		act->blockedLOSNorm[Z] = -path_dir[Z];
+		actor_hit_wall(act, act->blockedLOSNorm);
+		return 0;
+	}	
+	//If this wasn't actually a floor at all, path is not OK.
+	//if(floorNorm[Y] > (-32768)) return 0;
+	
+	//Otherwise, path should be OK.
+	return 1;
+	
+}
+
+
+void	pathing_exception(int actor_id)
+{
+	//In case where the actor lost LOS to the navigation proxy during normal pathing, an exception must be created.
+	//To do so, we will be adding to the actor's navigation list.
+	//What we must do in this case is find a unique data set to apply to a navigation step to mark it as the exception case.
+	_actor * act = &spawned_actors[actor_id];
+	static unsigned short erebus = 0;
+	if(act->exceptionStep == INVALID_SECTOR)
+	{
+		act->exceptionStep = act->curPathStep+1;
+		act->exceptionDir[X] = act->pathUV[X];
+		act->exceptionDir[Y] = act->pathUV[Y];
+		act->exceptionDir[Z] = act->pathUV[Z];
+		erebus++;
+	}
+	
+	act->exceptionTimer = 0;
+	act->curPathStep = act->exceptionStep;
+
+	int rotationSet[3] = {act->exceptionDir[X], act->exceptionDir[Y], act->exceptionDir[Z]};
+	//this is an adjustment to push the direction travelled towards the normal of the surface which blocked line of sight
+	//this is to help the actor move away from the surface, at least in theory
+	act->exceptionDir[X] = fxm(act->exceptionDir[X], act->blockedLOSNorm[X]);
+	act->exceptionDir[Y] = fxm(act->exceptionDir[Y], act->blockedLOSNorm[Y]);
+	act->exceptionDir[Z] = fxm(act->exceptionDir[Z], act->blockedLOSNorm[Z]);
+
+	//this is simply egregious but... it kinda works
+	//half the time, we'll pick left; the other half, we'll pick right.
+	if(erebus & 1)
+	{
+	fxrotY(rotationSet, act->exceptionDir, (30 * 182));
+	} else {
+	fxrotY(rotationSet, act->exceptionDir, -(30 * 182));
+	}
+	
+	
+	//quick_normalize(rotationSet, act->exceptionDir);
+	
+	// nbg_sprintf_decimal(3, 10, act->exceptionDir[X]);                     
+	// nbg_sprintf_decimal(3, 11, act->exceptionDir[Y]);                       
+	// nbg_sprintf_decimal(3, 12, act->exceptionDir[Z]);
+	// nbg_sprintf_decimal(3, 13, fxdot(act->exceptionDir, act->exceptionDir));
+	
+	act->exceptionPos[X] = (fxm(act->exceptionDir[X], 256<<16) + act->pos[X] - levelPos[X]);
+	act->exceptionPos[Y] = (fxm(act->exceptionDir[Y], 256<<16) + act->pos[Y] - levelPos[Y]) + act->box->radius[Y];
+	act->exceptionPos[Z] = (fxm(act->exceptionDir[Z], 256<<16) + act->pos[Z] - levelPos[Z]);
+	
+	_pathStep * step = &pathStepHeap->steps[actor_id][act->curPathStep];
+	
+	step->pos = act->exceptionPos;
+	step->dir = act->exceptionDir;
+	step->fromSector = act->curSector;
+	step->toSector = act->curSector; //(may be incorrect)
+	step->actorID = actor_id;
+	pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
+	
+}
+
+
+void	runPath(int actor_id)
+{
+	//register which path we are looking at
+	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	
+	int cap_sct = stepList[1].toSector;
+	int lst_sct = stepList[1].fromSector;
+	
+	_actor * act = &spawned_actors[actor_id];
+	
+	if(act->curSector == act->goalSector) return;
+	
+	_sector * sctA = &sectors[cap_sct];
+	
+	int next_step = INVALID_SECTOR;
+	static int iterations = 0;
+	iterations = 0;
+	do{
+		for(int i = 0; i < sctA->nbAdjacent; i++)
+		{
+			if(!pathing->count[cap_sct][sctA->pvs[i+1]]) continue;
+			//It stands to reason that the last sector we were in would show up on the list first,
+			//so we have to specifically exclude it.
+			if(sctA->pvs[i+1] == lst_sct) continue;
+			if(actor_recursive_path_from_sector_to_sector(sctA->pvs[i+1], act->goalSector, 0, iterations))
+			{
+				next_step = sctA->pvs[i+1];
+				break;
+			}
+		}
+	iterations++;
+	}while(iterations <= MAX_PATHING_STEPS && next_step == INVALID_SECTOR);
+	
+	nbg_sprintf(3, 20, "pth(%i)", next_step);
+	
+	//In case no valid path was found, make no changes to the path table.
+	if(next_step == INVALID_SECTOR) return;
+	
+	stepList[1].fromSector = cap_sct;
+	stepList[1].toSector = next_step;
+	_pathNodes * path = pathing->guides[cap_sct][next_step][0];
+	stepList[1].pos = path[0].nodes[0];
+	stepList[1].dir = path[0].dir[0];
+	stepList[1].actorID = actor_id;
+	act->curPathStep = 1;
+}
+
+
+
+void	checkInPathSteps(int actor_id)
+{
+	_actor * act = &spawned_actors[actor_id];
+	if(act->curPathStep == INVALID_SECTOR) return;
+	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	nbg_sprintf(3, 14, "total_step(%i)", *numSteps);
+	if(act->curPathStep > *numSteps) act->curPathStep = *numSteps;
+	//register which path we are looking at
+	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	//path steps
+	_pathStep * step;
+	
+	static int onPathNode = 0;
+	
+	if(act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME && act->curPathStep > 0 && act->exceptionStep != INVALID_SECTOR)
+	{
+		//We will use the path checking function to evaluate the line-of-sight to the original path direction.
+		//If the path to the original point is clear, we will release the exception.
+		//If it is not, we will reset the timer, but we won't release the exception.
+		step = &stepList[act->curPathStep-1];
+		int path_delta[3] = {((levelPos[X] + step->pos[X]) - act->pos[X])>>4, 0, ((levelPos[Z] + step->pos[Z]) - act->pos[Z])>>4};
+		int path_dUV[3] = {0,0,0};
+		quick_normalize(path_delta, path_dUV);
+	
+		if(actorCheckPathOK(act, path_dUV) || onPathNode)
+		{
+			act->curPathStep--;
+			act->exceptionStep = INVALID_SECTOR;
+			if(onPathNode)
+			{
+				onPathNode = 0;
+				runPath(actor_id);
+			}
+		} else {
+			act->exceptionPos[X] += fxm(act->exceptionDir[X], 256<<16);
+			//(flying actors might need the Y axis)
+			act->exceptionPos[Z] += fxm(act->exceptionDir[Z], 256<<16);
+		}
+		act->exceptionTimer = 0;
+	}
+	
+	//register the step
+	step = &stepList[act->curPathStep];
+	//simple test: if we are in the sector that this step is going towards, we should change steps.
+	if((act->curSector == step->toSector) && act->curPathStep > 0 && act->exceptionStep == INVALID_SECTOR)
+	{
+		act->curPathStep--;
+		act->exceptionStep = INVALID_SECTOR;
+		runPath(actor_id);
+		//since the current step has changed, register it again
+		step = &stepList[act->curPathStep];
+		onPathNode = 0;
+		act->exceptionTimer = 0;
+	}
+	
+	if(act->curSector != step->fromSector && act->curSector != step->toSector)
+	{
+		onPathNode = 0;
+		act->exceptionTimer = 0;
+		act->curPathStep = 0;
+		act->pathingLatch = 0;
+		step = &stepList[act->curPathStep];
+	}
+
+	
+	nbg_sprintf(3, 15, "stp(%i)", act->curPathStep);
+	nbg_sprintf(3, 16, "sc1(%i)", step->fromSector);
+	nbg_sprintf(3, 17, "sc2(%i)", step->toSector);
+	nbg_sprintf(3, 18, "exc(%i)", act->exceptionStep);
+	
+	nbg_sprintf_decimal(3, 10, step->dir[X]);                     
+	nbg_sprintf_decimal(3, 11, step->dir[Y]);                       
+	nbg_sprintf_decimal(3, 12, step->dir[Z]);
+	// nbg_sprintf_decimal(3, 13, fxdot(step->dir, step->dir));
+	
+	act->exceptionTimer += delta_time;
+	if(act->curPathStep > 0)
+	{
+		act->pathTarget[X] = levelPos[X] + step->pos[X];
+		act->pathTarget[Y] = levelPos[Y] + (step->pos[Y] - act->box->radius[Y]);
+		act->pathTarget[Z] = levelPos[Z] + step->pos[Z];
+		
+		//iterate towards the step
+		onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+		//if on the path node ( = 1), we need to do something else.
+		//each path node has a direction; we need to follow that direction until we are in the sector of the next node.
+		if(onPathNode && act->exceptionStep == INVALID_SECTOR && act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME)
+		{
+			//Grab the direction from the last path node, presumed to not be an exception path node as restricted by the "if"
+			int * pathNodeDir = step->dir;
+			int lsSct = step->toSector;
+			act->exceptionStep = act->curPathStep+1;
+			act->curPathStep = act->exceptionStep;
+			act->exceptionTimer = 0;
+			
+			step = &stepList[act->exceptionStep];
+			
+			step->dir = pathNodeDir;
+
+			act->exceptionDir[X] = step->dir[X];
+			act->exceptionDir[Y] = step->dir[Y];
+			act->exceptionDir[Z] = step->dir[Z];
+
+			act->exceptionPos[X] = (fxm(act->exceptionDir[X], 256<<16) + act->pos[X] - levelPos[X]);
+			act->exceptionPos[Y] = (fxm(act->exceptionDir[Y], 256<<16) + act->pos[Y] - levelPos[Y]) + act->box->radius[Y];
+			act->exceptionPos[Z] = (fxm(act->exceptionDir[Z], 256<<16) + act->pos[Z] - levelPos[Z]);
+			
+			step->pos = act->exceptionPos;
+			step->dir = act->exceptionDir;
+			step->fromSector = act->curSector;
+			step->toSector = lsSct; 
+			step->actorID = actor_id;
+			pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
+		}
+	} else {
+		if(act->info.flags.losTarget)
+		{
+			act->pathTarget[X] = act->pathGoal[X];
+			act->pathTarget[Y] = act->pathGoal[Y];
+			act->pathTarget[Z] = act->pathGoal[Z];
+			actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+		}
+		return;
+	}
+
+	
+	
+}
+
+void	findPathTo(int targetSector, int actor_id)
+{
+	_actor * act = &spawned_actors[actor_id];
+	if(act->curSector == targetSector || act->pathingLatch == 1)
+	{
+		pathing_exception(actor_id);
+		return;
+	}
+	_sector * sctA = &sectors[act->curSector];
+	_sector * sctB = &sectors[targetSector];
+	if(sctA->nbAdjacent == 0) return;
+	if(sctB->nbAdjacent == 0) return;
+	
+	act->pathingLatch = 1;
+	act->exceptionStep = INVALID_SECTOR;
+	
+	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	*numSteps = -1;
+	//register which path we are looking at
+	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	
+	//reconciliation: the final path step is always to the pathGoal, so add it
+	stepList[0].fromSector = targetSector;
+	stepList[0].toSector = targetSector;
+	stepList[0].pos = &act->pathGoal[0];
+	stepList[0].dir = &act->dirUV[0];
+	stepList[0].actorID = actor_id;
+	*numSteps += 1;
+
+	//first a sanity check
+	//if sector A is adjacent to sector B, then our path table is one step
+	//but **ONLY** if a path exists from sector A to sector B
+	if(pathing->count[act->curSector][targetSector])
+	{
+		for(int i = 0; i < sctA->nbAdjacent; i++)
+		{
+			if(sctA->pvs[i+1] == targetSector)
+			{
+				//the target sector was found as adjacent to the actor's current sector
+				//add this to the path table
+				stepList[1].fromSector = act->curSector;
+				stepList[1].toSector = targetSector;
+				_pathNodes * path = pathing->guides[act->curSector][targetSector][0];
+				stepList[1].pos = path[0].nodes[0];
+				stepList[1].dir = path[0].dir[0];
+				stepList[1].actorID = actor_id;
+				*numSteps += 1;
+				act->curPathStep = *numSteps;
+				return;
+			}
+		}
+	}
+	//Objective:
+	//Iterate through each adjacent sector to find the targetSector. 
+	//This process must be done in away where each iteration is limited such that every path is allowed to process up to the same limit.
+	//This is so that the shortest path is found within the limit, which increases every iteration.
+	int next_step = INVALID_SECTOR;
+	static int iterations = 0;
+	iterations = 0;
+	do{
+		for(int i = 0; i < sctA->nbAdjacent; i++)
+		{
+			if(!pathing->count[act->curSector][sctA->pvs[i+1]]) continue;
+			if(actor_recursive_path_from_sector_to_sector(sctA->pvs[i+1], targetSector, 0, iterations))
+			{
+				next_step = sctA->pvs[i+1];
+				break;
+			}
+		}
+	iterations++;
+	}while(iterations <= MAX_PATHING_STEPS && next_step == INVALID_SECTOR);
+	
+	//In case no valid path was found, make no changes to the path table.
+	if(next_step == INVALID_SECTOR) return;
+	
+	//Otherwise, start pathing with the set sector as the next step.
+	//Note that within this function, we can only start a path; perhaps I need a code cleanup so there is:
+	//clearPath
+	//findPath (<- this function)
+	//runPath (<- will operate if toSector is not targetSector)
+	
+	stepList[1].fromSector = act->curSector;
+	stepList[1].toSector = next_step;
+	_pathNodes * path = pathing->guides[act->curSector][next_step][0];
+	stepList[1].pos = path[0].nodes[0];
+	stepList[1].dir = path[0].dir[0];
+	stepList[1].actorID = actor_id;
+	*numSteps += 1;
+	act->curPathStep = *numSteps;
+	
+	return;
+	
 }
 

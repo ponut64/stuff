@@ -80,7 +80,23 @@ inline FIXED	fxdiv(FIXED dividend, FIXED divisor) //Fixed-point division
 	*DVSR = divisor;
 	*DVDNTH = (dividend>>16);
 	*DVDNTL = (dividend<<16);
-	return *DVDNTL;
+	return (*DVDNTL);
+	// register volatile int quotient;
+	// asm(
+	// "mov.l %[dvs], @%[dvsr];"
+	// "mov %[dvd], r1;" //Move the dividend to a general-purpose register, to prevent weird misreading of data.
+	// "shlr16 r1;"
+	// "exts.w r1, r1;" //Sign extension in case value is negative
+	// "mov.l r1, @%[nth];" //Expresses "*DVDNTH = dividend>>16"
+	// "mov %[dvd], r1;"
+	// "shll16 r1;"
+	// "mov.l r1, @%[ntl];" //Expresses *DVDNTL = dividend<<16";
+	// "mov.l @%[ntl], %[out];" //Get result.
+		// : 	[out] "=r" (quotient)											//OUT
+		// :	[dvs] "r" (divisor), [dvd] "r" (dividend), [dvsr] "r" (DVSR), [nth] "r" (DVDNTH), [ntl] "r" (DVDNTL)		//IN
+		// :	"r1"															//CLOBBERS
+	// );
+	// return quotient;
 }
 
 //Set data in s for division unit.
@@ -192,8 +208,7 @@ FIXED		fxisqrt(FIXED input)
 	FIXED shoffset = 0;
 	FIXED yIsqr = 0;
 	
-	if(input <= 65536)
-	{
+	if(input <= 65536){
 		return 65536;
 	}
 	
@@ -215,7 +230,8 @@ FIXED		fxisqrt(FIXED input)
 //////////////////////////////////
 // "fast inverse square root x2", but fixed-point
 //////////////////////////////////
-FIXED		double_fxisqrt(FIXED input){
+FIXED		fxisqrt_iterations(FIXED input, int iterations)
+{
 	
 	FIXED xSR = 0;
 	FIXED pushrsamp = 0;
@@ -230,7 +246,8 @@ FIXED		double_fxisqrt(FIXED input){
 	xSR = input>>1;
 	pushrsamp = input;
 	
-	while(pushrsamp >= 65536){
+	while(pushrsamp & 0xFFFF0000)
+	{
 		pushrsamp >>=1;
 		msb++;
 	}
@@ -238,8 +255,11 @@ FIXED		double_fxisqrt(FIXED input){
 	shoffset = (16 - ((msb)>>1));
 	yIsqr = 1<<shoffset;
 	//y = (y * (98304 - ( ( (x>>1) * ((y * y)>>16 ) )>>16 ) ) )>>16;   x2
+	for(int i = 0; i < iterations; i++)
+	{
 	yIsqr = (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
-	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
+	}
+	return yIsqr;
 }
 
 void	fxrotX(int * v_in, int * v_out, int angle)
@@ -450,34 +470,22 @@ void	cpy3(FIXED * dst, FIXED * src)
 }
 
 //note: vector_in cannot have negative components
-void	normalize(FIXED * vector_in, FIXED * vector_out)
+void	quick_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
-	vmag = fxisqrt(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
+	vmag = fxisqrt(fxdot(vector_in, vector_in));
 	vector_out[X] = fxm(vmag, vector_in[X]);
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
 //note: vector_in cannot have negative components
-void	double_normalize(FIXED * vector_in, FIXED * vector_out)
+void	accurate_normalize(FIXED * vector_in, FIXED * vector_out, int accuracy)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
-	vmag = double_fxisqrt(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
-	vector_out[X] = fxm(vmag, vector_in[X]);
-	vector_out[Y] = fxm(vmag, vector_in[Y]);
-	vector_out[Z] = fxm(vmag, vector_in[Z]);
-}
-
-//note: vector_in cannot have negative components
-void	accurate_normalize(FIXED * vector_in, FIXED * vector_out)
-{
-	//Shift inputs rsamp by 8, to prevent overflow.
-	static FIXED vmag = 0;
-	vmag = slSquartFX(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
-	vmag = fxdiv(1<<16, vmag);
+	vmag = fxisqrt_iterations(fxdot(vector_in, vector_in), accuracy);
 	vector_out[X] = fxm(vmag, vector_in[X]);
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);

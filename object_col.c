@@ -649,18 +649,16 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 				//We do however need to do this only when we have a hit at all.
 				unsigned int possible_hit_scale = 0;
 				unsigned int hit_scale = 0;
-				if(hasHit)
-				{
-					trash[X] = (possible_hit[X] - ray_pos[X])>>16;
-					trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
-					trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
-					possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-					trash[X] = (hit[X] - ray_pos[X])>>16;
-					trash[Y] = (hit[Y] - ray_pos[Y])>>16;
-					trash[Z] = (hit[Z] - ray_pos[Z])>>16;
-					hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
-				}
-				if(possible_hit_scale < hit_scale || !hasHit)
+				trash[X] = (possible_hit[X] - ray_pos[X])>>16;
+				trash[Y] = (possible_hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (possible_hit[Z] - ray_pos[Z])>>16;
+				possible_hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				trash[X] = (hit[X] - ray_pos[X])>>16;
+				trash[Y] = (hit[Y] - ray_pos[Y])>>16;
+				trash[Z] = (hit[Z] - ray_pos[Z])>>16;
+				hit_scale = (trash[X] * trash[X]) + (trash[Y] * trash[Y]) + (trash[Z] * trash[Z]);
+				
+				if(possible_hit_scale < hit_scale)
 				{
 					hit[X] = possible_hit[X];
 					hit[Y] = possible_hit[Y];
@@ -696,21 +694,20 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 	
 	for(unsigned int i = 0; i < sct->nbPolygon; i++)
 	{
-		
-		//////////////////////////////////////////////////////////////
-		// Add the position of the mesh to the position of its points
-		// PDATA vector space is inverted, so we negate them
-		// "Get world-space point position"
-		//////////////////////////////////////////////////////////////
+		//Collsion Addendum:
+		//With a simplified collision system using unrotating boxes, a collision proxy's center may interact with the wall.
+		//In other words, it's possible to use any 90d convex wall edge to jackknife yourself into hammerspace. Not good.
+		//The solution is barbaric: make every wall (and... floor, i guess) slightly bigger than it appears.
+		//Method: Center the plane points around center, multiply by a fixed amount, add back to plane center, then add world pos.
 		int alias = sct->pltbl[i];
 		plane_center[X] = 0;
 		plane_center[Y] = 0;
 		plane_center[Z] = 0;
 		for(int u = 0; u < 4; u++)
 		{
-		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + ent->prematrix[9] ); 
-		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + ent->prematrix[10] ); 
-		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + ent->prematrix[11] );
+		plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X]);
+		plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y]); 
+		plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z]);
 		//Add to the plane's center
 		plane_center[X] += plane_points[u][X];
 		plane_center[Y] += plane_points[u][Y];
@@ -720,6 +717,35 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 		plane_center[X] >>=2;
 		plane_center[Y] >>=2;
 		plane_center[Z] >>=2;
+		for(int u = 0; u < 4; u++)
+		{
+			plane_points[u][X] -= plane_center[X];
+			plane_points[u][Y] -= plane_center[Y];
+			plane_points[u][Z] -= plane_center[Z];
+			plane_points[u][X] = fxm(plane_points[u][X], 72089); //(1.1)
+			plane_points[u][Y] = fxm(plane_points[u][Y], 72089);
+			plane_points[u][Z] = fxm(plane_points[u][Z], 72089);
+			plane_points[u][X] += plane_center[X] + ent->prematrix[9];
+			plane_points[u][Y] += plane_center[Y] + ent->prematrix[10];
+			plane_points[u][Z] += plane_center[Z] + ent->prematrix[11];
+		}
+		
+		//Now for the world-space plane center calculation
+		plane_center[X] = 0;
+		plane_center[Y] = 0;
+		plane_center[Z] = 0;
+		
+		for(int u = 0; u < 4; u++)
+		{
+		plane_center[X] += plane_points[u][X];
+		plane_center[Y] += plane_points[u][Y];
+		plane_center[Z] += plane_points[u][Z];
+		}
+		//Divide sum of plane points by 4 to average all the points
+		plane_center[X] >>=2;
+		plane_center[Y] >>=2;
+		plane_center[Z] >>=2;
+		
 		
 		used_normal[X] = mesh->nmtbl[alias][X];
 		used_normal[Y] = mesh->nmtbl[alias][Y];
