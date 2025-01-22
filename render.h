@@ -231,6 +231,22 @@ typedef struct
 } spriteAnimation;
 
 //////////////////////////////////
+// Background layer (NBG1) Spritesheet Animation Control Structs
+//////////////////////////////////
+typedef struct {
+	short wpos[2]; //Window (Screen) Position
+	short spos[2]; //Spritesheet Position of keyframe (expressed from top-left coordinate)
+	short size[2]; //Keyframe size in spritesheet
+} bg_key;
+
+typedef struct {
+	int length; //# of keyframes in this animation
+	int loop; //Whether this animation loops, or not. 
+	bg_key ** keyframes; //Pointer to the keyframes of the animation in the played order
+	int * lifetimes; //Pointer to the list of lifetimes of each keyframe in this animation (in fixed-point time units)
+} backgroundAnimation;
+
+//////////////////////////////////
 // Basic Menu Stuff
 //////////////////////////////////
 typedef struct

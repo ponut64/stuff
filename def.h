@@ -214,6 +214,7 @@ typedef struct {
 	FIXED IPaccel;
 	
 	int guidePos[3];//test value
+	int viewmodel_offset[2];
 	
 	FIXED moment[XYZ];
 	FIXED mass;

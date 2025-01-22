@@ -701,7 +701,16 @@ void	player_phys_affect(void)
 			you.rot[Z] += setZrotDrate;
 		}
 	} //OFF SURFACE ROTATION DERATING ENDIF
-		
+	
+	//Screen Viewmodel ("the gun") view bob
+	//first, get a fixed-point scale from 0 to 4 sanics
+	int bobrate = you.sanics;
+	if(bobrate >= (8<<16)) bobrate = (8<<16);
+	bobrate = fxdiv(bobrate, 8<<16);
+	static int bobAngle = 0;
+	bobAngle += fxm(bobrate, 1024);
+	you.viewmodel_offset[X] = fxm(slCos(bobAngle), 2<<16)>>16;
+	you.viewmodel_offset[Y] = (fxm(slSin(bobAngle), 4<<16)>>16)-4;
 		
 	//The player's velocity is calculated independent of an actual value, so use it here instead.
 	you.wvel[X] = -you.velocity[X];

@@ -38,7 +38,8 @@ void	sector_vertex_remittance(void);
 void	master_draw(void);
 
 
-extern animationControl reload;
+extern backgroundAnimation shorty_idle;
+extern backgroundAnimation shorty_fire;
 
 extern spriteAnimation qmark;
 

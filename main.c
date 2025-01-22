@@ -7,28 +7,10 @@
 //
 /**
 
-Sector-based engine has been implemented in its first steps.
-
-when I finish a performant & functional version of the sector-based engine, I want to make a video explaining it.
-I know that'll be a week time-sink to plan the script and shoot, but it might be helpful to Emerald.
-
-Portal restrictions:
-
-Some things have to be worked out.
-I have to go back to square 1 on the portal restrictions/applications.
-Step #1 is I NEED a way to determine if a portal is between the (viewport_sector) and the (sector_number).
-If it is NOT, it should not apply.
-
-The master<->dsp<->slave workflow for sector processing was successful.
-The Master CPU is now in "frametime jeopardy", but it can give a few milliseconds.
-It turns out the portal+vertex processing time was about 8ms in the test scene.
-This means that the slave CPU, after some workload realignment, can probably take another 4ms of work. Great!
-
-There are some bugs in this implementation; we need to synchronize the matrices between master/slave better.
-
-I also need to test \ implement actors in the sector system.
-
-i would like to note that with my new knowledge of bitfields, so much code can be more optimally rewritten
+Okay, so keyframe drawing from a bitmap in vdp2 VRAM would look like:
+1. Load all keyframes to one bitmap layer. Assuming it fits. 512x256 is pretty big.
+2. Designate a window the exact size of the keyframe in the intended draw area on the screen.
+3. Translate (scroll) the layer such that the keyframe appears in that exact area.
 
 **/
 //
@@ -139,10 +121,12 @@ void	load_test(void)
 {
 
 	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
-	set_tga_to_nbg1_palette((void*)dirty_buf);
+	set_tga_to_nbg2_palette((void*)dirty_buf);
 	
 	//Uint32 fid = GFS_NameToId((Sint8*)"SPLASH_4.TGA");
 	//set_8bpp_tga_to_nbg0_image(fid, dirty_buf);
+	Uint32 fid = GFS_NameToId((Sint8*)"TESTA2.TGA");
+	set_8bpp_tga_to_nbg1_image(fid, dirty_buf);
 	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
@@ -212,7 +196,6 @@ void	load_test(void)
 	WRAP_NewTexture((Sint8*)"GOLD.TGA", (void*)dirty_buf);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TGUN.GVP",			HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		

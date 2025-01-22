@@ -31,26 +31,34 @@ unsigned char * pathStackMax;
 // 3. Implementation of multi-step pathing
 // (do I even need it...?)
 
-//Design evaulation:
-// Cliff avoidance / Cliff-inclusive pathing
-// Need to define a "cliff" ->
-// Floor height difference of greater than half the actor's height or no floor at all
-// What to do when found a cliff ->
-// This is more difficult; the normals involved do not give a useful direction to go.  
-// Furthurmore, while we can know what polygon we are on we don't really know which edge we cross to hit the cliff.
-// There are no guides present which easily direct the actor away from the cliff.
-// We can try probing in a pattern with "exceptions" until we aren't going off the cliff,
-// but this has a high chance of the actor accidentally going down the cliff.
-// We also really don't want to be generating a bunch of exceptions in rapid succession; bad for performance.
-// The only other thing that might work is supposing not only a pathing exception, but that the direction to the cliff is a wall.
-// Thus, even if the actor accidentally moves towards the wall, it will "bounce" off of the last path which went towards the wall.
-// This helps the actor avoid going down the cliff and might soften the neccessity of rapid path checks.
+// Design Evaluation:
+// The system allocates memory for one path guide per adjacent sector, generally speaking; sometimes two.
+// This is a design flaw; using sector barriers for pathing in addition to rendering will cause problems.
+// However, this flaw can be mitigated with designer intervention tools of a different kind.
+// The level designer must be able to manually designate path nodes.
+// What is likely to be easiest and most helpful to design is a material property which
+// designates the center of a polygon to be a path node.
+// But what will the pathing system do with these manually placed nodes?
+// Surely, some of them could represent additional borders between sectors....?
+// But more importantly, they need to represent turning points, essentially; places that guide the AI through obstacles.
+// Thus, the role of an intrasector path guide is to provide an alternative to normal pathing exception:
+// Upon pathing exception LOS check to target failing, check LOS to an intrasector node.
+// If there is LOS to this node, navigate to that node instead of the exception path.
+// If there is no LOS to this node, increment node counter, and wait until next exception release check to check again.
+// Perhaps the system would optimally order the check by the nodes closest to the desired sector border.
+// It also needs to flag intrasector nodes it has already visited on this path so it doesn't go back to a used one...?
 
-//Exception cases that need to be caught early:
-//1. Pathing to an area that is significantly above the actor
-//	There is not likely to be a direct path since these conditions mean a wall is probably present.
-//	In such a case, the actor should immediately route by sector guides.
-//	Even if the location is in the current sector, we should probably try pathing around other sectors.
+
+//design notes:
+//the only other solution i can think of is like an open bolt mechanism; 
+//retracting the bolt ejects the spent round out of the port, and pulls the bolt/carrier back against a spring
+//it is held back by the trigger
+//first, the magazine handle must be moved forward again to get the magazine in place
+//then, the a press of the trigger will release the bolt+carrier to go forward under spring pressure, strip a round, then fire
+//as a locked breach gun, the firing pin only hits the primer after the bolt carrier is all the way forward
+
+
+
 
 //Handler function which will populate the goal position and goal floor ID.
 void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)

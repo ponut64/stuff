@@ -49,7 +49,8 @@ unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //////////////////////////////////////////////////////////////////////////////
-animationControl reload;
+backgroundAnimation shorty_idle;
+backgroundAnimation shorty_fire;
 
 spriteAnimation qmark;
 
@@ -168,19 +169,54 @@ void	player_draw(int draw_mode)
 
 	makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 	
-	meshAnimProcessing(&reload, &entities[1], false);
+	//step-in code for handling nbg1 weapon sprite
+	
+	
+	//so if test idle frame is 330x75, and its the starting keyframe in the top left, we need to:
+	//1. set window from top left (352-330),(224-75) to bottom right of (352,224)
+	//2. then, scroll the screen right (352-330) pixels, and down (75-224) pixels	
 
-	entities[1].prematrix = (FIXED*)&sl_RBB;
-	entities[1].z_plane = 1;
-	if(draw_mode == DRAW_MASTER)
+	//okay, let's display the animation "shorty_idle"
+	
+	backgroundAnimation * curAnim = &shorty_fire;
+	
+	static int keyTimer = 0;
+	static int curKey = 0;
+	
+	keyTimer+= delta_time;
+	
+	if(keyTimer > curAnim->lifetimes[curKey])
 	{
-		msh2DrawModel(&entities[1], perspective_root);
-	} else if(draw_mode == DRAW_SLAVE)
-	{
-		slPushMatrix();
-		ssh2DrawModel(&entities[1]);
-		slPopMatrix();
+		curKey += 1;
+		keyTimer = 0;
 	}
+	if(curKey >= curAnim->length)
+	{
+		curKey = 0;
+	}
+	
+	bg_key * keyfrm = curAnim->keyframes[curKey];
+	
+	int finWindow[2] = {keyfrm->wpos[X]-you.viewmodel_offset[X], keyfrm->wpos[Y]-you.viewmodel_offset[Y]};
+	
+	int finPos[2] = {keyfrm->spos[X]-finWindow[X], keyfrm->spos[Y]-finWindow[Y]};
+	
+	slScrWindow0(finWindow[X], finWindow[Y], finWindow[X]+keyfrm->size[X], finWindow[Y]+keyfrm->size[Y]);
+	slScrPosNbg1((finPos[X])<<16, (finPos[Y])<<16);
+	
+	// meshAnimProcessing(&reload, &entities[1], false);
+
+	// entities[1].prematrix = (FIXED*)&sl_RBB;
+	// entities[1].z_plane = 1;
+	// if(draw_mode == DRAW_MASTER)
+	// {
+		// msh2DrawModel(&entities[1], perspective_root);
+	// } else if(draw_mode == DRAW_SLAVE)
+	// {
+		// slPushMatrix();
+		// ssh2DrawModel(&entities[1]);
+		// slPopMatrix();
+	// }
 }
 
 void	shadow_draw(int draw_mode)
@@ -370,28 +406,7 @@ void	background_draw(void)
 
 	slScrPosNbg0(screen_y_to_x<<16, screen_x_to_y<<16);
 	
-	//Trying to draw something to represent the sanics
-	//Micro-project. Trying to heal brain.
-	//nbg_sprintf(1,20, "         ");
-	//nbg_sprintf(1,20, "%i", you.sanics);
-	int x0l = 8;
-	int yax = 160;
-	int x1l = 64;
-	for(int i = 0; i < 8; i++)
-	{
-		draw_hud_line(x0l, yax+i, x1l, yax+i, 7); //Black/Gray
-	}
-	//Scale sanics to 0-56
-	int sscl = fxdiv(you.sanics, 15<<16);
-	if(sscl >= 1<<16) sscl = 1<<16;
-	if(sscl < 0) sscl = 0;
-	x1l = fxm(sscl, 56<<16)>>16;
-	if(x1l < 0) x1l = 0;
-	x1l += 8;
-	for(int i = 0; i < 8; i++)
-	{
-		draw_hud_line(x0l, yax+i, x1l, yax+i, 6); //Blue
-	}
+	
 }
 
 void	sector_vertex_remittance(void)

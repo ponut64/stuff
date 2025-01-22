@@ -109,8 +109,13 @@ void	draw_hud_line(short x0, short y0, short x1, short y1, unsigned char color_c
 
 void	vblank_requirements(void)
 {
+	//Brief:
+	//NBG0 is using colors 512-765
+	//NBG1 is using colors 768-1024
+	//NBG2 is using colors 0-255
+	//VDP1 is using colors 256-511
 	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
-	vdp2_CRAMoffsetA[0] = 0x2;	//Offsets indexed colors for NBG0 by 512 entries ((2<<10) / 4)
+	vdp2_CRAMoffsetA[0] = 0x32;	//Offsets indexed colors for NBG0 and NBG1
 	vdp2_CRAMoffsetB[0] = 0x10; //Offsets indexed colors for SPR layer by 256 entries ((1<<10) / 4)
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
 	//Note that sprMode also contains data which specifies the rules for color calculation on sprite-layer pixels.
@@ -131,6 +136,7 @@ void	init_vdp2(short backColor)
 
 	slBitMapNbg0(COL_TYPE_256, BM_512x512, (void*)NBG0_BITMAP_ADDR);
 	slBitMapNbg1(COL_TYPE_256, BM_512x256, (void*)NBG1_BITMAP_ADDR);
+	slScrWindowModeNbg1(win0_IN);
 	//Clear VRAM A0
 	//Dunno what ends up here, but it clearly isn't important for the game. So just purge it. Maybe leftover from BIOS?
 	unsigned char * writeByte = (unsigned char *)VDP2_VRAM_A0;
