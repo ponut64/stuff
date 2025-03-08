@@ -122,20 +122,20 @@ void	update_gamespeed(void)
 	time_selector++;
 
 		//Framegraph
-	char curLine = lastTimes[time_selector];
-	char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
-	char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
-	
-	draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 5, 7); //(last argument is color)
-	draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 53);
-		if(time_selector > 1)
-		{
-	draw_hud_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 41);
-		}
-		if(time_selector > 2)
-		{
-	draw_hud_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 23);
-		} 
+	//char curLine = lastTimes[time_selector];
+	//char prevLine = (time_selector < 1) ? lastTimes[65] : lastTimes[time_selector-1];
+	//char nthLine = (time_selector < 2) ? lastTimes[65] : lastTimes[time_selector-2];
+	//
+	//draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, 5, 7); //(last argument is color)
+	//draw_hud_line(time_selector+GRAPH_X_OFFSET, 22, time_selector+GRAPH_X_OFFSET, (curLine>>2)+6, 53);
+	//	if(time_selector > 1)
+	//	{
+	//draw_hud_line((time_selector-1)+GRAPH_X_OFFSET, 22, (time_selector-1)+GRAPH_X_OFFSET, (prevLine>>2)+6, 41);
+	//	}
+	//	if(time_selector > 2)
+	//	{
+	//draw_hud_line((time_selector-2)+GRAPH_X_OFFSET, 22, (time_selector-2)+GRAPH_X_OFFSET, (nthLine>>2)+6, 23);
+	//	} 
 		//
 
 }

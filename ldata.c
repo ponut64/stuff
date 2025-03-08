@@ -113,7 +113,7 @@ void	process_binary_ldata(void * source_data)
 		}
 	}
 	
-	new_special_request((Sint8*)bgName, dirty_buf, set_8bpp_tga_to_nbg0_image);
+	new_special_request((Sint8*)bgName, dirty_buf, set_8bpp_tga_to_nbg0_image_from_cd);
 	
 	//////////////////////////////////
 	//Prepare to load the object list

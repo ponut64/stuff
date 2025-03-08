@@ -15,6 +15,7 @@
 extern volatile int * DVSR;
 extern volatile int * DVDNTH;
 extern volatile int * DVDNTL;
+extern volatile int * SHADOW;
 
 int			getRandom(void);
 void		maintRand(void);

@@ -146,7 +146,6 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 			sct->paths[s].numNodes++;
 			sct->paths[s].fromSector = sector_id;
 			sct->paths[s].toSector = sct->pvs[s+1];
-			break;
 			
 		}
 	}
@@ -178,7 +177,7 @@ void	accumulate_path_node_count_for_sectors(void)
 		{
 			int sctA = sct->paths[j].fromSector;
 			int sctB = sct->paths[j].toSector;
-			pathing->count[sctA][sctB]+=1;
+			pathing->count[sctA][sctB] += sct->paths[j].numNodes;
 		}
 	}
 	
@@ -396,7 +395,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 				sct->paths[s].dir[num_paths][X] = normal_to_tc[X];//JO_ABS((t_center[X] - (guidance_point[X]>>2))>>4);
 				sct->paths[s].dir[num_paths][Y] = normal_to_tc[Y];//JO_ABS((t_center[Y] - (guidance_point[Y]>>2))>>4);
 				sct->paths[s].dir[num_paths][Z] = normal_to_tc[Z];//JO_ABS((t_center[Z] - (guidance_point[Z]>>2))>>4);
-				break;
+				num_paths++;
 			}
 			
 		}
@@ -462,6 +461,7 @@ void	cross_compartment_path_nodes(int sector_num)
 		
 		for(int i = 0; i < add_ct; i++)
 		{
+			
 			sct->paths[s].nodes[original_ct+i][X] = sct2->paths[bt].nodes[i][X];
 			sct->paths[s].nodes[original_ct+i][Y] = sct2->paths[bt].nodes[i][Y];
 			sct->paths[s].nodes[original_ct+i][Z] = sct2->paths[bt].nodes[i][Z];
@@ -506,7 +506,7 @@ void	reconcile_pathing_lists(void)
 		{
 			int sctA = sct->paths[j].fromSector;
 			int sctB = sct->paths[j].toSector;
-			if(sct->paths[j].numNodes) pathing->count[sctA][sctB]+=1;
+			pathing->count[sctA][sctB] += sct->paths[j].numNodes;
 		}
 	}
 	
@@ -547,12 +547,97 @@ void	reconcile_pathing_lists(void)
 			//(must account for cases wherein there is no valid path for adjacent sectors)
 			if(sct->paths[j].numNodes)
 			{
-				pathing->guides[sctA][sctB][pathing->count[sctA][sctB]] = &sct->paths[j];
-				pathing->count[sctA][sctB]++;
+				//The path itself contains a number of nodes, so no need to index the array here; it should always be at zero.
+				//The caveat for that would be in a case where [sctA][sctB] must have the same address as [sctB][sctA],
+				//but other code handles that requirement.
+				pathing->guides[sctA][sctB][0] = &sct->paths[j];
+				pathing->count[sctA][sctB] += sct->paths[j].numNodes;
 			}
 		}
 	}
 	
+	//Be aware that in the process of building these lists, arranging, and copying data,
+	//we do not remove duplicates, nor is there an easy point to check for duplicates.
+	//For instance, we can check and prevent copying over duplicates at the point where nodes are copied between sectors.
+	//But in doing that, the order of nodes is broken, as is the total assumed node count. The memory will get allocated anyway.
+	//So you'd have to allocate the memory, then scan each set for duplicates, remove the duplicates, then consolidate the lists.
+	//At that point, like I said, you will still have allocated the memory for every node anyway, but at least the path search will be faster.
+	//(And that point in the code where that could be done is right here)
+	_pathNodes * cpy = (_pathNodes*)dirty_buf;
+	cpy->dir = (POINT*)((unsigned int)dirty_buf + 1024);
+	cpy->nodes = (POINT*)((unsigned int)dirty_buf + 2048);
+	
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		sct = &sectors[i];
+		if(sct->nbAdjacent == 0 || sct->nbVisible == 0) continue;
+		for(int j = 0; j < sct->nbAdjacent; j++)
+		{
+			if(!sct->paths[j].numNodes) continue;
+			int unduped_nodes = 0;
+			cpy->fromSector = sct->paths[j].fromSector;
+			cpy->toSector = sct->paths[j].toSector;
+			
+			for(int k = 0; k < sct->paths[j].numNodes; k++)
+			{
+				int * chk_pos = sct->paths[j].nodes[k];
+				
+				//We've now captured data for the node we want to check if it is or isn't a duplicate of other nodes.
+				//Now we need to flip through every other node to capture data for them, and compare them.
+				for(int f = 0; f < sct->paths[j].numNodes; f++)
+				{
+					if(f == k) continue;
+					int * nxt_pos = sct->paths[j].nodes[f];
+					int dist = approximate_distance(chk_pos, nxt_pos);
+					if(nxt_pos[X] == -1 && nxt_pos[Y] == -1 && nxt_pos[Z] == -1) continue;
+					if(dist < (64<<16))
+					{
+						//In this case, we've found a (positional) duplicate.
+						//Destroy the duplicate.
+						nxt_pos[X] = -1;
+						nxt_pos[Y] = -1;
+						nxt_pos[Z] = -1;
+					}
+				}
+			}
+			//At this point, all duplicates have been destroyed.
+			//What we need to do is copy what's left to a re-ordered list, copy it back, then update the total.
+			for(int k = 0; k < sct->paths[j].numNodes; k++)
+			{
+				int * chk_pos = sct->paths[j].nodes[k];
+				int * chk_dir = sct->paths[j].dir[k];
+				if(chk_pos[X] == -1 && chk_pos[Y] == -1 && chk_pos[Z] == -1) continue;
+				cpy->nodes[unduped_nodes][X] = chk_pos[X];
+				cpy->nodes[unduped_nodes][Y] = chk_pos[Y];
+				cpy->nodes[unduped_nodes][Z] = chk_pos[Z];
+				cpy->dir[unduped_nodes][X] = chk_dir[X];
+				cpy->dir[unduped_nodes][Y] = chk_dir[Y];
+				cpy->dir[unduped_nodes][Z] = chk_dir[Z];
+				unduped_nodes++;
+			}
+			sct->paths[j].numNodes = unduped_nodes;
+			int sctA = sct->paths[j].fromSector;
+			int sctB = sct->paths[j].toSector;
+			pathing->count[sctA][sctB] = unduped_nodes;
+			for(int k = 0; k < sct->paths[j].numNodes; k++)
+			{
+				int * src_pos = cpy->nodes[k];
+				int * src_dir = cpy->dir[k];
+				
+				int * dst_pos = sct->paths[j].nodes[k];
+				int * dst_dir = sct->paths[j].dir[k];
+				
+				dst_pos[X] = src_pos[X];
+				dst_pos[Y] = src_pos[Y];
+				dst_pos[Z] = src_pos[Z];
+				dst_dir[X] = src_dir[X];
+				dst_dir[Y] = src_dir[Y];
+				dst_dir[Z] = src_dir[Z];
+			}
+			
+		}
+		
+	}
 	
 }
 
@@ -869,6 +954,12 @@ void	pathing_exception(int actor_id)
 
 	//this is simply egregious but... it kinda works
 	//half the time, we'll pick left; the other half, we'll pick right.
+	//
+	// this kinda blows;
+	// rather than be randy randy, we need to check which direction is better.
+	// Now, performing such a check has significant risk in that it can make certain path orientations impossible.
+	// that can happen when the parameters of the "ideal exception check" push the actor into a hole.
+	//
 	if(erebus & 1)
 	{
 	fxrotY(rotationSet, act->exceptionDir, (30 * 182));
@@ -940,9 +1031,32 @@ void	runPath(int actor_id)
 	
 	stepList[1].fromSector = cap_sct;
 	stepList[1].toSector = next_step;
+	
+	//Between two sectors (and thus on each path step), there can be a number of valid pathNodes.
+	//However, we only want to use the pathNode that is closest to the actor.
+	//This is an oversimplification; we want to use the path node that is closest to the next path node down the list.
+	//However, due to the way the system is built, we don't know which sector is next right now. So we use the approx. closest.
 	_pathNodes * path = pathing->guides[cap_sct][next_step][0];
-	stepList[1].pos = path[0].nodes[0];
-	stepList[1].dir = path[0].dir[0];
+	int * active_node = path[0].nodes[0];
+	int * active_dir = path[0].dir[0];
+	if(path[0].numNodes > 1)
+	{
+		int cur_dist = approximate_distance(active_node, act->pos);
+		int low_dist = cur_dist;
+		for(int j = 1; j < path[0].numNodes; j++)
+		{
+			cur_dist = approximate_distance(active_node, path[0].nodes[j]);
+			//(yes the logic is inverted because the vector spaces are inverted)
+			if(cur_dist > low_dist)
+			{
+				active_node = path[0].nodes[j];
+				active_dir = path[0].dir[j];
+				low_dist = cur_dist;
+			}
+		}
+	}
+	stepList[1].pos = active_node;
+	stepList[1].dir = active_dir;
 	stepList[1].actorID = actor_id;
 	act->curPathStep = 1;
 }

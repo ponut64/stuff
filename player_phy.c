@@ -79,6 +79,8 @@ void reset_player(void)
 	
 	you.curSector = INVALID_SECTOR;
 	you.prevSector = INVALID_SECTOR;
+	
+	set_viewmodel_from_slot(0);
 }
 
 

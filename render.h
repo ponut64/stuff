@@ -244,6 +244,7 @@ typedef struct {
 	int loop; //Whether this animation loops, or not. 
 	bg_key ** keyframes; //Pointer to the keyframes of the animation in the played order
 	int * lifetimes; //Pointer to the list of lifetimes of each keyframe in this animation (in fixed-point time units)
+	void * sequence; //Pointer to another animation to be played in sequence with this one
 } backgroundAnimation;
 
 //////////////////////////////////

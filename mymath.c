@@ -11,8 +11,10 @@
 	static FIXED pFNn[XYZ] = {0, 0, 0};
 	
 	volatile int * DVSR = ( int*)0xFFFFFF00;
-	volatile int * DVDNTH = ( int*)0xFFFFFF10;
-	volatile int * DVDNTL = ( int*)0xFFFFFF14;
+	volatile int * DVDNTA = ( int*)0xFFFFFF04; //(for 32/32 operations)
+	volatile int * DVDNTH = ( int*)0xFFFFFF10; //(for 64/32 operations, high 32)
+	volatile int * DVDNTL = ( int*)0xFFFFFF14; //(for 64/32 operations, low 32)
+	volatile int * SHADOW = ( int*)0xFFFFFF1C; //(Read-only DVDNTL / DVDNTA)
 	
 	static short randIter;
 	static short randRollover;
@@ -128,15 +130,15 @@ inline void		SetDiv(int dividend, int divisor)
 /*
 SH7604 Manual Information:
 
-The 64-bit dividend is set in dividend s H and L (DVDNTH and DVDNTL).
-First set the value in DVDNTH. When a value is written to DVDNTL, the 64-bit ÷ 32-bit operation begins.
-After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTL.
+First set the value in DVSR. When a value is written to DVDNTA, the 32-bit ÷ 32-bit operation begins.
+After the operation, the 32-bit remainder is written to DVDNTH and the 32-bit quotient is written to DVDNTA.
+To retrieve the result, get the data from the SHADOW pointer (data = *SHADOW;)
 
 [ME:]These s can only be accessed via pointers. . . because our compiler is not aware of them.
 */	
 
 *DVSR = divisor;
-*DVDNTL = dividend;
+*DVDNTA = dividend;
 	
 }
 

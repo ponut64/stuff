@@ -69,7 +69,7 @@ void	anim_defs(void)
 	shorty_fire.length = 4;
 	shorty_fire.loop = 0;
 	
-	static int fire_lifetimaes[4] = {1024, 1024, 1024, 1024};
+	static int fire_lifetimaes[4] = {16384, 8192, 4096, 4096};
 	shorty_fire.lifetimes = &fire_lifetimaes[0];
 	
 	static bg_key * fire_keylist[4];
@@ -79,8 +79,80 @@ void	anim_defs(void)
 	fire_keylist[3] = &close;
 	
 	shorty_fire.keyframes = fire_keylist;
-
+	shorty_fire.sequence = (void*)&shorty_idle;
 	
+	
+	//For Lever Pistol (this dopesheet has spare room for another item)
+	static bg_key lp_idle_key;
+	lp_idle_key.spos[X] = 0;
+	lp_idle_key.spos[Y] = 0;
+	lp_idle_key.size[X] = 77;
+	lp_idle_key.size[Y] = 84;
+	lp_idle_key.wpos[X] = (TV_WIDTH - lp_idle_key.size[X] - 16);
+	lp_idle_key.wpos[Y] = (TV_HEIGHT - lp_idle_key.size[Y]);
+	
+	static bg_key lp_fire_key;
+	lp_fire_key.spos[X] = 0;
+	lp_fire_key.spos[Y] = 84;
+	lp_fire_key.size[X] = 80;
+	lp_fire_key.size[Y] = 84;
+	lp_fire_key.wpos[X] = (TV_WIDTH - lp_fire_key.size[X] - 16);
+	lp_fire_key.wpos[Y] = (TV_HEIGHT - lp_fire_key.size[Y]);
+
+	static bg_key lp_open1_key;
+	lp_open1_key.spos[X] = 78;
+	lp_open1_key.spos[Y] = 0;
+	lp_open1_key.size[X] = 74;
+	lp_open1_key.size[Y] = 89;
+	lp_open1_key.wpos[X] = (TV_WIDTH - lp_open1_key.size[X] - 16);
+	lp_open1_key.wpos[Y] = (TV_HEIGHT - lp_open1_key.size[Y]);
+	
+	static bg_key lp_open2_key;
+	lp_open2_key.spos[X] = 81;
+	lp_open2_key.spos[Y] = 89;
+	lp_open2_key.size[X] = 75;
+	lp_open2_key.size[Y] = 91;
+	lp_open2_key.wpos[X] = (TV_WIDTH - lp_open2_key.size[X] - 16);
+	lp_open2_key.wpos[Y] = (TV_HEIGHT - lp_open2_key.size[Y]);
+	
+	static bg_key lp_close_key;
+	lp_close_key.spos[X] = 0;
+	lp_close_key.spos[Y] = 168;
+	lp_close_key.size[X] = 77;
+	lp_close_key.size[Y] = 84;
+	lp_close_key.wpos[X] = (TV_WIDTH - lp_close_key.size[X] - 16);
+	lp_close_key.wpos[Y] = (TV_HEIGHT - lp_close_key.size[Y]);
+	
+	///////////////////////////////
+	//Idle frame (Lever Pistol)
+	///////////////////////////////
+	leverpistol_idle.length = 1;
+	leverpistol_idle.loop = 1;
+	
+	//(a staple idle lifetime unit can be used here)
+	leverpistol_idle.lifetimes = &idle_lifetimes[0];
+	
+	static bg_key * leverpistol_idle_keylist[1];
+	leverpistol_idle_keylist[0] = &lp_idle_key;
+	leverpistol_idle.keyframes = leverpistol_idle_keylist;	
+
+	///////////////////////////////
+	//Firing Cycle (lever pistol)
+	///////////////////////////////
+	leverpistol_fire.length = 4;
+	leverpistol_fire.loop = 0;
+	
+	static int leverpistol_fire_lifetimes[4] = {16384, 4096, 8192, 4096};
+	leverpistol_fire.lifetimes = &leverpistol_fire_lifetimes[0];
+	
+	static bg_key * leverpistol_fire_keylist[4];
+	leverpistol_fire_keylist[0] = &lp_fire_key;
+	leverpistol_fire_keylist[1] = &lp_open1_key;
+	leverpistol_fire_keylist[2] = &lp_open2_key;
+	leverpistol_fire_keylist[3] = &lp_close_key;
+	
+	leverpistol_fire.keyframes = leverpistol_fire_keylist;
+	leverpistol_fire.sequence = (void*)&leverpistol_idle;
 
 	//////////////
 	// You CANNOT animate with keyframe 0. Keyframe 0 must be a duplicate of the model at rest.

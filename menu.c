@@ -18,6 +18,7 @@
 #include "minimap.h"
 #include "sound.h"
 #include "collision.h"
+#include "draw.h"
 
 #include <string.h>
 
@@ -43,11 +44,11 @@ void	debug_menu_layer(__basic_menu * mnu)
 	mnu->scale[X] = 120;
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 1;
-	mnu->option_grid[Y] = 6;
-	mnu->num_option = 6;
+	mnu->option_grid[Y] = 7;
+	mnu->num_option = 7;
 	mnu->backColor = 6 + (64 * 2);
 	mnu->optionColor = 5;
-	static char * option_list[] = {"<- Back", "Toggle Frmt", "Next Object", "Prev Object", "Tgl Info Txt", "Tex Viewer"};
+	static char * option_list[] = {"<- Back", "Reset Player", "Toggle Frmt", "Next Object", "Prev Object", "Tgl Info Txt", "Tex Viewer"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -59,19 +60,23 @@ void	debug_menu_layer(__basic_menu * mnu)
 			menuLayer = HUD_LAYER_START;
 			break;
 			case(1):
-			SynchConst = (SynchConst == 1) ? 2 : (SynchConst == 2) ? 3 : 1;
+			reset_player();
+			you.inMenu = false;
 			break;
 			case(2):
-			dPreview++;
+			SynchConst = (SynchConst == 1) ? 2 : (SynchConst == 2) ? 3 : 1;
 			break;
 			case(3):
-			dPreview--;
+			dPreview++;
 			break;
 			case(4):
+			dPreview--;
+			break;
+			case(5):
 			viewInfoTxt = (viewInfoTxt == 1) ? 2 : (viewInfoTxt == 2) ? 0 : 1;
 			nbg_clear_text();
 			break; 
-			case(5):
+			case(6):
 			menuLayer = HUD_LAYER_TEXVIEWER;
 			mnu->selection = 0;
 			default:
@@ -153,20 +158,18 @@ void	control_menu_layer(__basic_menu * mnu)
 	pcoTexDefs[controlImgTexno].SRCA, 1<<6, pcoTexDefs[controlImgTexno].SIZE, 0, 2<<16);
 }
 
-void	start_menu_layer(__basic_menu * mnu)
+void	items_menu_later(__basic_menu * mnu)
 {
 	mnu->topLeft[X] = 35;
 	mnu->topLeft[Y] = 40;
 	mnu->scale[X] = 140;
 	mnu->scale[Y] = 24;
 	mnu->option_grid[X] = 2;
-	mnu->option_grid[Y] = 4;
-	mnu->num_option = 7;
+	mnu->option_grid[Y] = 2;
+	mnu->num_option = 2;
 	mnu->backColor = 6 + (64 * 2);
 	mnu->optionColor = 5;
-	static char * option_list[] = {"Set Recall Pt", "Go to Recall Pt", "Reset Time",
-									"Level Select", "Debug Menu", "Options Menu",
-									"View Controls"};
+	static char * option_list[] = {"Shorty Shotgun", "Lever Pistol"};
 	mnu->option_text = option_list;
 	
 	if(is_key_release(DIGI_A))
@@ -176,32 +179,63 @@ void	start_menu_layer(__basic_menu * mnu)
 		{
 			case(0):
 			you.inMenu = false;
-			if(you.hitSurface)
-			{
-			you.startPos[X] = you.pos[X];
-			you.startPos[Y] = you.pos[Y];
-			you.startPos[Z] = you.pos[Z];
-			}
+			set_viewmodel_from_slot(0);
 			break;
 			case(1):
-			reset_player();
 			you.inMenu = false;
+			set_viewmodel_from_slot(1);
+			break;
+			default:
+			break;
+		}
+	}
+	
+	if(is_key_release(DIGI_C))
+	{
+		pcm_play(snd_clack, PCM_SEMI, 6);
+		menuLayer = HUD_LAYER_START;
+		mnu->selection = 0;
+	}
+	
+}
+
+void	start_menu_layer(__basic_menu * mnu)
+{
+	mnu->topLeft[X] = 35;
+	mnu->topLeft[Y] = 40;
+	mnu->scale[X] = 140;
+	mnu->scale[Y] = 24;
+	mnu->option_grid[X] = 2;
+	mnu->option_grid[Y] = 4;
+	mnu->num_option = 5;
+	mnu->backColor = 6 + (64 * 2);
+	mnu->optionColor = 5;
+	static char * option_list[] = {"Weapon Select", "Level Select", "Debug Menu", "Options Menu",
+									"View Controls"};
+	mnu->option_text = option_list;
+	
+	if(is_key_release(DIGI_A))
+	{
+		pcm_play(snd_button, PCM_SEMI, 6);
+		switch(mnu->selection)
+		{
+			case(0):
+			menuLayer = HUD_LAYER_ITEMS;
+			mnu->selection = 0;
+			break;
+			case(1):
+			menuLayer = HUD_LAYER_LEVEL;
+			mnu->selection = 0;
 			break;
 			case(2):
-			you.resetTimers = true;
-			you.inMenu = false;
-			break;
-			case(3):
-			menuLayer = HUD_LAYER_LEVEL;
-			break;
-			case(4):
 			menuLayer = HUD_LAYER_DEBUG;
+			mnu->selection = 0;
 			break; 
-			case(5):
+			case(3):
 			menuLayer = HUD_LAYER_OPTION_1;
 			mnu->selection = 0;
 			break;
-			case(6):
+			case(4):
 			menuLayer = HUD_LAYER_CONTROLS;
 			mnu->selection = 0;
 			break;
@@ -568,6 +602,9 @@ void	start_menu(void)
 		} else if(menuLayer == HUD_LAYER_CONTROLS)
 		{
 			control_menu_layer(&mnu);
+		} else if(menuLayer == HUD_LAYER_ITEMS)
+		{
+			items_menu_later(&mnu);
 		}
 	static int fuckinghatesynchingkeysvblankbullshit_timer = 0;
 	fuckinghatesynchingkeysvblankbullshit_timer++;

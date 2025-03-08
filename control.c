@@ -2,7 +2,8 @@
 This file is compiled separately.
 */
 
-#include <sl_def.h>
+#include <sl_def.h> 
+#include <SEGA_GFS.H>
 
 #include "def.h"
 #include "pcmsys.h"
@@ -12,6 +13,7 @@ This file is compiled separately.
 
 #include "pcmsys.h"
 #include "render.h"
+#include "draw.h"
 #include "particle.h"
 
 #include "control.h"
@@ -144,6 +146,8 @@ void controls(void)
 		mark[Z] += you.wvel[Z];
 		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark);
 		
+		use_viewmodel();
+		
 		for(int i = 0; i < MAX_PHYS_PROXY; i++)
 		{
 			_actor * act = &spawned_actors[i];
@@ -197,7 +201,8 @@ void controls(void)
 	}
 	//
 
-	if(is_key_down(DIGI_START)){
+	if(is_key_down(DIGI_START))
+	{
 		//reset_player();
 		you.inMenu = true;
 	}

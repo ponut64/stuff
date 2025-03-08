@@ -7,10 +7,27 @@
 //
 /**
 
-Okay, so keyframe drawing from a bitmap in vdp2 VRAM would look like:
-1. Load all keyframes to one bitmap layer. Assuming it fits. 512x256 is pretty big.
-2. Designate a window the exact size of the keyframe in the intended draw area on the screen.
-3. Translate (scroll) the layer such that the keyframe appears in that exact area.
+What's on my development iternerary?
+
+Next thing back on my mind is the pathing. It needs to be better.
+One major fault is only one sector path node per adjacent sector is enabled.
+So one of the first things I want to do is go back and allow up to two path nodes between sectors.
+Another thing is also on the first gaff when a path to a node is blocked, the actor should always prefer to rotate towards it (at first).
+
+Both of these are not simple problems but they need to be addressed.
+
+Second up is going to be some interactivity feature development and testing.
+For instance, buttons which activate doors or elevators, or elevators/doors that activate on touch.
+Hitherto is the cora data defintion of a "mover".
+
+movers would contain pointers to the "return" and "target" points alongside a "rate" value for each
+not sure how to implement that in the game engine's existing data structures,
+but i've also made a point that the existing data structure is out of date
+
+special note:
+pulping enemies with a single shot is very satisfying
+i think the dualie should be able to do that
+and i need to figure out a pulp animation
 
 **/
 //
@@ -119,14 +136,12 @@ void	p64MapRequest(short levelNo)
 //Loading. Check msfs.c and mloader c/h
 void	load_test(void)
 {
-
-	get_file_in_memory((Sint8*)"NBG_PAL.TGA", (void*)dirty_buf);
+	int fid = GFS_NameToId((Sint8*)"NBG_PAL.TGA");
+	get_file_in_memory(fid, (void*)dirty_buf);
 	set_tga_to_nbg2_palette((void*)dirty_buf);
 	
-	//Uint32 fid = GFS_NameToId((Sint8*)"SPLASH_4.TGA");
-	//set_8bpp_tga_to_nbg0_image(fid, dirty_buf);
-	Uint32 fid = GFS_NameToId((Sint8*)"TESTA2.TGA");
-	set_8bpp_tga_to_nbg1_image(fid, dirty_buf);
+	load_viewmodel_to_slot(&shorty_shotgun_vm, 0);
+	load_viewmodel_to_slot(&lever_pistol_vm, 1);
 	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
@@ -320,7 +335,8 @@ int	main(void)
 	
 	fill_obj_list();
 	init_entity_list();
-	
+	//(this has to be after all CD initialization)
+	initialize_viewmodel_data();
 	//load_test();
 	attributions();
 	init_particle();

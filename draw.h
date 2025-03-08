@@ -29,7 +29,6 @@ extern MATRIX world_root;
 
 extern int scrn_z_fwd[3];
 
-void	display_ztp(entity_t * model);
 void	set_camera(void);
 void	master_draw_stats(void);
 void	scene_draw(void);
@@ -37,11 +36,41 @@ void	menu_draw(void);
 void	sector_vertex_remittance(void);
 void	master_draw(void);
 
+extern spriteAnimation qmark;
+////////////////////////////////////////////////////////////////////////////////////////////
+//stuff for vwmdlfunc.c
+////////////////////////////////////////////////////////////////////////////////////////////
+typedef struct {
+	backgroundAnimation * idle_state;
+	backgroundAnimation * use_state;
+	void * buffer;
+	int * slot_in_slot_pointer;
+} _viewmodelSlot;
+
+typedef struct {
+	int fid;
+	int inSlot; // (-1 for not in a slot)
+	_viewmodelSlot slot_data;
+} _viewmodelData;
+
+extern void * viewmodel_0_workram_copy;
+extern void * viewmodel_1_workram_copy;
+
+extern backgroundAnimation * viewmodel_state;
 
 extern backgroundAnimation shorty_idle;
 extern backgroundAnimation shorty_fire;
+extern backgroundAnimation leverpistol_idle;
+extern backgroundAnimation leverpistol_fire;
 
-extern spriteAnimation qmark;
+extern _viewmodelData lever_pistol_vm;
+extern _viewmodelData shorty_shotgun_vm;
+extern _viewmodelSlot viewmodel_slots[2];
+
+void initialize_viewmodel_data(void);
+void load_viewmodel_to_slot(_viewmodelData * type, int slot);
+void set_viewmodel_from_slot(int slot);
+void use_viewmodel(void);
 
 
 

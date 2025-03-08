@@ -310,7 +310,7 @@ void	ldata_manager(void);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // used for actor.c
 
-#define MAX_PATHING_STEPS	(16)
+#define MAX_PATHING_STEPS	(4)
 #define ACTOR_PATH_EXCEPTION_TIME (1<<16) //(maybe i should scale this based on actor's size or speed)
 
 typedef struct {

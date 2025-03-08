@@ -16,11 +16,12 @@ extern short GLOBAL_img_line_count;
 extern short GLOBAL_img_line_width;
 extern int numTex;
 
-void	get_file_in_memory(Sint8 * filename, void * destination);
+void	get_file_in_memory(int fid, void * destination);
 void	set_tga_to_sprite_palette(void * file_start);
 void	set_tga_to_nbg2_palette(void * file_start);
-void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer);
-void	set_8bpp_tga_to_nbg1_image(Sint32 fid, void * buffer);
+void	set_8bpp_tga_to_nbg0_image_from_cd(Sint32 fid, void * buffer);
+void	set_8bpp_tga_to_nbg1_image_from_cd(Sint32 fid, void * buffer);
+void	set_8bpp_tga_to_nbg1_image_from_ram(void * buffer);
 
 void	uv_cut(void * file_start, int wx, int yh);
 void	uv_tile(void * source_texture_data, int base_x, int base_y);

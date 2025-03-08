@@ -18,24 +18,22 @@ int numTex = 0;
 
 int cutTex = 0;
 
-void	get_file_in_memory(Sint8 * filename, void * destination)
+void	get_file_in_memory(int fid, void * destination)
 {
 
 	GfsHn gfs_tga;
 	Sint32 sector_count;
 	Sint32 file_size;
-	
-	Sint32 local_name = GFS_NameToId(filename);
 
 //Open GFS
-	gfs_tga = GFS_Open((Sint32)local_name);
+	gfs_tga = GFS_Open((Sint32)fid);
 //Get sectors
 	GFS_GetFileSize(gfs_tga, NULL, &sector_count, NULL);
 	GFS_GetFileInfo(gfs_tga, NULL, NULL, &file_size, NULL);
 	
 	GFS_Close(gfs_tga);
 	
-	GFS_Load(local_name, 0, (Uint32 *)destination, file_size);
+	GFS_Load(fid, 0, (Uint32 *)destination, file_size);
 
 }
 	
@@ -156,7 +154,7 @@ void	set_tga_to_nbg2_palette(void * file_start)
 	return;
 }
 
-void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer)
+void	set_8bpp_tga_to_nbg0_image_from_cd(Sint32 fid, void * buffer)
 {
 	//These files are bigger than our image buffer space (64k vs 256 - 384k).
 	//So we need a more clever way to do this.
@@ -287,7 +285,7 @@ void	set_8bpp_tga_to_nbg0_image(Sint32 fid, void * buffer)
 
 }
 
-void	set_8bpp_tga_to_nbg1_image(Sint32 fid, void * buffer)
+void	set_8bpp_tga_to_nbg1_image_from_cd(Sint32 fid, void * buffer)
 {
 	//These files are bigger than our image buffer space (64k vs 256 - 384k).
 	//So we need a more clever way to do this.
@@ -414,6 +412,84 @@ void	set_8bpp_tga_to_nbg1_image(Sint32 fid, void * buffer)
 
 }
 
+void	set_8bpp_tga_to_nbg1_image_from_ram(void * buffer)
+{
+
+	unsigned char * readByte = (unsigned char *)buffer;
+	
+	unsigned char id_field_size = readByte[0];
+	
+	unsigned char col_map_type = readByte[1]; 
+	
+	if(col_map_type != 1){
+		slPrint("(REJECTED RGB TGA)", slLocate(0,1));
+		//return;
+	}
+
+	unsigned char data_type = readByte[2];
+	
+	if(data_type != 1) {
+		slPrint("(REJECTED RLE TGA)", slLocate(0,1));
+		//return;
+	}
+	
+	unsigned char bpp = readByte[16];
+	
+	if(bpp != 8) {
+		slPrint("(REJECTED >8B TGA)", slLocate(0,1));
+		//return;
+	}
+	
+	short Twidth = readByte[12] | readByte[13]<<8;
+	short Theight = readByte[14] | readByte[15]<<8;
+	
+	int col_map_size = (readByte[5] | readByte[6]<<8) * 3;
+	int col_map_ct = col_map_size / 3;
+	
+	////////////////////////////////////////////////////////
+	//We shall load the 24-bit RGB palette straight from the TGA image.
+	//The palette is located after the header and id_field.
+	//The palette will be loaded to VDP2 CRAM
+	////////////////////////////////////////////////////////
+	unsigned char paldat = id_field_size + TGA_HEADER_GAP;
+	readByte = buffer + paldat;
+	
+	unsigned char component[XYZ] = {0, 0, 0}; //Actually "R, G, B"
+	unsigned int final_color = 0;
+
+	for(int i = 0; i < (col_map_ct); i++)
+	{
+
+		component[X] = readByte[(i*3)];
+		component[Y] = readByte[(i*3)+1];
+		component[Z] = readByte[(i*3)+2];
+		
+		final_color = (unsigned int)((component[X]<<16) | (component[Y]<<8) | (component[Z]));
+		
+		cRAM_24bm[i+HUD_PALETTE_OFFSET] = (final_color);
+	}
+	
+	//The first color in a bank is transparent color. Be aware that color #0 of the source image will be transparent.
+	////////////////////////////////////////////////////////
+	//Now we're going to load the image to VDP2 VRAM
+	//Offset the first chunk read by the TGA header and size of TGA palette
+	////////////////////////////////////////////////////////
+	readByte  += col_map_size;
+	
+	unsigned char * image_data = (unsigned char *)NBG1_BITMAP_ADDR;
+
+	int total_pixels = Twidth * Theight;
+
+	////////////////////////////////////////////////////////
+	// Offload the image data after the header and palette from work RAM to VDP2 VRAM
+	////////////////////////////////////////////////////////
+	for(int i = 0; i < total_pixels; i++)
+	{
+		*image_data = readByte[i];
+		image_data++;
+	}
+
+}
 
 //Note: colorCode will be signed.
 //Use: Add a color code to all of VDP1's colors.
@@ -1721,29 +1797,31 @@ void	ReplaceTextureTable(void * file_start, int tex_height, int first_replaced_t
 
 void WRAP_NewPalette(Sint8 * filename, void * file_start)
 {
-	get_file_in_memory(filename, (void*)file_start);
+	int fid = GFS_NameToId((Sint8*)filename);
+	get_file_in_memory(fid, (void*)file_start);
 	set_tga_to_sprite_palette((void*)file_start);
 }
 
 Bool WRAP_NewTexture(Sint8 * filename, void * file_start)
 {
-	
-	get_file_in_memory(filename, file_start);
+	int fid = GFS_NameToId((Sint8*)filename);
+	get_file_in_memory(fid, file_start);
 	
 	return read_pco_in_memory(file_start);
 }
 
 int WRAP_NewTable(Sint8 * filename, void * file_start, int tex_height)
 {
-	
-	get_file_in_memory(filename, file_start);
+	int fid = GFS_NameToId((Sint8*)filename);
+	get_file_in_memory(fid, file_start);
 	
 	return read_tex_table_in_memory(file_start, tex_height);
 }
 
 void	WRAP_ReplaceTable(Sint8 * filename, void * file_start, int tex_height, int first_replaced_texno)
 {
-	get_file_in_memory(filename, file_start);
+	int fid = GFS_NameToId((Sint8*)filename);
+	get_file_in_memory(fid, file_start);
 	
 	ReplaceTextureTable(file_start, tex_height, first_replaced_texno);	
 }

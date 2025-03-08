@@ -21,6 +21,8 @@
 
 #include "draw.h"
 
+#include "vwmdlfunc.c"
+
 FIXED sun_light[3] = {5000, -20000, 0};
 //Player Model
 entity_t pl_model;
@@ -46,12 +48,10 @@ int glblLightApply = true;
 int drawModeSwitch = DRAW_MASTER;
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
+
 //////////////////////////////////////////////////////////////////////////////
 //Animation Structs
 //////////////////////////////////////////////////////////////////////////////
-backgroundAnimation shorty_idle;
-backgroundAnimation shorty_fire;
-
 spriteAnimation qmark;
 
 void	computeLight(void)
@@ -148,7 +148,7 @@ void	player_animation(void)
 	//Empty
 }
 
-void	player_draw(int draw_mode)
+void	player_draw(backgroundAnimation ** refAnim)
 {
 	
 	//Drawing first-person model....
@@ -171,29 +171,16 @@ void	player_draw(int draw_mode)
 	
 	//step-in code for handling nbg1 weapon sprite
 	
-	
 	//so if test idle frame is 330x75, and its the starting keyframe in the top left, we need to:
 	//1. set window from top left (352-330),(224-75) to bottom right of (352,224)
 	//2. then, scroll the screen right (352-330) pixels, and down (75-224) pixels	
 
-	//okay, let's display the animation "shorty_idle"
-	
-	backgroundAnimation * curAnim = &shorty_fire;
+	backgroundAnimation * curAnim = *refAnim;
 	
 	static int keyTimer = 0;
 	static int curKey = 0;
 	
 	keyTimer+= delta_time;
-	
-	if(keyTimer > curAnim->lifetimes[curKey])
-	{
-		curKey += 1;
-		keyTimer = 0;
-	}
-	if(curKey >= curAnim->length)
-	{
-		curKey = 0;
-	}
 	
 	bg_key * keyfrm = curAnim->keyframes[curKey];
 	
@@ -203,6 +190,20 @@ void	player_draw(int draw_mode)
 	
 	slScrWindow0(finWindow[X], finWindow[Y], finWindow[X]+keyfrm->size[X], finWindow[Y]+keyfrm->size[Y]);
 	slScrPosNbg1((finPos[X])<<16, (finPos[Y])<<16);
+	
+	if(keyTimer > curAnim->lifetimes[curKey])
+	{
+		curKey += 1;
+		keyTimer = 0;
+	}
+	if(curKey >= curAnim->length)
+	{
+		curKey = 0;
+		if(curAnim->loop == 0)
+		{
+		*refAnim = (backgroundAnimation*)curAnim->sequence;
+		}
+	}
 	
 	// meshAnimProcessing(&reload, &entities[1], false);
 
@@ -543,7 +544,7 @@ void	master_draw(void)
 	interim_time = get_time_in_frame();
 	//
 	player_animation();
-	player_draw(DRAW_MASTER);
+	player_draw(&viewmodel_state);
 	shadow_draw(DRAW_MASTER);
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
