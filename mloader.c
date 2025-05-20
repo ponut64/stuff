@@ -14,6 +14,8 @@ entity_t entities[MAX_MODELS];
 _sector sectors[MAX_SECTORS+1];
 _pathHost * pathing;
 
+int debug_number;
+
 void	*	load_sectors(entity_t * ent, void * workAddress)
 {
 	nbg_sprintf(1, 7, "Building sectors...");
@@ -46,19 +48,274 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		sectors[k].nbAdjacent = 0;
 		sectors[k].nbVisible = 0;
 		sectors[k].pltbl = writeAddress;
+		int is_mover = 0;
 		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		{
 			plane_sector = mesh->attbl[i].first_sector;
 			if(plane_sector != k) continue;
 			//If this is a portal, don't add it to the polygon list. It's added elsewhere.
 			if(mesh->attbl[i].render_data_flags & GV_FLAG_PORTAL) continue;
+			//If this sector has a polygon representative of a mover, don't add it. It's built as a different kind of object.
+			if((mesh->attbl[i].render_data_flags & GV_SCTR_MOVER) == GV_SCTR_MOVER)
+			{
+				is_mover = 1;
+			}
 			
 			sectors[k].pltbl[sectors[k].nbPolygon] = i;
 			sectors[k].nbPolygon++;			
 		}
+		writeAddress += sectors[k].nbPolygon;
+		//If this condition is passed, the sector will be built as a mover-type object.
+		//Movers are complex objects; they are defined from mesh data in the binary file used for sector data (here).
+		//Then, the position to which they move is marked by item data carried in the binary payload as well.
+		//The item data defers to rate and trigger types set inside of the game engine.
+		//The first thing we have to do then is build up a PDATA and entity listing for the mover.
+		if(is_mover)
+		{
+			//In disdainful deference of the way that sector data is built, we will not be destroying the mesh data within it.
+			//Instead, we will advance the work RAM pointer to copy out the data relevant for the mover.
+			//Then, register another model data entry and entity entry that points to them.
+			//Dangerously, however, this mesh data will lie in the midst of sector data.
+			
+			//We already have a qualified list of polygons whom are a member of this mover sector from the prior loop.
+			//We also know the number of polygons in the sector.
+			//We need to basically do what we do to build a sector, but more.
+			
+			GVPLY * moverMesh = (GVPLY *)writeAddress;
+			writeAddress += sizeof(GVPLY);
+			moverMesh->nbPolygon = sectors[k].nbPolygon;
+			sectors[k].nbPolygon = 0;
+			moverMesh->pltbl = (_quad*)writeAddress;
+			writeAddress += sizeof(_quad) * moverMesh->nbPolygon;
+			moverMesh->attbl = (gvAtr*)writeAddress;
+			writeAddress += sizeof(gvAtr) * moverMesh->nbPolygon;
+			//(single byte tables incoming)
+			//align the address appropriately
+			writeAddress += ((unsigned int)workAddress & 1) ? 1 : 0;
+			writeAddress += ((unsigned int)workAddress & 2) ? 2 : 0;
+			
+			moverMesh->maxtbl = (unsigned char *)writeAddress;
+			writeAddress += moverMesh->nbPolygon;
+			moverMesh->lumatbl = (unsigned char *)writeAddress;
+			writeAddress += moverMesh->nbPolygon;
+			
+			//align the address appropriately
+			writeAddress += ((unsigned int)workAddress & 1) ? 1 : 0;
+			writeAddress += ((unsigned int)workAddress & 2) ? 2 : 0;
+			
+			moverMesh->nmtbl = (POINT*)writeAddress;
+			writeAddress += sizeof(POINT) * moverMesh->nbPolygon;
+			
+			//Zero-out the mover sector polygon count; it will no longer be relevant.
+			
+			unsigned int moverVerts = 0;
+			for(unsigned int i = 0; i < moverMesh->nbPolygon; i++)
+			{
+				//This is going to be pretty naive.
+				//(these vertex IDs will have to be aliased back to the reduced vertex number list later)
+				moverMesh->pltbl[i].vertices[0] = mesh->pltbl[sectors[k].pltbl[i]].vertices[0];
+				moverMesh->pltbl[i].vertices[1] = mesh->pltbl[sectors[k].pltbl[i]].vertices[1];
+				moverMesh->pltbl[i].vertices[2] = mesh->pltbl[sectors[k].pltbl[i]].vertices[2];
+				moverMesh->pltbl[i].vertices[3] = mesh->pltbl[sectors[k].pltbl[i]].vertices[3];
+				
+				//Copy the attributes
+				gvAtr * attr = &mesh->attbl[sectors[k].pltbl[i]];
+				moverMesh->attbl[i].render_data_flags = attr->render_data_flags; //(probably exclude the mover flag here)
+				moverMesh->attbl[i].tile_information = attr->tile_information;
+				moverMesh->attbl[i].plane_information = attr->plane_information;
+				moverMesh->attbl[i].uv_id = attr->uv_id;
+				moverMesh->attbl[i].first_sector = attr->first_sector;
+				moverMesh->attbl[i].texno = attr->texno;
+				
+				//Copy the normal table
+				moverMesh->nmtbl[i][X] = mesh->nmtbl[sectors[k].pltbl[i]][X];
+				moverMesh->nmtbl[i][Y] = mesh->nmtbl[sectors[k].pltbl[i]][Y];
+				moverMesh->nmtbl[i][Z] = mesh->nmtbl[sectors[k].pltbl[i]][Z];
+				
+				//Copy maxtbl and lumatbl
+				moverMesh->maxtbl[i] = mesh->maxtbl[sectors[k].pltbl[i]];
+				moverMesh->lumatbl[i] = mesh->lumatbl[sectors[k].pltbl[i]];
+				
+				slapBuffer[moverVerts] = moverMesh->pltbl[i].vertices[0];
+				clapBuffer[moverVerts] = INVALID_PLANE;
+				moverVerts++;
+				slapBuffer[moverVerts] = moverMesh->pltbl[i].vertices[1];
+				clapBuffer[moverVerts] = INVALID_PLANE;
+				moverVerts++;
+				slapBuffer[moverVerts] = moverMesh->pltbl[i].vertices[2];
+				clapBuffer[moverVerts] = INVALID_PLANE;
+				moverVerts++;
+				slapBuffer[moverVerts] = moverMesh->pltbl[i].vertices[3];
+				clapBuffer[moverVerts] = INVALID_PLANE;
+				moverVerts++;
+			}
+			int secMoverVerts = 0;
+			int movUniqueVert = 0;
+			//Sets "uniqueSet", checks the entire "clapBuffer" for unqiue set.
+			//If uniqueSet is not in clapBuffer, add to clap buffer, add to total vertex number.
+			for(unsigned int i = 0; i < moverVerts; i++)
+			{
+				movUniqueVert = slapBuffer[i];
+				for(unsigned int l = 0; l < moverVerts; l++)
+				{
+					if(clapBuffer[l] == movUniqueVert) movUniqueVert = INVALID_PLANE;
+				}
+				if(movUniqueVert != INVALID_PLANE) 
+				{
+					clapBuffer[secMoverVerts] = movUniqueVert;
+					secMoverVerts++;
+				}
+			}
+			
+			//
+			
+			moverMesh->nbPoint = secMoverVerts;
+			moverMesh->pntbl = (POINT*)writeAddress;
+			writeAddress += sizeof(POINT) * secMoverVerts;
+			for(unsigned int i = 0; i < moverMesh->nbPoint; i++)
+			{
+				//sectors[k].pntbl[i] = clapBuffer[i];
+				moverMesh->pntbl[i][X] = mesh->pntbl[clapBuffer[i]][X];
+				moverMesh->pntbl[i][Y] = mesh->pntbl[clapBuffer[i]][Y];
+				moverMesh->pntbl[i][Z] = mesh->pntbl[clapBuffer[i]][Z];
+			}
+			
+ 			for(unsigned int i = 0; i < moverMesh->nbPolygon; i++)
+			{
+				for(int p = 0; p < 4; p++)
+				{
+					for(unsigned int f = 0; f < moverMesh->nbPoint; f++)
+					{
+						if(mesh->pltbl[sectors[k].pltbl[i]].vertices[p] == clapBuffer[f])
+						{
+							//What this should do is:
+							//Polygon has vertex ID #255, which is sector vertex ID #0, sector polygon vertex ID of #255 becomes #0
+							moverMesh->pltbl[i].vertices[p] = f;
+						}
+					}
+				}
+			} 
+			
+			//With the mesh data settled, we can now create an entity.
+			//First we have to find an empty entry in the entity list.
+			entity_t * m_ent = &entities[MAX_MODELS-1];
+			int eid = 0;
+			for(int i = 0; i < MAX_MODELS; i++)
+			{
+				if(!entities[i].file_done && !entities[i].was_loaded_from_CD && entities[i].pol == NULL)
+				{
+					m_ent = &entities[i];
+					m_ent->file_done = 1;
+					m_ent->was_loaded_from_CD = 1;
+					m_ent->pol = moverMesh;
+					eid = i;
+					break;
+				}
+			}
+			if(m_ent->pol == NULL) continue; //When no empty entitiy slot, do not continue.
+			
+			debug_number = eid;
+			//I've kinda got no clue what's happening here.
+			//I do think I've miscalculated and I need to go back and make the vertices relevant to the center though.
+			
+			//We can inherit a lot of the configuration information from the sector data entity.
+			m_ent->size = ent->size; //(false, but, w/e)
+			m_ent->base_texture = ent->base_texture; //(the texture indicides are indexed from this point as well)
+			m_ent->useClip = ent->useClip; //why do i even have this flag?
+			m_ent->numTexture = ent->numTexture;
+			m_ent->sortType = ent->sortType;
+			m_ent->type = MODEL_TYPE_BUILDING;
+			m_ent->nbFrames = 0;
+			
+			//Similiar to the sector data, a radius has to be assigned to the entity.
+			int mov_accum[3] = {0,0,0};
+			int mov_maxaxis[3] = {0,0,0};
+			int mov_ctrPos[3] = {0,0,0}; //This is particularly important to calculate, to locate the final object.
+			for(unsigned int i = 0; i < moverMesh->nbPoint; i++)
+			{
+				mov_accum[X] += (moverMesh->pntbl[i][X]>>16);
+				mov_accum[Y] += (moverMesh->pntbl[i][Y]>>16);
+				mov_accum[Z] += (moverMesh->pntbl[i][Z]>>16);
+			}
+			
+			mov_accum[X] = (mov_accum[X] / moverMesh->nbPoint)<<16;
+			mov_accum[Y] = (mov_accum[Y] / moverMesh->nbPoint)<<16;
+			mov_accum[Z] = (mov_accum[Z] / moverMesh->nbPoint)<<16;
+			//We must negate the applied value due to the inversion of the projection space.
+			mov_ctrPos[X] = -mov_accum[X];
+			mov_ctrPos[Y] = -mov_accum[Y];
+			mov_ctrPos[Z] = -mov_accum[Z];
+			
+			//The final entity needs to have its vertices be relative to its center, so we have to introduce that.
+			for(unsigned int i = 0; i < moverMesh->nbPoint; i++)
+			{
+				mov_accum[X] = JO_ABS(moverMesh->pntbl[i][X] + mov_ctrPos[X]);
+				mov_accum[Y] = JO_ABS(moverMesh->pntbl[i][Y] + mov_ctrPos[Y]);
+				mov_accum[Z] = JO_ABS(moverMesh->pntbl[i][Z] + mov_ctrPos[Z]);
+				
+				mov_maxaxis[X] = (mov_accum[X] > mov_maxaxis[X]) ? mov_accum[X] : mov_maxaxis[X];
+				mov_maxaxis[Y] = (mov_accum[Y] > mov_maxaxis[Y]) ? mov_accum[Y] : mov_maxaxis[Y];
+				mov_maxaxis[Z] = (mov_accum[Z] > mov_maxaxis[Z]) ? mov_accum[Z] : mov_maxaxis[Z];
+				
+				moverMesh->pntbl[i][X] += (mov_ctrPos[X]);
+				moverMesh->pntbl[i][Y] += (mov_ctrPos[Y]);
+				moverMesh->pntbl[i][Z] += (mov_ctrPos[Z]);
+			}
+			//Add a margin to it.
+			m_ent->radius[X] = (mov_maxaxis[X]>>16) + 4;
+			m_ent->radius[Y] = (mov_maxaxis[Y]>>16) + 4;
+			m_ent->radius[Z] = (mov_maxaxis[Z]>>16) + 4;
+			
+			
+			//Finally, we need to declare this as a world object.
+			
+			//Allocate memory for the type entry
+			_sobject * type = (_sobject *)writeAddress;
+			writeAddress += sizeof(_sobject);
+			int valid_type_found = 0;
+			for(int s = 0; s < OBJECT_ENTRY_CAP; s++)
+			{
+				if(objList[s] == NULL)
+				{
+					objList[s] = type;
+					type->entity_ID = eid;
+					type->clone_ID = eid;
+					type->radius[X] = m_ent->radius[X];
+					type->radius[Y] = m_ent->radius[Y];
+					type->radius[Z] = m_ent->radius[Z];
+					type->ext_dat = BUILD;
+					type->light_bright = 0;
+					type->light_y_offset = 0;
+					type->effect = 0;
+					type->effectTimeLimit = 0;
+					type->effectTimeCount = 0;
+					valid_type_found = s;
+					break;
+				}
+			}
+			
+			//why this no work?
+			//i got no ideas...
+			if(valid_type_found)
+			{
+			BuildingPayload[total_building_payload].object_type = valid_type_found;
+			BuildingPayload[total_building_payload].pos[X] = -(mov_ctrPos[X]>>16);
+			BuildingPayload[total_building_payload].pos[Y] = -(mov_ctrPos[Y]>>16);
+			BuildingPayload[total_building_payload].pos[Z] = -(mov_ctrPos[Z]>>16);
+			//Some way to find what entity # we're working with right now
+			BuildingPayload[total_building_payload].root_entity = (unsigned short)(ent - entities);
+			total_building_payload++;
+			
+			//nbg_sprintf(1, 10, "mover t(%i), p(%i)", valid_type_found, eid);
+			}
+			//If a valid type was found, we need to prepare an object declaration.
+			//I think I will repurpose the building-object system.
+			
+			
+			continue;
+		}
 		if(!sectors[k].nbPolygon) continue; 
 		sectors[k].ent = ent;
-		writeAddress += sectors[k].nbPolygon;
 		sectors[k].nbPoint = 0;
 		sectors[k].pntbl = writeAddress;
 		//Damn, this is actually really complicated.
@@ -196,7 +453,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 	for(unsigned int s = 0; s < MAX_SECTORS; s++)
 	{
 		sct = &sectors[s];
-		if(sct->nbPoint == 0) continue;
+		if(sct->nbPoint == 0 || sct->nbPolygon == 0) continue;
 		accumulated_verts[X] = 0;
 		accumulated_verts[Y] = 0;
 		accumulated_verts[Z] = 0;
@@ -434,8 +691,6 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	// slDMACopy(workAddress, &model_header, sizeof(modelData_t));
 	model_header = (modelData_t *)workAddress;
 
-	model->first_portal = (unsigned char)model_header->first_portal;
-
 	//Needed to load/play animations correctly
 	model->nbFrames = model_header->nbFrames;
 	
@@ -559,6 +814,11 @@ void	init_entity_list(void)
 	for(int i = 0; i < bytes_to_clear; i++)
 	{
 		byte_pointer[i] = 0;
+	}
+	
+	for(int i = 0; i < MAX_MODELS; i++)
+	{
+		entities[i].pol = NULL;
 	}
 	
 }

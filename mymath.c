@@ -725,3 +725,25 @@ void * align_4(void * ptr)
 	ptr += 4;
 	return ptr;
 }
+
+/*
+from danny on the discord
+looks to be a root-seeking algorithm
+int32_t fast_fixed_point_sqrt(int32_t value)
+{
+    if (value <= 0)
+        return 0;
+
+    int32_t baseEstimation = 1 << 7;
+    int32_t estimation = value >> 1;
+    uint32_t iterationValue = estimation;
+    do
+    {
+        estimation >>= 1;
+        baseEstimation <<= 1;
+    } while (iterationValue >>= 2);
+    estimation <<= 8;
+
+    return baseEstimation + estimation;
+}
+*/

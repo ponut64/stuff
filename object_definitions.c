@@ -81,6 +81,14 @@ _sobject Empty = {
 	.ext_dat = GHOST
 };
 
+_sobject EmptyBuild = {
+	.entity_ID = 0,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD
+};
+
 _sobject TestSpawner = {
 	.entity_ID = 2,
 	.radius[X] = 0,
@@ -90,12 +98,16 @@ _sobject TestSpawner = {
 	.light_bright = 0
 };
 
-
-_sobject * objList[64];
+_sobject * objList[OBJECT_ENTRY_CAP];
 
 void	fill_obj_list(void)
 {
-	objList[0] = &Empty;
+	for(int i = 0; i < OBJECT_ENTRY_CAP; i++)
+	{
+		objList[i] = NULL;
+	}
+	
+	objList[0] = &EmptyBuild;
 	objList[1] = &DestroyBlock;
 	objList[2] = &Block;
 	objList[11] = &StartStand;
@@ -107,3 +119,5 @@ void	fill_obj_list(void)
 
 	objList[63] = &Empty;
 }
+
+

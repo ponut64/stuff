@@ -247,7 +247,6 @@ void	shadow_draw(int draw_mode)
 
 void	obj_draw_queue(void)
 {
-	
 	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
 	{
 		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
@@ -263,7 +262,7 @@ void	obj_draw_queue(void)
 		switch(entities[objDRAW[i]].type)
 		{
 			case(MODEL_TYPE_BUILDING):
-			plane_rendering_with_subdivision(&entities[objDRAW[i]]);
+			plane_rendering_with_subdivision(&entities[objDRAW[i]]);		
 			break;
 			case(MODEL_TYPE_SECTORED):
 			break;
@@ -506,8 +505,9 @@ void	sector_vertex_remittance(void)
 
 	//nbg_sprintf(2, 6, "prts:(%i)", *current_portal_count);
 	//nbg_sprintf(2, 6, "drwSector:(%i)", *sectorToDrawFrom);
-	//nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
-	//nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
+	nbg_sprintf(2, 6, "drwSector:(%i)", sct->nbAdjacent);
+	nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
 	
 	// nbg_sprintf(16, 8, "ctrX:(%i)",  sectors[you.curSector].center_pos[X]>>16);
 	// nbg_sprintf(16, 9, "ctrY:(%i)",  sectors[you.curSector].center_pos[Y]>>16);

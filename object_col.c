@@ -36,10 +36,8 @@ void	purge_rotated_entities(void)
 			entities[i].radius[Y] = 0;
 			entities[i].radius[Z] = 0;
 			entities[i].numTexture = 0;
-			entities[i].first_portal = 0;
 			entities[i].sortType = 0;
 			entities[i].type = 0;
-			entities[i].nbMeshes = 0;
 			entities[i].nbFrames = 0;
 			entities[i].pol = NULL;
 			entities[i].prematrix = NULL;
@@ -303,10 +301,12 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 	for(unsigned int s = 0; s < MAX_SECTORS; s++)
 	{
 		_sector * sctA = &sectors[s];
+		if(sctA->nbPolygon == 0) continue;
 	for(unsigned int l = 0; l < MAX_SECTORS; l++)
 	{
 		int sector_adjacent = 0;
 		_sector * sctB = &sectors[l];
+		if(sctB->nbPolygon == 0) continue;
 		//Don't test a sector against itself.
 		if(l == s) continue;
 		for(unsigned int i = 0; i < sctA->nbPolygon; i++)
@@ -585,8 +585,10 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	static int plane_points[4][3];
 	int hasHit = 0;
 	
+
 	if(ent->type != MODEL_TYPE_SECTORED) sct = &sectors[INVALID_SECTOR];
 	if(sct == NULL) sct = &sectors[INVALID_SECTOR];
+	if(sct != &sectors[INVALID_SECTOR] && sct->nbPolygon == 0) return 0;
 	
 	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
 	

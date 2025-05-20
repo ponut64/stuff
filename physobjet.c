@@ -126,7 +126,7 @@ void	declare_object_at_cell(short posX, short height, short posZ, short type, AN
 }
 
 void	declare_building_object(_declaredObject * root_object, _buildingObject * building_item)
-{
+{	
 	//If the root object does not possess the entity ID of the item's root entity, do not add it.
 	if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
 	{
@@ -155,6 +155,7 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 		dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16));
 		dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
 		
+		
 		objNEW++;
 	}
 }
@@ -164,7 +165,7 @@ void	post_ldata_init_building_object_search(void)
 	
 	for(int i = 0; i < objNEW; i++)
 	{
-		if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD 
+		if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD
 		&& !(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED)
 		&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
 		{
@@ -180,8 +181,8 @@ void	post_ldata_init_building_object_search(void)
 			{
 				declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 			}
-			//nbg_sprintf(1, 6, "tbp(%i)", total_building_payload);
-						
+			
+				
 			dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
 		}
 	}

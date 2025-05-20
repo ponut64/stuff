@@ -911,8 +911,13 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 	pHit[Z] = 32766<<16;
 	int abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, test_sector);
 		
-	if(!abovePolygon)
-	{
+	//Sectors do not usually overlap each other on the vertical axis, and when they do,
+	//it is normally not through a vertical, traversable gap (i.e. stairs that have same-sector polygons underneath them).
+	//Yet, it is a pretty huge pain to design around a strict constraint like that.
+	//So this represented error state has been resolved by instead always checking sectors near the sector being tested if within radius.
+		
+	//if(!abovePolygon)
+	//{
 		//If we were not in that sector, we need to instead check all sectors visible from that sector.
 		for(int i = 0; i < test_sector->nbVisible; i++)
 		{
@@ -926,11 +931,11 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 			if(wdist[X] < sct->radius[X] && wdist[Y] < sct->radius[Y] && wdist[Z] < sct->radius[Z])
 			{
 
-				abovePolygon = hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, sct);
-				if(abovePolygon) break;
+				abovePolygon += hitscan_vector_from_position_building(testDirection, pos, pHit, &hitPolyID, ent, mesh_position, sct);
+				//if(abovePolygon) break;
 			}
 		}
-	}
+	//}
 	
 	//If we are STILL not above a polygon...
 	if(!abovePolygon) return INVALID_SECTOR;

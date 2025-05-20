@@ -932,41 +932,18 @@ void	pathing_exception(int actor_id)
 	//To do so, we will be adding to the actor's navigation list.
 	//What we must do in this case is find a unique data set to apply to a navigation step to mark it as the exception case.
 	_actor * act = &spawned_actors[actor_id];
-	static unsigned short erebus = 0;
+	int new_step_flag = 0;
 	if(act->exceptionStep == INVALID_SECTOR)
 	{
 		act->exceptionStep = act->curPathStep+1;
 		act->exceptionDir[X] = act->pathUV[X];
 		act->exceptionDir[Y] = act->pathUV[Y];
 		act->exceptionDir[Z] = act->pathUV[Z];
-		erebus++;
+		new_step_flag = 1;
 	}
 	
 	act->exceptionTimer = 0;
 	act->curPathStep = act->exceptionStep;
-
-	int rotationSet[3] = {act->exceptionDir[X], act->exceptionDir[Y], act->exceptionDir[Z]};
-	//this is an adjustment to push the direction travelled towards the normal of the surface which blocked line of sight
-	//this is to help the actor move away from the surface, at least in theory
-	act->exceptionDir[X] = fxm(act->exceptionDir[X], act->blockedLOSNorm[X]);
-	act->exceptionDir[Y] = fxm(act->exceptionDir[Y], act->blockedLOSNorm[Y]);
-	act->exceptionDir[Z] = fxm(act->exceptionDir[Z], act->blockedLOSNorm[Z]);
-
-	//this is simply egregious but... it kinda works
-	//half the time, we'll pick left; the other half, we'll pick right.
-	//
-	// this kinda blows;
-	// rather than be randy randy, we need to check which direction is better.
-	// Now, performing such a check has significant risk in that it can make certain path orientations impossible.
-	// that can happen when the parameters of the "ideal exception check" push the actor into a hole.
-	//
-	if(erebus & 1)
-	{
-	fxrotY(rotationSet, act->exceptionDir, (30 * 182));
-	} else {
-	fxrotY(rotationSet, act->exceptionDir, -(30 * 182));
-	}
-	
 	
 	//quick_normalize(rotationSet, act->exceptionDir);
 	
@@ -975,12 +952,30 @@ void	pathing_exception(int actor_id)
 	// nbg_sprintf_decimal(3, 12, act->exceptionDir[Z]);
 	// nbg_sprintf_decimal(3, 13, fxdot(act->exceptionDir, act->exceptionDir));
 	
-	act->exceptionPos[X] = (fxm(act->exceptionDir[X], 256<<16) + act->pos[X] - levelPos[X]);
-	act->exceptionPos[Y] = (fxm(act->exceptionDir[Y], 256<<16) + act->pos[Y] - levelPos[Y]) + act->box->radius[Y];
-	act->exceptionPos[Z] = (fxm(act->exceptionDir[Z], 256<<16) + act->pos[Z] - levelPos[Z]);
 	
 	_pathStep * step = &pathStepHeap->steps[actor_id][act->curPathStep];
 	
+	int rotationSet[3] = {act->exceptionDir[X], act->exceptionDir[Y], act->exceptionDir[Z]};
+	
+	if(!step->winding)
+	{
+	fxrotY(rotationSet, act->exceptionDir, (30 * 182));
+	} else {
+	fxrotY(rotationSet, act->exceptionDir, -(30 * 182));
+	}
+	
+	act->exceptionPos[X] = (fxm(act->exceptionDir[X], 256<<16) + act->pos[X] - levelPos[X]);
+	act->exceptionPos[Y] = (fxm(act->exceptionDir[Y], 256<<16) + act->pos[Y] - levelPos[Y]) + act->box->radius[Y];
+	act->exceptionPos[Z] = (fxm(act->exceptionDir[Z], 256<<16) + act->pos[Z] - levelPos[Z]);
+
+	//We just need to find a way to set this high again if the actor is **really** thrown off (collision with another actor or impulse)
+	if(!new_step_flag)
+	{
+		step->winding = 1;
+	} else {
+		step->winding = 0;
+	}
+
 	step->pos = act->exceptionPos;
 	step->dir = act->exceptionDir;
 	step->fromSector = act->curSector;
@@ -1125,6 +1120,7 @@ void	checkInPathSteps(int actor_id)
 		act->curPathStep = 0;
 		act->pathingLatch = 0;
 		step = &stepList[act->curPathStep];
+		step->winding = 0;
 	}
 
 	
@@ -1175,6 +1171,7 @@ void	checkInPathSteps(int actor_id)
 			step->fromSector = act->curSector;
 			step->toSector = lsSct; 
 			step->actorID = actor_id;
+			step->winding = 0;
 			pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
 		}
 	} else {

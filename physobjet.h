@@ -242,7 +242,7 @@ bitflag orientation for OBJECT:
 /////////////////////////////////////////////////////////////////
 
 **/
-
+#define OBJECT_ENTRY_CAP (128)
 
 typedef struct {
 	unsigned char entity_ID;
@@ -259,7 +259,7 @@ typedef struct {
 typedef struct {
 	unsigned short object_type;
 	short pos[XYZ];
-	unsigned short root_entity;
+	unsigned short root_entity; //(we need to be able to use this as a sector specification, or split the 2 bytes)
 } _buildingObject;
 
 typedef struct {
@@ -276,7 +276,7 @@ typedef struct {
 
 //extern _declaredObject dWorldObjects[257];
 extern _declaredObject * dWorldObjects; //In LWRAM - see lwram.c
-extern _sobject * objList[64];
+extern _sobject * objList[OBJECT_ENTRY_CAP];
 extern unsigned short objNEW;
 extern unsigned short objPREP[MAX_WOBJS + MAX_PHYS_PROXY];
 extern unsigned short objDRAW[MAX_WOBJS + MAX_PHYS_PROXY];
@@ -317,6 +317,7 @@ typedef struct {
 	int * pos; //the position of the path step
 	int * dir; //the direction out of the path step (may not be used)
 	short actorID; //the ID of the actor or actor group using this path
+	short winding; //Left or right winding for this path step
 	unsigned char fromSector; //sector to path from
 	unsigned char toSector; //sector to path to
 } _pathStep;

@@ -158,6 +158,148 @@ void	process_binary_ldata(void * source_data)
 	level_data_basic();
 }
 
+void	fetch_and_load_leveldata(Sint8 * filename)
+{
+	purge_rotated_entities();
+	purge_object_list();
+	unsigned short * aptr;
+	char * cptr = (char *)dirty_buf;
+	
+	Sint32 fid = GFS_NameToId((Sint8*)filename);
+	
+	get_file_in_memory(fid, dirty_buf);
+	
+	//////////////////////////////////
+	//Get the music names out of the file
+	//The file leads with the label "MUSIC!"
+	//We must step the character pointer ahead by 6 to pass that.
+	//////////////////////////////////
+	cptr+=6;
+	for(int l = 0; l < 3; l++)
+	{
+		for(int i = 0; i < 12; i++)
+		{
+			if(*cptr != ' ')
+			{
+				stg_mus[l][i] = *cptr++;
+			} else {
+				stg_mus[l][i] = 0; //NUL character / string terminator
+				cptr++;
+			}
+		}
+	}
+	
+	
+	//////////////////////////////////
+	//Prepare to get the texture list names out of the file
+	//The file has the label "MAPTEX" after the music names.
+	//We must step the pointer ahead by 6 to pass that.
+	//////////////////////////////////
+	cptr+=6;
+
+	//We don't do anything with these because these are for the heightmap that is no longer used.
+	for(int l = 0; l < 5; l++)
+	{
+		for(int i = 0; i < 12; i++)
+		{
+			cptr++;
+		}
+	}
+	
+	//////////////////////////////////
+	// Prepare to get the palette out of the file
+	// First, skip over the marker "PALTEX"
+	//////////////////////////////////
+	cptr += 6;
+	static char palname[13];
+	
+	for(int i = 0; i < 12; i++)
+	{
+		if(*cptr != ' ')
+		{
+			palname[i] = *cptr++;
+		} else {
+			palname[i] = 0; //NUL character / string terminator
+			cptr++;
+		}
+	}
+	
+	
+	//new_file_request((Sint8*)palname, dirty_buf, set_tga_to_sprite_palette, HANDLE_FILE_ASAP);
+	
+	//////////////////////////////////
+	// Prepare to get the background file name out of the file
+	// First, skip over the marker "BACKTX"
+	//////////////////////////////////
+	
+	cptr += 6;
+	static char bgName[13];
+	
+	for(int i = 0; i < 12; i++)
+	{
+		if(*cptr != ' ')
+		{
+			bgName[i] = *cptr++;
+		} else {
+			bgName[i] = 0; //NUL character / string terminator
+			cptr++;
+		}
+	}
+	
+	//new_special_request((Sint8*)bgName, dirty_buf, set_8bpp_tga_to_nbg0_image_from_cd);
+	
+	//////////////////////////////////
+	//Prepare to load the object list
+	//The character pointer must move ahead of the label "OBJECTS!". That is 8 characters.
+	//////////////////////////////////
+	aptr = (unsigned short *)(cptr + 8);
+	unsigned short objct = *aptr++;
+	//nbg_sprintf(1, 10, "oct(%i)", objct);
+	unsigned short args[9];
+	//////////////////////////////////
+	//	IMPORTANT:
+	//	The level data is controlled by a variety of linked lists.
+	//	These lists terminate with -1. They must start at -1 or else it will crash.
+	//////////////////////////////////
+	for(int i = 0; i < 8; i++)
+	{
+		link_starts[i] = -1;
+	}
+	//////////////////////////////////
+	// Load the object list
+	// Nine arguments to function, two bytes per argument, 18 bytes at a time.
+	//////////////////////////////////
+	for(int i = 0; i < objct; i++)
+	{
+		args[0] = *aptr++;
+		args[1] = *aptr++;
+		args[2] = *aptr++;
+		args[3] = *aptr++;
+		args[4] = *aptr++;
+		args[5] = *aptr++;
+		args[6] = *aptr++;
+		args[7] = *aptr++;
+		args[8] = *aptr++;
+		declare_object_at_cell(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+	}
+	//////////////////////////////////
+	// Start the level's idle music (first entered music)
+	//////////////////////////////////
+	set_music_track = 0;
+	stm.times_to_loop = 255;
+	
+	level_data_basic();
+	
+	fid = GFS_NameToId((Sint8*)palname);
+	get_file_in_memory(fid, dirty_buf);
+	set_tga_to_sprite_palette(dirty_buf);
+	
+	fid = GFS_NameToId((Sint8*)bgName);
+	set_8bpp_tga_to_nbg0_image_from_cd(fid, dirty_buf);
+	
+}
+
+
 void	testing_level_data(Sint8 * filename, void * destination)
 {
 	
@@ -183,8 +325,8 @@ void	testing_level_data(Sint8 * filename, void * destination)
 
 void declarations(void)
 {
-	declare_object_at_cell(0, -(2000 - 0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(0, -(2000 - 0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(0, -(0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
+	declare_object_at_cell(0, -(0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
 	
 
 }

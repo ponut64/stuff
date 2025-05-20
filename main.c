@@ -9,20 +9,30 @@
 
 What's on my development iternerary?
 
-Next thing back on my mind is the pathing. It needs to be better.
-One major fault is only one sector path node per adjacent sector is enabled.
-So one of the first things I want to do is go back and allow up to two path nodes between sectors.
-Another thing is also on the first gaff when a path to a node is blocked, the actor should always prefer to rotate towards it (at first).
+#movers and buttons
 
-Both of these are not simple problems but they need to be addressed.
+so a MOVER-type can be defined in the plane data and cut out and built as a separate BUILD-type mesh
+now we need to make it move
+First, what are the preprocessors for the mover?
+I could probably add details to the ITEM-type preprossor to allow a sector to be specified. (Only natural, really)
+With a sector specified for each item, we can then search for items which define the start, waypoints, and end of a mover.
+Each of these can have a limited amount of parameters defined to control the mover's behavior, such as:
+- trigger type
+- trigger delay
+- speed
+- locked or unlocked state
 
-Second up is going to be some interactivity feature development and testing.
-For instance, buttons which activate doors or elevators, or elevators/doors that activate on touch.
-Hitherto is the cora data defintion of a "mover".
+what else?
+sometime soon i will have to integrate enemies and the enemy animation
+the enemy/NPC characters are planned to be mostly polygonal
+i'll want different behaviors, basically:
+1. squadder, an enemy AI type that will find another friendly actor (to it) and hang around them when encountering the player
+2. leader, an enemy AI type that will attack the player from range, then break line of sight briefly before engaging again
+3. thug, an enemy AI type that will just rush the player, whether from range or not
+4. hunter, an enemy AI type that actively chases the player when sighted on the map, but avoids the player's forward line of sight.
 
-movers would contain pointers to the "return" and "target" points alongside a "rate" value for each
-not sure how to implement that in the game engine's existing data structures,
-but i've also made a point that the existing data structure is out of date
+in these behavior types, most actors navigation can be turned off when not visible.
+however, in some cases (especially with the hunter), the actor needs to be able to navigate even when not displayed.
 
 special note:
 pulping enemies with a single shot is very satisfying
@@ -125,11 +135,42 @@ void	p64MapRequest(short levelNo)
 	ldat_name[9] = 'D';
 	ldat_name[10] = 'S';
 	
+	
 	set_music_track = NO_STAGE_MUSIC; //Clear stage music, preparing to change music of course.
-	new_file_request(ldat_name, dirty_buf, process_binary_ldata, 0);
 	ldata_ready = false;
+	new_file_request(ldat_name, dirty_buf, process_binary_ldata, HANDLE_FILE_ASAP);
+	//fetch_and_load_leveldata(ldat_name);
 
+	//trying to track down issues with where objects get declared
+	//really though i do need to delay declaration of the mover objects through to after level data has been loaded
+}
 
+void	game_frame(void)
+{
+	*masterIsDoneDrawing = 0;
+	update_gamespeed();
+	master_draw_stats();
+	frame_render_prep();
+	slSlaveFunc(scene_draw, 0); //Get SSH2 busy with its drawing stack ASAP
+	slCashPurge();
+	sector_vertex_remittance();
+	
+	maintRand();
+	if(!you.inMenu)
+	{
+		master_draw(); 
+	} else {
+		start_menu();
+		*masterIsDoneDrawing = 1;
+	}
+	operate_stage_music();
+	reset_pad(&pad1);
+
+	//ABC+Start Exit Condition
+	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
+	{
+		SYS_Exit(0);
+	}
 }
 
 
@@ -215,7 +256,12 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], GV_SORT_CEN, MODEL_TYPE_SECTORED, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], 0, MODEL_TYPE_SECTORED, &entities[0]);
+	// while(1)
+	// {
+		// if(is_key_pressed(DIGI_START)) break;
+	// }
+
 	HWRAM_ldptr = buildAdjacentSectorList(12, HWRAM_ldptr);
 	
 	int ptr_begin = (unsigned int)HWRAM_ldptr;
@@ -229,37 +275,11 @@ void	load_test(void)
 	HWRAM_hldptr = HWRAM_ldptr;
 
 	init_pathing_system();
+	
 	p64MapRequest(0);
 	//
 }
 
-void	game_frame(void)
-{
-	*masterIsDoneDrawing = 0;
-	update_gamespeed();
-	master_draw_stats();
-	frame_render_prep();
-	slSlaveFunc(scene_draw, 0); //Get SSH2 busy with its drawing stack ASAP
-	slCashPurge();
-	sector_vertex_remittance();
-	
-	maintRand();
-	if(!you.inMenu)
-	{
-		master_draw(); 
-	} else {
-		start_menu();
-		*masterIsDoneDrawing = 1;
-	}
-	operate_stage_music();
-	reset_pad(&pad1);
-
-	//ABC+Start Exit Condition
-	if(is_key_down(DIGI_START) && is_key_down(DIGI_A) && is_key_down(DIGI_B) && is_key_down(DIGI_C))
-	{
-		SYS_Exit(0);
-	}
-}
 
 void	my_vlank(void)
 {

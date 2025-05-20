@@ -96,11 +96,9 @@ typedef struct
 	short base_texture;
 	short useClip;		//To clip by system, in user, or outside of user.
 	unsigned short radius[XYZ];
-	unsigned char numTexture;
-	unsigned char first_portal;
+	unsigned short numTexture;
 	char sortType;
 	char type;
-    Uint16 nbMeshes;
     Uint16 nbFrames; // Number of keyframes
     anim_struct * animation[64];
 	GVPLY * pol;
@@ -154,6 +152,8 @@ extern _pathHost * pathing;
 
 /**Store all your PDATA meshes here**/
 extern entity_t entities[MAX_MODELS];
+
+extern int debug_number;
 
 void	*	load_sectors(entity_t * ent, void * workAddress);
 

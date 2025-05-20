@@ -127,6 +127,7 @@ Render data flags:
 	#define GV_FLIP_HV			(0x30)
 	#define GET_SORT_DATA(n)	(n & 0xC0)
 	#define GET_FLIP_DATA(n)	(n & 0x30)
+	#define GV_SCTR_MOVER		(0xF0) //Special flag only scanned for on sector data. Marks the surface as belonging to a MOVER.
 	
 	#define PORTAL_TYPE_ACTIVE	(1)		//Flag applied to active portals (1 = active)
 	#define PORTAL_INTERSECTING	(1<<1)	//Flag applied when portal is intersecting view plane
