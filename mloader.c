@@ -294,14 +294,13 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 				}
 			}
 			
-			//why this no work?
-			//i got no ideas...
 			if(valid_type_found)
 			{
 			BuildingPayload[total_building_payload].object_type = valid_type_found;
 			BuildingPayload[total_building_payload].pos[X] = -(mov_ctrPos[X]>>16);
 			BuildingPayload[total_building_payload].pos[Y] = -(mov_ctrPos[Y]>>16);
 			BuildingPayload[total_building_payload].pos[Z] = -(mov_ctrPos[Z]>>16);
+			BuildingPayload[total_building_payload].sector = INVALID_SECTOR;
 			//Some way to find what entity # we're working with right now
 			BuildingPayload[total_building_payload].root_entity = (unsigned short)(ent - entities);
 			total_building_payload++;
@@ -311,6 +310,16 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			//If a valid type was found, we need to prepare an object declaration.
 			//I think I will repurpose the building-object system.
 			
+			//Finally, after all of this processing is done for the sector, we have to mark the empty sector as this object.
+			//We do this by changing the entity pointer of the sector.
+			//Normally, it points to the entity data that hosts all of the sector data and is of type MODEL_TYPE_SECTORED.
+			//Mover sectors will point to this newly created entity, which is of type MODEL_TYPE_BUILDING.
+			//This difference in type will denote the sector as a sector for a mover (for now).
+			sectors[k].ent = m_ent;
+			//Please note that this part will not connect any associated triggers for this mover.
+			//The mover target data will be connected later, when the mover target data is initialized and looks at this sector.
+			//When they do that, they will find this entity. They will then scan all declared objects to find this entity.
+			//They will only then link the mover target data to the declared object of the mover based on this entity pointer.
 			
 			continue;
 		}
@@ -755,6 +764,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 			BuildingPayload[total_building_payload].pos[X] = *item_data++;
 			BuildingPayload[total_building_payload].pos[Y] = *item_data++;
 			BuildingPayload[total_building_payload].pos[Z] = *item_data++;
+			BuildingPayload[total_building_payload].sector = *item_data++;
 			//Some way to find what entity # we're working with right now
 			BuildingPayload[total_building_payload].root_entity = (unsigned short)(model - entities);
 			total_building_payload++;

@@ -17,12 +17,13 @@
 #define GET_ETYPE(ext_dat)	(ext_dat & ETYPE)
 
 #define LDATA_TYPE		(0xF00) //Level data type bits
-#define TRACK_DATA		(0x100) //Level data, gate data definition
+
 #define LEVEL_CHNG		(0x200) //Level data, level change location definition
 #define PSTART			(0x300) //Level data, player start location definition
 #define EVENT_TRIG		(0x400) //Level data, sound event trigger, stream-type
 #define SDTRIG_PCM		(0x410) //Level data, sound event trigger, PCM-type
 #define ITEM_MANAGER	(0x500) //Level data, item manager
+#define MOVER_TARGET	(0x600) //Level data, mover waypoint data
 
 #define MAX_WOBJS (256)
 #define MAX_BUILD_OBJECTS (256)
@@ -259,7 +260,8 @@ typedef struct {
 typedef struct {
 	unsigned short object_type;
 	short pos[XYZ];
-	unsigned short root_entity; //(we need to be able to use this as a sector specification, or split the 2 bytes)
+	unsigned char sector;
+	unsigned char root_entity; //(we need to be able to use this as a sector specification, or split the 2 bytes)
 } _buildingObject;
 
 typedef struct {

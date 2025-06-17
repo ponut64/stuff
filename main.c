@@ -11,16 +11,23 @@ What's on my development iternerary?
 
 #movers and buttons
 
-so a MOVER-type can be defined in the plane data and cut out and built as a separate BUILD-type mesh
-now we need to make it move
-First, what are the preprocessors for the mover?
-I could probably add details to the ITEM-type preprossor to allow a sector to be specified. (Only natural, really)
-With a sector specified for each item, we can then search for items which define the start, waypoints, and end of a mover.
-Each of these can have a limited amount of parameters defined to control the mover's behavior, such as:
-- trigger type
-- trigger delay
-- speed
-- locked or unlocked state
+Mover-types are as yet defined as just building objects, but they are cut from sector data.
+I have the ability now to define sectors for items, as such items could be assigned to the sector which builds the mover.
+That being the case however, the mover object itself belongs to another sector once built.
+So how do I attach or link the items to the mover?
+A possible workflow is that the level data items assigned as mover targets can be specified with the (empty) sector of the mover.
+Remember, right now that sector number is not built into a sector, so it is an empty sector.
+That empty sector can be loaded with the object # of the mover (somehow, like in its vertex count or something).
+Basically:
+Sector is converted to object, sector is flagged as mover sector and with the object #
+items are processed and assigned to that sector #
+items are additionally processed with initialization of all level objects to:
+1 - look at their sector, to see if it is a mover sector
+2 - if it is a mover sector, assign a link between the item and the mover object #. (This could be the "more_data" section)
+3 - expect thusly that the object processor will properly locate sectors for this level data;
+as these become collision-enabled game objects in some cases and thus need a sector.
+4 - Then, the behavior indicated by the mover target object will act upon the identified object id #,
+and there is at that point no further link between it and the mover sector #.
 
 what else?
 sometime soon i will have to integrate enemies and the enemy animation

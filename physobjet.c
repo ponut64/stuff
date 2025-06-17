@@ -130,7 +130,7 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	//If the root object does not possess the entity ID of the item's root entity, do not add it.
 	if(objNEW < MAX_WOBJS && root_object->type.entity_ID == building_item->root_entity)
 	{
-		dWorldObjects[objNEW].curSector = INVALID_SECTOR;
+		dWorldObjects[objNEW].curSector = building_item->sector;
 		dWorldObjects[objNEW].type = *objList[building_item->object_type];
 		dWorldObjects[objNEW].rot[X] = 0;
 		dWorldObjects[objNEW].rot[Y] = 0;
@@ -178,13 +178,45 @@ void	post_ldata_init_building_object_search(void)
 			// its items have already been registered.
 			/////////////////////////////////////////////////////
 			for(int b = 0; b < total_building_payload; b++)
-			{
+			{	
 				declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
 			}
 			
 				
 			dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
 		}
+	}
+	
+	//Mover Target Data Initialization
+	//First we are going to look for any mover target type objects.
+	//Then, we to initialize that by searching for an object that has the entity ID 
+	for(int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * dwo = &dWorldObjects[i];
+		
+		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+		{
+			int sector_source = dwo->curSector;
+			
+			//Now that we know the source sector, we have to go to that sector and find the entity pointer we want.
+			//This code **should** work in theory but it is less than portable due to how pointer magic can work.
+			
+			entity_t * target_entity = sectors[sector_source].ent;
+			
+			//When we find the correct object which represents the mover, its entry [k] will be stored in <more_data>.
+			for(int k = 0; k < objNEW; k++)
+			{
+				_declaredObject * dwa = &dWorldObjects[k];
+				entity_t * roscule = &entities[dwa->type.entity_ID];
+				if(roscule == target_entity)
+				{
+					dwo->curSector = INVALID_SECTOR;
+					dwo->more_data = k;
+				}
+				
+			}
+		}
+		
 	}
 }
 
