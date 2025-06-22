@@ -89,6 +89,14 @@ _sobject EmptyBuild = {
 	.ext_dat = BUILD
 };
 
+_sobject TestMoverSet = {
+	.entity_ID = 0,
+	.radius[X] = 32,
+	.radius[Y] = 128,
+	.radius[Z] = 32,
+	.ext_dat = LDATA | MOVER_TARGET
+};
+
 _sobject TestSpawner = {
 	.entity_ID = 2,
 	.radius[X] = 0,
@@ -117,6 +125,7 @@ void	fill_obj_list(void)
 
 	objList[61] = &Player_Start_Location;
 
+	objList[62] = &TestMoverSet;
 	objList[63] = &Empty;
 }
 

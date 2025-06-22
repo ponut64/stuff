@@ -947,33 +947,6 @@ void	init_hud_events(void)
 	event->printedData = &you.end_average;
 	
 	event->colorBank = 1<<6;
-//////////////////////////////////////////////////
-	event = &hudEvents[FLAG_TAKEN_EVENT];
-	
-	event->startPos[X] = 176;
-	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
-	event->endPos[Y] = 140;
-	event->eventTime = 2<<16; 
-	event->spriteTime = 2<<16; //One second
-	event->screenStep = 10;
-	
-	event->soundType = PCM_PROTECTED;
-	event->soundNum = snd_ftake;
-	event->volume = 5;
-	
-	//Alerta: Strobe types won't affect text.
-	//Only sprites.
-	//Should probably fix that.
-	//But also, it's more efficient for the text to be in a single sprite anyway.
-	
-	event->texno = EVENT_SHOW_TEXT;
-	static char flagtakentxt[] = "GO GO GO!!!";
-	event->text = &flagtakentxt[0];
-	
-	event->colorBank = 1<<6;
-	event->text_lines = 1;
-	event->text_width = strlen(event->text);
 /////////////////////////////////////////////////
 	event = &hudEvents[FLAG_RETURNED_EVENT];
 	
@@ -1066,26 +1039,6 @@ void	init_hud_events(void)
 	event->text_lines = 1;
 	event->text_width = strlen(event->text);
 //////////////////////////////////////////////////
-	event = &hudEvents[FLAG_OPEN_EVENT];
-	
-	event->startPos[X] = 176;
-	event->startPos[Y] = 0;
-	event->endPos[X] = 176;
-	event->endPos[Y] = 140;
-	event->eventTime = 2<<16; 
-	event->spriteTime = 2<<16; //One second
-	event->screenStep = 10;
-	
-	event->soundType = PCM_PROTECTED;
-	event->soundNum = snd_ffield1;
-	event->volume = 5;
-	
-	event->texno = EVENT_SHOW_TEXT;
-	static char flagopentxt[] = "Flag stand has opened!";
-	event->text = &flagopentxt[0];
-	event->colorBank = 1<<6;
-	event->text_lines = 1;
-	event->text_width = strlen(event->text);
 	
 	event = &hudEvents[SIGN_0];
 	

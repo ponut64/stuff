@@ -590,6 +590,10 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	if(sct == NULL) sct = &sectors[INVALID_SECTOR];
 	if(sct != &sectors[INVALID_SECTOR] && sct->nbPolygon == 0) return 0;
 	
+	//We should have already handled a case where the system may feed this a sector that is a mover sector.
+	//This should never be valid, but instead such a case can be detected by the sector's entity not being MODEL_TYPE_SECTORED.
+	//However, it sould be noted that this function recieving invalid sector is oddly enough valid.
+	
 	unsigned int ply_limit = (sct != &sectors[INVALID_SECTOR]) ? sct->nbPolygon : mesh->nbPolygon;
 	
 	for(unsigned int i = 0; i < ply_limit; i++)
@@ -597,6 +601,8 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 		//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
 		int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
 		if(mesh->attbl[alias].render_data_flags & GV_FLAG_PORTAL) continue;
+		//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
+		if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
 		if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
 		{
 			if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;

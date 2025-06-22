@@ -705,9 +705,9 @@ void	manage_actors(void)
 					findPathTo(act->goalSector, i);
 				}
 				
-				nbg_sprintf(20, 16, "cur(%i)", act->curSector);
-				nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
-				nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
+				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
+				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
+				// nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
 				
 				// nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
 				// nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       

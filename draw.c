@@ -105,6 +105,10 @@ void	master_draw_stats(void)
 	
 	nbg_sprintf(1, 4, "Fuel:(%i), Rate:(%i)", you.power, you.IPaccel);
 	
+	nbg_sprintf(2, 6, "drwSector:(%i)", sectors[you.curSector].nbAdjacent);
+	nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
+	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
 	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
 	
@@ -505,9 +509,9 @@ void	sector_vertex_remittance(void)
 
 	//nbg_sprintf(2, 6, "prts:(%i)", *current_portal_count);
 	//nbg_sprintf(2, 6, "drwSector:(%i)", *sectorToDrawFrom);
-	nbg_sprintf(2, 6, "drwSector:(%i)", sct->nbAdjacent);
-	nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
-	nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
+	// nbg_sprintf(2, 6, "drwSector:(%i)", sct->nbAdjacent);
+	// nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
+	// nbg_sprintf(2, 8, "prvSector:(%i)", you.prevSector);
 	
 	// nbg_sprintf(16, 8, "ctrX:(%i)",  sectors[you.curSector].center_pos[X]>>16);
 	// nbg_sprintf(16, 9, "ctrY:(%i)",  sectors[you.curSector].center_pos[Y]>>16);

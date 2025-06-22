@@ -40,12 +40,10 @@
 #define TRACK_SLOW_EVENT		(15)
 #define RESET_TIMERS_EVENT		(41)
 
-#define FLAG_TAKEN_EVENT		(16)
 #define FLAG_SLOW_EVENT			(17)
 #define FLAG_PAR_EVENT			(18)
 #define FLAG_GOLD_EVENT			(19)
 #define FLAG_RETURNED_EVENT		(20)
-#define FLAG_OPEN_EVENT			(21)
 
 #define SIGN_0					(22)
 #define	SIGN_1					(23)

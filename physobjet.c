@@ -202,22 +202,52 @@ void	post_ldata_init_building_object_search(void)
 			//This code **should** work in theory but it is less than portable due to how pointer magic can work.
 			
 			entity_t * target_entity = sectors[sector_source].ent;
-			
+			dwo->curSector = INVALID_SECTOR;
 			//When we find the correct object which represents the mover, its entry [k] will be stored in <more_data>.
 			for(int k = 0; k < objNEW; k++)
 			{
+				if(k == i) continue;
 				_declaredObject * dwa = &dWorldObjects[k];
 				entity_t * roscule = &entities[dwa->type.entity_ID];
 				if(roscule == target_entity)
 				{
-					dwo->curSector = INVALID_SECTOR;
 					dwo->more_data = k;
+					break;
 				}
 				
 			}
-		}
-		
+
+		}		
 	}
+
+	//Furthurmore, we need to search the declared object list for another mover target with the same target object as this.
+	//We will then link to it.
+	//This is a polar link; each mover target will link to the other one.
+	//As such, as designed, the system will only work for two-pole movers. Enough for doors or simple elevators.
+	for(int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * dwo = &dWorldObjects[i];
+		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+		{
+			if(dwo->more_data == 0) continue;
+			for(int k = 0; k < objNEW; k++)
+			{
+				if(k == i) continue;
+				_declaredObject * dwa = &dWorldObjects[k];
+				if((dwa->type.ext_dat & LDATA) == LDATA && (dwa->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+				{
+					if(dwa->more_data == dwo->more_data)
+					{
+						//Establish the polar link.
+						dwo->more_data |= k<<8;
+						dwa->more_data |= i<<8;
+						
+					}
+				}
+			}
+		}
+	}
+
 }
 
 
@@ -309,7 +339,7 @@ void	object_control_loop(void)
 						&& position_difference[Y] < (obj->type.radius[Y]<<16)
 						&& position_difference[Z] < (obj->type.radius[Z]<<16)
 						//Enabling Booleans
-						&& !((*obj_edat) & OBJPOP) && ((*obj_edat) & 0x80))
+						&& !((*obj_edat) & OBJPOP) && ((*obj_edat) & 0x80)) //what is 0x80??
 						{
 							//////////////////////////////////////////
 							// Will change levels *(insofar as the uncommented code)
@@ -317,6 +347,68 @@ void	object_control_loop(void)
 							(*obj_edat) |= OBJPOP;
 							//p64MapRequest(dWorldObjects[i].type.entity_ID);
 						}
+					} else if(((*obj_edat) & LDATA_TYPE) == MOVER_TARGET)
+					{
+							nbg_sprintf(20, 16, "((typed))");
+							
+							if(position_difference[X] < (obj->type.radius[X]<<16)
+							&& position_difference[Y] < (obj->type.radius[Y]<<16)
+							&& position_difference[Z] < (obj->type.radius[Z]<<16)
+							//Enabling Booleans
+							&& !((*obj_edat) & OBJPOP))
+							{
+								//So, what we need to do here is ... interesting.
+								//We are going to be using this trigger in an unusual way.
+								//The condition which shall indicate this trigger be used is:
+								//if the player is colliding with the object designated as this mover's manipulated object
+								//Thus, being within radius, and colliding with the object, will start this process.
+								//Next, we shall determine:
+								//Is the mover **here**, at this trigger? If it is, check the next trigger.
+								//If it isn't, set the mover on a course to move here.
+								//If it is here, set the mover on a course to the next trigger.
+								
+								//so for a need to have a simple test, we'll just send it to the opposing trigger - but how?
+								//well, first, we'll see if it is already active. If it is, we won't do anything.
+								unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
+								_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
+								
+								nbg_sprintf(20, 16, "bif(%i)", moverTriggerLink);
+								if(dwa->type.ext_dat & OBJPOP) continue;
+								//So.. now we have to set it as active. And then what?
+								//I struggle to understand at what point in the code must the mover be ... moved.
+								//Well, it can be here.
+								dwa->type.ext_dat |= OBJPOP;
+								nbg_sprintf(20, 16, "(triggered)");
+							} else if((*obj_edat) & OBJPOP)
+							{
+								//In case where the POP flag is high, the mover should be active.
+								//So uh, let's uh, move it?
+								//This'll be interesting... (should really be a break-out function for this stuff)
+								_declaredObject * dwa = &dWorldObjects[obj->more_data & 0xFF];
+								
+								//First, we need to get the delta between the mover's current position, and the trigger's.
+								static int dTrig[3];
+								dTrig[X] = obj->pos[X] - dwa->pos[X];
+								dTrig[Y] = obj->pos[Y] - dwa->pos[Y];
+								dTrig[Z] = obj->pos[Z] - dwa->pos[Z];
+								
+								//Quick check: Are we within acceptable distance of the trigger already? If so, halt.
+								if(JO_ABS(dTrig[X]) < (4<<16) && JO_ABS(dTrig[Y]) < (4<<16) && JO_ABS(dTrig[Z]) < (4<<16))
+								{
+									nbg_sprintf(20, 15, "(here)");
+									obj->type.ext_dat &= UNPOP;
+									continue;
+								}
+								
+								//A unit difference will be used to scale the movement.
+								static int unitD[3];
+								quick_normalize(dTrig, unitD);
+								
+								nbg_sprintf(20, 15, "(moved");
+								dwa->pos[X] += fxm(fxm(delta_time, 16<<16), unitD[X]);
+								dwa->pos[Y] += fxm(fxm(delta_time, 16<<16), unitD[Y]);
+								dwa->pos[Z] += fxm(fxm(delta_time, 16<<16), unitD[Z]);
+							}
 					}
 				}
 		} else if((sectorIsVisible[obj->curSector] && objUP < MAX_PHYS_PROXY))

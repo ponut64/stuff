@@ -1019,7 +1019,7 @@ void	runPath(int actor_id)
 	iterations++;
 	}while(iterations <= MAX_PATHING_STEPS && next_step == INVALID_SECTOR);
 	
-	nbg_sprintf(3, 20, "pth(%i)", next_step);
+	//nbg_sprintf(3, 20, "pth(%i)", next_step);
 	
 	//In case no valid path was found, make no changes to the path table.
 	if(next_step == INVALID_SECTOR) return;
@@ -1063,7 +1063,7 @@ void	checkInPathSteps(int actor_id)
 	_actor * act = &spawned_actors[actor_id];
 	if(act->curPathStep == INVALID_SECTOR) return;
 	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
-	nbg_sprintf(3, 14, "total_step(%i)", *numSteps);
+	//nbg_sprintf(3, 14, "total_step(%i)", *numSteps);
 	if(act->curPathStep > *numSteps) act->curPathStep = *numSteps;
 	//register which path we are looking at
 	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
@@ -1124,14 +1124,14 @@ void	checkInPathSteps(int actor_id)
 	}
 
 	
-	nbg_sprintf(3, 15, "stp(%i)", act->curPathStep);
-	nbg_sprintf(3, 16, "sc1(%i)", step->fromSector);
-	nbg_sprintf(3, 17, "sc2(%i)", step->toSector);
-	nbg_sprintf(3, 18, "exc(%i)", act->exceptionStep);
+	// nbg_sprintf(3, 15, "stp(%i)", act->curPathStep);
+	// nbg_sprintf(3, 16, "sc1(%i)", step->fromSector);
+	// nbg_sprintf(3, 17, "sc2(%i)", step->toSector);
+	// nbg_sprintf(3, 18, "exc(%i)", act->exceptionStep);
 	
-	nbg_sprintf_decimal(3, 10, step->dir[X]);                     
-	nbg_sprintf_decimal(3, 11, step->dir[Y]);                       
-	nbg_sprintf_decimal(3, 12, step->dir[Z]);
+	// nbg_sprintf_decimal(3, 10, step->dir[X]);                     
+	// nbg_sprintf_decimal(3, 11, step->dir[Y]);                       
+	// nbg_sprintf_decimal(3, 12, step->dir[Z]);
 	// nbg_sprintf_decimal(3, 13, fxdot(step->dir, step->dir));
 	
 	act->exceptionTimer += delta_time;

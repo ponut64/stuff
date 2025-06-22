@@ -127,14 +127,26 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 				moverMesh->attbl[i].first_sector = attr->first_sector;
 				moverMesh->attbl[i].texno = attr->texno;
 				
+				attr->render_data_flags = 0;
+				attr->tile_information = 0;
+				attr->plane_information = 0;
+				attr->uv_id = 0;
+				attr->first_sector = 0;
+				attr->texno = 0;
+				
 				//Copy the normal table
 				moverMesh->nmtbl[i][X] = mesh->nmtbl[sectors[k].pltbl[i]][X];
 				moverMesh->nmtbl[i][Y] = mesh->nmtbl[sectors[k].pltbl[i]][Y];
 				moverMesh->nmtbl[i][Z] = mesh->nmtbl[sectors[k].pltbl[i]][Z];
+				mesh->nmtbl[sectors[k].pltbl[i]][X] = 0;
+                mesh->nmtbl[sectors[k].pltbl[i]][Y] = 0;
+                mesh->nmtbl[sectors[k].pltbl[i]][Z] = 0;
 				
 				//Copy maxtbl and lumatbl
 				moverMesh->maxtbl[i] = mesh->maxtbl[sectors[k].pltbl[i]];
+				mesh->maxtbl[sectors[k].pltbl[i]] = 0;
 				moverMesh->lumatbl[i] = mesh->lumatbl[sectors[k].pltbl[i]];
+				mesh->lumatbl[sectors[k].pltbl[i]] = 0;
 				
 				slapBuffer[moverVerts] = moverMesh->pltbl[i].vertices[0];
 				clapBuffer[moverVerts] = INVALID_PLANE;
@@ -195,6 +207,14 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 					}
 				}
 			} 
+			
+			//We need to disqualify the polygons remaining on the sector mesh somehow.
+			for(unsigned int i = 0; i < moverMesh->nbPoint; i++)
+			{
+				mesh->pntbl[clapBuffer[i]][X] = 0;
+				mesh->pntbl[clapBuffer[i]][Y] = 0;
+				mesh->pntbl[clapBuffer[i]][Z] = 0;
+			}
 			
 			//With the mesh data settled, we can now create an entity.
 			//First we have to find an empty entry in the entity list.

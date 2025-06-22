@@ -888,6 +888,7 @@ int		broad_phase_sector_finder(int * pos, int * mesh_position, _sector * test_se
 	entity_t * ent = test_sector->ent;
 	//If the entity is not loaded, cease the test.
 	if(ent->file_done != true) return INVALID_SECTOR;
+	if(ent->type != MODEL_TYPE_SECTORED) return INVALID_SECTOR;
 	//This is the initial phase of determining which sector something is in.
 	//Once we have passed this broad phase, we can find out which sector something is in by less complex means;
 	//mostly by using data from collision processing an actor or the player.

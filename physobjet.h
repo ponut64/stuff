@@ -137,11 +137,10 @@ bitflag orientation for OBJECT:
 			15 : popped / visible flag
 			14-12 : 0x1000 specifies ITEM data.
 			11-4 : item sub-type flag. Just determines what the game does with it.
-				#0 : Normal collectible 
-				#1 - #7: 7 Rings special collectible
-				#8: Flag
+				#0 :
+				#1 :
 			3-1 : Bits reserved for use by item type
-			0 : Collected flag. If 1, the object has been collected.
+			0 : Collected flag (used by some items). If 1, the object has been collected.
 		radius
 			Collision radius of the item
 		light_bright / light_y_offset
@@ -150,29 +149,15 @@ bitflag orientation for OBJECT:
 		Since this object is rendered, conventional use applies.
 		
 		more_data :
-			0 : Always collided / snap-collision flag. If 1, collision will always evaluate as true (if possible to collide).
+			0 : <unused>
 */
 #define ITEM_COLLECTED			(0x1)
 #define ITEM_RESET				(0x7FFE)
 #define ITEM_TYPE				(0xFF0)
 #define SET_ITEM_TYPE(ext_dat, item_num)	(ext_dat | (item_num & 0xFF)<<4)
-#define GET_ITEM_TYPE(ext_dat)				((ext_dat & ITEM_TYPE))
-#define ITEM_TYPE_PTADR			(0x00)
-#define ITEM_TYPE_RING1			(0x10)
-#define ITEM_TYPE_RING2			(0x20)
-#define ITEM_TYPE_RING3			(0x30)
-#define ITEM_TYPE_RING4			(0x40)
-#define ITEM_TYPE_RING5			(0x50)
-#define ITEM_TYPE_RING6			(0x60)
-#define ITEM_TYPE_RING7			(0x70)
-#define ITEM_TYPE_FLAG			(0x80)
+#define GET_ITEM_TYPE(ext_dat)				((ext_dat & ITEM_TYPE)>>4)
 #define ITEM_FLAGS				(0xE)
 #define ITEM_NO_FLAGS			(0x7FF0)
-#define FLAG_OPEN				(0x2)
-#define FLAG_GRABBED			(0x4)
-#define FLAG_RETURN				(0x8)
-
-#define ITEM_MDATA_SNAP_COLLISION	(0x1)
 
 
 /*
@@ -239,10 +224,48 @@ bitflag orientation for OBJECT:
 		pos[xyz] 
 			Location of the trigger
 		link 
-			declared object array entry of another level start
+			declared object array for more level data
 /////////////////////////////////////////////////////////////////
 
 **/
+
+/*
+Mover Target Bitwise Layout Information
+
+	
+
+	_sobject
+		entity_ID: Sound number to be played upon starting (0 counts as no sound)
+		clone_ID: Sound number to be played upon stopping (0 counts as no sound)
+		radius: the radius of the trigger
+		ext_dat :
+			15 : Active (0 if inactive, 1 if being used as mover target)
+			14-12: "LDATA" definition
+			8-11: "MOVER_TARGET" definition
+			7 : Trigger with delay
+			6 : Return after destination reached?
+			5-4 : Trigger type bits (By other object, proximity, or action button)
+			0-3 : Mover speed (in time-scaled arbitrary units)
+		effect : Sound number to be played upon trigger (0 counts as no sound)
+		effectTimeLimit : Time limit of trigger and return delays
+		effectTimeCount : Time counter of trigger and return delays
+	_declaredObject
+		pos[xyz] 
+			Location of the trigger
+		link 
+			declared object array for more level data
+	more_data :
+		15-8:the object ID of the opposing mover trigger
+		0-7 :the object ID to be manipulated as a mover by this trigger
+		
+*/
+
+#define MOVER_TARGET_DELAYED	(0x80)
+#define MOVER_TARGET_RETURN		(0x40)
+#define MOVER_TARGET_TYPE		(0x30)
+#define MOVER_TARGET_RATE		(0xF)
+
+
 #define OBJECT_ENTRY_CAP (128)
 
 typedef struct {
@@ -271,7 +294,7 @@ typedef struct {
 	unsigned short	curSector;
 	unsigned short	prevSector;
 	unsigned short	more_data;
-	short	link; //Has the declared object list ID of the next object in the list. -1 for last-in-list.
+	short	link; //links to another object of same type. -1 for last in-list. used by garbage collector, do not mess with.
 	short	garbage; //Stuff for garbage collector
 	ANGLE	rot[XYZ];
 } _declaredObject;
