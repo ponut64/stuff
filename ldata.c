@@ -333,6 +333,9 @@ void declarations(void)
 
 void	level_data_basic(void)
 {
+	levelPos[X] = 0;
+	levelPos[Y] = 0;
+	levelPos[Z] = 0;
 
 	declarations();
 	ldata_ready = true;
@@ -357,13 +360,6 @@ void	level_data_basic(void)
 			you.startPos[Z] = -obj->pos[Z];
 			reset_player();
 			obj->type.ext_dat |= 0x8000;
-		}
-		
-		if(entities[obj->type.entity_ID].type == MODEL_TYPE_SECTORED)
-		{
-			levelPos[X] = obj->pos[X];
-			levelPos[Y] = obj->pos[Y];
-			levelPos[Z] = obj->pos[Z];
 		}
 	}
 

@@ -89,12 +89,34 @@ _sobject EmptyBuild = {
 	.ext_dat = BUILD
 };
 
-_sobject TestMoverSet = {
-	.entity_ID = 0,
+_sobject Strange = {
+	.entity_ID = 15,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = BUILD
+};
+
+_sobject MoverClosed = {
+	.entity_ID = 12, //snd_wind
+	.clone_ID = 14, //snd_cronch
 	.radius[X] = 32,
 	.radius[Y] = 128,
 	.radius[Z] = 32,
-	.ext_dat = LDATA | MOVER_TARGET
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 0) | MOVER_TARGET_ACTION | MOVER_TARGET_DELAYED,
+	.effect = 18, //snd_khit
+	.effectTimeLimit = 1<<16
+};
+
+_sobject MoverOpen = {
+	.entity_ID = 12, //snd_wind
+	.clone_ID = 14, //snd_cronch
+	.radius[X] = 32,
+	.radius[Y] = 64,
+	.radius[Z] = 32,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_RETURN | MOVER_TARGET_REMOTE,
+	.effect = 18, //snd_khit
+	.effectTimeLimit = 1<<16
 };
 
 _sobject TestSpawner = {
@@ -120,12 +142,15 @@ void	fill_obj_list(void)
 	objList[2] = &Block;
 	objList[11] = &StartStand;
 	objList[12] = &Build00;
+	
+	objList[50] = &Strange;
 
 	objList[60] = &TestSpawner;
 
 	objList[61] = &Player_Start_Location;
 
-	objList[62] = &TestMoverSet;
+	objList[61] = &MoverOpen;
+	objList[62] = &MoverClosed;
 	objList[63] = &Empty;
 }
 

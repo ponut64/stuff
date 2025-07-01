@@ -62,6 +62,7 @@
 
 #define EULER_OPTION_XZY	(0)
 #define EULER_OPTION_XYZ	(1)
+
 //Structs
 
 typedef struct {
@@ -238,9 +239,6 @@ typedef struct {
 	int hasValidAim;
 	
 	short firstSurfHit;
-	short power;
-	short maxPower;
-	Bool setJet;
 	
 	int surfaceHeight;
 	int distanceToMapFloor;
@@ -263,6 +261,8 @@ typedef struct {
 	_lineTable realTimeAxis;
 	
 	_boundBox box;
+	
+	unsigned short actionKeyDef;
 	
 	Bool aboveObject;
 	Bool hitMap;

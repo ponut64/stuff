@@ -67,8 +67,6 @@ void reset_player(void)
 	you.dV[Z]=0;
 	you.IPaccel=0;
 	you.id = 0;
-	you.power = 0;
-	you.maxPower = 4;
 	you.avg_sanics = 0;
 	you.sanic_samples = 0;
 	you.distanceToMapFloor = 0;
@@ -79,6 +77,8 @@ void reset_player(void)
 	
 	you.curSector = INVALID_SECTOR;
 	you.prevSector = INVALID_SECTOR;
+	
+	you.actionKeyDef = DIGI_L;
 	
 	set_viewmodel_from_slot(0);
 }
@@ -105,50 +105,6 @@ void pl_jump(void)
 	you.pos[Y] += 6553 + (1<<16);
 	pcm_play(snd_bstep, PCM_SEMI, 6);
 }
-
-void pl_jet(void){
-	if(you.dirInp == true)
-	{
-		you.dV[X] += fxm(fxm(you.IPaccel, you.ControlUV[X]), 3000);
-		you.dV[Y] += GRAVITY;
-		you.dV[Z] += fxm(fxm(you.IPaccel, you.ControlUV[Z]), 3000);
-	} else {
-		you.dV[Y] += GRAVITY + (GRAVITY>>2);
-	}
-
-	//X/Z Speed Allowance for zero air thrust
-	int hvscl = fxm(you.velocity[X], you.velocity[X]) + fxm(you.velocity[Z], you.velocity[Z]);
-
-	if(you.jumpAllowed == true && you.power == you.maxPower)
-	{
-		//Surface release
-		you.pos[Y] += 6553 - fxm(you.floorNorm[X], 1<<16) - fxm(you.floorNorm[Y], 1<<16) - fxm(you.floorNorm[Z], 1<<16);
-		you.jumpAllowed = false;
-		you.hitSurface = false;
-		//Hop
-		//This should not be time-scaled, since it does not increment over multiple frames.
-		you.velocity[Y] += (1<<16) + 32768;
-		//Stuff for the puffs
-		you.wvel[X] -= you.dV[X]<<4;
-		you.wvel[Y] -= (2<<16) - (GRAVITY<<1);
-		you.wvel[Z] -= you.dV[Z]<<4;
-		emit_particle_explosion(&HopPuff, PARTICLE_TYPE_NOCOL, you.wpos, you.wvel, 12<<16, 8192, 6);
-	} else if(you.jumpAllowed == false && you.power == you.maxPower && hvscl < 16384)
-	{
-		you.dV[X] += fxm(32768, you.ControlUV[X]);
-		you.dV[Z] += fxm(32768, you.ControlUV[Z]);
-		//Stuff for the puffs
-		you.wvel[X] -= you.dV[X]<<2;
-		you.wvel[Y] -= (1<<16) - (GRAVITY<<1);
-		you.wvel[Z] -= you.dV[Z]<<2;
-		emit_particle_explosion(&HopPuff, PARTICLE_TYPE_NOCOL, you.wpos, you.wvel, 12<<16, 8192, 6);
-	}
-
-		
-	you.power -= 1;
-	pcm_play(snd_bwee, PCM_PROTECTED, 6);
-}
-
 
 void	pl_step_snd(void)
 {
@@ -385,22 +341,8 @@ void	player_phys_affect(void)
 			you.setJump = false;
 		}
 		
-		static int powerTimer = 0;
-		
 		if( you.okayStepSnd ) pl_step_snd();
-	
-		if(you.setJet == true && you.power > 0)
-		{
-			pl_jet();
-		} else if(you.power < you.maxPower){
-			powerTimer += delta_time;
-			if(powerTimer > (4096))
-			{
-				you.power += 1;
-				powerTimer = 0;
-			}
-		}
-		
+
 	////////////////////////////////////////////////////
 	//Input-speed response
 	////////////////////////////////////////////////////
@@ -559,7 +501,7 @@ void	player_phys_affect(void)
 		
 			you.hitWall = false;
 			
-			//if(you.sanics >= 7<<16 && !you.setJet && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
+			//if(you.sanics >= 7<<16 && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
 			
 			if(you.sanics >= 3<<16)
 			{

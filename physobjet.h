@@ -247,8 +247,8 @@ Mover Target Bitwise Layout Information
 			5-4 : Trigger type bits (By other object, proximity, or action button)
 			0-3 : Mover speed (in time-scaled arbitrary units)
 		effect : Sound number to be played upon trigger (0 counts as no sound)
-		effectTimeLimit : Time limit of trigger and return delays
-		effectTimeCount : Time counter of trigger and return delays
+		effectTimeLimit : Time limit of trigger, return, and activation delay
+		effectTimeCount : Time counter of trigger, return, and activation delay
 	_declaredObject
 		pos[xyz] 
 			Location of the trigger
@@ -263,6 +263,9 @@ Mover Target Bitwise Layout Information
 #define MOVER_TARGET_DELAYED	(0x80)
 #define MOVER_TARGET_RETURN		(0x40)
 #define MOVER_TARGET_TYPE		(0x30)
+#define MOVER_TARGET_PROX		(0x10) //(Triggered by proximity)
+#define MOVER_TARGET_ACTION		(0x20) //(Triggered by player action button)
+#define MOVER_TARGET_REMOTE		(0x30) //(Triggered by another game object, typically for door return points)
 #define MOVER_TARGET_RATE		(0xF)
 
 

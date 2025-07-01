@@ -1,6 +1,7 @@
 #pragma once
 
 #define MAX_MODELS (64)
+#define WORLD_ENTITY_ID		(12)
 #define MAX_SECTORS (64)
 #define INVALID_PLANE		(0xFFFF)
 #define INVALID_SECTOR		(MAX_SECTORS)

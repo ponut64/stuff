@@ -193,12 +193,6 @@ void controls(void)
 		rKeyTimer = 0;
 	}
 	
-	if(is_key_down(DIGI_R))
-	{
-		you.setJet = true;
-	} else {
-		you.setJet = false;
-	}
 	//
 
 	if(is_key_down(DIGI_START))

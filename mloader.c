@@ -120,10 +120,13 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 				
 				//Copy the attributes
 				gvAtr * attr = &mesh->attbl[sectors[k].pltbl[i]];
-				moverMesh->attbl[i].render_data_flags = attr->render_data_flags; //(probably exclude the mover flag here)
+				moverMesh->attbl[i].render_data_flags = GV_FLAG_PHYS | GV_FLAG_DISPLAY;
+				
+				//<-this must get processed at some point elsewhere in the code to correct it; its incorrect here->
 				moverMesh->attbl[i].tile_information = attr->tile_information;
 				moverMesh->attbl[i].plane_information = attr->plane_information;
-				moverMesh->attbl[i].uv_id = attr->uv_id;
+				moverMesh->attbl[i].uv_id = attr->uv_id; //I've noticed this breaking.... feck
+				
 				moverMesh->attbl[i].first_sector = attr->first_sector;
 				moverMesh->attbl[i].texno = attr->texno;
 				

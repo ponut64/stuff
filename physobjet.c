@@ -162,6 +162,17 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 
 void	post_ldata_init_building_object_search(void)
 {
+	//Insofar for the sector constructed level data, we just have to look through and see if it has the right entity ID.
+	//This unfortunately requires a dummy object be constructed.
+	static _declaredObject dummy;
+	dummy.type.entity_ID = WORLD_ENTITY_ID; 
+	dummy.pos[X] = levelPos[X];
+	dummy.pos[Y] = levelPos[Y];
+	dummy.pos[Z] = levelPos[Z];
+	for(int b = 0; b < total_building_payload; b++)
+	{	
+		declare_building_object(&dummy, &BuildingPayload[b]);
+	}
 	
 	for(int i = 0; i < objNEW; i++)
 	{
@@ -208,6 +219,8 @@ void	post_ldata_init_building_object_search(void)
 			{
 				if(k == i) continue;
 				_declaredObject * dwa = &dWorldObjects[k];
+				//If this isn't a build-type object or a normal object, don't try and use its entity_ID.
+				if((dwa->type.ext_dat & ETYPE) != BUILD && (dwa->type.ext_dat & ETYPE) != OBJECT) continue;
 				entity_t * roscule = &entities[dwa->type.entity_ID];
 				if(roscule == target_entity)
 				{
@@ -224,12 +237,21 @@ void	post_ldata_init_building_object_search(void)
 	//We will then link to it.
 	//This is a polar link; each mover target will link to the other one.
 	//As such, as designed, the system will only work for two-pole movers. Enough for doors or simple elevators.
+
 	for(int i = 0; i < objNEW; i++)
 	{
 		_declaredObject * dwo = &dWorldObjects[i];
+		int found_pair = 0;
+		int found_dwa = 0;
 		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
 		{
 			if(dwo->more_data == 0) continue;
+			found_dwa = 1;
+			if(dwo->more_data & 0xFF00)
+			{
+				found_pair = 1;
+				continue;
+			}
 			for(int k = 0; k < objNEW; k++)
 			{
 				if(k == i) continue;
@@ -238,15 +260,56 @@ void	post_ldata_init_building_object_search(void)
 				{
 					if(dwa->more_data == dwo->more_data)
 					{
+						if(dwa->more_data & 0xFF00)
+						{
+							found_pair = 1;
+							continue;
+						}
 						//Establish the polar link.
 						dwo->more_data |= k<<8;
 						dwa->more_data |= i<<8;
-						
+						found_pair = 1;
 					}
 				}
 			}
 		}
+		
+	//In case we have not found a pair for this trigger, we need to declare a pair for it.
+	//We shall assume this waypoint was not the mover's closed point, as such we will place a closed waypoint on the mover.
+	//This closed waypoint will be the pair.
+			if(!found_pair && found_dwa)
+			{
+					_declaredObject * dwa = &dWorldObjects[dwo->more_data & 0xFF];
+					unsigned short * used_radius = &dwa->type.radius[0];
+				
+					BuildingPayload[total_building_payload].object_type = 63; //(this could really be anything)
+					BuildingPayload[total_building_payload].pos[X] = dwa->pos[X]>>16;
+					BuildingPayload[total_building_payload].pos[Y] = dwa->pos[Y]>>16;
+					BuildingPayload[total_building_payload].pos[Z] = dwa->pos[Z]>>16;
+					BuildingPayload[total_building_payload].sector = INVALID_SECTOR; //(manually linked later)
+					//Some way to find what entity # we're working with right now
+					BuildingPayload[total_building_payload].root_entity = WORLD_ENTITY_ID;
+					//Declare the object from this preset
+					declare_building_object(&dummy, &BuildingPayload[total_building_payload]);
+					total_building_payload++;
+					//Copy relevant data from the trigger to the new object
+					dwa = &dWorldObjects[objNEW-1];
+					dwa->type.entity_ID = dwo->type.entity_ID;
+					dwa->type.clone_ID = dwo->type.clone_ID;
+					dwa->type.radius[X] = used_radius[X] + 16; //Use the radius of the mover + contact radius
+					dwa->type.radius[Y] = used_radius[Y] + 24; //Contact radius higher here
+					dwa->type.radius[Z] = used_radius[Z] + 16;
+					dwa->type.effect = dwo->type.effect;
+					dwa->type.effectTimeLimit = dwo->type.effectTimeLimit;
+					dwa->type.ext_dat = LDATA | MOVER_TARGET | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED;
+					//Default to simple proximity trigger
+					//dwa->type.ext_dat |= (dwo->type.ext_dat & MOVER_TARGET_RATE);
+					dwa->more_data = (dwo->more_data & 0xFF) | (i<<8);
+					dwo->more_data |= (objNEW-1)<<8;
+			}
 	}
+
+
 
 }
 
@@ -276,10 +339,7 @@ void	object_control_loop(void)
 		
 		//Since we are transitioning to a sector-based engine, all objects need a valid sector.
 		//So we have to make sure everything with an invalid sector is given a valid one.
-		if(entities[obj->type.entity_ID].type == MODEL_TYPE_SECTORED)
-		{
-			continue;
-		} else if(obj->curSector == INVALID_SECTOR)
+		if(obj->curSector == INVALID_SECTOR)
 		{
 			obj->curSector = broad_phase_sector_finder(obj->pos, levelPos, &sectors[obj->curSector]);
 		}
@@ -349,7 +409,10 @@ void	object_control_loop(void)
 						}
 					} else if(((*obj_edat) & LDATA_TYPE) == MOVER_TARGET)
 					{
-							nbg_sprintf(20, 16, "((typed))");
+							//nbg_sprintf(20, 16, "((typed))");
+							
+							//Send Time to Delay Count
+							obj->type.effectTimeCount += delta_time;
 							
 							if(position_difference[X] < (obj->type.radius[X]<<16)
 							&& position_difference[Y] < (obj->type.radius[Y]<<16)
@@ -357,28 +420,35 @@ void	object_control_loop(void)
 							//Enabling Booleans
 							&& !((*obj_edat) & OBJPOP))
 							{
-								//So, what we need to do here is ... interesting.
-								//We are going to be using this trigger in an unusual way.
-								//The condition which shall indicate this trigger be used is:
-								//if the player is colliding with the object designated as this mover's manipulated object
-								//Thus, being within radius, and colliding with the object, will start this process.
-								//Next, we shall determine:
-								//Is the mover **here**, at this trigger? If it is, check the next trigger.
-								//If it isn't, set the mover on a course to move here.
-								//If it is here, set the mover on a course to the next trigger.
-								
 								//so for a need to have a simple test, we'll just send it to the opposing trigger - but how?
 								//well, first, we'll see if it is already active. If it is, we won't do anything.
 								unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
 								_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
 								
-								nbg_sprintf(20, 16, "bif(%i)", moverTriggerLink);
-								if(dwa->type.ext_dat & OBJPOP) continue;
-								//So.. now we have to set it as active. And then what?
-								//I struggle to understand at what point in the code must the mover be ... moved.
-								//Well, it can be here.
-								dwa->type.ext_dat |= OBJPOP;
-								nbg_sprintf(20, 16, "(triggered)");
+								//nbg_sprintf(20, 16, "bif(%i)", moverTriggerLink);
+								//Do not move until activation delay is satisfied.
+							if(dwa->type.ext_dat & OBJPOP || obj->type.effectTimeCount <= obj->type.effectTimeLimit) continue;
+	
+							//Further, we want to delineate these by their trigger type.
+							//If it is proximity, we let it through. If it is by action, we wait for a button.
+							//If it is remote, it may not be activated here.
+							//This is, by the way, the trigger type for the sensor being collision-tested.
+								int trigger_type = obj->type.ext_dat & MOVER_TARGET_TYPE;
+			if(trigger_type == MOVER_TARGET_PROX || (trigger_type == MOVER_TARGET_ACTION && is_key_pressed(you.actionKeyDef)))
+								{
+									dwa->type.ext_dat |= OBJPOP;
+									dwa->type.effectTimeCount = 0;
+									obj->type.effectTimeCount = 0;
+									if(obj->type.effect != 0) pcm_play(obj->type.effect, PCM_SEMI, 5);
+									//We also need to handle a case where the target waypoint is out of bounds.
+							//In such case, the waypoint will evaluate to be in invalid sector; we need give it a valid one.
+									dwa->curSector = (dwa->curSector == INVALID_SECTOR) ? obj->curSector : dwa->curSector;
+									//nbg_sprintf(20, 16, "(triggered)");
+								} else if(trigger_type == MOVER_TARGET_ACTION)
+								{
+									//Display a pop-up indicating that an action is available.
+									start_hud_event(UsePrompt);
+								}
 							} else if((*obj_edat) & OBJPOP)
 							{
 								//In case where the POP flag is high, the mover should be active.
@@ -386,28 +456,52 @@ void	object_control_loop(void)
 								//This'll be interesting... (should really be a break-out function for this stuff)
 								_declaredObject * dwa = &dWorldObjects[obj->more_data & 0xFF];
 								
+								//Do not move until time has passed
+								if(obj->type.effectTimeCount <= obj->type.effectTimeLimit &&
+								obj->type.ext_dat & MOVER_TARGET_DELAYED) continue;
+								
 								//First, we need to get the delta between the mover's current position, and the trigger's.
 								static int dTrig[3];
-								dTrig[X] = obj->pos[X] - dwa->pos[X];
-								dTrig[Y] = obj->pos[Y] - dwa->pos[Y];
-								dTrig[Z] = obj->pos[Z] - dwa->pos[Z];
+								dTrig[X] = (obj->pos[X] - dwa->pos[X]);
+								dTrig[Y] = (obj->pos[Y] - dwa->pos[Y]);
+								dTrig[Z] = (obj->pos[Z] - dwa->pos[Z]);
+								
 								
 								//Quick check: Are we within acceptable distance of the trigger already? If so, halt.
 								if(JO_ABS(dTrig[X]) < (4<<16) && JO_ABS(dTrig[Y]) < (4<<16) && JO_ABS(dTrig[Z]) < (4<<16))
 								{
-									nbg_sprintf(20, 15, "(here)");
 									obj->type.ext_dat &= UNPOP;
+									obj->type.effectTimeCount = 0;
+									pcm_cease(obj->type.entity_ID);
+									if(obj->type.clone_ID != 0) pcm_play(obj->type.clone_ID, PCM_SEMI, 6);
+									//In case this activator was set as <Return>, we need to do something strange.
+									//We need to go to the opposing trigger of this pair, and activate it.
+									//The delay for the return will be according to the settings of the other point,
+									//which may or may not be set to also return.
+									//Door pairs will thusly have only the OPEN waypoint of the door marked as <Return>.
+									if(obj->type.ext_dat & MOVER_TARGET_RETURN)
+									{
+										unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
+										//(note the shifting use of "dwa")
+										dwa = &dWorldObjects[moverTriggerLink];
+										dwa->type.effectTimeCount = 0;
+										dwa->type.ext_dat |= OBJPOP;
+									}
 									continue;
 								}
+								if(obj->type.entity_ID != 0) pcm_play(obj->type.entity_ID, PCM_FWD_LOOP, 5);
 								
 								//A unit difference will be used to scale the movement.
 								static int unitD[3];
+								dTrig[X]>>=4;
+								dTrig[Y]>>=4;
+								dTrig[Z]>>=4;
 								quick_normalize(dTrig, unitD);
+								int speed_set = (obj->type.ext_dat & MOVER_TARGET_RATE)+1;
 								
-								nbg_sprintf(20, 15, "(moved");
-								dwa->pos[X] += fxm(fxm(delta_time, 16<<16), unitD[X]);
-								dwa->pos[Y] += fxm(fxm(delta_time, 16<<16), unitD[Y]);
-								dwa->pos[Z] += fxm(fxm(delta_time, 16<<16), unitD[Z]);
+								dwa->pos[X] += fxm(fxm(delta_time, speed_set<<21), unitD[X]);
+								dwa->pos[Y] += fxm(fxm(delta_time, speed_set<<21), unitD[Y]);
+								dwa->pos[Z] += fxm(fxm(delta_time, speed_set<<21), unitD[Z]);
 							}
 					}
 				}

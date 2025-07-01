@@ -11,23 +11,22 @@ What's on my development iternerary?
 
 #movers and buttons
 
-Mover-types are as yet defined as just building objects, but they are cut from sector data.
-I have the ability now to define sectors for items, as such items could be assigned to the sector which builds the mover.
-That being the case however, the mover object itself belongs to another sector once built.
-So how do I attach or link the items to the mover?
-A possible workflow is that the level data items assigned as mover targets can be specified with the (empty) sector of the mover.
-Remember, right now that sector number is not built into a sector, so it is an empty sector.
-That empty sector can be loaded with the object # of the mover (somehow, like in its vertex count or something).
-Basically:
-Sector is converted to object, sector is flagged as mover sector and with the object #
-items are processed and assigned to that sector #
-items are additionally processed with initialization of all level objects to:
-1 - look at their sector, to see if it is a mover sector
-2 - if it is a mover sector, assign a link between the item and the mover object #. (This could be the "more_data" section)
-3 - expect thusly that the object processor will properly locate sectors for this level data;
-as these become collision-enabled game objects in some cases and thus need a sector.
-4 - Then, the behavior indicated by the mover target object will act upon the identified object id #,
-and there is at that point no further link between it and the mover sector #.
+Okay, so we have movers, and they can be key-activated or touch-activated.
+
+I want to add another type of game object that can be linked to another object and flag it as active with a key press.
+
+This is a little complex; I want this object added for movers right now, but it could be other things in future.
+How am I to link it to another *specific* game object?
+In *particular* if the game object is not present until the level is loaded?
+To a mover, it can be linked via the same system as we otherwise used.
+
+A new type could be added: PrxObjActivator <Proximity Object Activator>
+This object type searches for the nearest object of a specified activation type to it, and depending on it setting,
+will perform an action on that object according to its type when the player is nearby to it and activates it.
+ The proximity search occurs after the level is loaded.
+It would be LEVEL_DATA with bits 11-8 specifying REMOTE_TRIGGER and bits 7-4 specifying the broad type searched for
+and bits 3-0 specifing .. something.
+
 
 what else?
 sometime soon i will have to integrate enemies and the enemy animation
@@ -263,7 +262,8 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[12], 0, MODEL_TYPE_SECTORED, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STRAN.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
 	// while(1)
 	// {
 		// if(is_key_pressed(DIGI_START)) break;

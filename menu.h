@@ -45,26 +45,7 @@
 #define FLAG_GOLD_EVENT			(19)
 #define FLAG_RETURNED_EVENT		(20)
 
-#define SIGN_0					(22)
-#define	SIGN_1					(23)
-#define	SIGN_2					(24)
-#define	SIGN_3					(25)
-#define	SIGN_4					(26)
-#define	SIGN_5					(27)
-#define	SIGN_6					(28)
-#define SIGN_7					(29)
-#define	SIGN_8					(30)
-#define	SIGN_9					(31)
-#define SIGN_10					(32)
-#define SIGN_11					(33)
-#define SIGN_12					(34)
-#define SIGN_13					(35)
-#define SIGN_14					(36)
-#define SIGN_15					(37)
-#define SIGN_16					(38)
-#define SIGN_17					(39)
-#define SIGN_18					(40)
-#define SIGN_19					(42)
+#define UsePrompt				(22)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

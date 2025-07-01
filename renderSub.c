@@ -1333,8 +1333,9 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		specific_texture = (flags & GV_FLAG_ANIM) ? mesh->attbl[i].texno : specific_texture;
 		///////////////////////////////////////////
 		// Flipping polygon such that vertice 0 is on-screen, or disable pre-clipping
+		// Polygon subdivision is incompatible with flipping the texture; to do that, you have to rotate the plane.
 		///////////////////////////////////////////
-		flip = GET_FLIP_DATA(flags);
+		flip = 0;
 		preclipping(ptv, &flip, &pclp);
 		///////////////////////////////////////////
 		// Lighting Math
