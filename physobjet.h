@@ -91,10 +91,10 @@ bitflag orientation for OBJECT:
 		ext_dat	
 			15 : popped / visible flag
 			14-12 : 0x0000 specifies object data (default)
-			11-4 : Object type definition
+			11-8 : Object type definition
 				#0: Normal collidable object.
 				#1: Ladder climbable object
-				#2: Free-climbable object
+			7-4: Type-specific flags
 			3-1: Reserved for type-specific data
 			0: Enable/disable flag. If 1, the object will not be displayed or collided with at all.
 		radius
@@ -109,19 +109,60 @@ bitflag orientation for OBJECT:
 		dist :
 			Reserved for type-specific data
 */
-#define OBJECT_TYPE			(0xFF0)
+#define OBJECT_TYPE			(0xF00)
 #define NO_TYPE				(0x000)
 #define OBJECT_DISABLED		(0x1)
 #define OBJECT_ENABLE		(0x7FFE)
-#define SET_OBJECT_TYPE(ext_dat, object_num)	(ext_dat | (object_num & 0xFF)<<4)
+#define SET_OBJECT_TYPE(ext_dat, object_num)	(ext_dat | object_num)
 #define GET_OBJECT_TYPE(ext_dat)				(ext_dat & OBJECT_TYPE)
-#define OBJECT_DESTRUCTIBLE	(0x10)
-#define CLIMB_OBJECT		(0x20)
-#define LADDER_OBJECT		(0x30)
+#define OBJECT_DESTRUCTIBLE	(0x100)
+#define CLIMB_OBJECT		(0x200)
+#define LADDER_OBJECT		(0x300)
 
 #define OBJECT_FLAGS		(0xE)
 #define OBJECT_RESET		(0x7FF0)
 #define DESTRUCTIBLE_HEALTH	(0xE)
+
+
+/*
+Proximity Object Activator Layout Information
+
+	_sobject
+		entity_ID: entity # to draw for this trigger
+		clone_ID: <-conventional use applies->
+		radius: <-conventional use applies->
+		ext_dat :
+			15 : popped / visible flag
+			14-12: "OBJECT" definition
+			8-11: "Object Activator" definition
+			7-4: Object type bitfield to search for when setting up the trigger
+			3: Reset flag (if 1, the trigger will reset according to the plausible states set in the triggered item)
+			2: Proximity or activation flag (if 0, triggers by proximity. if 1, gives a prompt and triggers on button press)
+			1: Usable flag (if 0, trigger is usable. If 1, trigger is unusable)
+			0: Enable/disable flag. If 1, the object will not be displayed or collided with at all.
+		effect : Effect to play upon use (can include sound)
+		effectTimeLimit : <--Use appropriate to effect system-->
+	_declaredObject
+		Since this object is rendered, conventional use applies.
+		link 
+			declared object array for more objects
+	more_data :
+		the object ID to be manipulated by this trigger
+		
+	Special note:
+	the location an actor or player will have to be in to interact with this trigger will be in front of it.
+	so be mindful of the rotation of the entity, as this will affect the interaction with this trigger.
+	Further, a standard player-sized interaction box will be set with no other positional adjustments.
+	
+*/
+
+#define REMOTE_ACTIVATOR	(0x400)
+
+#define REMOTE_ACT_TYPE		(0xF0)
+#define SET_REMOTE_TYPE		(ext_dat, obj_type)		(ext_dat | (obj_type>>8))
+#define REMOTE_ACT_RESET	(0x8)
+#define REMOTE_ACT_PROX		(0x4)
+#define REMOTe_ACT_USABLE	(0x2)
 
 
 /*
@@ -297,6 +338,7 @@ typedef struct {
 	unsigned short	curSector;
 	unsigned short	prevSector;
 	unsigned short	more_data;
+	short	bbnum; //id# of the box used for this object (if physical). note: this is dynamic, so you have to check the box too.
 	short	link; //links to another object of same type. -1 for last in-list. used by garbage collector, do not mess with.
 	short	garbage; //Stuff for garbage collector
 	ANGLE	rot[XYZ];

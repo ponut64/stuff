@@ -128,6 +128,15 @@ _sobject TestSpawner = {
 	.light_bright = 0
 };
 
+_sobject ButtonStand = {
+	.entity_ID = 1,
+	.radius[X] = 0,
+	.radius[Y] = 0,
+	.radius[Z] = 0,
+	.ext_dat = OBJECT | REMOTE_ACTIVATOR | (LDATA>>8),
+	.light_bright = 0
+};
+
 _sobject * objList[OBJECT_ENTRY_CAP];
 
 void	fill_obj_list(void)
@@ -144,12 +153,15 @@ void	fill_obj_list(void)
 	objList[12] = &Build00;
 	
 	objList[50] = &Strange;
+	
+	objList[58] = &ButtonStand;
+
+	objList[59] = &MoverOpen;
 
 	objList[60] = &TestSpawner;
 
 	objList[61] = &Player_Start_Location;
 
-	objList[61] = &MoverOpen;
 	objList[62] = &MoverClosed;
 	objList[63] = &Empty;
 }

@@ -160,159 +160,6 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 	}
 }
 
-void	post_ldata_init_building_object_search(void)
-{
-	//Insofar for the sector constructed level data, we just have to look through and see if it has the right entity ID.
-	//This unfortunately requires a dummy object be constructed.
-	static _declaredObject dummy;
-	dummy.type.entity_ID = WORLD_ENTITY_ID; 
-	dummy.pos[X] = levelPos[X];
-	dummy.pos[Y] = levelPos[Y];
-	dummy.pos[Z] = levelPos[Z];
-	for(int b = 0; b < total_building_payload; b++)
-	{	
-		declare_building_object(&dummy, &BuildingPayload[b]);
-	}
-	
-	for(int i = 0; i < objNEW; i++)
-	{
-		if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD
-		&& !(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED)
-		&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
-		{
-			/////////////////////////////////////////////////////
-			// This object is a building. 
-			// If this building has not yet been checked for items registered to it,
-			// check the building payload list to see if there are any items assigned to its entity ID.
-			// If there are any, register them in the declared object list.
-			// After that, flag this building object's "more data" with something to say
-			// its items have already been registered.
-			/////////////////////////////////////////////////////
-			for(int b = 0; b < total_building_payload; b++)
-			{	
-				declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
-			}
-			
-				
-			dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
-		}
-	}
-	
-	//Mover Target Data Initialization
-	//First we are going to look for any mover target type objects.
-	//Then, we to initialize that by searching for an object that has the entity ID 
-	for(int i = 0; i < objNEW; i++)
-	{
-		_declaredObject * dwo = &dWorldObjects[i];
-		
-		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
-		{
-			int sector_source = dwo->curSector;
-			
-			//Now that we know the source sector, we have to go to that sector and find the entity pointer we want.
-			//This code **should** work in theory but it is less than portable due to how pointer magic can work.
-			
-			entity_t * target_entity = sectors[sector_source].ent;
-			dwo->curSector = INVALID_SECTOR;
-			//When we find the correct object which represents the mover, its entry [k] will be stored in <more_data>.
-			for(int k = 0; k < objNEW; k++)
-			{
-				if(k == i) continue;
-				_declaredObject * dwa = &dWorldObjects[k];
-				//If this isn't a build-type object or a normal object, don't try and use its entity_ID.
-				if((dwa->type.ext_dat & ETYPE) != BUILD && (dwa->type.ext_dat & ETYPE) != OBJECT) continue;
-				entity_t * roscule = &entities[dwa->type.entity_ID];
-				if(roscule == target_entity)
-				{
-					dwo->more_data = k;
-					break;
-				}
-				
-			}
-
-		}		
-	}
-
-	//Furthurmore, we need to search the declared object list for another mover target with the same target object as this.
-	//We will then link to it.
-	//This is a polar link; each mover target will link to the other one.
-	//As such, as designed, the system will only work for two-pole movers. Enough for doors or simple elevators.
-
-	for(int i = 0; i < objNEW; i++)
-	{
-		_declaredObject * dwo = &dWorldObjects[i];
-		int found_pair = 0;
-		int found_dwa = 0;
-		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
-		{
-			if(dwo->more_data == 0) continue;
-			found_dwa = 1;
-			if(dwo->more_data & 0xFF00)
-			{
-				found_pair = 1;
-				continue;
-			}
-			for(int k = 0; k < objNEW; k++)
-			{
-				if(k == i) continue;
-				_declaredObject * dwa = &dWorldObjects[k];
-				if((dwa->type.ext_dat & LDATA) == LDATA && (dwa->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
-				{
-					if(dwa->more_data == dwo->more_data)
-					{
-						if(dwa->more_data & 0xFF00)
-						{
-							found_pair = 1;
-							continue;
-						}
-						//Establish the polar link.
-						dwo->more_data |= k<<8;
-						dwa->more_data |= i<<8;
-						found_pair = 1;
-					}
-				}
-			}
-		}
-		
-	//In case we have not found a pair for this trigger, we need to declare a pair for it.
-	//We shall assume this waypoint was not the mover's closed point, as such we will place a closed waypoint on the mover.
-	//This closed waypoint will be the pair.
-			if(!found_pair && found_dwa)
-			{
-					_declaredObject * dwa = &dWorldObjects[dwo->more_data & 0xFF];
-					unsigned short * used_radius = &dwa->type.radius[0];
-				
-					BuildingPayload[total_building_payload].object_type = 63; //(this could really be anything)
-					BuildingPayload[total_building_payload].pos[X] = dwa->pos[X]>>16;
-					BuildingPayload[total_building_payload].pos[Y] = dwa->pos[Y]>>16;
-					BuildingPayload[total_building_payload].pos[Z] = dwa->pos[Z]>>16;
-					BuildingPayload[total_building_payload].sector = INVALID_SECTOR; //(manually linked later)
-					//Some way to find what entity # we're working with right now
-					BuildingPayload[total_building_payload].root_entity = WORLD_ENTITY_ID;
-					//Declare the object from this preset
-					declare_building_object(&dummy, &BuildingPayload[total_building_payload]);
-					total_building_payload++;
-					//Copy relevant data from the trigger to the new object
-					dwa = &dWorldObjects[objNEW-1];
-					dwa->type.entity_ID = dwo->type.entity_ID;
-					dwa->type.clone_ID = dwo->type.clone_ID;
-					dwa->type.radius[X] = used_radius[X] + 16; //Use the radius of the mover + contact radius
-					dwa->type.radius[Y] = used_radius[Y] + 24; //Contact radius higher here
-					dwa->type.radius[Z] = used_radius[Z] + 16;
-					dwa->type.effect = dwo->type.effect;
-					dwa->type.effectTimeLimit = dwo->type.effectTimeLimit;
-					dwa->type.ext_dat = LDATA | MOVER_TARGET | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED;
-					//Default to simple proximity trigger
-					//dwa->type.ext_dat |= (dwo->type.ext_dat & MOVER_TARGET_RATE);
-					dwa->more_data = (dwo->more_data & 0xFF) | (i<<8);
-					dwo->more_data |= (objNEW-1)<<8;
-			}
-	}
-
-
-
-}
-
 
 void	object_control_loop(void)
 {	
@@ -532,6 +379,7 @@ void	object_control_loop(void)
 							
 					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 					RBBs[objUP].boxID = i;
+					obj->bbnum = objUP;
 					////////////////////////////////////////////////////
 					//Set the box status. This branch of the logic dictates the box is:
 					// 1. Render-able
@@ -572,7 +420,7 @@ void	object_control_loop(void)
 							
 					makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 					RBBs[objUP].boxID = i;
-					
+					obj->bbnum = objUP;
 					////////////////////////////////////////////////////
 					//Set the box status. 
 					//There isn't really a bound box for buildings.
@@ -598,6 +446,7 @@ void	object_control_loop(void)
 				//If the declared object was not in range, specify it as being unpopulated.
 				////////////////////////////////////////////////////
 				activeObjects[objUP] = 256;
+				obj->bbnum = -1;
 				(*obj_edat) &= UNPOP; //Axe bit 15 but keep all other data.
 				////////////////////////////////////////////////////
 				//If the declared object had a collision-approved type, re-set some collision parameters.
@@ -959,8 +808,53 @@ void	manage_object_data(void)
 	
 	while(someOBJECTdata != &dWorldObjects[objNEW])
 	{
-		//unsigned short * edata = &someOBJECTdata->type.ext_dat;
+
+		//First thing that's going here for this engine -
+		//Buttons.
+		//Buttons have a player-sized collision box for interactivity in front of them.
+		//Key note: in front of. The rotation of the entity is important here.
+		//
 		
+		if(sectorIsVisible[someOBJECTdata->curSector])
+		{
+			if((someOBJECTdata->type.ext_dat & OBJECT_TYPE) == REMOTE_ACTIVATOR)
+			{
+			
+			//we need to find the bound box which is being used to draw this object
+			//we are using a pointer-matching scheme from the boxID (which is the object number)
+			//note that using pointers to match might not be portable
+			_boundBox * bb = &RBBs[someOBJECTdata->bbnum];
+				if(&dWorldObjects[bb->boxID] == someOBJECTdata)
+				{
+					//Cleared, matching boxes.
+					//So now what we need to do is check if the player is in a box forward of the object.
+					//"Forward" being the ascribed boxes Z axis.
+					//1 - Get the Z axis. 2 - Get radius 3 - Multiply Z radius by Z axis 4 - Add box location to this
+					int interact_point[3];
+					interact_point[X] = fxm(bb->UVZ[X], bb->radius[Z]) - bb->pos[X];
+					interact_point[Y] = fxm(bb->UVZ[Y], bb->radius[Z]) - bb->pos[Y];
+					interact_point[Z] = fxm(bb->UVZ[Z], bb->radius[Z]) - bb->pos[Z];
+					
+					int interact_dist = approximate_distance(you.pos, interact_point);
+					
+					if(interact_dist < (84<<16))
+					{
+						//First, we need to show the button prompt.
+						start_hud_event(UsePrompt);
+						//Then if the button is pressed, we need to trigger the object flagged by the activator.
+						if(is_key_pressed(you.actionKeyDef))
+						{
+							_declaredObject * dwo = &dWorldObjects[someOBJECTdata->more_data];
+							if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+							{
+								dwo->type.ext_dat |= OBJPOP;
+								//Works!
+							}
+						}
+					}
+				}
+			}
+		}
 		someOBJECTdata = step_linked_object_list(someOBJECTdata);
 	}
 	
@@ -986,5 +880,208 @@ void	ldata_manager(void)
 	manage_object_data();
 	
 }
+
+void	mover_target_initialization(_declaredObject * dummy)
+{
+	
+	
+	//Mover Target Data Initialization
+	//First we are going to look for any mover target type objects.
+	//Then, we to initialize that by searching for an object that has the entity ID 
+	for(int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * dwo = &dWorldObjects[i];
+		
+		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+		{
+			int sector_source = dwo->curSector;
+			
+			//Now that we know the source sector, we have to go to that sector and find the entity pointer we want.
+			//This code **should** work in theory but it is less than portable due to how pointer magic can work.
+			
+			entity_t * target_entity = sectors[sector_source].ent;
+			dwo->curSector = INVALID_SECTOR;
+			//When we find the correct object which represents the mover, its entry [k] will be stored in <more_data>.
+			for(int k = 0; k < objNEW; k++)
+			{
+				if(k == i) continue;
+				_declaredObject * dwa = &dWorldObjects[k];
+				//If this isn't a build-type object or a normal object, don't try and use its entity_ID.
+				if((dwa->type.ext_dat & ETYPE) != BUILD && (dwa->type.ext_dat & ETYPE) != OBJECT) continue;
+				entity_t * roscule = &entities[dwa->type.entity_ID];
+				if(roscule == target_entity)
+				{
+					dwo->more_data = k;
+					break;
+				}
+				
+			}
+
+		}		
+	}
+
+	//Furthurmore, we need to search the declared object list for another mover target with the same target object as this.
+	//We will then link to it.
+	//This is a polar link; each mover target will link to the other one.
+	//As such, as designed, the system will only work for two-pole movers. Enough for doors or simple elevators.
+
+	for(int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * dwo = &dWorldObjects[i];
+		int found_pair = 0;
+		int found_dwa = 0;
+		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+		{
+			if(dwo->more_data == 0) continue;
+			found_dwa = 1;
+			if(dwo->more_data & 0xFF00)
+			{
+				found_pair = 1;
+				continue;
+			}
+			for(int k = 0; k < objNEW; k++)
+			{
+				if(k == i) continue;
+				_declaredObject * dwa = &dWorldObjects[k];
+				if((dwa->type.ext_dat & LDATA) == LDATA && (dwa->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
+				{
+					if(dwa->more_data == dwo->more_data)
+					{
+						if(dwa->more_data & 0xFF00)
+						{
+							found_pair = 1;
+							continue;
+						}
+						//Establish the polar link.
+						dwo->more_data |= k<<8;
+						dwa->more_data |= i<<8;
+						found_pair = 1;
+					}
+				}
+			}
+		}
+		
+	//In case we have not found a pair for this trigger, we need to declare a pair for it.
+	//We shall assume this waypoint was not the mover's closed point, as such we will place a closed waypoint on the mover.
+	//This closed waypoint will be the pair.
+			if(!found_pair && found_dwa)
+			{
+					_declaredObject * dwa = &dWorldObjects[dwo->more_data & 0xFF];
+					unsigned short * used_radius = &dwa->type.radius[0];
+				
+					BuildingPayload[total_building_payload].object_type = 63; //(this could really be anything)
+					BuildingPayload[total_building_payload].pos[X] = dwa->pos[X]>>16;
+					BuildingPayload[total_building_payload].pos[Y] = dwa->pos[Y]>>16;
+					BuildingPayload[total_building_payload].pos[Z] = dwa->pos[Z]>>16;
+					BuildingPayload[total_building_payload].sector = INVALID_SECTOR; //(manually linked later)
+					//Some way to find what entity # we're working with right now
+					BuildingPayload[total_building_payload].root_entity = WORLD_ENTITY_ID;
+					//Declare the object from this preset
+					declare_building_object(dummy, &BuildingPayload[total_building_payload]);
+					total_building_payload++;
+					//Copy relevant data from the trigger to the new object
+					dwa = &dWorldObjects[objNEW-1];
+					dwa->type.entity_ID = dwo->type.entity_ID;
+					dwa->type.clone_ID = dwo->type.clone_ID;
+					dwa->type.radius[X] = used_radius[X] + 16; //Use the radius of the mover + contact radius
+					dwa->type.radius[Y] = used_radius[Y] + 24; //Contact radius higher here
+					dwa->type.radius[Z] = used_radius[Z] + 16;
+					dwa->type.effect = dwo->type.effect;
+					dwa->type.effectTimeLimit = dwo->type.effectTimeLimit;
+					dwa->type.ext_dat = LDATA | MOVER_TARGET | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED;
+					//Default to simple proximity trigger
+					//dwa->type.ext_dat |= (dwo->type.ext_dat & MOVER_TARGET_RATE);
+					dwa->more_data = (dwo->more_data & 0xFF) | (i<<8);
+					dwo->more_data |= (objNEW-1)<<8;
+			}
+	}
+
+	
+}
+
+void	object_activator_initialization(void)
+{
+	
+	for(int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * dwo = &dWorldObjects[i];
+		
+		if((dwo->type.ext_dat & ETYPE) == OBJECT && (dwo->type.ext_dat & OBJECT_TYPE) == REMOTE_ACTIVATOR)
+		{
+			//Found a remote activator type.
+			//We need to:
+			//1. Find what broad entity type this activator is looking for
+			//2. Search through all objects to distance check all objects of that type
+			//3. Latch the remote activator to the closest one by putting its object ID into more_data
+			int seek_type = (dwo->type.ext_dat & REMOTE_ACT_TYPE)<<8;
+			int low_dist = 1<<30;
+			
+			for(int k = 0; k < objNEW; k++)
+			{
+				if(k == i) continue;
+				_declaredObject * dwa = &dWorldObjects[k];
+				
+				if(seek_type == (dwa->type.ext_dat & ETYPE))
+				{
+					int new_dist = approximate_distance(dwo->pos, dwa->pos);
+					
+					if(new_dist < low_dist)
+					{
+						low_dist = new_dist;
+						dwo->more_data = k;
+					}
+				}
+			}
+		}
+	}
+	
+//
+}
+
+
+void	post_ldata_init_building_object_search(void)
+{
+	//Insofar for the sector constructed level data, we just have to look through and see if it has the right entity ID.
+	//This unfortunately requires a dummy object be constructed.
+	static _declaredObject dummy;
+	dummy.type.entity_ID = WORLD_ENTITY_ID; 
+	dummy.pos[X] = levelPos[X];
+	dummy.pos[Y] = levelPos[Y];
+	dummy.pos[Z] = levelPos[Z];
+	for(int b = 0; b < total_building_payload; b++)
+	{	
+		declare_building_object(&dummy, &BuildingPayload[b]);
+	}
+	
+	for(int i = 0; i < objNEW; i++)
+	{
+		if((dWorldObjects[i].type.ext_dat & ETYPE) == BUILD
+		&& !(dWorldObjects[i].more_data & BUILD_PAYLOAD_LOADED)
+		&& entities[dWorldObjects[i].type.entity_ID].file_done == true)
+		{
+			/////////////////////////////////////////////////////
+			// This object is a building. 
+			// If this building has not yet been checked for items registered to it,
+			// check the building payload list to see if there are any items assigned to its entity ID.
+			// If there are any, register them in the declared object list.
+			// After that, flag this building object's "more data" with something to say
+			// its items have already been registered.
+			/////////////////////////////////////////////////////
+			for(int b = 0; b < total_building_payload; b++)
+			{	
+				declare_building_object(&dWorldObjects[i], &BuildingPayload[b]);
+			}
+			
+				
+			dWorldObjects[i].more_data |= BUILD_PAYLOAD_LOADED;
+		}
+	}
+
+	mover_target_initialization(&dummy);
+	
+	object_activator_initialization();
+
+}
+
 
 
