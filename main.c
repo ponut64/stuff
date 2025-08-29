@@ -9,24 +9,28 @@
 
 What's on my development iternerary?
 
-#movers and buttons
+Movers -> Functional state
 
-Okay, so we have movers, and they can be key-activated or touch-activated.
+Buttons for movers -> Functional state
 
-I want to add another type of game object that can be linked to another object and flag it as active with a key press.
+Next = Actors need to trigger contact movers.
+Actors also need to trigger unlocked buttons. (This one is unlikely to matter)
+--> why do actors freak out when on a moving object?
+	- Issues identified.
+	- 3: Close corner travel errors.
+		Often, an actor will glitch itself into oblivion on a wall corner.
+			Perhaps the center of the actor can be included as some base collision approval, with the wall's normal 
 
-This is a little complex; I want this object added for movers right now, but it could be other things in future.
-How am I to link it to another *specific* game object?
-In *particular* if the game object is not present until the level is loaded?
-To a mover, it can be linked via the same system as we otherwise used.
+-> I also need to prep the engine for texture changing and model changing.
+Honestly, this shouldn't be *too* hard, though there's always potential for failure.
+The idea is very simple; just reset the pointers and purge the lists down to the engine's base level,
+then load the new level and its assets.
 
-A new type could be added: PrxObjActivator <Proximity Object Activator>
-This object type searches for the nearest object of a specified activation type to it, and depending on it setting,
-will perform an action on that object according to its type when the player is nearby to it and activates it.
- The proximity search occurs after the level is loaded.
-It would be LEVEL_DATA with bits 11-8 specifying REMOTE_TRIGGER and bits 7-4 specifying the broad type searched for
-and bits 3-0 specifing .. something.
+NEED TO STUDY for pharmacy test
 
+weapon idea:
+chakra golden muzzleloader pistol
+autoaim instakill weapon, but long reload
 
 what else?
 sometime soon i will have to integrate enemies and the enemy animation

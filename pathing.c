@@ -892,7 +892,7 @@ int	actorCheckPathOK(_actor * act, int * path_dir)
 	floorProxy[Y] = -(32765<<16);
 	floorProxy[Z] = -(32765<<16);
 	//Rather than check everything in the sector's PVS for collision,
-	//we will only check the sector itself + primary adjacents.
+	//we will first check the sector itself + primary adjacents.
 	for(int s = 0; s < (sct->nbAdjacent+1); s++)
 	{
 		possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
@@ -901,6 +901,8 @@ int	actorCheckPathOK(_actor * act, int * path_dir)
 		//floorNorm[Z] = sct->ent->pol->nmtbl[hitFloorPly][Z];
 	}
 	
+
+
 	//If there was no possible floor, path is not OK.
 	//if(!possibleFloor) return 0;
 	
@@ -910,12 +912,29 @@ int	actorCheckPathOK(_actor * act, int * path_dir)
 	// I'll have to use some other method to validate whether or not the guidance point is on a floor or not.
 	if(JO_ABS((act->pos[Y] + act->box->radius[Y]) - floorProxy[Y]) > (act->box->radius[Y]<<1))
 	{
+		possibleFloor = 0;
+		//Next, we need to check all bounding boxes.
+		//Bounding boxes as recorded should already be limited to what is nearby, so this should be OK.
+		//Further, we only want this for recording if there is a valid surface to stand on and there wasn't already one.
+		for(int i = 0; i < MAX_PHYS_PROXY; i++)
+		{
+			_boundBox * box = &RBBs[i];
+			if(box->status[1] != 'C') continue;
+			if(box->pos[Y] < act->pos[Y]) continue; 
+			if(entities[objPREP[i]].type == MODEL_TYPE_BUILDING)
+			{
+			possibleFloor += hitscan_vector_from_position_building(towardsFloor, actorPathProxy, floorProxy, &hitFloorPly, &entities[objPREP[i]], box->pos, NULL);
+			}
+		}
+		if(!possibleFloor)
+		{
 		//Stand-in data
 		act->blockedLOSNorm[X] = -path_dir[X];
 		act->blockedLOSNorm[Y] = 0;
 		act->blockedLOSNorm[Z] = -path_dir[Z];
 		actor_hit_wall(act, act->blockedLOSNorm);
 		return 0;
+		}
 	}	
 	//If this wasn't actually a floor at all, path is not OK.
 	//if(floorNorm[Y] > (-32768)) return 0;
@@ -1145,11 +1164,14 @@ void	checkInPathSteps(int actor_id)
 		onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
 		//if on the path node ( = 1), we need to do something else.
 		//each path node has a direction; we need to follow that direction until we are in the sector of the next node.
-		if(onPathNode && act->exceptionStep == INVALID_SECTOR && act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME)
+		// ^^ this exception needs to be added - we only want to follow this particular exception when we are not in the target sector.
+		// Once we're in it, we need to abandon this and go towards the target, or else we'll get stuck.
+		if(onPathNode && act->exceptionStep == INVALID_SECTOR && act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME && step->toSector != act->curSector)
 		{
 			//Grab the direction from the last path node, presumed to not be an exception path node as restricted by the "if"
 			int * pathNodeDir = step->dir;
 			int lsSct = step->toSector;
+
 			act->exceptionStep = act->curPathStep+1;
 			act->curPathStep = act->exceptionStep;
 			act->exceptionTimer = 0;
@@ -1173,6 +1195,12 @@ void	checkInPathSteps(int actor_id)
 			step->actorID = actor_id;
 			step->winding = 0;
 			pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
+			
+			//Curious?
+			//This should *mostly* resolve this issue; the exception exists to set the actor on course into a sector if it may have reached the node outside of it.
+			//In case the actor is already safely inside the sector, this exception isn't needed.
+			//What this does is it flags the exception as invalid and it will be discarded ahead of the exception timer if the actor is within the sector.
+			act->exceptionStep = INVALID_SECTOR;
 		}
 	} else {
 		if(act->info.flags.losTarget)
@@ -1180,7 +1208,7 @@ void	checkInPathSteps(int actor_id)
 			act->pathTarget[X] = act->pathGoal[X];
 			act->pathTarget[Y] = act->pathGoal[Y];
 			act->pathTarget[Z] = act->pathGoal[Z];
-			actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+			act->atGoal = actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
 		}
 		return;
 	}

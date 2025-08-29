@@ -679,11 +679,11 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 	return hasHit;
 }
 
-void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
+int		collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
-		if(ent->file_done != true) return;
-		if(ent->type != MODEL_TYPE_SECTORED) return;
+		if(ent->file_done != true) return 0;
+		if(ent->type != MODEL_TYPE_SECTORED) return 0;
 		
 		//Primary Flaw:
 		//We are testing collision with the *next* position of the box.
@@ -699,6 +699,7 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 	static int used_normal[3];
 	static int possible_floor[3];
 	static int possible_wall[3];
+	int wasSurfHit = 0;
 	
 	for(unsigned int i = 0; i < sct->nbPolygon; i++)
 	{
@@ -806,7 +807,7 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 					you.floorNorm[X] = used_normal[X]; 
 					you.floorNorm[Y] = used_normal[Y];
 					you.floorNorm[Z] = used_normal[Z];
-					
+					wasSurfHit = 1;
 					//Subtract the velocity added to the projection from the position to snap to.
 					//Potentially an issue; if serious, just reproject at current position.
 					you.floorPos[X] = -(possible_floor[X] - fxm(mover->velocity[X], time_fixed_scale));
@@ -855,7 +856,12 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 	
 	}
 	
-	
+	if(wasSurfHit)
+	{
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 
@@ -867,11 +873,11 @@ void	collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 // This function is running on Master SH2. The rendering functions are running on Slave SH2.
 // In this condition, the setting of the prematrix is controlled by the Slave SH2.
 // Hitherto, the correct prematrix may not be set for testing collision. The position must be pointed to instead of changing the prematrix.
-void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable * realTimeAxis)
+int		collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable * realTimeAxis)
 {
 		//If the entity is not loaded, cease the test.
-		if(ent->file_done != true) return;
-		if(ent->type != MODEL_TYPE_BUILDING) return;
+		if(ent->file_done != true) return 0;
+		if(ent->type != MODEL_TYPE_BUILDING) return 0;
 		
 		//Primary Flaw:
 		//We are testing collision with the *next* position of the box.
@@ -887,6 +893,7 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 	static int used_normal[3];
 	static int possible_floor[3];
 	static int possible_wall[3];
+	int wasSurfHit = 0;
 	
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
@@ -954,11 +961,11 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 				if(isPointonSegment(possible_floor, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
 				{
 					//
+					wasSurfHit = 1;
 					you.hitSurface = true;
 					you.floorNorm[X] = used_normal[X]; 
 					you.floorNorm[Y] = used_normal[Y];
 					you.floorNorm[Z] = used_normal[Z];
-					
 					//Subtract the velocity added to the projection from the position to snap to.
 					//Potentially an issue; if serious, just reproject at current position.
 					you.floorPos[X] = -(possible_floor[X] - fxm(mover->velocity[X], time_fixed_scale));
@@ -1007,6 +1014,11 @@ void	collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 	
 	}
 	
-	
+	if(wasSurfHit)
+	{
+		return 1;
+	} else {
+		return 0;
+	}
 }
 

@@ -74,11 +74,12 @@ void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)
 	
 	act->curPathStep = 0;
 	act->pathingLatch = 0;
+	act->atGoal = 0;
 	
 	act->goalSector = broad_phase_sector_finder(act->pathGoal, levelPos, &sectors[target_sector]);
 }
 
-void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity_t * ent, int * ent_pos)
+int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity_t * ent, int * ent_pos)
 {
 	//Plan:
 	// 1. Edge wind test the center-face with the plane being tested
@@ -97,7 +98,7 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	// We want to project only the faces which are not being tested.
 	
 	//If the entity is not loaded, cease the test.
-	if(ent->file_done != true) return;
+	if(ent->file_done != true) return 0;
 	
 	GVPLY * mesh = ent->pol;
 	_boundBox * box = act->box;
@@ -106,6 +107,7 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	static int anchor_to_plane[3];
 	static int used_normal[3];
 	static int potential_hit[3];
+	int surfHit = 0;
 	
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
@@ -183,12 +185,13 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 65536))
 				{	
 					act->floorPos[X] = potential_hit[X];
 					act->floorPos[Y] = potential_hit[Y];
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
+					surfHit = 1;
 				}
 			}
 			break;
@@ -244,13 +247,20 @@ void	actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	
 	}
 	
+	if(surfHit)
+	{
+		return 1;
+	} else {
+		return 0;
+	}
+	
 }
 
 
-void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * sct, int * ent_pos)
+int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * sct, int * ent_pos)
 {
 	
-	if(!sct->nbPolygon) return;
+	if(!sct->nbPolygon) return 0;
 	
 	entity_t * ent = sct->ent;
 	GVPLY * mesh = ent->pol;
@@ -260,6 +270,7 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 	static int anchor_to_plane[3];
 	static int used_normal[3];
 	static int potential_hit[3];
+	int surfHit = 0;
 	
 	for(unsigned int i = 0; i < sct->nbPolygon; i++)
 	{
@@ -353,7 +364,7 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp1, mesh->maxtbl[alias], 12))
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 65536))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
@@ -376,6 +387,7 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->floorPos[Y] = potential_hit[Y];
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
+					surfHit = 1;
 				}
 			}
 			break;
@@ -411,6 +423,12 @@ void	actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 	
 	}
 	
+	if(surfHit)
+	{
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 int create_actor_from_spawner(_declaredObject * spawner, int boxID)
@@ -667,7 +685,15 @@ void	manage_actors(void)
 
 					break;
 					case(BUILD | OBJPOP):
-					actor_per_polygon_collision(act, &cur_actor_line_table, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos);
+					if(actor_per_polygon_collision(act, &cur_actor_line_table, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos))
+					{
+						act->box->surfID = RBBs[c].boxID;
+					}
+					if(act->info.flags.hitWall)
+					{
+						RBBs[c].collisionID = act->box->boxID;
+						act->box->collisionID = RBBs[c].boxID;
+					}
 					break;
 					default:
 					break;
@@ -699,15 +725,18 @@ void	manage_actors(void)
 				act->pos[Y] = act->floorPos[Y] - (act->box->radius[Y] - (1<<16));
 				act->pos[Z] = act->floorPos[Z];
 				
-				act->info.flags.losTarget = actorCheckPathOK(act, act->pathUV);
-				if(!act->info.flags.losTarget)
+				if(!act->atGoal)
 				{
-					findPathTo(act->goalSector, i);
+					act->info.flags.losTarget = actorCheckPathOK(act, act->pathUV);
+					if(!act->info.flags.losTarget)
+					{
+						findPathTo(act->goalSector, i);
+					}
 				}
-				
 				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
 				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
-				// nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
+				nbg_sprintf(20, 15, "(%i)", act->atGoal);
+				//nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
 				
 				// nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
 				// nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
@@ -722,7 +751,22 @@ void	manage_actors(void)
 				
 				act->totalFriction = 32768;
 				
-				checkInPathSteps(i);
+				if(!act->atGoal) checkInPathSteps(i);
+				
+				//Add velocity of surface
+				if(act->box->surfID >= 0)
+				{
+					_boundBox * on_box = &RBBs[dWorldObjects[act->box->surfID].bbnum];
+					act->pos[X] += on_box->velocity[X];
+					act->pos[Y] += on_box->velocity[Y];
+					act->pos[Z] += on_box->velocity[Z];
+					
+					// spr_sprintf_decimal(50, 20, on_box->velocity[X]);
+					// spr_sprintf_decimal(50, 33, on_box->velocity[Y]);
+					// spr_sprintf_decimal(50, 46, on_box->velocity[Z]);
+					//spr_sprintf(100, 20, "abn:%i", dWorldObjects[act->box->surfID].bbnum);
+				}
+				
 			}
 			act->info.flags.hitFloor = 0;
 		} else {

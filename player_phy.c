@@ -519,6 +519,17 @@ void	player_phys_affect(void)
         you.dV[Z] += fxm(you.floorNorm[Z], 32768);
 		you.wasClimbing = false;
 	}
+	if(you.hitSurface && pl_RBB.surfID >= 0)
+	{
+		_boundBox * on_box = &RBBs[dWorldObjects[pl_RBB.surfID].bbnum];
+		//Not sure how to handle this part.
+		//Need to add velocity to player in a way that doesn't vanish when player exits
+		//I guess friction applies here? There is probably some ratio I don't understand.
+		you.velocity[X] -= fxm(on_box->velocity[X], you.surfFriction);
+		you.velocity[Y] -= fxm(on_box->velocity[Y], you.surfFriction);
+		you.velocity[Z] -= fxm(on_box->velocity[Z], you.surfFriction);
+	}
+	
 	///////////////////////////////////////////////
 	// Increase the velocity by the velocity change, multiplied by the timescale
 	///////////////////////////////////////////////
@@ -744,6 +755,7 @@ void	player_phys_affect(void)
 	construct_line_tables();
 	pl_RBB.boxID = BOXID_PLAYER;
 	pl_RBB.collisionID = BOXID_VOID;
+	pl_RBB.surfID = BOXID_VOID;
 	pl_RBB.status[0] = 'R';	
 	pl_RBB.status[1] = 'C';	
 	pl_RBB.status[2] = 'L';	

@@ -123,6 +123,8 @@ typedef struct {
 	short collisionID;
 	//ID#. Used to verify the box object #. -1 signals the box is void.
 	short boxID;
+	//ID#. Stores the boxID of the object that this object is standing on.
+	short surfID;
 } _boundBox;
 
 typedef struct {

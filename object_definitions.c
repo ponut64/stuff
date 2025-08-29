@@ -133,8 +133,10 @@ _sobject ButtonStand = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT | REMOTE_ACTIVATOR | (LDATA>>8),
-	.light_bright = 0
+	.ext_dat = OBJECT | REMOTE_ACTIVATOR | REMOTE_ACT_USABLE | REMOTE_ACT_RESET | (LDATA>>8),
+	.light_bright = 0,
+	.effect = 0,
+	.effectTimeLimit = 0 //I forgot, conventional use applies to these...
 };
 
 _sobject * objList[OBJECT_ENTRY_CAP];

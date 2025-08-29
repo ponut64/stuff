@@ -46,6 +46,7 @@
 #define FLAG_RETURNED_EVENT		(20)
 
 #define UsePrompt				(22)
+#define LockedPrompt			(23)
 //More events for track win, track fail, flag taken, flag return, flag cap, etc
 	// HUD Event
 	// What do I need it to do?

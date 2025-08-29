@@ -1002,7 +1002,10 @@ void	player_collision_test_loop(void)
 			//you.hitscanNm[Y] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Y];
 			//you.hitscanNm[Z] = entities[dWorldObjects[activeObjects[i]].type.entity_ID].pol->nmtbl[hitscanPly][Z];
 
-			collide_per_polygon_of_mesh(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &you.box, &you.realTimeAxis);
+			if(collide_per_polygon_of_mesh(&entities[dWorldObjects[activeObjects[i]].type.entity_ID], &you.box, &you.realTimeAxis))
+			{
+				pl_RBB.surfID = RBBs[i].boxID;
+			}
 			if(you.hitObject  == true)
 			{
 				RBBs[i].collisionID = pl_RBB.boxID;

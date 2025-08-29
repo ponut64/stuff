@@ -345,10 +345,13 @@ void	object_control_loop(void)
 								dTrig[Z]>>=4;
 								quick_normalize(dTrig, unitD);
 								int speed_set = (obj->type.ext_dat & MOVER_TARGET_RATE)+1;
+								RBBs[dwa->bbnum].velocity[X] = fxm(fxm(delta_time, speed_set<<21), unitD[X]);
+								RBBs[dwa->bbnum].velocity[Y] = fxm(fxm(delta_time, speed_set<<21), unitD[Y]);
+								RBBs[dwa->bbnum].velocity[Z] = fxm(fxm(delta_time, speed_set<<21), unitD[Z]);
 								
-								dwa->pos[X] += fxm(fxm(delta_time, speed_set<<21), unitD[X]);
-								dwa->pos[Y] += fxm(fxm(delta_time, speed_set<<21), unitD[Y]);
-								dwa->pos[Z] += fxm(fxm(delta_time, speed_set<<21), unitD[Z]);
+								dwa->pos[X] += RBBs[dwa->bbnum].velocity[X];
+								dwa->pos[Y] += RBBs[dwa->bbnum].velocity[Y];
+								dwa->pos[Z] += RBBs[dwa->bbnum].velocity[Z];
 							}
 					}
 				}
@@ -834,22 +837,38 @@ void	manage_object_data(void)
 					interact_point[X] = fxm(bb->UVZ[X], bb->radius[Z]) - bb->pos[X];
 					interact_point[Y] = fxm(bb->UVZ[Y], bb->radius[Z]) - bb->pos[Y];
 					interact_point[Z] = fxm(bb->UVZ[Z], bb->radius[Z]) - bb->pos[Z];
+					//We want to put this at the floor of the object, so we could push it down by radius Y.
 					
-					int interact_dist = approximate_distance(you.pos, interact_point);
+					someOBJECTdata->dist = approximate_distance(you.pos, interact_point);
 					
-					if(interact_dist < (84<<16))
+					
+					if(someOBJECTdata->dist < (84<<16))
 					{
-						//First, we need to show the button prompt.
-						start_hud_event(UsePrompt);
-						//Then if the button is pressed, we need to trigger the object flagged by the activator.
-						if(is_key_pressed(you.actionKeyDef))
+						if(someOBJECTdata->type.ext_dat & REMOTE_ACT_USABLE)
 						{
 							_declaredObject * dwo = &dWorldObjects[someOBJECTdata->more_data];
 							if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
 							{
-								dwo->type.ext_dat |= OBJPOP;
-								//Works!
+								_declaredObject * dwa = &dWorldObjects[(dwo->more_data & 0xFF00)>>8];
+								if(!(dwo->type.ext_dat & OBJPOP))
+								{
+								start_hud_event(UsePrompt);
+									//Then if the button is pressed, we need to trigger the object flagged by the activator.
+									if(is_key_pressed(you.actionKeyDef))
+									{
+										dwo->type.ext_dat |= OBJPOP;
+										//Safety, such that it can be recalled when already moving.
+										dwa->type.ext_dat &= UNPOP;
+										dwa->type.effectTimeCount = 0;
+										if(!(someOBJECTdata->type.ext_dat & REMOTE_ACT_RESET))
+										{
+											someOBJECTdata->type.ext_dat &= REMOTE_ACT_UNUSABLE;
+										}
+									}
+								}
 							}
+						} else {
+							start_hud_event(LockedPrompt);
 						}
 					}
 				}
@@ -984,7 +1003,7 @@ void	mover_target_initialization(_declaredObject * dummy)
 					dwa->type.entity_ID = dwo->type.entity_ID;
 					dwa->type.clone_ID = dwo->type.clone_ID;
 					dwa->type.radius[X] = used_radius[X] + 16; //Use the radius of the mover + contact radius
-					dwa->type.radius[Y] = used_radius[Y] + 24; //Contact radius higher here
+					dwa->type.radius[Y] = used_radius[Y] + 48; //Contact radius higher here
 					dwa->type.radius[Z] = used_radius[Z] + 16;
 					dwa->type.effect = dwo->type.effect;
 					dwa->type.effectTimeLimit = dwo->type.effectTimeLimit;

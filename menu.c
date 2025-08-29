@@ -1043,9 +1043,9 @@ void	init_hud_events(void)
 	event = &hudEvents[UsePrompt];
 	
 	event->startPos[X] = 352>>1;
-	event->startPos[Y] = 224>>1;
+	event->startPos[Y] = 180;
 	event->endPos[X] = 352>>1;
-	event->endPos[Y] = 224>>1;
+	event->endPos[Y] = 180;
 	event->eventTime = 1<<16; 
 	event->spriteTime = 1<<16; //One second
 	event->screenStep = 10;
@@ -1060,6 +1060,29 @@ void	init_hud_events(void)
 	event->colorBank = 1<<6;
 	event->text_lines = 1;
 	event->text_width = 5;
+	
+//////////////////////////////////////////////////
+	
+	event = &hudEvents[LockedPrompt];
+	
+	event->startPos[X] = 352>>1;
+	event->startPos[Y] = 180;
+	event->endPos[X] = 352>>1;
+	event->endPos[Y] = 180;
+	event->eventTime = 1<<16; 
+	event->spriteTime = 1<<16; //One second
+	event->screenStep = 10;
+	
+	event->soundType = EVENT_NO_SOUND;
+	event->soundNum = 0;
+	event->volume = 0;
+	
+	event->texno = EVENT_SHOW_TEXT;
+	static char lockedText[] = "[Locked]";
+	event->text = &lockedText[0];
+	event->colorBank = 3<<6;
+	event->text_lines = 1;
+	event->text_width = 8;
 	
 }
 

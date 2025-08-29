@@ -162,7 +162,8 @@ Proximity Object Activator Layout Information
 #define SET_REMOTE_TYPE		(ext_dat, obj_type)		(ext_dat | (obj_type>>8))
 #define REMOTE_ACT_RESET	(0x8)
 #define REMOTE_ACT_PROX		(0x4)
-#define REMOTe_ACT_USABLE	(0x2)
+#define REMOTE_ACT_USABLE	(0x2)
+#define REMOTE_ACT_UNUSABLE (0xFFFD)
 
 
 /*
@@ -444,6 +445,7 @@ typedef struct {
 	unsigned short boxID;
 	unsigned short goalSector;
 	unsigned short pathingLatch;
+	unsigned short atGoal;
 	_actor_info info;
 	unsigned char type;
 
