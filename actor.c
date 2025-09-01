@@ -99,6 +99,14 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	
 	//If the entity is not loaded, cease the test.
 	if(ent->file_done != true) return 0;
+	//If the actor is not within a reasonable radius of the object, cease the test.
+	int cDif[3];
+	cDif[X] = (JO_ABS(ent_pos[X] - act->pos[X]) - (act->box->radius[X]<<1))>>16;
+	cDif[Y] = (JO_ABS(ent_pos[Y] - act->pos[Y]) - (act->box->radius[Y]<<1))>>16;
+	cDif[Z] = (JO_ABS(ent_pos[Z] - act->pos[Z]) - (act->box->radius[Z]<<1))>>16;
+	if(cDif[X] > ent->radius[X] || cDif[Y] > ent->radius[Y] || cDif[Z] > ent->radius[Z]) return 0;
+	
+	spr_sprintf(20, 24, "inbox");
 	
 	GVPLY * mesh = ent->pol;
 	_boundBox * box = act->box;
@@ -725,6 +733,7 @@ void	manage_actors(void)
 				act->pos[Y] = act->floorPos[Y] - (act->box->radius[Y] - (1<<16));
 				act->pos[Z] = act->floorPos[Z];
 				
+				
 				if(!act->atGoal)
 				{
 					act->info.flags.losTarget = actorCheckPathOK(act, act->pathUV);
@@ -741,6 +750,15 @@ void	manage_actors(void)
 				// nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
 				// nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
 				// nbg_sprintf_decimal(3, 12, act->pathTarget[Z]);
+				
+				// nbg_sprintf(3, 10, "x(%i)", act->dirUV[X]);                     
+				// nbg_sprintf(3, 11, "y(%i)", act->dirUV[Y]);                       
+				// nbg_sprintf(3, 12, "z(%i)", act->dirUV[Z]);
+				
+				// spr_sprintf_decimal(24, 24, act->dirUV[X]);                     
+				// spr_sprintf_decimal(24, 36, act->dirUV[Y]);                       
+				// spr_sprintf_decimal(24, 48, act->dirUV[Z]);
+				
 				// nbg_sprintf_decimal(3, 13, fxdot(act->pathUV, act->pathUV));
 				
 				// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);

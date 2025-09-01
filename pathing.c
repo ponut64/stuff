@@ -392,9 +392,10 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 				sct->paths[s].nodes[num_paths][Y] = guidance_point[Y];
 				sct->paths[s].nodes[num_paths][Z] = guidance_point[Z];
 				//add a direction to the path node - first calculate a vector from guidance pt to center
-				sct->paths[s].dir[num_paths][X] = normal_to_tc[X];//JO_ABS((t_center[X] - (guidance_point[X]>>2))>>4);
-				sct->paths[s].dir[num_paths][Y] = normal_to_tc[Y];//JO_ABS((t_center[Y] - (guidance_point[Y]>>2))>>4);
-				sct->paths[s].dir[num_paths][Z] = normal_to_tc[Z];//JO_ABS((t_center[Z] - (guidance_point[Z]>>2))>>4);
+				normal_to_tc[X] = -((t_center[X] - (guidance_point[X]>>2))>>4);
+				normal_to_tc[Y] = -((t_center[Y] - (guidance_point[Y]>>2))>>4);
+				normal_to_tc[Z] = -((t_center[Z] - (guidance_point[Z]>>2))>>4);
+				accurate_normalize(normal_to_tc, sct->paths[s].dir[num_paths], 5);
 				num_paths++;
 			}
 			
@@ -1156,6 +1157,7 @@ void	checkInPathSteps(int actor_id)
 	act->exceptionTimer += delta_time;
 	if(act->curPathStep > 0)
 	{
+		
 		act->pathTarget[X] = levelPos[X] + step->pos[X];
 		act->pathTarget[Y] = levelPos[Y] + (step->pos[Y] - act->box->radius[Y]);
 		act->pathTarget[Z] = levelPos[Z] + step->pos[Z];

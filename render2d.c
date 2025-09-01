@@ -527,8 +527,10 @@ void	nbg_sprintf_decimal(int x, int y,  int print_data)
 {
 	static unsigned int decimal = 0;
 	static int whole_number = 0;
+	
+	int sign = (print_data < 0) ? 1 : 0;
 	decimal = print_data & 0xFFFF;
-	whole_number = print_data >> 16;
+	whole_number = JO_ABS(print_data) >> 16;
 	//Trying to convert to decimals
 	// 42949 = (65536) * (65536 / 100,000)
 	// magic number: 42949
@@ -536,15 +538,22 @@ void	nbg_sprintf_decimal(int x, int y,  int print_data)
 	//			number / (int)(42949).
 	decimal<<=16;
 	decimal = decimal / 42949;
+	if(!sign)
+	{
 	nbg_sprintf(x, y, "(%i.%i)", whole_number, decimal);
+	} else {
+	nbg_sprintf(x, y, "-%i.%i)", whole_number, decimal);
+	}
 }
 
 void	spr_sprintf_decimal(int x, int y,  int print_data)
 {
 	static unsigned int decimal = 0;
 	static int whole_number = 0;
+	
+	int sign = (print_data < 0) ? 1 : 0;
 	decimal = print_data & 0xFFFF;
-	whole_number = print_data >> 16;
+	whole_number = JO_ABS(print_data) >> 16;
 	//Trying to convert to decimals
 	// 42949 = (65536) * (65536 / 100,000)
 	// magic number: 42949
@@ -552,7 +561,12 @@ void	spr_sprintf_decimal(int x, int y,  int print_data)
 	//			number / (int)(42949).
 	decimal<<=16;
 	decimal = decimal / 42949;
+	if(!sign)
+	{
 	spr_sprintf(x, y, "(%i.%i)", whole_number, decimal);
+	} else {
+	spr_sprintf(x, y, "-%i.%i)", whole_number, decimal);
+	}
 }
 
 

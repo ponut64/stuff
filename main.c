@@ -15,18 +15,13 @@ Buttons for movers -> Functional state
 
 Next = Actors need to trigger contact movers.
 Actors also need to trigger unlocked buttons. (This one is unlikely to matter)
---> why do actors freak out when on a moving object?
-	- Issues identified.
 	- 3: Close corner travel errors.
 		Often, an actor will glitch itself into oblivion on a wall corner.
 			Perhaps the center of the actor can be included as some base collision approval, with the wall's normal 
-
 -> I also need to prep the engine for texture changing and model changing.
 Honestly, this shouldn't be *too* hard, though there's always potential for failure.
 The idea is very simple; just reset the pointers and purge the lists down to the engine's base level,
 then load the new level and its assets.
-
-NEED TO STUDY for pharmacy test
 
 weapon idea:
 chakra golden muzzleloader pistol
