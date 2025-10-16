@@ -13,15 +13,27 @@ Movers -> Functional state
 
 Buttons for movers -> Functional state
 
-Next = Actors need to trigger contact movers.
-Actors also need to trigger unlocked buttons. (This one is unlikely to matter)
-	- 3: Close corner travel errors.
-		Often, an actor will glitch itself into oblivion on a wall corner.
-			Perhaps the center of the actor can be included as some base collision approval, with the wall's normal 
+Next = Buttons which toggle movers.
+
+Actionable plan:
+Actors will also seek out a mover trigger zone if they hit a mover that blocks their path, then continue as normal.
+
+Well, this is a more complex behavior. Only certain actor types should seek out a button or mover trigger.
+But more or less it should be in the game.
+
+
+
+-> Actor/Item orientation
+The model processor should inherit the normal vector of the polygon representing an item as its orientation.
+The normal of the polygon shall represent the orientation with which the entity's Z+ axis is aligned with.
+
 -> I also need to prep the engine for texture changing and model changing.
 Honestly, this shouldn't be *too* hard, though there's always potential for failure.
 The idea is very simple; just reset the pointers and purge the lists down to the engine's base level,
 then load the new level and its assets.
+
+-> Lighting re-implementation
+Performance limits abound, but....
 
 weapon idea:
 chakra golden muzzleloader pistol
@@ -36,8 +48,21 @@ i'll want different behaviors, basically:
 3. thug, an enemy AI type that will just rush the player, whether from range or not
 4. hunter, an enemy AI type that actively chases the player when sighted on the map, but avoids the player's forward line of sight.
 
+5. reaper? a unique enemy AI that is a ghostly creature. seeks out an enemy corpse (or death spot) and reposses it.
+tries to avoid player line of sight and when cornered, will disturb the player's vision to avoid being hit.
+
 in these behavior types, most actors navigation can be turned off when not visible.
 however, in some cases (especially with the hunter), the actor needs to be able to navigate even when not displayed.
+
+I think of the overlays and broadcast function systems a lot.
+it's clearly the best way to add/manage content.
+... but I just didn't make an engine to do that.
+Next I make an engine, I ought to do that. It really enables emergent gameplay.
+Right now, if two things are not specifically programmed to interact, they won't.
+This is good for performance, though...
+
+Overall though, first person shooter as a genre can be good and fun without this beautiful complexity.
+I'm generally still unsure of what kind of FPS game I am making. I am just making its framework; the rules that shall enable it.
 
 special note:
 pulping enemies with a single shot is very satisfying
@@ -265,6 +290,7 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STRAN.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
+	nbg_sprintf(1, 7, "Sectors complete!");
 	// while(1)
 	// {
 		// if(is_key_pressed(DIGI_START)) break;

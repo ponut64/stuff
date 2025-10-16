@@ -103,7 +103,7 @@ _sobject MoverClosed = {
 	.radius[X] = 32,
 	.radius[Y] = 128,
 	.radius[Z] = 32,
-	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 0) | MOVER_TARGET_ACTION | MOVER_TARGET_DELAYED,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 0) | MOVER_TARGET_CALLBACK | MOVER_TARGET_DELAYED,
 	.effect = 18, //snd_khit
 	.effectTimeLimit = 1<<16
 };
@@ -114,7 +114,7 @@ _sobject MoverOpen = {
 	.radius[X] = 32,
 	.radius[Y] = 64,
 	.radius[Z] = 32,
-	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_RETURN | MOVER_TARGET_REMOTE,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_CALLBACK,
 	.effect = 18, //snd_khit
 	.effectTimeLimit = 1<<16
 };
@@ -133,7 +133,7 @@ _sobject ButtonStand = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = OBJECT | REMOTE_ACTIVATOR | REMOTE_ACT_USABLE | REMOTE_ACT_RESET | (LDATA>>8),
+	.ext_dat = OBJECT | REMOTE_ACTIVATOR | REMOTE_ACT_USABLE | REMOTE_ACT_RESET,
 	.light_bright = 0,
 	.effect = 0,
 	.effectTimeLimit = 0 //I forgot, conventional use applies to these...

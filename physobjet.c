@@ -854,16 +854,35 @@ void	manage_object_data(void)
 								{
 								start_hud_event(UsePrompt);
 									//Then if the button is pressed, we need to trigger the object flagged by the activator.
+									//(A timer should be set to limit button activations to once in like, a half-second or so)
 									if(is_key_pressed(you.actionKeyDef))
 									{
-										dwo->type.ext_dat |= OBJPOP;
-										//Safety, such that it can be recalled when already moving.
-										dwa->type.ext_dat &= UNPOP;
-										dwa->type.effectTimeCount = 0;
-										if(!(someOBJECTdata->type.ext_dat & REMOTE_ACT_RESET))
-										{
-											someOBJECTdata->type.ext_dat &= REMOTE_ACT_UNUSABLE;
-										}
+											if((dwo->type.ext_dat & MOVER_TARGET_TYPE) == MOVER_TARGET_CALLBACK)
+											{
+												dwo->type.light_bright+=1;
+												dwa->type.light_bright = dwo->type.light_bright+1;
+												if(dwo->type.light_bright & 1) {
+													dwo->type.ext_dat |= OBJPOP;
+													//Safety, such that it can be recalled when already moving.
+													dwa->type.ext_dat &= UNPOP;
+													dwa->type.effectTimeCount = 0;
+												} else {
+													dwa->type.ext_dat |= OBJPOP;
+													//Safety, such that it can be recalled when already moving.
+													dwo->type.ext_dat &= UNPOP;
+													dwo->type.effectTimeCount = 0;
+												}
+											} else {
+											dwo->type.ext_dat |= OBJPOP;
+											//Safety, such that it can be recalled when already moving.
+											dwa->type.ext_dat &= UNPOP;
+											dwa->type.effectTimeCount = 0;
+											}
+											if(!(someOBJECTdata->type.ext_dat & REMOTE_ACT_RESET))
+											{
+												someOBJECTdata->type.ext_dat &= REMOTE_ACT_UNUSABLE;
+											}
+
 									}
 								}
 							}
@@ -1027,12 +1046,8 @@ void	object_activator_initialization(void)
 		
 		if((dwo->type.ext_dat & ETYPE) == OBJECT && (dwo->type.ext_dat & OBJECT_TYPE) == REMOTE_ACTIVATOR)
 		{
-			//Found a remote activator type.
-			//We need to:
-			//1. Find what broad entity type this activator is looking for
-			//2. Search through all objects to distance check all objects of that type
-			//3. Latch the remote activator to the closest one by putting its object ID into more_data
-			int seek_type = (dwo->type.ext_dat & REMOTE_ACT_TYPE)<<8;
+
+			int seek_type = objList[dwo->curSector]->ext_dat;
 			int low_dist = 1<<30;
 			
 			for(int k = 0; k < objNEW; k++)
@@ -1040,7 +1055,7 @@ void	object_activator_initialization(void)
 				if(k == i) continue;
 				_declaredObject * dwa = &dWorldObjects[k];
 				
-				if(seek_type == (dwa->type.ext_dat & ETYPE))
+				if(seek_type == dwa->type.ext_dat)
 				{
 					int new_dist = approximate_distance(dwo->pos, dwa->pos);
 					
@@ -1051,6 +1066,7 @@ void	object_activator_initialization(void)
 					}
 				}
 			}
+			dwo->curSector = INVALID_SECTOR;
 		}
 	}
 	

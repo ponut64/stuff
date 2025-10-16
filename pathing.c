@@ -678,13 +678,13 @@ void	actor_hit_wall(_actor * act, int * wall_norm)
 	
 	int deflectionFactor = -fxdot(act->velocity, wall_norm);
 		
-	act->dV[X] += fxm(wall_norm[X], deflectionFactor + REBOUND_ELASTICITY);// - (normal[X]>>4);
-	act->dV[Y] += fxm(wall_norm[Y], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Y]>>4);
-	act->dV[Z] += fxm(wall_norm[Z], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Z]>>4);
+	act->velocity[X] += fxm(wall_norm[X], deflectionFactor + REBOUND_ELASTICITY);
+	act->velocity[Y] += fxm(wall_norm[Y], deflectionFactor + REBOUND_ELASTICITY);
+	act->velocity[Z] += fxm(wall_norm[Z], deflectionFactor + REBOUND_ELASTICITY);
 	//Small push to secure surface release
-	act->pos[X] += wall_norm[X];
-	act->pos[Y] += wall_norm[Y];
-	act->pos[Z] += wall_norm[Z];
+	act->dV[X] += wall_norm[X];
+	act->dV[Y] += wall_norm[Y];
+	act->dV[Z] += wall_norm[Z];
 	
 	act->info.flags.hitWall = 1;
 	
@@ -869,6 +869,15 @@ int	actorCheckPathOK(_actor * act, int * path_dir)
 	//You don't want them to think they can path to a point up a vertical wall; the wall should block them,
 	//and make them find another path.
 	actorPathProxy[Y] = act->pos[Y];
+	
+	//Addendum: Check if the actor's distance to the path target is low enough to be used as the path target.
+	if(approximate_distance(act->pos, act->pathTarget) < (128<<16))
+	{
+		actorPathProxy[X] = act->pathTarget[X];
+		actorPathProxy[Y] = act->pathTarget[Y];
+		actorPathProxy[Z] = act->pathTarget[Z];
+		
+	}
 
 	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
 	sprite_prep.info.drawOnce = 1;

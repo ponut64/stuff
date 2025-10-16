@@ -396,6 +396,7 @@ int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->floorPos[Z] = potential_hit[Z];
 					act->info.flags.hitFloor = 1;
 					surfHit = 1;
+					act->box->surfID = INVALID_SECTOR;
 				}
 			}
 			break;
@@ -428,6 +429,8 @@ int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 			}
 			break;
 		}
+
+
 	
 	}
 	
@@ -524,6 +527,71 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 		break;
 	}
 	return actor_number;
+}
+
+void	actor_per_object_processing(_actor * act)
+{
+	//Horrid solution, but this is what we will do for now.
+	//(ideally would create a linked list of all objects in sector to search though instead of just dummy look all objects)
+	int position_difference[3];
+	
+	int printIdx = 0;
+	
+	for(unsigned int i = 0; i < objNEW; i++)
+	{
+		_declaredObject * obj = &dWorldObjects[i];
+		if(obj->curSector != act->curSector) continue;
+		
+		if((obj->type.ext_dat & ETYPE) == LDATA)
+		{
+		//Most objects between actor<->object should be some kind of collision.
+		//There are likely going to be gamestate managers that relate to actors, those may be here too.
+		position_difference[X] = JO_ABS(act->pos[X] - obj->pos[X]) - act->box->radius[X];
+		position_difference[Y] = JO_ABS(act->pos[Y] - obj->pos[Y]) - act->box->radius[Y];
+		position_difference[Z] = JO_ABS(act->pos[Z] - obj->pos[Z]) - act->box->radius[Z];
+
+		
+		int ldata_type = obj->type.ext_dat & LDATA_TYPE;
+		
+		switch(ldata_type)
+		{
+		case(MOVER_TARGET):
+		
+		
+			// spr_sprintf_decimal(8 + (printIdx * (10 * 8)), 50, position_difference[X]);                     
+			// spr_sprintf_decimal(8 + (printIdx * (10 * 8)), 62, position_difference[Y]);                       
+			// spr_sprintf_decimal(8 + (printIdx * (10 * 8)), 74, position_difference[Z]);
+		
+			if(position_difference[X] < (obj->type.radius[X]<<16)
+			&& position_difference[Y] < (obj->type.radius[Y]<<16)
+			&& position_difference[Z] < (obj->type.radius[Z]<<16)
+			//Enabling Booleans
+			&& (!(obj->type.ext_dat & OBJPOP))
+			&& ((obj->type.ext_dat & MOVER_TARGET_REMOTE) != MOVER_TARGET_REMOTE))
+			{
+				
+			spr_sprintf(8 + (printIdx * (10 * 8)), 38, "obj(%i)", i);
+				
+			unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
+			_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
+		
+			//In such case where an actor has contacted a mover trigger and it is not a remote trigger,
+			//the mover should be triggered.
+			dwa->type.ext_dat |= OBJPOP;
+			dwa->type.effectTimeCount = 0;
+			obj->type.effectTimeCount = 0;
+		
+			}
+		break;
+		default:
+		
+		break;
+		}
+	
+		}
+		printIdx++;
+	}
+	
 }
 
 void	manage_actors(void)
@@ -702,6 +770,7 @@ void	manage_actors(void)
 						RBBs[c].collisionID = act->box->boxID;
 						act->box->collisionID = RBBs[c].boxID;
 					}
+					//In the "Build" type, special collision handling will be present for Movers. Atleast, that's intended.
 					break;
 					default:
 					break;
@@ -716,6 +785,9 @@ void	manage_actors(void)
 			//{
 				actor_sector_collision(act, &cur_actor_line_table, sct, levelPos);
 			//}
+			
+			actor_per_object_processing(act);
+			
 			
 			//Debug
 			// act->pathTarget[X] = act->pathGoal[X];
@@ -772,7 +844,7 @@ void	manage_actors(void)
 				if(!act->atGoal) checkInPathSteps(i);
 				
 				//Add velocity of surface
-				if(act->box->surfID >= 0)
+				if(act->box->surfID != INVALID_SECTOR)
 				{
 					_boundBox * on_box = &RBBs[dWorldObjects[act->box->surfID].bbnum];
 					act->pos[X] += on_box->velocity[X];

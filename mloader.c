@@ -49,6 +49,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		sectors[k].nbVisible = 0;
 		sectors[k].pltbl = writeAddress;
 		int is_mover = 0;
+		nbg_sprintf(10, 13, "major_iter(%i)", k);
 		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		{
 			plane_sector = mesh->attbl[i].first_sector;
@@ -63,8 +64,13 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			
 			sectors[k].pltbl[sectors[k].nbPolygon] = i;
 			sectors[k].nbPolygon++;			
+			nbg_sprintf(10, 14, "iter(%i)", sectors[k].nbPolygon);
 		}
+		writeAddress++;
+		writeAddress = align_4(writeAddress);
 		writeAddress += sectors[k].nbPolygon;
+		
+		
 		//If this condition is passed, the sector will be built as a mover-type object.
 		//Movers are complex objects; they are defined from mesh data in the binary file used for sector data (here).
 		//Then, the position to which they move is marked by item data carried in the binary payload as well.
@@ -80,7 +86,6 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			//We already have a qualified list of polygons whom are a member of this mover sector from the prior loop.
 			//We also know the number of polygons in the sector.
 			//We need to basically do what we do to build a sector, but more.
-			
 			GVPLY * moverMesh = (GVPLY *)writeAddress;
 			writeAddress += sizeof(GVPLY);
 			moverMesh->nbPolygon = sectors[k].nbPolygon;
@@ -107,6 +112,8 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			writeAddress += sizeof(POINT) * moverMesh->nbPolygon;
 			
 			//Zero-out the mover sector polygon count; it will no longer be relevant.
+			
+			nbg_sprintf(10, 16, "pl(%i)", moverMesh->nbPolygon);
 			
 			unsigned int moverVerts = 0;
 			for(unsigned int i = 0; i < moverMesh->nbPolygon; i++)
@@ -165,6 +172,8 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			}
 			int secMoverVerts = 0;
 			int movUniqueVert = 0;
+			
+			nbg_sprintf(10, 15, "vt(%i)", moverVerts);
 			//Sets "uniqueSet", checks the entire "clapBuffer" for unqiue set.
 			//If uniqueSet is not in clapBuffer, add to clap buffer, add to total vertex number.
 			for(unsigned int i = 0; i < moverVerts; i++)
@@ -234,6 +243,8 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 					break;
 				}
 			}
+			
+			
 			if(m_ent->pol == NULL) continue; //When no empty entitiy slot, do not continue.
 			
 			debug_number = eid;
@@ -315,7 +326,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 					break;
 				}
 			}
-			
+			nbg_sprintf(10, 16, "tp(%i)", valid_type_found);
 			if(valid_type_found)
 			{
 			BuildingPayload[total_building_payload].object_type = valid_type_found;

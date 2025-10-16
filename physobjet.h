@@ -135,7 +135,7 @@ Proximity Object Activator Layout Information
 			15 : popped / visible flag
 			14-12: "OBJECT" definition
 			8-11: "Object Activator" definition
-			7-4: Object type bitfield to search for when setting up the trigger
+			7-4: <unused>
 			3: Reset flag (if 1, the trigger will reset according to the plausible states set in the triggered item)
 			2: Proximity or activation flag (if 0, triggers by proximity. if 1, gives a prompt and triggers on button press)
 			1: Usable flag (if 0, trigger is usable. If 1, trigger is unusable)
@@ -144,6 +144,8 @@ Proximity Object Activator Layout Information
 		effectTimeLimit : <--Use appropriate to effect system-->
 	_declaredObject
 		Since this object is rendered, conventional use applies.
+		curSector
+			Pre-processor uses curSector as object archetype for search for. Otherwise, conventional use applies (once rendered).
 		link 
 			declared object array for more objects
 	more_data :
@@ -308,6 +310,8 @@ Mover Target Bitwise Layout Information
 #define MOVER_TARGET_PROX		(0x10) //(Triggered by proximity)
 #define MOVER_TARGET_ACTION		(0x20) //(Triggered by player action button)
 #define MOVER_TARGET_REMOTE		(0x30) //(Triggered by another game object, typically for door return points)
+#define MOVER_TARGET_CALLBACK	(0x00) //(Untyped trigger; when found, operates as toggle)
+#define CLEAR_MOVER_TARGET		(0xFFCF);
 #define MOVER_TARGET_RATE		(0xF)
 
 
