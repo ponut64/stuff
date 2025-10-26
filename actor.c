@@ -566,21 +566,28 @@ void	actor_per_object_processing(_actor * act)
 			&& position_difference[Y] < (obj->type.radius[Y]<<16)
 			&& position_difference[Z] < (obj->type.radius[Z]<<16)
 			//Enabling Booleans
-			&& (!(obj->type.ext_dat & OBJPOP))
-			&& ((obj->type.ext_dat & MOVER_TARGET_REMOTE) != MOVER_TARGET_REMOTE))
+			&& (!(obj->type.ext_dat & OBJPOP)))
 			{
+				if(((obj->type.ext_dat & MOVER_TARGET_TYPE) != MOVER_TARGET_REMOTE)
+				&& ((obj->type.ext_dat & MOVER_TARGET_TYPE) != MOVER_TARGET_CALLBACK))
+				{
+				spr_sprintf(8 + (printIdx * (10 * 8)), 38, "obj(%i)", i);
+					
+				unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
+				_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
+			
+				//In such case where an actor has contacted a mover trigger and it is not a remote trigger,
+				//the mover should be triggered.
+				dwa->type.ext_dat |= OBJPOP;
+				dwa->type.effectTimeCount = 0;
+				obj->type.effectTimeCount = 0;
+				} else {
+				//If we are in the radius but the door/mover is triggerable by a button instead,
+				//we have an opportunity to trigger a pathing exception towards the button.
+				//The first thing we need to do is check if the actor is colliding with the door (e.g. trying to open it).
+				//If it is, we can generate a pathing exception.
 				
-			spr_sprintf(8 + (printIdx * (10 * 8)), 38, "obj(%i)", i);
-				
-			unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
-			_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
-		
-			//In such case where an actor has contacted a mover trigger and it is not a remote trigger,
-			//the mover should be triggered.
-			dwa->type.ext_dat |= OBJPOP;
-			dwa->type.effectTimeCount = 0;
-			obj->type.effectTimeCount = 0;
-		
+				}
 			}
 		break;
 		default:

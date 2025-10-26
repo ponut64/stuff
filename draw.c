@@ -630,5 +630,14 @@ void	master_draw(void)
 		rolling_avg_ssh2 = time_at_ssh2_end;
 		avg_samples = 0;
 	}
+	
+	ANGLE atan2 = fxAtan2(16384, 0);
+	
+	nbg_sprintf_decimal(5, 12, atan2);
+	atan2 = fxAtan2(0, 16384);
+	nbg_sprintf_decimal(5, 13, atan2);
+	atan2 = fxAtan2(16384, 16384);
+	nbg_sprintf_decimal(5, 14, atan2);
+	
 }
 

@@ -12,8 +12,7 @@ What's on my development iternerary?
 Movers -> Functional state
 
 Buttons for movers -> Functional state
-
-Next = Buttons which toggle movers.
+Toggling buttons -> Functional state
 
 Actionable plan:
 Actors will also seek out a mover trigger zone if they hit a mover that blocks their path, then continue as normal.
@@ -26,6 +25,7 @@ But more or less it should be in the game.
 -> Actor/Item orientation
 The model processor should inherit the normal vector of the polygon representing an item as its orientation.
 The normal of the polygon shall represent the orientation with which the entity's Z+ axis is aligned with.
+ -> Provided a limitation, of course. We want to create rotations that generally depends on pivots around the Y axis, as opposed to X axis.
 
 -> I also need to prep the engine for texture changing and model changing.
 Honestly, this shouldn't be *too* hard, though there's always potential for failure.

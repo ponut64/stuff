@@ -155,6 +155,18 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 		dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16));
 		dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
 		
+		//int domain = solve_domain_y(building_item->normal);
+		//int sign_y = -16384;
+		//if(domain == 1 || domain == 2) sign_y = 16384;
+		
+		int sign_x = 1;
+		int domain = solve_domain_x(building_item->normal);
+		if(domain == 1 || domain == 2) sign_x = -1;
+		
+		dWorldObjects[objNEW].rot[Y] = -fxAtan2(building_item->normal[X]>>1, building_item->normal[Z]>>1);
+		
+		dWorldObjects[objNEW].rot[X] = fxAtan2(building_item->normal[X]>>1, building_item->normal[Y]>>1) * sign_x;
+		
 		
 		objNEW++;
 	}
@@ -647,19 +659,6 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 			//Statement with no effect
 		}
 	} 
-	
-//	if(obj_id1 > obj_id2)
-//	{
-//	print_from_id(dominant_axis, 1, 8);
-	//slPrintFX(cross[X], slLocate(1, 10));
-	//slPrintFX(cross[Y], slLocate(1, 11));
-	//slPrintFX(cross[Z], slLocate(1, 12));
-//	} else {
-//	print_from_id(dominant_axis, 1, 10);
-	//slPrintFX(cross[X], slLocate(1, 13));
-	//slPrintFX(cross[Y], slLocate(1, 14));
-	//slPrintFX(cross[Z], slLocate(1, 15));
-//	}
 					
 	// int ab = edge_wind_test(fenceA, fenceB, tgt->pos, dominant_axis,16);
 	// int bb = edge_wind_test(fenceB, fenceD, tgt->pos, dominant_axis,16);
@@ -855,7 +854,7 @@ void	manage_object_data(void)
 								start_hud_event(UsePrompt);
 									//Then if the button is pressed, we need to trigger the object flagged by the activator.
 									//(A timer should be set to limit button activations to once in like, a half-second or so)
-									if(is_key_pressed(you.actionKeyDef))
+									if(is_key_struck(you.actionKeyDef))
 									{
 											if((dwo->type.ext_dat & MOVER_TARGET_TYPE) == MOVER_TARGET_CALLBACK)
 											{
@@ -1026,7 +1025,7 @@ void	mover_target_initialization(_declaredObject * dummy)
 					dwa->type.radius[Z] = used_radius[Z] + 16;
 					dwa->type.effect = dwo->type.effect;
 					dwa->type.effectTimeLimit = dwo->type.effectTimeLimit;
-					dwa->type.ext_dat = LDATA | MOVER_TARGET | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED;
+					dwa->type.ext_dat = LDATA | MOVER_TARGET | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED | (dwo->type.ext_dat & MOVER_TARGET_RATE);
 					//Default to simple proximity trigger
 					//dwa->type.ext_dat |= (dwo->type.ext_dat & MOVER_TARGET_RATE);
 					dwa->more_data = (dwo->more_data & 0xFF) | (i<<8);

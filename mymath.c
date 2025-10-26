@@ -603,7 +603,7 @@ void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
 //////////////////////////////////
 //A helper function which checks the X and Z signs of a vector to find its domain.
 //////////////////////////////////
-Uint8	solve_domain(FIXED normal[XYZ]){
+Uint8	solve_domain_y(FIXED normal[XYZ]){
 	if(normal[X] >= 0 && normal[Z] >= 0){
 		//PP
 		return 1;
@@ -622,6 +622,65 @@ Uint8	solve_domain(FIXED normal[XYZ]){
 	4	-	2
 	*/
 	return 0;
+}
+
+Uint8	solve_domain_x(FIXED normal[XYZ]){
+	if(normal[Z] >= 0 && normal[Y] >= 0){
+		//PP
+		return 1;
+	} else if(normal[Z] >= 0 && normal[Y] < 0){
+		//PN
+		return 2;
+	} else if(normal[Z] < 0 && normal[Y] >= 0){
+		//NP
+		return 3;
+	} else if(normal[Z] < 0 && normal[Y] < 0){
+		//NN
+		return 4;
+	};
+	/*
+	3	-	1
+	4	-	2
+	*/
+	return 0;
+}
+
+//scaled to 32767 which is pi (180 degrees)
+#define A 2544
+#define B -9418
+#define C (25735 - A - B)
+
+//#define A 0.0776509570923569
+//#define B -0.287434475393028
+//#define C (M_PI_4 - A - B)
+
+//https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+int Fast2ArcTan(int x)
+{
+  int xx = fxm(x,x);
+  return fxm((fxm((fxm(A,xx) + B),xx) + C),x);
+}
+
+//https://wirelesspi.com/3-ways-to-approximate-atan2-in-hardware/#mjx-eqn-equation-atan2
+int fxAtan2(int x_axis, int y_axis)
+{
+	static int result = 0;
+	if(x_axis == 0 && y_axis == 0) return 0;
+	SetFixDiv(x_axis, y_axis);
+	
+	if(y_axis > 0){
+		result = Fast2ArcTan(*DVDNTL);
+	} else if(y_axis < 0 && x_axis >= 0){
+		result = Fast2ArcTan(*DVDNTL) + 32767; //(pi)
+	} else if(y_axis < 0 && x_axis < 0){
+		result = Fast2ArcTan(*DVDNTL) - 32767;
+	} else if(y_axis == 0 && x_axis > 0){
+		result = Fast2ArcTan(*DVDNTL); //pi/2
+	} else if(y_axis == 0 && x_axis < 0){
+		result = -Fast2ArcTan(*DVDNTL);
+	}
+	
+	return result;
 }
 
 FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ])

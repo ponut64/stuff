@@ -51,7 +51,12 @@ int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out);
 int		line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB, FIXED * intersection);
 void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output);
 Bool	isPointonSegment(FIXED * point, FIXED * start, FIXED * end, int tolerance);
-Uint8	solve_domain(FIXED normal[XYZ]);
+
+Uint8	solve_domain_y(FIXED normal[XYZ]);
+Uint8	solve_domain_x(FIXED normal[XYZ]);
+
+int		fxAtan2(int x_axis, int y_axis);
+
 FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ]);
 int		ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]);
 FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]);

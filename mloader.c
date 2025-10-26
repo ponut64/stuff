@@ -788,18 +788,25 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		// It's order is:
 		// 0 byte: total items
 		// 1 byte: unique items
-		// every 8 bytes after
-		// item number, x, y, z, position (relative to entity) as 16-bit int
+		// every 16 bytes after
+		// item number, x, y, z, nx, ny, nz, sectornumber all as 16-bit (2 byte) ints
 		/////////////////////////////////////////////
 		for(int q = 0; q < *total_items; q++)
 		{
+			
 			BuildingPayload[total_building_payload].object_type = *item_data++;
 			BuildingPayload[total_building_payload].pos[X] = *item_data++;
 			BuildingPayload[total_building_payload].pos[Y] = *item_data++;
 			BuildingPayload[total_building_payload].pos[Z] = *item_data++;
+			BuildingPayload[total_building_payload].normal[X] =  *item_data++;
+			BuildingPayload[total_building_payload].normal[Y] =  *item_data++;		
+			BuildingPayload[total_building_payload].normal[Z] =  *item_data++;		
+			
 			BuildingPayload[total_building_payload].sector = *item_data++;
 			//Some way to find what entity # we're working with right now
 			BuildingPayload[total_building_payload].root_entity = (unsigned short)(model - entities);
+			
+			
 			total_building_payload++;
 		// nbg_sprintf(1, 20+q, "item(%i)", BuildingPayload[q].object_type);
 		// nbg_sprintf(16, 20+q, "item(%i)", BuildingPayload[q].root_entity);

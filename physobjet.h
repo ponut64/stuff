@@ -332,6 +332,7 @@ typedef struct {
 typedef struct {
 	unsigned short object_type;
 	short pos[XYZ];
+	int normal[XYZ];
 	unsigned char sector;
 	unsigned char root_entity; //(we need to be able to use this as a sector specification, or split the 2 bytes)
 } _buildingObject;

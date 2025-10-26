@@ -97,18 +97,18 @@ _sobject Strange = {
 	.ext_dat = BUILD
 };
 
-_sobject MoverClosed = {
+_sobject ToggleClosed = {
 	.entity_ID = 12, //snd_wind
 	.clone_ID = 14, //snd_cronch
 	.radius[X] = 32,
 	.radius[Y] = 128,
 	.radius[Z] = 32,
-	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 0) | MOVER_TARGET_CALLBACK | MOVER_TARGET_DELAYED,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_CALLBACK | MOVER_TARGET_DELAYED,
 	.effect = 18, //snd_khit
 	.effectTimeLimit = 1<<16
 };
 
-_sobject MoverOpen = {
+_sobject ToggleOpen = {
 	.entity_ID = 12, //snd_wind
 	.clone_ID = 14, //snd_cronch
 	.radius[X] = 32,
@@ -116,6 +116,28 @@ _sobject MoverOpen = {
 	.radius[Z] = 32,
 	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_CALLBACK,
 	.effect = 18, //snd_khit
+	.effectTimeLimit = 1<<16
+};
+
+_sobject MoverClosed = {
+	.entity_ID = 13, //snd_wind
+	.clone_ID = 15, //snd_cronch
+	.radius[X] = 32,
+	.radius[Y] = 128,
+	.radius[Z] = 32,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_PROX | MOVER_TARGET_DELAYED,
+	.effect = 17, //snd_khit
+	.effectTimeLimit = 1<<16
+};
+
+_sobject MoverOpen = {
+	.entity_ID = 13, //snd_wind
+	.clone_ID = 15, //snd_cronch
+	.radius[X] = 32,
+	.radius[Y] = 64,
+	.radius[Z] = 32,
+	.ext_dat = LDATA | MOVER_TARGET | (MOVER_TARGET_RATE & 2) | MOVER_TARGET_RETURN,
+	.effect = 17, //snd_khit
 	.effectTimeLimit = 1<<16
 };
 
@@ -155,6 +177,9 @@ void	fill_obj_list(void)
 	objList[12] = &Build00;
 	
 	objList[50] = &Strange;
+	
+	objList[56] = &ToggleOpen;
+	objList[57] = &ToggleClosed;
 	
 	objList[58] = &ButtonStand;
 
