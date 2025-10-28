@@ -631,13 +631,24 @@ void	master_draw(void)
 		avg_samples = 0;
 	}
 	
-	ANGLE atan2 = fxAtan2(16384, 0);
+	// int atan2 = slAtan(2048, 63488);
 	
-	nbg_sprintf_decimal(5, 12, atan2);
-	atan2 = fxAtan2(0, 16384);
-	nbg_sprintf_decimal(5, 13, atan2);
-	atan2 = fxAtan2(16384, 16384);
-	nbg_sprintf_decimal(5, 14, atan2);
+	// nbg_sprintf_decimal(3, 12, atan2);
+	// atan2 = slAtan(63488, 2048);
+	// nbg_sprintf_decimal(3, 13, atan2);
+	// atan2 = slAtan(0, 65536);
+	// nbg_sprintf_decimal(3, 14, atan2);
+	// atan2 = slAtan(65536, 0);
+	// nbg_sprintf_decimal(3, 15, atan2);
+	
+	// atan2 = fxAtan2(63488, 2048);
+	// nbg_sprintf_decimal(15, 12, atan2);
+	// atan2 = fxAtan2(2048, 63488);
+	// nbg_sprintf_decimal(15, 13, atan2);
+	// atan2 = fxAtan2(0, 65536);
+	// nbg_sprintf_decimal(15, 14, atan2);
+	// atan2 = fxAtan2(65536, 0);
+	// nbg_sprintf_decimal(15, 15, atan2);
 	
 }
 

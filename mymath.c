@@ -603,23 +603,34 @@ void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
 //////////////////////////////////
 //A helper function which checks the X and Z signs of a vector to find its domain.
 //////////////////////////////////
-Uint8	solve_domain_y(FIXED normal[XYZ]){
-	if(normal[X] >= 0 && normal[Z] >= 0){
-		//PP
+Uint8	solve_domain_y(FIXED normal[XYZ])
+{
+	if(normal[X] > 0 && normal[Z] > 0){
+		return 0;
+	} else if(normal[X] > 0 && normal[Z] < 0){
 		return 1;
-	} else if(normal[X] >= 0 && normal[Z] < 0){
-		//PN
+	} else if(normal[X] < 0 && normal[Z] > 0){
 		return 2;
-	} else if(normal[X] < 0 && normal[Z] >= 0){
-		//NP
-		return 3;
 	} else if(normal[X] < 0 && normal[Z] < 0){
-		//NN
+		return 3;
+	} else if(normal[X] == 0 && normal[Z] > 0){
 		return 4;
-	};
+	} else if(normal[X] == 0 && normal[Z] < 0){
+		return 5;
+	} else if(normal[X] > 0 && normal[Z] == 0){
+		return 6;
+	} else if(normal[X] < 0 && normal[Z] == 0){
+		return 7;
+	}
 	/*
-	3	-	1
-	4	-	2
+		4
+		Z
+		|
+	2	|	0
+  7 <- - - -x 6
+	3	|	1
+		|	
+		5
 	*/
 	return 0;
 }
@@ -646,9 +657,9 @@ Uint8	solve_domain_x(FIXED normal[XYZ]){
 }
 
 //scaled to 32767 which is pi (180 degrees)
-#define A 2544
-#define B -9418
-#define C (25735 - A - B)
+#define A (2544>>4)
+#define B -(9418>>4)
+#define C (15065>>4)
 
 //#define A 0.0776509570923569
 //#define B -0.287434475393028
@@ -657,27 +668,41 @@ Uint8	solve_domain_x(FIXED normal[XYZ]){
 //https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
 int Fast2ArcTan(int x)
 {
-  int xx = fxm(x,x);
-  return fxm((fxm((fxm(A,xx) + B),xx) + C),x);
+	int lx = x>>4;
+	int xx = fxm(lx,lx);
+	return (fxm((fxm((fxm(A,xx) + B),xx) + C),lx))<<4;
 }
 
 //https://wirelesspi.com/3-ways-to-approximate-atan2-in-hardware/#mjx-eqn-equation-atan2
 int fxAtan2(int x_axis, int y_axis)
 {
-	static int result = 0;
-	if(x_axis == 0 && y_axis == 0) return 0;
-	SetFixDiv(x_axis, y_axis);
 	
-	if(y_axis > 0){
-		result = Fast2ArcTan(*DVDNTL);
-	} else if(y_axis < 0 && x_axis >= 0){
-		result = Fast2ArcTan(*DVDNTL) + 32767; //(pi)
-	} else if(y_axis < 0 && x_axis < 0){
-		result = Fast2ArcTan(*DVDNTL) - 32767;
-	} else if(y_axis == 0 && x_axis > 0){
-		result = Fast2ArcTan(*DVDNTL); //pi/2
-	} else if(y_axis == 0 && x_axis < 0){
-		result = -Fast2ArcTan(*DVDNTL);
+		/*
+		Hang on, let's bang this out critically.
+		For a vector constrained by being a unit vector:
+		If x nearly equals 1, the result should be nearly 90.
+		If y nearly equals 1, the result should be nearly 0.
+		If x == 0, the result should be zero degrees from the Y axis.
+		If y == 0, the result should be 90 degrees from the Y axis.
+		
+		In case X > Y, how do I preserve the math without sacrificing to an overflow in Fast2ArcTan?
+		The ratio of X to Y relative to Pi must be preserved.
+		*/
+	
+	int result = 0;
+	if(x_axis == 0 && y_axis == 0) return 0;
+	int div = fxdiv(y_axis, x_axis);
+	
+	if(x_axis > 0){
+		result = (Fast2ArcTan(div));
+	} else if(x_axis < 0 && y_axis >= 0){
+		result = (Fast2ArcTan(div)) + 32767; //(pi)
+	} else if(x_axis < 0 && y_axis < 0){
+		result = (Fast2ArcTan(div)) - 32767;
+	} else if(x_axis == 0 && y_axis > 0){
+		result = 16384; //pi/2
+	} else if(x_axis == 0 && y_axis < 0){
+		result = -16384;
 	}
 	
 	return result;

@@ -155,18 +155,55 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 		dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16));
 		dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
 		
-		//int domain = solve_domain_y(building_item->normal);
-		//int sign_y = -16384;
-		//if(domain == 1 || domain == 2) sign_y = 16384;
+		int domain = solve_domain_y(building_item->normal);
+		int adjust_x = 0;
+		//if(domain == 4) adjust_x = 2048;
 		
-		int sign_x = 1;
-		int domain = solve_domain_x(building_item->normal);
-		if(domain == 1 || domain == 2) sign_x = -1;
 		
-		dWorldObjects[objNEW].rot[Y] = -fxAtan2(building_item->normal[X]>>1, building_item->normal[Z]>>1);
+		//if(domain == 1) adjust_x = -2048;
+		//if(domain == 3) adjust_y += 32767;
+		//if(domain == 4) adjust_y -= 32767;
 		
-		dWorldObjects[objNEW].rot[X] = fxAtan2(building_item->normal[X]>>1, building_item->normal[Y]>>1) * sign_x;
+		// int sign_x = -16384;
+		// int domain = solve_domain_x(building_item->normal);
+		// if(domain == 1 || domain == 2) sign_x = 16384;
+		int sin_y = slSin(fxAtan2(building_item->normal[Z]<<1, building_item->normal[X]<<1));
+		int cos_y = slCos(fxAtan2(building_item->normal[Z]<<1, building_item->normal[X]<<1));
+
+		switch(domain)
+		{
+		case(0):
+		dWorldObjects[objNEW].rot[Y] = sin_y + cos_y + 32767;
+		break;
+		case(1):
+		dWorldObjects[objNEW].rot[Y] = -sin_y + cos_y;
+		break;
+		case(2):
+		dWorldObjects[objNEW].rot[Y] = sin_y - cos_y + 32767;
+		break;
+		case(3):
+		dWorldObjects[objNEW].rot[Y] = -sin_y + cos_y;
+		break;
+		case(4):
+		dWorldObjects[objNEW].rot[Y] = 32767;
+		break;
+		case(5):
+		dWorldObjects[objNEW].rot[Y] = 0;
+		break;
+		case(6):
+		dWorldObjects[objNEW].rot[Y] = -16384;
+		break;
+		case(7):
+		dWorldObjects[objNEW].rot[Y] = 16384;
+		break;
+		default:
+		break;
+		}
+		dWorldObjects[objNEW].rot[X] = slCos(fxAtan2(building_item->normal[Z]<<1, building_item->normal[Y]<<1)) + adjust_x;
 		
+			//nbg_sprintf_decimal(5, 12, building_item->normal[X]);
+			//nbg_sprintf_decimal(5, 13, building_item->normal[Y]);
+			//nbg_sprintf_decimal(5, 14, building_item->normal[Z]);
 		
 		objNEW++;
 	}
