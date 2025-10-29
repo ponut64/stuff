@@ -155,18 +155,8 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 		dWorldObjects[objNEW].pos[Y] = (root_object->pos[Y] + ((int)building_item->pos[Y]<<16));
 		dWorldObjects[objNEW].pos[Z] = (root_object->pos[Z] + ((int)building_item->pos[Z]<<16));
 		
-		int domain = solve_domain_y(building_item->normal);
-		int adjust_x = 0;
-		//if(domain == 4) adjust_x = 2048;
-		
-		
-		//if(domain == 1) adjust_x = -2048;
-		//if(domain == 3) adjust_y += 32767;
-		//if(domain == 4) adjust_y -= 32767;
-		
-		// int sign_x = -16384;
-		// int domain = solve_domain_x(building_item->normal);
-		// if(domain == 1 || domain == 2) sign_x = 16384;
+		int domain = solve_domain(building_item->normal[X], building_item->normal[Z]);
+
 		int sin_y = slSin(fxAtan2(building_item->normal[Z]<<1, building_item->normal[X]<<1));
 		int cos_y = slCos(fxAtan2(building_item->normal[Z]<<1, building_item->normal[X]<<1));
 
@@ -199,7 +189,42 @@ void	declare_building_object(_declaredObject * root_object, _buildingObject * bu
 		default:
 		break;
 		}
-		dWorldObjects[objNEW].rot[X] = slCos(fxAtan2(building_item->normal[Z]<<1, building_item->normal[Y]<<1)) + adjust_x;
+		
+		domain = solve_domain(building_item->normal[Y], building_item->normal[X]);
+		
+		int sin_x = slSin(fxAtan2(building_item->normal[Y]<<1, building_item->normal[X]<<1));
+		int cos_x = slCos(fxAtan2(building_item->normal[Y]<<1, building_item->normal[X]<<1));
+
+		switch(domain)
+		{
+		case(0):
+		dWorldObjects[objNEW].rot[X] = sin_x + cos_x;
+		break;
+		case(1):
+		dWorldObjects[objNEW].rot[X] = -sin_x + cos_x;
+		break;
+		case(2):
+		dWorldObjects[objNEW].rot[X] = sin_x - cos_x - 16384;
+		break;
+		case(3):
+		dWorldObjects[objNEW].rot[X] = -sin_x + cos_x - 16384;
+		break;
+		case(4):
+		case(5):
+		//This is technically an exception, but we never want to flip it in this application of alignment.
+		//A single axis (the normal) will never be enough to determine whether it is upright or upside down, so we assume its always upright.
+		dWorldObjects[objNEW].rot[X] = 0;
+		dWorldObjects[objNEW].rot[X] = 0;
+		break;
+		case(6):
+		dWorldObjects[objNEW].rot[X] = 16384;
+		break;
+		case(7):
+		dWorldObjects[objNEW].rot[X] = -16384;
+		break;
+		default:
+		break;
+		}
 		
 			//nbg_sprintf_decimal(5, 12, building_item->normal[X]);
 			//nbg_sprintf_decimal(5, 13, building_item->normal[Y]);

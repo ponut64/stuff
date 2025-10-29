@@ -603,55 +603,34 @@ void	print_from_id(Uint8 normid, Uint8 spotX, Uint8 spotY)
 //////////////////////////////////
 //A helper function which checks the X and Z signs of a vector to find its domain.
 //////////////////////////////////
-Uint8	solve_domain_y(FIXED normal[XYZ])
+Uint8	solve_domain(int x_axis, int y_axis)
 {
-	if(normal[X] > 0 && normal[Z] > 0){
+	if(x_axis > 0 && y_axis > 0){
 		return 0;
-	} else if(normal[X] > 0 && normal[Z] < 0){
+	} else if(x_axis > 0 && y_axis < 0){
 		return 1;
-	} else if(normal[X] < 0 && normal[Z] > 0){
+	} else if(x_axis < 0 && y_axis > 0){
 		return 2;
-	} else if(normal[X] < 0 && normal[Z] < 0){
+	} else if(x_axis < 0 && y_axis < 0){
 		return 3;
-	} else if(normal[X] == 0 && normal[Z] > 0){
+	} else if(x_axis == 0 && y_axis > 0){
 		return 4;
-	} else if(normal[X] == 0 && normal[Z] < 0){
+	} else if(x_axis == 0 && y_axis < 0){
 		return 5;
-	} else if(normal[X] > 0 && normal[Z] == 0){
+	} else if(x_axis > 0 && y_axis == 0){
 		return 6;
-	} else if(normal[X] < 0 && normal[Z] == 0){
+	} else if(x_axis < 0 && y_axis == 0){
 		return 7;
 	}
 	/*
 		4
-		Z
+		Y
 		|
 	2	|	0
-  7 <- - - -x 6
+  7 <- - - -X 6
 	3	|	1
 		|	
 		5
-	*/
-	return 0;
-}
-
-Uint8	solve_domain_x(FIXED normal[XYZ]){
-	if(normal[Z] >= 0 && normal[Y] >= 0){
-		//PP
-		return 1;
-	} else if(normal[Z] >= 0 && normal[Y] < 0){
-		//PN
-		return 2;
-	} else if(normal[Z] < 0 && normal[Y] >= 0){
-		//NP
-		return 3;
-	} else if(normal[Z] < 0 && normal[Y] < 0){
-		//NN
-		return 4;
-	};
-	/*
-	3	-	1
-	4	-	2
 	*/
 	return 0;
 }

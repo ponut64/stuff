@@ -52,8 +52,7 @@ int		line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB
 void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output);
 Bool	isPointonSegment(FIXED * point, FIXED * start, FIXED * end, int tolerance);
 
-Uint8	solve_domain_y(FIXED normal[XYZ]);
-Uint8	solve_domain_x(FIXED normal[XYZ]);
+Uint8	solve_domain(int x_axis, int y_axis);
 
 int		fxAtan2(int x_axis, int y_axis);
 
