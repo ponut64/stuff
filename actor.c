@@ -18,7 +18,7 @@
 _actor spawned_actors[MAX_PHYS_PROXY];
 
 _lineTable cur_actor_line_table;
-_pathStepHost * pathStepHeap;
+_pathStepHost pathStepHeap;
 
 unsigned char * sectorPathHeap;
 

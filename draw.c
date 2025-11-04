@@ -314,7 +314,7 @@ void	obj_draw_queue(void)
 	
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		draw_sector(visibleSectors[s], *sectorToDrawFrom, (MATRIX*)&world_box);
+		draw_sector(visibleSectors[s], *sectorToDrawFrom);
 	}
 	
 	//Random:

@@ -982,7 +982,7 @@ void	pathing_exception(int actor_id)
 	// nbg_sprintf_decimal(3, 13, fxdot(act->exceptionDir, act->exceptionDir));
 	
 	
-	_pathStep * step = &pathStepHeap->steps[actor_id][act->curPathStep];
+	_pathStep * step = &pathStepHeap.steps[actor_id][act->curPathStep];
 	
 	int rotationSet[3] = {act->exceptionDir[X], act->exceptionDir[Y], act->exceptionDir[Z]};
 	
@@ -1010,7 +1010,7 @@ void	pathing_exception(int actor_id)
 	step->fromSector = act->curSector;
 	step->toSector = act->curSector; //(may be incorrect)
 	step->actorID = actor_id;
-	pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
+	pathStepHeap.numStepsUsed[actor_id] = act->exceptionStep;
 	
 }
 
@@ -1018,7 +1018,7 @@ void	pathing_exception(int actor_id)
 void	runPath(int actor_id)
 {
 	//register which path we are looking at
-	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	_pathStep * stepList = &pathStepHeap.steps[actor_id][0];
 	
 	int cap_sct = stepList[1].toSector;
 	int lst_sct = stepList[1].fromSector;
@@ -1091,11 +1091,11 @@ void	checkInPathSteps(int actor_id)
 {
 	_actor * act = &spawned_actors[actor_id];
 	if(act->curPathStep == INVALID_SECTOR) return;
-	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	char * numSteps = &pathStepHeap.numStepsUsed[actor_id];
 	//nbg_sprintf(3, 14, "total_step(%i)", *numSteps);
 	if(act->curPathStep > *numSteps) act->curPathStep = *numSteps;
 	//register which path we are looking at
-	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	_pathStep * stepList = &pathStepHeap.steps[actor_id][0];
 	//path steps
 	_pathStep * step;
 	
@@ -1205,7 +1205,7 @@ void	checkInPathSteps(int actor_id)
 			step->toSector = lsSct; 
 			step->actorID = actor_id;
 			step->winding = 0;
-			pathStepHeap->numStepsUsed[actor_id] = act->exceptionStep;
+			pathStepHeap.numStepsUsed[actor_id] = act->exceptionStep;
 			
 			//Curious?
 			//This should *mostly* resolve this issue; the exception exists to set the actor on course into a sector if it may have reached the node outside of it.
@@ -1244,10 +1244,10 @@ void	findPathTo(int targetSector, int actor_id)
 	act->pathingLatch = 1;
 	act->exceptionStep = INVALID_SECTOR;
 	
-	int * numSteps = &pathStepHeap->numStepsUsed[actor_id];
+	char * numSteps = &pathStepHeap.numStepsUsed[actor_id];
 	*numSteps = -1;
 	//register which path we are looking at
-	_pathStep * stepList = &pathStepHeap->steps[actor_id][0];
+	_pathStep * stepList = &pathStepHeap.steps[actor_id][0];
 	
 	//reconciliation: the final path step is always to the pathGoal, so add it
 	stepList[0].fromSector = targetSector;

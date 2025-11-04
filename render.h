@@ -323,7 +323,7 @@ extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
 void	plane_rendering_with_subdivision(entity_t * ent);
 void	transform_verts_for_sector(int sector_number, MATRIX * msMatrix);
-void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix);
+void	draw_sector(int sector_number, int viewport_sector);
 //2drender.c
 short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned short colorBank, _spr_type_data type, short useClip, int lifetime);
 void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara);

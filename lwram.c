@@ -42,24 +42,22 @@ void	init_lwram(void)
 	pcoTexDefs = (void*)((unsigned int)(dirtier_buf-(sizeof(paletteCode) * 4096)));
 	ram_use_report += sizeof(paletteCode) * 4096;
 // Object Table
-	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
-	ram_use_report += sizeof(_declaredObject) * MAX_WOBJS;
+//	dWorldObjects = (void*)((unsigned int)(pcoTexDefs-(sizeof(_declaredObject) * MAX_WOBJS))); //In LWRAM // 12KBish
+//	ram_use_report += sizeof(_declaredObject) * MAX_WOBJS;
 // Building (Source Data) Object Table
-	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
-	ram_use_report += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
+//	BuildingPayload = (void*)((unsigned int)(dWorldObjects-(sizeof(_buildingObject) * MAX_BUILD_OBJECTS)));
+//	ram_use_report += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
 ///////////////////////////////////////////////////
 // This region is subject to some unusual memory corruption.
 ///////////////////////////////////////////////////
 //Adjacent Quad Table. This has an arbitrary size.
-	sectorPathHeap = (void*)((unsigned int)(BuildingPayload - (32 * 1024)));
+	sectorPathHeap = (void*)((unsigned int)(pcoTexDefs - (32 * 1024)));
 	pathStackPtr = (void*)(sectorPathHeap);
 	pathStackMax = (void*)(sectorPathHeap + (32 * 1024));
 	ram_use_report += 32 * 1024;
 //Pathing Guides (sizeof(_pathHost))
 	pathing = (void*)((unsigned int)(sectorPathHeap - (sizeof(_pathHost))));
 	ram_use_report += sizeof(_pathHost);
-//Pathing Table Heap. This is sized according to the max pathing step count, multiplied by the max active actors.
-	pathStepHeap = (void*)((unsigned int)(scary_zone_end - (sizeof(_pathStepHost))));
 //Space used from end of LWRAM: about 300KB
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

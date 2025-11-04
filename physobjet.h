@@ -25,8 +25,8 @@
 #define ITEM_MANAGER	(0x500) //Level data, item manager
 #define MOVER_TARGET	(0x600) //Level data, mover waypoint data
 
-#define MAX_WOBJS (256)
-#define MAX_BUILD_OBJECTS (256)
+#define MAX_WOBJS (128)
+#define MAX_BUILD_OBJECTS (128)
 
 #define BUILD_PAYLOAD_LOADED (0x8000)
 #define BUILD_MASTER_OCCLUDER (0x800)
@@ -332,9 +332,9 @@ typedef struct {
 typedef struct {
 	unsigned short object_type;
 	short pos[XYZ];
-	int normal[XYZ];
 	unsigned char sector;
 	unsigned char root_entity; //(we need to be able to use this as a sector specification, or split the 2 bytes)
+	int normal[XYZ];
 } _buildingObject;
 
 typedef struct {
@@ -399,11 +399,11 @@ typedef struct {
 } _pathStep;
 
 typedef struct {
-	int numStepsUsed[MAX_PHYS_PROXY];
+	char numStepsUsed[MAX_PHYS_PROXY];
 	_pathStep steps[MAX_PHYS_PROXY][MAX_PATHING_STEPS];
 } _pathStepHost;
 
-extern _pathStepHost * pathStepHeap;
+extern _pathStepHost pathStepHeap;
 
 typedef struct {
 	union {

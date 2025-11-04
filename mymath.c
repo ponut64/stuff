@@ -655,29 +655,20 @@ int Fast2ArcTan(int x)
 //https://wirelesspi.com/3-ways-to-approximate-atan2-in-hardware/#mjx-eqn-equation-atan2
 int fxAtan2(int x_axis, int y_axis)
 {
-	
-		/*
-		Hang on, let's bang this out critically.
-		For a vector constrained by being a unit vector:
-		If x nearly equals 1, the result should be nearly 90.
-		If y nearly equals 1, the result should be nearly 0.
-		If x == 0, the result should be zero degrees from the Y axis.
-		If y == 0, the result should be 90 degrees from the Y axis.
-		
-		In case X > Y, how do I preserve the math without sacrificing to an overflow in Fast2ArcTan?
-		The ratio of X to Y relative to Pi must be preserved.
-		*/
-	
-	int result = 0;
+
+	register volatile int result;
 	if(x_axis == 0 && y_axis == 0) return 0;
-	int div = fxdiv(y_axis, x_axis);
+	SetFixDiv(y_axis, x_axis);
 	
 	if(x_axis > 0){
-		result = (Fast2ArcTan(div));
+		result = 0;
+		result += (Fast2ArcTan(*DVDNTL));
 	} else if(x_axis < 0 && y_axis >= 0){
-		result = (Fast2ArcTan(div)) + 32767; //(pi)
+		result = 32767; //(pi)
+		result += (Fast2ArcTan(*DVDNTL)); 
 	} else if(x_axis < 0 && y_axis < 0){
-		result = (Fast2ArcTan(div)) - 32767;
+		result = -32767;
+		result += (Fast2ArcTan(*DVDNTL));
 	} else if(x_axis == 0 && y_axis > 0){
 		result = 16384; //pi/2
 	} else if(x_axis == 0 && y_axis < 0){

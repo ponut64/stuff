@@ -1610,7 +1610,7 @@ volatile unsigned short * uc_ready = (unsigned short *)(((unsigned int)&sct->rea
 // Warning: Assembly ahead
 // The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
 //////////////////////////////////////////////////////////////////
-void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
+void	draw_sector(int sector_number, int viewport_sector)
 {
 	///////////////////////////////////////////
 	// If the file is not yet loaded, do not try and render it.
@@ -1652,25 +1652,25 @@ void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
 	vertex_t * ptv[5];
 	int * stv[4];
 	
-    static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//    static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	//static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
+//	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
 	
-	mmtx[0] = newMtx[0];
-	mmtx[1] = newMtx[1];
-	mmtx[2] = newMtx[2];
-	mmtx[3] = newMtx[9];
-	
-	mmtx[4] = newMtx[3];
-	mmtx[5] = newMtx[4];
-	mmtx[6] = newMtx[5];
-	mmtx[7] = newMtx[10];
-	
-	mmtx[8] = newMtx[6];
-	mmtx[9] = newMtx[7];
-	mmtx[10] = newMtx[8];
-	mmtx[11] = newMtx[11];
+	//mmtx[0] = newMtx[0];
+	//mmtx[1] = newMtx[1];
+	//mmtx[2] = newMtx[2];
+	//mmtx[3] = newMtx[9];
+	//
+	//mmtx[4] = newMtx[3];
+	//mmtx[5] = newMtx[4];
+	//mmtx[6] = newMtx[5];
+	//mmtx[7] = newMtx[10];
+	//
+	//mmtx[8] = newMtx[6];
+	//mmtx[9] = newMtx[7];
+	//mmtx[10] = newMtx[8];
+	//mmtx[11] = newMtx[11];
 
 	/**
 	Rendering Planes

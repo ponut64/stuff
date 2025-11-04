@@ -9,23 +9,13 @@
 
 What's on my development iternerary?
 
-Movers -> Functional state
-
-Buttons for movers -> Functional state
-Toggling buttons -> Functional state
+Bug: There's memory corruption in Low Work RAM. Need to track this down!
 
 Actionable plan:
 Actors will also seek out a mover trigger zone if they hit a mover that blocks their path, then continue as normal.
 
 Well, this is a more complex behavior. Only certain actor types should seek out a button or mover trigger.
 But more or less it should be in the game.
-
-
-
--> Actor/Item orientation
-The model processor should inherit the normal vector of the polygon representing an item as its orientation.
-The normal of the polygon shall represent the orientation with which the entity's Z+ axis is aligned with.
- -> Provided a limitation, of course. We want to create rotations that generally depends on pivots around the Y axis, as opposed to X axis.
 
 -> I also need to prep the engine for texture changing and model changing.
 Honestly, this shouldn't be *too* hard, though there's always potential for failure.
@@ -210,9 +200,7 @@ void	load_test(void)
 	int fid = GFS_NameToId((Sint8*)"NBG_PAL.TGA");
 	get_file_in_memory(fid, (void*)dirty_buf);
 	set_tga_to_nbg2_palette((void*)dirty_buf);
-	
-	load_viewmodel_to_slot(&shorty_shotgun_vm, 0);
-	load_viewmodel_to_slot(&lever_pistol_vm, 1);
+
 	
 	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
@@ -274,12 +262,13 @@ void	load_test(void)
 	WRAP_NewTexture((Sint8*)"PUFF.TGA", (void*)dirty_buf);
 	controlImgTexno = numTex;
 	WRAP_NewTexture((Sint8*)"CONTROL2.TGA", (void*)dirty_buf);
-	slowImgTexno = numTex;
-	WRAP_NewTexture((Sint8*)"SLOW.TGA", (void*)dirty_buf);
-	parImgTexno = numTex;
-	WRAP_NewTexture((Sint8*)"PAR.TGA", (void*)dirty_buf);
-	goldImgTexno = numTex;
-	WRAP_NewTexture((Sint8*)"GOLD.TGA", (void*)dirty_buf);
+
+	dWorldObjects = (void*)(HWRAM_ldptr);
+	HWRAM_ldptr += sizeof(_declaredObject) * MAX_WOBJS;
+	HWRAM_ldptr = align_4(HWRAM_ldptr);
+	BuildingPayload = (void*)(HWRAM_ldptr);
+	HWRAM_ldptr += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
+	HWRAM_ldptr = align_4(HWRAM_ldptr);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
@@ -309,6 +298,9 @@ void	load_test(void)
 	HWRAM_hldptr = HWRAM_ldptr;
 
 	init_pathing_system();
+	
+	load_viewmodel_to_slot(&shorty_shotgun_vm, 0);
+	load_viewmodel_to_slot(&lever_pistol_vm, 1);
 	
 	p64MapRequest(0);
 	//
