@@ -263,12 +263,12 @@ void	load_test(void)
 	controlImgTexno = numTex;
 	WRAP_NewTexture((Sint8*)"CONTROL2.TGA", (void*)dirty_buf);
 
-	dWorldObjects = (void*)(HWRAM_ldptr);
-	HWRAM_ldptr += sizeof(_declaredObject) * MAX_WOBJS;
-	HWRAM_ldptr = align_4(HWRAM_ldptr);
-	BuildingPayload = (void*)(HWRAM_ldptr);
-	HWRAM_ldptr += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
-	HWRAM_ldptr = align_4(HWRAM_ldptr);
+	// dWorldObjects = (void*)(HWRAM_ldptr);
+	// HWRAM_ldptr += sizeof(_declaredObject) * MAX_WOBJS;
+	// HWRAM_ldptr = align_4(HWRAM_ldptr);
+	// BuildingPayload = (void*)(HWRAM_ldptr);
+	// HWRAM_ldptr += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
+	// HWRAM_ldptr = align_4(HWRAM_ldptr);
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
