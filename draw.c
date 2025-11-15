@@ -562,6 +562,13 @@ void	master_draw(void)
 	// nbg_sprintf(2, 7, "curSector:(%i)", you.curSector);
 	// nbg_sprintf(2, 8, "surface:(%i)", you.hitSurface);
 
+
+	nbg_sprintf(2, 6, "buf:(%i)", active_viewmodel->buffer);
+	nbg_sprintf(2, 7, "sloptr:(%i)", *active_viewmodel->slot_in_slot_pointer);
+	
+	nbg_sprintf(2, 8, "buf2:(%i)", shorty_shotgun_vm.slot_data.buffer);
+	nbg_sprintf(2, 9, "sloptr2:(%i)", shorty_shotgun_vm.slot_data.slot_in_slot_pointer);
+
 	//
 		//No Touch Order -- Affects animations/mechanics
 		controls();

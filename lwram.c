@@ -17,12 +17,7 @@ void	init_ztable(void)
 
 void	init_lwram(void)
 {
-	//MAGIC NUMBERS
-//	unsigned char * scary_zone_end = (unsigned char *)(LWRAM + (1024 * 768));
-//	unsigned char * scary_zone_start = (unsigned char *)(LWRAM + (1024 * 512));
-	
 
-	
 //	int ram_use_report = 0;
 	////////////////////////////////////
 	//Initialize all of LWRAM
@@ -53,16 +48,18 @@ void	init_lwram(void)
 	pathing = lwram_ldptr;
 	lwram_ldptr += sizeof(_pathHost);
 	viewmodel_0_workram_copy = lwram_ldptr;
-	lwram_ldptr += (128 * 1024);
+	lwram_ldptr += (129 * 1024); //(the background images are literally 128kb but i guess you need a bit extra margin)
 	viewmodel_1_workram_copy = lwram_ldptr;
 	//Z-Table - this will be used with signed offsets; its size is actually 256kb
-	lwram_ldptr += (256 * 1024);
+	lwram_ldptr += (257 * 1024); //(the background images are literally 128kb but i guess you need a bit extra margin)
 	zTable = lwram_ldptr;
 	init_ztable();
 	lwram_ldptr += (128 * 1024);
+	//Declared Object List
 	dWorldObjects = (void*)(lwram_ldptr);
 	lwram_ldptr += sizeof(_declaredObject) * MAX_WOBJS;
 	lwram_ldptr = align_4(lwram_ldptr);
+	//Building Item Scratchpad List
 	BuildingPayload = (void*)(lwram_ldptr);
 	lwram_ldptr += sizeof(_buildingObject) * MAX_BUILD_OBJECTS;
 	lwram_ldptr = align_4(lwram_ldptr);

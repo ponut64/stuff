@@ -23,26 +23,27 @@ backgroundAnimation leverpistol_fire;
 void initialize_viewmodel_data(void)
 {
 	viewmodel_slots[0].buffer = viewmodel_0_workram_copy;
-	viewmodel_slots[0].slot_in_slot_pointer = &shorty_shotgun_vm.inSlot;
+	viewmodel_slots[0].slot_in_slot_pointer = NULL; //(really could just be NULL)
 	
 	viewmodel_slots[1].buffer = viewmodel_1_workram_copy;
-	viewmodel_slots[1].slot_in_slot_pointer = &shorty_shotgun_vm.inSlot;
+	viewmodel_slots[1].slot_in_slot_pointer = NULL; //(really could just be NULL)
 	
-	shorty_shotgun_vm.fid = GFS_NameToId((Sint8*)"TESTA2.TGA");
-	shorty_shotgun_vm.inSlot = -1; //initialized as not in a slot
-	shorty_shotgun_vm.slot_data.idle_state = &shorty_idle;
-	shorty_shotgun_vm.slot_data.use_state = &shorty_fire;
-	
-	lever_pistol_vm.fid = GFS_NameToId((Sint8*)"TESTA3.TGA");
+	lever_pistol_vm.fid = GFS_NameToId((Sint8*)"LPISTOL.TGA");
 	lever_pistol_vm.inSlot = -1; //initialized as not in a slot
 	lever_pistol_vm.slot_data.idle_state = &leverpistol_idle;
 	lever_pistol_vm.slot_data.use_state = &leverpistol_fire;
+	
+	shorty_shotgun_vm.fid = GFS_NameToId((Sint8*)"SHORTY.TGA");
+	shorty_shotgun_vm.inSlot = -1; //initialized as not in a slot
+	shorty_shotgun_vm.slot_data.idle_state = &shorty_idle;
+	shorty_shotgun_vm.slot_data.use_state = &shorty_fire;
 }
 
 void load_viewmodel_to_slot(_viewmodelData * type, int slot)
 {	
-	_viewmodelSlot * vmslot = (slot == 0) ? &viewmodel_slots[0] : &viewmodel_slots[1];
+	_viewmodelSlot * vmslot = &viewmodel_slots[slot];
 	//First, mark what is using this slot as unloaded, through this pointer.
+	//(if it isn't trying to se
 	*vmslot->slot_in_slot_pointer = -1;
 	
 	get_file_in_memory(type->fid, vmslot->buffer);
