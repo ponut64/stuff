@@ -68,6 +68,7 @@ void	purge_object_list(void)
 		dWorldObjects[i] = emptyObject;
 	}
 	objNEW = 0;
+	total_building_payload = 0;
 }
 
 void	declare_object_at_cell(short posX, short height, short posZ, short type, ANGLE xrot, ANGLE yrot, ANGLE zrot, unsigned short more_data, unsigned short eeOrData)

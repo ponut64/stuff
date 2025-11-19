@@ -18,6 +18,9 @@ int numTex = 0;
 
 int cutTex = 0;
 
+int world_texture_atlas_start = 0;
+unsigned char * world_texture_atlas_pointer = NULL;
+
 void	get_file_in_memory(int fid, void * destination)
 {
 

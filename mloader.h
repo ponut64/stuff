@@ -150,6 +150,7 @@ typedef struct
 } _sector;
 extern _sector sectors[MAX_SECTORS+1];
 extern _pathHost * pathing;
+extern _pathNodes emptyNode;
 
 /**Store all your PDATA meshes here**/
 extern entity_t entities[MAX_MODELS];

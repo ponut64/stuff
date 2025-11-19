@@ -53,9 +53,6 @@ void	findSectorPathNodeCount(unsigned int sector_id)
 	int within_shape_ct = 0;
 
 	_sector * sct2;
-	//GOTO Label:
-	//On the first pass of this loop, we will count up the number of adjacents, then allocate memory based on that number.
-	//On the second pass, we will fill that allocated memory with valid data.
 
 for(int s = 0; s < sct->nbAdjacent; s++)
 {
@@ -650,6 +647,8 @@ void	reconcile_pathing_lists(void)
 void	init_pathing_system(void)
 {
 	nbg_sprintf(0,0, "Finding path tables...");
+	//Re-seat the path node pointer (in case level is re-loaded, this pointer must be re-set)
+	pathStackPtr = sectorPathHeap;
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
 		findSectorPathNodeCount(i);

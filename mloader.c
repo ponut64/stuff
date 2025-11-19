@@ -6,13 +6,21 @@
 #include "render.h"
 
 #include "physobjet.h"
+#include "collision.h"
 #include "mymath.h"
+
 
 #include "mloader.h"
 
 entity_t entities[MAX_MODELS];
 _sector sectors[MAX_SECTORS+1];
 _pathHost * pathing;
+
+_pathNodes emptyNode;
+
+static int first_tpack = 0;
+static int first_sector_entity = 0;
+static void * sector_data_address = NULL;
 
 int debug_number;
 
@@ -39,6 +47,12 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 	sectors[INVALID_SECTOR].nbAdjacent = 0;
 	sectors[INVALID_SECTOR].ent = ent;
 	
+	emptyNode.dir = &zPt;
+	emptyNode.nodes = &zPt;
+	emptyNode.numNodes = 0;
+	emptyNode.fromSector = INVALID_SECTOR;
+	emptyNode.toSector = INVALID_SECTOR;
+	
 	//Complicated. The idea is that each sector must have a coherent list built for it.
 	//Because of that, we have to scan the mesh on a per-possible-sector basis.
 	//The first thing we will do is build the pltbl.
@@ -47,7 +61,12 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 		sectors[k].nbPolygon = 0;
 		sectors[k].nbAdjacent = 0;
 		sectors[k].nbVisible = 0;
+		sectors[k].nbPoint = 0;
+		sectors[k].nbTileVert = 0;
+		sectors[k].nbPortal = 0;
+		sectors[k].paths = &emptyNode;
 		sectors[k].pltbl = writeAddress;
+
 		int is_mover = 0;
 		nbg_sprintf(10, 13, "major_iter(%i)", k);
 		for(unsigned int i = 0; i < mesh->nbPolygon; i++)
@@ -66,6 +85,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			sectors[k].nbPolygon++;			
 			nbg_sprintf(10, 14, "iter(%i)", sectors[k].nbPolygon);
 		}
+		if(!sectors[k].nbPolygon) continue; 
 		writeAddress++;
 		writeAddress = align_4(writeAddress);
 		writeAddress += sectors[k].nbPolygon;
@@ -356,7 +376,6 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			
 			continue;
 		}
-		if(!sectors[k].nbPolygon) continue; 
 		sectors[k].ent = ent;
 		sectors[k].nbPoint = 0;
 		sectors[k].pntbl = writeAddress;
@@ -612,6 +631,18 @@ void * unpackTextures(void * workAddress, entity_t * model)
 	unsigned int tSize = 0;
 	//nbg_sprintf(0, 14, "(%i)", model->numTexture);
 	// nbg_sprintf(0, 15, "(%i)", debug_addr[0]);
+	if(first_tpack == 0)
+	{
+	//In case no texture packs have been loaded yet, we need to set variables which prepare system pointers for texture re-loading.
+	//These are pointers defined in tga.c and lwram.c 
+		world_texture_atlas_start = numTex;
+		world_texture_atlas_pointer = curVRAMptr;
+		first_tpack = 1;
+	}
+	//In case this is not the first texture pack, the location of the first texture pack is recalled and used as a setting.
+	//Note: If there are any textures loaded (or created) after the first texture pack, this process is liable to overwrite them if the next texture pack is bigger.
+		curVRAMptr = world_texture_atlas_pointer;
+		numTex = world_texture_atlas_start;
 	for(int j = 0; j < model->numTexture+1; j++)
 	{
 		readByte+=2;	//Skip over a boundary short word, 0xF7F7
@@ -707,6 +738,20 @@ void * loadGVPLY(void * startAddress, entity_t * model)
 
 void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, unsigned short sortType, char modelType, entity_t * src_tex_model)
 {
+	//Entity ID override for sectored model data
+	if(modelType == MODEL_TYPE_SECTORED)
+	{
+		model = &entities[WORLD_ENTITY_ID];
+		if(first_sector_entity == 0)
+		{
+			first_sector_entity = 1;
+			sector_data_address = startAddress;
+		}
+		//The object list must be purged (we're loading a new level, we dont want objects from the old one)
+		purge_object_list();
+		startAddress = sector_data_address;
+	}
+	
 	nbg_sprintf(2, 2, "%s", filename);
 	modelData_t * model_header;
 	void * workAddress = align_4(startAddress);
@@ -766,6 +811,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	if(model->type == MODEL_TYPE_TPACK)
 	{
 		readByte = unpackTextures(workAddress, model);
+		return align_4(startAddress);
 	} else if(model->type != MODEL_TYPE_BUILDING && model->type != MODEL_TYPE_SECTORED)
 	{
 		readByte = loadTextures(workAddress, model);
@@ -818,10 +864,6 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		// nbg_sprintf(1, 11, "uitem(%i)", *total_items);
 		// nbg_sprintf(1, 13, "amnti(%i)", *unique_items);
 		
-		if(model->type == MODEL_TYPE_SECTORED)
-		{
-			workAddress = load_sectors(model, workAddress);			
-		}
 	} 
 
 	
@@ -851,6 +893,19 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 	
 	model->file_done = true;
 	model->was_loaded_from_CD = true;
+	
+	if(model->type == MODEL_TYPE_SECTORED)
+	{
+		workAddress = load_sectors(model, workAddress);		
+
+		workAddress = buildAdjacentSectorList(WORLD_ENTITY_ID, workAddress);
+		
+		for(int i = 0; i < MAX_SECTORS; i++)
+		{
+			workAddress = preprocess_planes_to_tiles_for_sector(&sectors[i], workAddress);
+		}
+		
+	}
 	
 	//Alignment
 	return align_4(workAddress);

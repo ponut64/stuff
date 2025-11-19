@@ -12,6 +12,9 @@ extern unsigned char * sprPalette;
 extern unsigned int sprPaletteCopy[256];
 
 extern unsigned char * GLOBAL_img_addr;
+extern unsigned char * curVRAMptr;
+extern int world_texture_atlas_start;
+extern unsigned char * world_texture_atlas_pointer;
 extern short GLOBAL_img_line_count;
 extern short GLOBAL_img_line_width;
 extern int numTex;

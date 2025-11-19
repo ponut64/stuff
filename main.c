@@ -15,10 +15,10 @@ Actors will also seek out a mover trigger zone if they hit a mover that blocks t
 Well, this is a more complex behavior. Only certain actor types should seek out a button or mover trigger.
 But more or less it should be in the game.
 
--> I also need to prep the engine for texture changing and model changing.
-Honestly, this shouldn't be *too* hard, though there's always potential for failure.
-The idea is very simple; just reset the pointers and purge the lists down to the engine's base level,
-then load the new level and its assets.
+-> I think the engine can handle changing level/texture data.
+Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
+(To me, this makes sense ... for now)
+
 
 -> Lighting re-implementation
 Performance limits abound, but....
@@ -159,8 +159,7 @@ void	p64MapRequest(short levelNo)
 	new_file_request(ldat_name, dirty_buf, process_binary_ldata, HANDLE_FILE_ASAP);
 	//fetch_and_load_leveldata(ldat_name);
 
-	//trying to track down issues with where objects get declared
-	//really though i do need to delay declaration of the mover objects through to after level data has been loaded
+	
 }
 
 void	game_frame(void)
@@ -277,16 +276,6 @@ void	load_test(void)
 		// if(is_key_pressed(DIGI_START)) break;
 	// }
 
-	HWRAM_ldptr = buildAdjacentSectorList(12, HWRAM_ldptr);
-	
-	int ptr_begin = (unsigned int)HWRAM_ldptr;
-	for(int i = 0; i < MAX_SECTORS; i++)
-	{
-		HWRAM_ldptr = preprocess_planes_to_tiles_for_sector(&sectors[i], HWRAM_ldptr);
-	}
-	ptr_begin -= (unsigned int)HWRAM_ldptr;
-	
-	nbg_sprintf(5, 10, "sz(%i)", ptr_begin);
 	HWRAM_hldptr = HWRAM_ldptr;
 
 	init_pathing_system();
