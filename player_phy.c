@@ -21,17 +21,6 @@ POINT alwaysLow = {0, -(1<<16), 0};
 POINT alwaysHigh = {0, (1<<16), 0};
 FIXED	lowPoint[XYZ] = {0, 0, 0};
 
-/*
-
-Maybe just straight-up add "jetpack"
-You press button, move up slightly, but mostly you get directional   in the air.
-Perhaps I can make the Y very weak if you're trying to move in a direction,
-so jetting near the ground when skiing will be your control method.
-
-I mean, this *was* an essential part of what made tribes fun to play. Limited capacity to move like an angel...
-
-*/
-
 void reset_player(void)
 {
 	you.mass = 250<<16;

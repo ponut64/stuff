@@ -22,6 +22,20 @@ Other asset data may need to be assessed when assets are available to fill the s
 
 -> Lighting re-implementation
 Performance limits abound, but....
+-> Workflow has: CPU0 processes tiles/matrix while DSP proccesses portals on tiles while CPU1 processes final subdivision and polygon prep
+This has turned out to be the "best balance"
+To Lighting processing is the final step - it is do be done on a per polygon basis.
+Because of that, CPU1 must control it. SCU-DSP is possibly active during this process, so it can't help.
+If sending polygons is deferred until after the SCU-DSP and CPU1 are done with their respective tasks, we could involve the SCU-DSP.
+In such case, the list of lights would need to be sent alongside the appropriate location to place the final luma value.
+Unfortunately, because there is no room left in the program which is currently on the DSP, the portal processing task has to be completely finished first.
+Since the current setup fairly well distributes the work, I am curious about deferring sending the command list and waiting for the SCU-DSP to do lighting.
+But I need to get the lighting implementation set on CPU1 first.
+
+If I can get lighting working well enough (which is plausible), I'll be interested in finding mechanics for it.
+
+jump into abyss is next level door
+can hide new areas off to the side of these!
 
 weapon idea:
 chakra golden muzzleloader pistol
@@ -275,6 +289,7 @@ void	load_test(void)
 	// {
 		// if(is_key_pressed(DIGI_START)) break;
 	// }
+
 
 	HWRAM_hldptr = HWRAM_ldptr;
 

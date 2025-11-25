@@ -20,6 +20,7 @@ _pathNodes emptyNode;
 
 static int first_tpack = 0;
 static int first_sector_entity = 0;
+static int first_sector_item = 0;
 static void * sector_data_address = NULL;
 
 int debug_number;
@@ -746,9 +747,11 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		{
 			first_sector_entity = 1;
 			sector_data_address = startAddress;
+			first_sector_item = total_building_payload;
 		}
 		//The object list must be purged (we're loading a new level, we dont want objects from the old one)
 		purge_object_list();
+		total_building_payload = first_sector_item;
 		startAddress = sector_data_address;
 	}
 	

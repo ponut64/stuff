@@ -1610,7 +1610,7 @@ volatile unsigned short * uc_ready = (unsigned short *)(((unsigned int)&sct->rea
 // Warning: Assembly ahead
 // The assembly is a sad but necessary optimization; it saves like 15% on the frametime.
 //////////////////////////////////////////////////////////////////
-void	draw_sector(int sector_number, int viewport_sector)
+void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix)
 {
 	///////////////////////////////////////////
 	// If the file is not yet loaded, do not try and render it.
@@ -1652,25 +1652,7 @@ void	draw_sector(int sector_number, int viewport_sector)
 	vertex_t * ptv[5];
 	int * stv[4];
 	
-//    static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	//static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-//	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
-	
-	//mmtx[0] = newMtx[0];
-	//mmtx[1] = newMtx[1];
-	//mmtx[2] = newMtx[2];
-	//mmtx[3] = newMtx[9];
-	//
-	//mmtx[4] = newMtx[3];
-	//mmtx[5] = newMtx[4];
-	//mmtx[6] = newMtx[5];
-	//mmtx[7] = newMtx[10];
-	//
-	//mmtx[8] = newMtx[6];
-	//mmtx[9] = newMtx[7];
-	//mmtx[10] = newMtx[8];
-	//mmtx[11] = newMtx[11];
 
 	/**
 	Rendering Planes
@@ -1832,6 +1814,46 @@ if(viewport_sector == sector_number || (offscreen_portals != used_port_ct) || (a
 
 run_winder_prog(sct->nbTileVert, &used_port_ct, (void*)sct->scrnspace_tvtbl);
 
+
+	static int newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	static int mmtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	fxMatrixMul((int*)msMatrix, ent->prematrix, &newMtx[0]);
+	
+	mmtx[0] = newMtx[0];
+	mmtx[1] = newMtx[1];
+	mmtx[2] = newMtx[2];
+	mmtx[3] = newMtx[9];
+	
+	mmtx[4] = newMtx[3];
+	mmtx[5] = newMtx[4];
+	mmtx[6] = newMtx[5];
+	mmtx[7] = newMtx[10];
+	
+	mmtx[8] = newMtx[6];
+	mmtx[9] = newMtx[7];
+	mmtx[10] = newMtx[8];
+	mmtx[11] = newMtx[11];
+
+	////////////////////////////////////////////////////
+	// Transform each light source position by the matrix parameters.
+	////////////////////////////////////////////////////
+	POINT relative_light_pos = {0, 0, 0};
+	static POINT tx_light_pos[MAX_DYNAMIC_LIGHTS];
+	int inverted_proxima;
+	
+	for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+	{
+		if(active_lights[l].pop == 1)
+		{
+			relative_light_pos[X] = -active_lights[l].pos[X];
+			relative_light_pos[Y] = -active_lights[l].pos[Y];
+			relative_light_pos[Z] = -active_lights[l].pos[Z];
+			tx_light_pos[l][X] = trans_pt_by_component(relative_light_pos, &mmtx[0]);
+			tx_light_pos[l][Y] = trans_pt_by_component(relative_light_pos, &mmtx[4]);
+			tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, &mmtx[8]);
+		}
+	}
 
 //Draw Route:
 // Per Plane
@@ -2120,6 +2142,39 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			// The position of the polygon is treated as the average of points 0 and 2.
 			///////////////////////////////////////////
 			luma = 0;
+			for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+			{
+				if(active_lights[l].pop == 1)
+				{
+					//This should be tabled for speed.
+					//A 3D relative pos table should be used. 
+					//Each entry is 10-bit precise.
+					//The output for each entry is the dot product of the three entries divided into one (inverse).
+					
+					relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
+															+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>12;
+					relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
+															+ subdivided_points[subdivided_polygons[j][2]][Y])>>1))>>12;
+					relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
+															+ subdivided_points[subdivided_polygons[j][2]][Z])>>1))>>12;
+					inverted_proxima = ((relative_light_pos[X] * relative_light_pos[X]) +
+										(relative_light_pos[Y] * relative_light_pos[Y]) +
+										(relative_light_pos[Z] * relative_light_pos[Z]))>>8;
+					//inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
+					if(inverted_proxima < 65536)
+					{
+						inverted_proxima = fxdiv(65536, inverted_proxima);
+					} else {
+						inverted_proxima = 0;
+					}
+							
+					luma += fxm(inverted_proxima, (int)active_lights[l].bright);
+				}
+			//	if(luma > 0) break; // Early exit
+			}
+	
+			luma = (luma < 0) ? 0 : luma; 
+
 			luma += fxdot(mesh->nmtbl[alias], active_lights[0].ambient_light);
 			//If the plane is dual-plane, add the absolute luma, instead of the signed luma.
 			luma = (dual_plane) ? JO_ABS(luma) : luma;

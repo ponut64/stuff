@@ -62,11 +62,20 @@ void	computeLight(void)
 	
 	color_offset_vdp1_palette(globalColorOffset, &glblLightApply);
 	//Next, set the sun light.
-	active_lights[0].pop = 1;
-	active_lights[0].ambient_light = &sun_light[0];
-	active_lights[0].min_bright = 10000;
-	active_lights[0].bright = 0;
+	//active_lights[0].pop = 1;
+	//active_lights[0].ambient_light = &sun_light[0];
+	//active_lights[0].min_bright = 0;
+	//active_lights[0].bright = 0;
 	//////////////////////////////////////////////////////////////////////////////////////
+	//Set a test light at the player's position
+	static int zero_light[3] = {0,0,0};
+	active_lights[0].pop = 1;
+	active_lights[0].ambient_light = &zero_light[0];
+	active_lights[0].min_bright = 0;
+	active_lights[0].bright = 16384;
+	active_lights[0].pos[X] = you.pos[X];
+	active_lights[0].pos[Y] = you.pos[Y];
+	active_lights[0].pos[Z] = you.pos[Z];
 
 	glblLightApply = false;
 	}
@@ -105,9 +114,9 @@ void	master_draw_stats(void)
 	
 	nbg_sprintf(1, 4, "Rate:(%i)", you.IPaccel);
 	
-	nbg_sprintf(30, 6, "drwSector:(%i)", sectors[you.curSector].nbAdjacent);
-	nbg_sprintf(30, 7, "curSector:(%i)", you.curSector);
-	nbg_sprintf(30, 8, "prvSector:(%i)", you.prevSector);
+	nbg_sprintf(18, 6, "drwSector:(%i)", sectors[you.curSector].nbAdjacent);
+	nbg_sprintf(18, 7, "curSector:(%i)", you.curSector);
+	nbg_sprintf(18, 8, "prvSector:(%i)", you.prevSector);
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
 	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
@@ -314,7 +323,7 @@ void	obj_draw_queue(void)
 	
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		draw_sector(visibleSectors[s], *sectorToDrawFrom);
+		draw_sector(visibleSectors[s], *sectorToDrawFrom, (MATRIX*)&perspective_root);
 	}
 	
 	//Random:
@@ -572,7 +581,7 @@ void	master_draw(void)
 	
 	interim_time = get_time_in_frame();
 	flush_boxes(0);
-	light_control_loop(); //lit
+	//light_control_loop(); //lit
 	object_control_loop();
 	time_of_object_management = get_time_in_frame() - interim_time;
 	*masterIsDoneDrawing = 1;

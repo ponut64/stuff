@@ -545,8 +545,8 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 	lightDist[Z] = wldPos[Z] + light_used->pos[Z];
 		}
 	int vmag = 0;
-		if( JO_ABS(lightDist[X]) < (147<<16) && JO_ABS(lightDist[Y]) < (147<<16) && JO_ABS(lightDist[Z]) < (147<<16))
-		{
+	//	if( JO_ABS(lightDist[X]) < (147<<16) && JO_ABS(lightDist[Y]) < (147<<16) && JO_ABS(lightDist[Z]) < (147<<16))
+	//	{
 	vmag = slSquartFX(fxdot(lightDist, lightDist));
 		
 	vmag = fxdiv(1<<16, vmag);
@@ -584,7 +584,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 	//Retrieve the inverse square of distance
 	return fxdiv(1<<16, fxdot(lightDist, lightDist)) * (int)light_used->bright;
 	/////////////////////////////////////////////////////////////////////////////////
-		}
+		//}
 		
 	return 0;
 }
