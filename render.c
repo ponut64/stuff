@@ -531,8 +531,6 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 	We then normalize that distance to get the light angle.
 	This normalization process is sensitive, so we use the most accurate method we can.
 	At that point we use the inverse squared law, plus a brightness multiplier, to find the light bright.
-	If the light is far, the light angle is just considered zero. No light is contributed.
-	As a result, dynamic point lights are generally quite dim.
 	*/
 		if(model_purpose == 'P')
 		{
@@ -545,10 +543,16 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 	lightDist[Z] = wldPos[Z] + light_used->pos[Z];
 		}
 	int vmag = 0;
-	//	if( JO_ABS(lightDist[X]) < (147<<16) && JO_ABS(lightDist[Y]) < (147<<16) && JO_ABS(lightDist[Z]) < (147<<16))
-	//	{
-	vmag = slSquartFX(fxdot(lightDist, lightDist));
-		
+
+	register int ldist = lightDist[X]>>16;
+	int accumulator =  ldist * ldist;
+		ldist = lightDist[Y]>>16;
+		accumulator += ldist * ldist;
+		ldist = lightDist[Z]>>16;
+		accumulator += ldist * ldist;
+	vmag = slSquart(accumulator);
+	vmag<<=16;
+
 	vmag = fxdiv(1<<16, vmag);
 	//Normalize the light vector *properly*
 	lightAngle[X] = fxm(vmag, lightDist[X]);
@@ -582,10 +586,9 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 		}
 	
 	//Retrieve the inverse square of distance
-	return fxdiv(1<<16, fxdot(lightDist, lightDist)) * (int)light_used->bright;
+	return fxdiv(1<<9, (accumulator<<8)) * (int)light_used->bright;
 	/////////////////////////////////////////////////////////////////////////////////
-		//}
-		
+
 	return 0;
 }
 
@@ -771,7 +774,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, &newMtx[0][0], ent->type);
 	} else {
 	ambient_bright = active_lights[0].min_bright;
 	}
@@ -960,7 +963,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, newMtx, ent->type);
 	} else {
 	ambient_bright = active_lights[0].min_bright;
 	}
