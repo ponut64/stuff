@@ -63,6 +63,7 @@ _declaredObject * get_first_in_object_list(unsigned short object_type_specificat
 
 void	purge_object_list(void)
 {
+	emptyObject.sound_num = -1;
 	for(int i = 0; i < objNEW; i++)
 	{
 		dWorldObjects[i] = emptyObject;
@@ -338,8 +339,7 @@ void	object_control_loop(void)
 					} else if(((*obj_edat) & LDATA_TYPE) == LEVEL_CHNG)
 					{
 						// We've found a level change trigger close to the player.
-						// If we are close enough to the level change trigger and it is enabled, change levels.
-						
+						// If we are close enough to the level change trigger and it is enabled, change levels.			
 						if(position_difference[X] < (obj->type.radius[X]<<16)
 						&& position_difference[Y] < (obj->type.radius[Y]<<16)
 						&& position_difference[Z] < (obj->type.radius[Z]<<16)
@@ -355,7 +355,8 @@ void	object_control_loop(void)
 					} else if(((*obj_edat) & LDATA_TYPE) == MOVER_TARGET)
 					{
 							//nbg_sprintf(20, 16, "((typed))");
-							
+							//If this isn't active, clear its sound number.
+							if(!((*obj_edat) & OBJPOP)) obj->sound_num = -1;					
 							//Send Time to Delay Count
 							obj->type.effectTimeCount += delta_time;
 							
@@ -365,11 +366,11 @@ void	object_control_loop(void)
 							//Enabling Booleans
 							&& !((*obj_edat) & OBJPOP))
 							{
+
 								//so for a need to have a simple test, we'll just send it to the opposing trigger - but how?
 								//well, first, we'll see if it is already active. If it is, we won't do anything.
 								unsigned int moverTriggerLink = (obj->more_data & 0xFF00)>>8;
 								_declaredObject * dwa = &dWorldObjects[moverTriggerLink];
-								
 								//nbg_sprintf(20, 16, "bif(%i)", moverTriggerLink);
 								//Do not move until activation delay is satisfied.
 							if(dwa->type.ext_dat & OBJPOP || obj->type.effectTimeCount <= obj->type.effectTimeLimit) continue;
@@ -384,7 +385,7 @@ void	object_control_loop(void)
 									dwa->type.ext_dat |= OBJPOP;
 									dwa->type.effectTimeCount = 0;
 									obj->type.effectTimeCount = 0;
-									if(obj->type.effect != 0) pcm_play(obj->type.effect, PCM_SEMI, 5);
+									if(obj->type.effect != 0) play_sound_instance(obj->type.effect, PCM_SEMI, 65536, obj->pos);
 									//We also need to handle a case where the target waypoint is out of bounds.
 							//In such case, the waypoint will evaluate to be in invalid sector; we need give it a valid one.
 									dwa->curSector = (dwa->curSector == INVALID_SECTOR) ? obj->curSector : dwa->curSector;
@@ -417,8 +418,8 @@ void	object_control_loop(void)
 								{
 									obj->type.ext_dat &= UNPOP;
 									obj->type.effectTimeCount = 0;
-									pcm_cease(obj->type.entity_ID);
-									if(obj->type.clone_ID != 0) pcm_play(obj->type.clone_ID, PCM_SEMI, 6);
+									pcm_cease(obj->sound_num);
+									if(obj->type.clone_ID != 0) play_sound_instance(obj->type.clone_ID, PCM_PROTECTED, 65536, obj->pos);
 									//In case this activator was set as <Return>, we need to do something strange.
 									//We need to go to the opposing trigger of this pair, and activate it.
 									//The delay for the return will be according to the settings of the other point,
@@ -434,7 +435,10 @@ void	object_control_loop(void)
 									}
 									continue;
 								}
-								if(obj->type.entity_ID != 0) pcm_play(obj->type.entity_ID, PCM_FWD_LOOP, 5);
+								if(obj->type.entity_ID != 0 && obj->sound_num == -1)
+								{
+									obj->sound_num = play_sound_instance(obj->type.entity_ID, PCM_FWD_LOOP, 65536, obj->pos);
+								}
 								
 								//A unit difference will be used to scale the movement.
 								static int unitD[3];
@@ -942,6 +946,8 @@ void	manage_object_data(void)
 									//(A timer should be set to limit button activations to once in like, a half-second or so)
 									if(is_key_struck(you.actionKeyDef))
 									{
+										if(dwo->sound_num != -1) pcm_cease(dwo->sound_num);
+										if(dwa->sound_num != -1) pcm_cease(dwa->sound_num);
 											if((dwo->type.ext_dat & MOVER_TARGET_TYPE) == MOVER_TARGET_CALLBACK)
 											{
 												dwo->type.light_bright+=1;

@@ -1095,31 +1095,29 @@ void	plane_rendering_with_subdivision(entity_t * ent)
 	Right now, this is slow. Very slow.
 	**/
 
-
-	
 	int specific_texture = 0;
 	int dual_plane = 0;
 	int cue;
 	////////////////////////////////////////////////////
 	// Transform each light source position by the matrix parameters.
 	////////////////////////////////////////////////////
-	// POINT relative_light_pos = {0, 0, 0};
-	// static POINT tx_light_pos[MAX_DYNAMIC_LIGHTS];
-	// FIXED * mesh_position = &ent->prematrix[9];
-	// int inverted_proxima;
+	POINT relative_light_pos = {0, 0, 0};
+	static POINT tx_light_pos[MAX_DYNAMIC_LIGHTS];
+	FIXED * mesh_position = &ent->prematrix[9];
+	int inverted_proxima;
 	
-	// for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
-	// {
-		// if(active_lights[l].pop == 1)
-		// {
-			// relative_light_pos[X] = -active_lights[l].pos[X] - mesh_position[X];
-			// relative_light_pos[Y] = -active_lights[l].pos[Y] - mesh_position[Y];
-			// relative_light_pos[Z] = -active_lights[l].pos[Z] - mesh_position[Z];
-			// tx_light_pos[l][X] = trans_pt_by_component(relative_light_pos, m0x);
-			// tx_light_pos[l][Y] = trans_pt_by_component(relative_light_pos, m1y);
-			// tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, m2z);
-		// }
-	// }
+	for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+	{
+		if(active_lights[l].pop == 1)
+		{
+			relative_light_pos[X] = -active_lights[l].pos[X] - mesh_position[X];
+			relative_light_pos[Y] = -active_lights[l].pos[Y] - mesh_position[Y];
+			relative_light_pos[Z] = -active_lights[l].pos[Z] - mesh_position[Z];
+			tx_light_pos[l][X] = trans_pt_by_component(relative_light_pos, m0x);
+			tx_light_pos[l][Y] = trans_pt_by_component(relative_light_pos, m1y);
+			tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, m2z);
+		}
+	}
 	
 //First: Transform all of the vertices of the mesh to a buffer.
 for(unsigned int i = 0; i < mesh->nbPoint; i++)
@@ -1343,6 +1341,33 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		// The position of the polygon is treated as the average of points 0 and 2.
 		///////////////////////////////////////////
 		luma = 0;
+		for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+		{
+			if(active_lights[l].pop == 1)
+			{
+				//This should be tabled for speed.
+				//A 3D relative pos table should be used. 
+				//Each entry is 10-bit precise.
+				//The output for each entry is the dot product of the three entries divided into one (inverse).
+				
+				relative_light_pos[X] = (tx_light_pos[l][X] - ((subdivided_points[subdivided_polygons[j][0]][X]
+														+ subdivided_points[subdivided_polygons[j][2]][X])>>1))>>12;
+				relative_light_pos[Y] = (tx_light_pos[l][Y] - ((subdivided_points[subdivided_polygons[j][0]][Y]
+														+ subdivided_points[subdivided_polygons[j][2]][Y])>>1))>>12;
+				relative_light_pos[Z] = (tx_light_pos[l][Z] - ((subdivided_points[subdivided_polygons[j][0]][Z]
+														+ subdivided_points[subdivided_polygons[j][2]][Z])>>1))>>12;
+				inverted_proxima = ((relative_light_pos[X] * relative_light_pos[X]) +
+									(relative_light_pos[Y] * relative_light_pos[Y]) +
+									(relative_light_pos[Z] * relative_light_pos[Z]))>>8;
+
+				inverted_proxima = fxdiv(65536, inverted_proxima);
+						
+				luma += fxm(inverted_proxima, (int)active_lights[l].bright);
+			}
+		//	if(luma > 0) break; // Early exit
+		}
+	
+		luma = (luma < 0) ? 0 : luma; 
 		luma += fxdot(mesh->nmtbl[i], active_lights[0].ambient_light);
 		//If the plane is dual-plane, add the absolute luma, instead of the signed luma.
 		luma = (dual_plane) ? JO_ABS(luma) : luma;
@@ -1854,6 +1879,8 @@ run_winder_prog(sct->nbTileVert, &used_port_ct, (void*)sct->scrnspace_tvtbl);
 			tx_light_pos[l][Z] = trans_pt_by_component(relative_light_pos, &mmtx[8]);
 		}
 	}
+	
+
 
 //Draw Route:
 // Per Plane
@@ -2160,13 +2187,8 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 					inverted_proxima = ((relative_light_pos[X] * relative_light_pos[X]) +
 										(relative_light_pos[Y] * relative_light_pos[Y]) +
 										(relative_light_pos[Z] * relative_light_pos[Z]))>>8;
-					//inverted_proxima = (inverted_proxima < 65536) ? division_table[inverted_proxima] : 0;
-					if(inverted_proxima < 65536)
-					{
-						inverted_proxima = fxdiv(65536, inverted_proxima);
-					} else {
-						inverted_proxima = 0;
-					}
+
+					inverted_proxima = fxdiv(65536, inverted_proxima);
 							
 					luma += fxm(inverted_proxima, (int)active_lights[l].bright);
 				}

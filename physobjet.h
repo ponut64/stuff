@@ -342,8 +342,8 @@ typedef struct {
 	int		dist; 
 	_sobject type;
 	unsigned short	curSector;
-	unsigned short	prevSector;
 	unsigned short	more_data;
+	short	sound_num; //Sound instance number emitted by the object
 	short	bbnum; //id# of the box used for this object (if physical). note: this is dynamic, so you have to check the box too.
 	short	link; //links to another object of same type. -1 for last in-list. used by garbage collector, do not mess with.
 	short	garbage; //Stuff for garbage collector

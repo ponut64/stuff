@@ -53,7 +53,7 @@ void	debug_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -90,7 +90,7 @@ void	debug_menu_layer(__basic_menu * mnu)
 	spr_sprintf(8,		(-12) + (60),	"Height:(%i)", rdobj->pos[Y]>>16);
 	spr_sprintf(8,		0  + (60),		"Object:(%i)", dPreview);
 	spr_sprintf(8,		12 + (60),		"Sctr:(%i)", rdobj->curSector);
-	spr_sprintf(72,		12 + (60),		"PrSctr:(%i)", rdobj->prevSector);
+	spr_sprintf(72,		12 + (60),		"PrSctr:(%i)", rdobj->sound_num);
 	spr_sprintf(8,		24 + (60),		"eID:(%i)", rdobj->type.entity_ID);
 	spr_sprintf(8,		36 + (60),		"Rad:x(%i)", rdobj->type.radius[X]);
 	spr_sprintf(112,	36 + (60),		",y(%i)", rdobj->type.radius[Y]);
@@ -137,7 +137,7 @@ void	control_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -174,7 +174,7 @@ void	items_menu_later(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -192,7 +192,7 @@ void	items_menu_later(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_C))
 	{
-		pcm_play(snd_clack, PCM_SEMI, 6);
+		pcm_play(snd_clack, PCM_SEMI, 210);
 		menuLayer = HUD_LAYER_START;
 		mnu->selection = 0;
 	}
@@ -216,7 +216,7 @@ void	start_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -265,7 +265,7 @@ void	levelselect_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -317,7 +317,7 @@ void	options_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -343,13 +343,13 @@ void	options_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_Y) && mnu->selection == 3)
 	{
-		pcm_play(snd_click, PCM_SEMI, 6);
+		pcm_play(snd_click, PCM_SEMI, 210);
 		usrCntrlOption.followForce += 1024;
 	}
 
 	if(is_key_release(DIGI_B) && mnu->selection == 3)
 	{
-		pcm_play(snd_click, PCM_SEMI, 6);
+		pcm_play(snd_click, PCM_SEMI, 210);
 		usrCntrlOption.followForce -= 1024;
 	}
 	
@@ -407,7 +407,7 @@ void	options_menu_layer_2(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -435,15 +435,15 @@ void	options_menu_layer_2(__basic_menu * mnu)
 		switch(mnu->selection)
 		{
 			case(1):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.cameraAccel += 2;
 			break;
 			case(2):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.cameraCap += 90;
 			break;
 			case(3):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.lockoutTime += 1024;
 			break;
 			default:
@@ -456,15 +456,15 @@ void	options_menu_layer_2(__basic_menu * mnu)
 		switch(mnu->selection)
 		{
 			case(1):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.cameraAccel -= 2;
 			break;
 			case(2):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.cameraCap -= 90;
 			break;
 			case(3):
-			pcm_play(snd_click, PCM_SEMI, 6);
+			pcm_play(snd_click, PCM_SEMI, 210);
 			usrCntrlOption.lockoutTime -= 1024;
 			break;
 			default:
@@ -520,7 +520,7 @@ void	texviewer_menu_layer(__basic_menu * mnu)
 	
 	if(is_key_release(DIGI_A))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -536,7 +536,7 @@ void	texviewer_menu_layer(__basic_menu * mnu)
 
 	if(is_key_release(DIGI_B))
 	{
-		pcm_play(snd_button, PCM_SEMI, 6);
+		pcm_play(snd_button, PCM_SEMI, 210);
 		switch(mnu->selection)
 		{
 			case(0):
@@ -579,7 +579,7 @@ void	start_menu(void)
 	if(is_key_struck(DIGI_DOWN))	mnu.selection+= (mnu.option_grid[X]);
 	if(is_key_struck(DIGI_UP))		mnu.selection-= (mnu.option_grid[X]);
 	if(is_key_struck(DIGI_RIGHT) | is_key_struck(DIGI_LEFT)
-	| is_key_struck(DIGI_DOWN) | is_key_struck(DIGI_UP)) pcm_play(snd_button2, PCM_SEMI, 6);
+	| is_key_struck(DIGI_DOWN) | is_key_struck(DIGI_UP)) pcm_play(snd_button2, PCM_SEMI, 210);
 	
 		if(menuLayer == HUD_LAYER_START)
 		{

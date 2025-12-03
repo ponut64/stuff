@@ -293,7 +293,7 @@ short			load_16bit_pcm(Sint8 * filename, int sampleRate)
 	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = calculate_bytes_per_blank(sampleRate, false, PCM_SYS_REGION); //Iniitalize as max volume
 	m68k_com->pcmCtrl[numberPCMs].bitDepth = PCM_TYPE_16BIT; //Select 16-bit
 	m68k_com->pcmCtrl[numberPCMs].loopType = 0; //Initialize as non-looping
-	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Initialize as max volume
+	m68k_com->pcmCtrl[numberPCMs].volume = 0; //Initialize as max volume
 
 
 	numberPCMs++; //Increment pcm #
@@ -335,7 +335,7 @@ short			load_8bit_pcm(Sint8 * filename, int sampleRate)
 	m68k_com->pcmCtrl[numberPCMs].bytes_per_blank = calculate_bytes_per_blank(sampleRate, true, PCM_SYS_REGION); //Iniitalize as max volume
 	m68k_com->pcmCtrl[numberPCMs].bitDepth = PCM_TYPE_8BIT; //Select 8-bit
 	m68k_com->pcmCtrl[numberPCMs].loopType = 0; //Initialize as non-looping
-	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Iniitalize as max volume
+	m68k_com->pcmCtrl[numberPCMs].volume = 0; //Iniitalize as max volume
 
 
 	numberPCMs++; //Increment pcm #
@@ -402,7 +402,7 @@ short		load_adx(Sint8 * filename)
 	m68k_com->pcmCtrl[numberPCMs].decompression_size = (big_dct_sz > (adx.sample_ct<<1)) ? adx.sample_ct<<1 : big_dct_sz;
 	m68k_com->pcmCtrl[numberPCMs].bitDepth = PCM_TYPE_ADX; //Select ADX type
 	m68k_com->pcmCtrl[numberPCMs].loopType = PCM_SEMI; //Initialize as semi-protected.
-	m68k_com->pcmCtrl[numberPCMs].volume = 7; //Iniitalize as max volume
+	m68k_com->pcmCtrl[numberPCMs].volume = 0; //Iniitalize as max volume
 	numberPCMs++;
 /////////////////////////
 // Step 4: Load the compressed ADX data to sound RAM. Unfortunately, we must include the 20 byte header.

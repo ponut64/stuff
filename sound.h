@@ -53,4 +53,20 @@ extern char music_pan;
 
 void	operate_stage_music(void);
 
+//Sound Instancing Controls
+#define SOUND_INSTANCE_FLOOR (64)
+
+typedef struct {
+	int pos[3];
+	int volume_scale;
+	int active;
+} _sound_instance;
+
+extern _sound_instance snds[PCM_CTRL_MAX];
+
+void	active_slot_monitor(void);
+int		play_sound_instance(int pcm_num, int control_type, int volume_scalar, int * pos);
+
+
+
 

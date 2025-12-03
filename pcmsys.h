@@ -117,7 +117,7 @@ typedef struct {
 						//8 bit PCM is 1 byte per sample. 16 bit PCM is 2 bytes per sample. Therefore an 8bit PCM is a maximum of 64KB, and 16bit is 128KB.
 	unsigned short pitchword; //the OCT & FNS word to use in the ICSR, verbatim.
 	unsigned char pan; //Direct pan setting
-	unsigned char volume; //Direct volume setting
+	unsigned char volume; //TL setting (note: volume entered is computed with (255-volume) entered into the TL register; TL is a non-linear scale)
 	unsigned short bytes_per_blank; //Bytes the PCM will play every time the driver is run (vblank)
 	unsigned short decompression_size; //Size of the buffer used for an ADX sound effect. Specifically sized by Master SH2.
 	unsigned char sh2_permit; //Does the SH2 permit this command? If TRUE, run the command. If FALSE, key its ICSR OFF.

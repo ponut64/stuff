@@ -26,6 +26,8 @@ extern entity_t txtbl_e[5];
 extern MATRIX perspective_root;
 //Root world matrix (for world models)
 extern MATRIX world_root;
+//Root position of the viewport (with no commuted translation)
+extern int viewport_pos[3];
 
 extern int scrn_z_fwd[3];
 

@@ -598,15 +598,26 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 inline void determine_colorbank(unsigned short * colorBank, int * luma)
 {
 	//The point of the shades:
+	// Shades are to follow a linear 2x scale
+	// These are the four palette sections
 	// 0: Overbright / Noon, direct sunlight
-	// 1: Lit / Overcast / Indoor light
-	// 2: Shaded / Dim light / Twilight
-	// 3: Full moon / Dark room
-	// 4: Most lightless shade // Notice this shade cannot be used in hi-res mode (will just be shade #3)
-	*colorBank = (*luma >= 73726) ? 0x0 : 1;
-	*colorBank = (*luma < 49152) ? 0x2 : *colorBank;
-	*colorBank = (*luma < 16384) ? 0x3 : *colorBank; 
-	*colorBank = (*luma < 8196) ? 0x203 : *colorBank; //Make really dark? use MSB shadow
+	// 1: Daytime / Well-lit
+	// 2: Normal / Indoor light
+	// 3: Shade / Dim light
+	// Below this are MSB Shadow shades, which is half-luminance.
+	// Thus, the scale of brightness should be ->
+	// 0: 140% 4: 70%
+	// 1: 120% 5: 60%
+	// 2: 100% 6: 50%
+	// 3: 80%  7: 40%
+	// Follow that guide when creating palettes.
+	*colorBank = (*luma >= 262144) ? 0x0 : 0x1;
+	*colorBank = (*luma < 131072) ? 0x2 : *colorBank; 
+	*colorBank = (*luma < 65536) ? 0x3 : *colorBank; 
+	*colorBank = (*luma < 32768) ? 0x200 : *colorBank;
+	*colorBank = (*luma < 16384) ? 0x201 : *colorBank;
+	*colorBank = (*luma < 8196) ? 0x202 : *colorBank; 
+	*colorBank = (*luma < 4096) ? 0x203 : *colorBank; 
 }
 
 inline	void	depth_cueing(int * depth, int * cue)
@@ -774,7 +785,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, &ambient_bright, &newMtx[0][0], ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
 	} else {
 	ambient_bright = active_lights[0].min_bright;
 	}
@@ -963,7 +974,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	int cue = 0;
 	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
 	{
-	bright = process_light(lightAngle, ambient_light, &ambient_bright, newMtx, ent->type);
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
 	} else {
 	ambient_bright = active_lights[0].min_bright;
 	}

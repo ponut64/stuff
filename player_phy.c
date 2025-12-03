@@ -92,7 +92,7 @@ void pl_jump(void)
 	you.velocity[Z] -= fxm(229376, you.floorNorm[Z]);
 	//Surface release
 	you.pos[Y] += 6553 + (1<<16);
-	pcm_play(snd_bstep, PCM_SEMI, 6);
+	pcm_play(snd_bstep, PCM_SEMI, 210);
 }
 
 void	pl_step_snd(void)
@@ -103,7 +103,7 @@ void	pl_step_snd(void)
 
 	if(runSnd == 1)
 	{
-		pcm_play(snd_lstep, PCM_PROTECTED, 5);
+		pcm_play(snd_lstep, PCM_PROTECTED, 190);
 	}
 
 }
@@ -401,7 +401,7 @@ void	player_phys_affect(void)
 			
 			if(you.sanics >= 3<<16)
 			{
-			pcm_play(snd_mstep, PCM_PROTECTED, 6);
+			pcm_play(snd_mstep, PCM_PROTECTED, 210);
 			int nFloorPos[3] = {-you.floorPos[X], -you.floorPos[Y], -you.floorPos[Z]};
 			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, nFloorPos, you.floorNorm, 8<<16, 8192, 4);
 			}
@@ -494,7 +494,7 @@ void	player_phys_affect(void)
 			
 			if(you.sanics >= 3<<16)
 			{
-			pcm_play(snd_mstep, PCM_SEMI, 6);
+			pcm_play(snd_mstep, PCM_SEMI, 200);
 			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, you.wallPos, you.wallNorm, 8<<16, 8192, 4);
 			}
 	} 

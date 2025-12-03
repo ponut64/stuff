@@ -865,6 +865,11 @@ void	manage_actors(void)
 				}
 				
 			}
+			
+			active_lights[0].pos[X] = -act->pos[X];
+			active_lights[0].pos[Y] = -act->pos[Y];
+			active_lights[0].pos[Z] = -act->pos[Z];
+			
 			act->info.flags.hitFloor = 0;
 		} else {
 			act->info.flags.active = 0;

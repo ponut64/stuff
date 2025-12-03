@@ -46,6 +46,7 @@ int scrn_z_fwd[3] = {0, 0, 0};
 int globalColorOffset;
 int glblLightApply = true;
 int drawModeSwitch = DRAW_MASTER;
+int viewport_pos[3];
 unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 
 
@@ -57,8 +58,8 @@ spriteAnimation qmark;
 void	computeLight(void)
 {
 
-	if(glblLightApply == true)
-	{
+	//if(glblLightApply == true)
+	//{
 	
 	color_offset_vdp1_palette(globalColorOffset, &glblLightApply);
 	//Next, set the sun light.
@@ -73,12 +74,12 @@ void	computeLight(void)
 	active_lights[0].ambient_light = &zero_light[0];
 	active_lights[0].min_bright = 0;
 	active_lights[0].bright = 16384;
-	active_lights[0].pos[X] = you.pos[X];
-	active_lights[0].pos[Y] = you.pos[Y];
-	active_lights[0].pos[Z] = you.pos[Z];
+//	active_lights[0].pos[X] = spawned_actors[1].pos[X];
+//	active_lights[0].pos[Y] = spawned_actors[1].pos[Y];
+//	active_lights[0].pos[Z] = spawned_actors[1].pos[Z];
 
-	glblLightApply = false;
-	}
+	//glblLightApply = false;
+	//}
 }
 
 void	set_camera(void)
@@ -218,19 +219,84 @@ void	player_draw(backgroundAnimation ** refAnim)
 		}
 	}
 	
-	// meshAnimProcessing(&reload, &entities[1], false);
 
-	// entities[1].prematrix = (FIXED*)&sl_RBB;
-	// entities[1].z_plane = 1;
-	// if(draw_mode == DRAW_MASTER)
-	// {
-		// msh2DrawModel(&entities[1], perspective_root);
-	// } else if(draw_mode == DRAW_SLAVE)
-	// {
-		// slPushMatrix();
-		// ssh2DrawModel(&entities[1]);
-		// slPopMatrix();
-	// }
+	////////////////////////////////////////////////////
+	//Determine the brightness at the player's position (from point light sources)
+	////////////////////////////////////////////////////
+	//e: what this has to do is darken when light is below a theshold, and brighten when above a threshold.
+	//the color offset (brightness) might generally have a threshold where it is normal and does not change?
+	static POINT relative_light_pos = {0, 0, 0};
+	int lightAngle[3] = {0,0,0};
+	int tempAngle[3] = {0,0,0};
+	int angleScale = 0;
+	int vmag = 0;
+	int luma = active_lights[0].min_bright;
+	int luma2 = 0;
+	for(int l = 0; l < MAX_DYNAMIC_LIGHTS; l++)
+	{
+		if(active_lights[l].pop == 1)
+		{
+			relative_light_pos[X] = active_lights[l].pos[X] - you.pos[X];
+			relative_light_pos[Y] = active_lights[l].pos[Y] - you.pos[Y];
+			relative_light_pos[Z] = active_lights[l].pos[Z] - you.pos[Z];
+			
+			register int ldist = relative_light_pos[X]>>16;
+			int accumulator =  ldist * ldist;
+				ldist = relative_light_pos[Y]>>16;
+				accumulator += ldist * ldist;
+				ldist = relative_light_pos[Z]>>16;
+				accumulator += ldist * ldist;
+				
+			vmag = slSquart(accumulator);
+			vmag<<=16;
+		
+			vmag = fxdiv(1<<16, vmag);
+			//Normalize the light vector *properly*
+			tempAngle[X] = fxm(vmag, relative_light_pos[X]);
+			tempAngle[Y] = fxm(vmag, relative_light_pos[Y]);
+			tempAngle[Z] = fxm(vmag, relative_light_pos[Z]);
+							
+			lightAngle[Z] = fxm(tempAngle[X], perspective_root[2][X])
+							+ fxm(tempAngle[Y], perspective_root[2][Y])
+							+ fxm(tempAngle[Z], perspective_root[2][Z]);
+							
+			angleScale = lightAngle[Z];
+			luma += fxdiv(1<<9, (accumulator<<8)) * (int)active_lights[l].bright;
+			luma2 = fxm(angleScale, luma);
+			//Here's something I want to do...
+			//Tighten luma2 so it is less likely to add brightness unless lightAngle is closer to 1.
+		}
+		
+	}
+	
+	
+	//Use final luma value to scale 255 
+	int bright = fxm(65536, luma);
+	
+	bright -= 1<<16;
+	
+	bright = fxm(bright, 85<<16);
+	bright >>=16;
+	
+	bright = (bright > 85) ? 85 : bright;
+	bright = (bright < (-85)) ? -85 : bright;
+	
+	int bright2 = fxm(65536, luma2);
+	
+	bright2 -= 1<<16;
+	
+	bright2 = fxm(bright2, 42<<16);
+	bright2 >>=16;
+	
+	bright2 = (bright2 > 42) ? 42 : bright2;
+	bright2 = (bright2 < (-42)) ? -42 : bright2;
+	
+	bright -= bright2;
+	
+	//nbg_sprintf_decimal(3, 12, angleScale);
+	//nbg_sprintf(3, 10, "bright(%i)", bright);
+	
+	slColOffsetA(bright,bright,bright);
 }
 
 void	shadow_draw(int draw_mode)
@@ -323,7 +389,7 @@ void	obj_draw_queue(void)
 	
 	for(int s = 0; s < nearSectorCt; s++)
 	{
-		draw_sector(visibleSectors[s], *sectorToDrawFrom, (MATRIX*)&perspective_root);
+		draw_sector(visibleSectors[s], *sectorToDrawFrom, (MATRIX*)&world_box);
 	}
 	
 	//Random:
@@ -424,7 +490,6 @@ void	background_draw(void)
 
 void	sector_vertex_remittance(void)
 {
-	static int viewport_pos[3];
 	viewport_pos[X] = you.pos[X];
 	viewport_pos[Y] = you.pos[Y] + ((PLAYER_Y_SIZE>>1) - (2<<16));
 	viewport_pos[Z] = you.pos[Z] - (1<<16);
@@ -640,24 +705,6 @@ void	master_draw(void)
 		avg_samples = 0;
 	}
 	
-	// int atan2 = slAtan(2048, 63488);
-	
-	// nbg_sprintf_decimal(3, 12, atan2);
-	// atan2 = slAtan(63488, 2048);
-	// nbg_sprintf_decimal(3, 13, atan2);
-	// atan2 = slAtan(0, 65536);
-	// nbg_sprintf_decimal(3, 14, atan2);
-	// atan2 = slAtan(65536, 0);
-	// nbg_sprintf_decimal(3, 15, atan2);
-	
-	// atan2 = fxAtan2(63488, 2048);
-	// nbg_sprintf_decimal(15, 12, atan2);
-	// atan2 = fxAtan2(2048, 63488);
-	// nbg_sprintf_decimal(15, 13, atan2);
-	// atan2 = fxAtan2(0, 65536);
-	// nbg_sprintf_decimal(15, 14, atan2);
-	// atan2 = fxAtan2(65536, 0);
-	// nbg_sprintf_decimal(15, 15, atan2);
 	
 }
 

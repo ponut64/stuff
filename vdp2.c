@@ -191,5 +191,10 @@ void	init_vdp2(short backColor)
     slColRateSpr5(18);
     slColRateSpr6(23);
     slColRateSpr7(28);
+	
+	//For NBG1 color offset settings
+	slColOffsetOn(NBG1ON);
+	slColOffsetA(0,0,0);
+	
 
 }

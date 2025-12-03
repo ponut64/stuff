@@ -30,7 +30,7 @@
 // Fixed point safe-square value
 //////////////////////////////////
 #define SQUARE_MAX (9633792) //147<<16
-//////////////////////////////////
+////////////////////////////////// (64 is vaguely one meter)
 #define PLAYER_X_SIZE	(32<<16)
 #define PLAYER_Y_SIZE	(72<<16)
 #define PLAYER_Z_SIZE	(32<<16)
