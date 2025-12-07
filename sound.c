@@ -93,7 +93,7 @@ void	active_slot_monitor(void)
 	//Check all pcm_ctrl (above a certain slot) to see if they are active or not
 	for(int i = SOUND_INSTANCE_FLOOR; i < PCM_CTRL_MAX; i++)
 	{
-		snds[i].active = (i > SOUND_INSTANCE_FLOOR) ? m68k_com->pcmCtrl[i].sh2_permit : 1;
+		snds[i].active = m68k_com->pcmCtrl[i].sh2_permit;
 	}
 	
 }
@@ -116,6 +116,54 @@ void	empty_all_instances(void)
 
 }
 
+void	set_sound_instance(_sound_instance * snd, int * volume, int * pan)
+{
+			static int position_dif[3];
+			static int normal_dif[3];
+			segment_to_vector(snd->pos, viewport_pos, position_dif);
+			
+			int vmag = 0;
+		
+			register int dist = position_dif[X]>>16;
+			int accumulator =  dist * dist;
+				dist = position_dif[Y]>>16;
+				accumulator += dist * dist;
+				dist = position_dif[Z]>>16;
+				accumulator += dist * dist;
+			dist = slSquart(accumulator)<<16;
+			vmag = dist;
+		
+			vmag = fxdiv(1<<16, vmag);
+			//Normalize the light vector *properly*
+			normal_dif[X] = fxm(vmag, position_dif[X]);
+			normal_dif[Y] = fxm(vmag, position_dif[Y]);
+			normal_dif[Z] = fxm(vmag, position_dif[Z]);
+			
+		
+			//Distance is then a fixed-point more-or-less linear scale
+			//Volume is normally an inverse squared law
+			//A meter is more or less 64<<16 units (6400<<16 is 100 meters)
+			int distance_scale = fxm(fxdiv(dist,6400<<16), snd->volume_scale);
+			int lclv = fxm(255<<16,distance_scale)>>16;
+			if(lclv > 255) lclv = 255;
+			*volume = 255-lclv;
+			
+		
+			//Dot product = Positive is sound source to the left, Negative is sound source to the right
+			int perspective_x[3] = {perspective_root[0][X], perspective_root[1][X], perspective_root[2][X]};
+			accumulator = fxdot(normal_dif, perspective_x);
+
+			int lclp = -(accumulator>>12);
+			
+
+
+			
+			//Pan is set as a 5-bit value. Bit 4 is a flag which sets whether the sound goes left or right. Bits 3-0 represent a linear pan level.
+			//The sound driver nor the linked library sanitize this input, so we must make sure it complies with that standard.
+			*pan = (lclp < 0) ? (((-lclp) & 0xF) | 0x10) : lclp & 0xF;
+}
+
+
 //Play a (normal) sound instance at the given position 
 int		play_sound_instance(int pcm_num, int control_type, int volume_scalar, int * pos)
 {
@@ -133,20 +181,41 @@ int		play_sound_instance(int pcm_num, int control_type, int volume_scalar, int *
 	snds[tgt_num].pos[X] = -pos[X];
 	snds[tgt_num].pos[Y] = -pos[Y];
 	snds[tgt_num].pos[Z] = -pos[Z];
-	int dist = unfix_length(snds[tgt_num].pos, viewport_pos)<<16;
-	//Distance is then a fixed-point more-or-less linear scale
-	//Volume is normally an inverse squared law
-	//A meter is more or less 64<<16 units (6400<<16 is 100 meters)
-	int volume_scale = fxm(fxdiv(dist,6400<<16), volume_scalar);
-	int volume = fxm(255<<16,volume_scale)>>16;
-	if(volume > 255) volume = 255;
-	volume = 255-volume;
+	static int volume;
+	static int pan;
 	
-	//nbg_sprintf(3, 10, "vol(%i)", volume);
+	set_sound_instance(&snds[tgt_num], &volume, &pan);
 
 	pcm_play(tgt_num, control_type, volume);
-	snds[tgt_num].active = 1;
+	m68k_com->pcmCtrl[tgt_num].pan = pan;
+	//Set the active status to "2" here. In doing so, the routine processor will not update the sound again this frame.
+	snds[tgt_num].active = 2;
 	return tgt_num;
+}
+
+void	update_3d_sounds(void)
+{
+	static int volume;
+	static int pan;
+	for(int i = SOUND_INSTANCE_FLOOR; i < PCM_CTRL_MAX; i++)
+	{
+		_sound_instance * snd = &snds[i];
+		if(snd->active == 1)
+		{
+			set_sound_instance(snd, &volume, &pan);
+			
+			//nbg_sprintf_decimal(18, 3+((i-SOUND_INSTANCE_FLOOR)*3), snd->pos[X]);
+			//nbg_sprintf_decimal(18, 4+((i-SOUND_INSTANCE_FLOOR)*3), snd->pos[Y]);
+			//nbg_sprintf_decimal(18, 5+((i-SOUND_INSTANCE_FLOOR)*3), snd->pos[Z]);
+			//nbg_sprintf(3, 6+(i-SOUND_INSTANCE_FLOOR), "pan(%i)", pan);
+
+			pcm_parameter_change(i, volume, pan);
+		}
+		snd->active = (snd->active == 2) ? 1 : snd->active;
+	}
+
+	
+	
 }
 
 void	operate_stage_music(void)

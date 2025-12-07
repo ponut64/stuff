@@ -66,7 +66,7 @@ extern _sound_instance snds[PCM_CTRL_MAX];
 
 void	active_slot_monitor(void);
 int		play_sound_instance(int pcm_num, int control_type, int volume_scalar, int * pos);
-
+void	update_3d_sounds(void);
 
 
 

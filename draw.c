@@ -18,6 +18,8 @@
 #include "gamespeed.h"
 //
 #include "dspm.h"
+#include "pcmsys.h"
+#include "sound.h"
 
 #include "draw.h"
 
@@ -523,9 +525,9 @@ void	sector_vertex_remittance(void)
 	perspective_root[3][Z] = 0;
 	fxMatrixApplyTranslation((int*)&world_box);
 
-	scrn_z_fwd[X] = world_box.UVZ[X];
-	scrn_z_fwd[Y] = world_box.UVZ[Y];
-	scrn_z_fwd[Z] = world_box.UVZ[Z];
+	scrn_z_fwd[X] = perspective_root[0][Z];
+	scrn_z_fwd[Y] = perspective_root[1][Z];
+	scrn_z_fwd[Z] = perspective_root[2][Z];
 	
 	//Because the world geometry is drawn independent of the object system, we have to make a valid prematrix for it.
 	static int world_prematrix[12] = {1<<16, 0, 0, 0, 1<<16, 0, 0, 0, 1<<16, 0,0,0};
@@ -648,6 +650,7 @@ void	master_draw(void)
 	flush_boxes(0);
 	//light_control_loop(); //lit
 	object_control_loop();
+	update_3d_sounds();
 	time_of_object_management = get_time_in_frame() - interim_time;
 	*masterIsDoneDrawing = 1;
 		//
