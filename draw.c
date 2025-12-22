@@ -57,6 +57,16 @@ unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 //////////////////////////////////////////////////////////////////////////////
 spriteAnimation qmark;
 
+animationControl idle_pose;
+animationControl idle_action;
+animationControl spot;
+animationControl moving;
+animationControl aggro;
+animationControl aggro_action;
+animationControl attack;
+animationControl die;
+
+
 void	computeLight(void)
 {
 
@@ -117,9 +127,9 @@ void	master_draw_stats(void)
 	
 	nbg_sprintf(1, 4, "Rate:(%i)", you.IPaccel);
 	
-	nbg_sprintf(18, 6, "drwSector:(%i)", sectors[you.curSector].nbAdjacent);
-	nbg_sprintf(18, 7, "curSector:(%i)", you.curSector);
-	nbg_sprintf(18, 8, "prvSector:(%i)", you.prevSector);
+	nbg_sprintf(10, 6, "drwSector:(%i)", sectors[you.curSector].nbAdjacent);
+	nbg_sprintf(10, 7, "curSector:(%i)", you.curSector);
+	nbg_sprintf(10, 8, "prvSector:(%i)", you.prevSector);
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
 	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
@@ -315,7 +325,7 @@ void	shadow_draw(int draw_mode)
 
 	if(draw_mode == DRAW_MASTER)
 	{
-		msh2DrawModel(&shadow, perspective_root);
+		msh2DrawModel(&shadow, (MATRIX*)&world_box);
 	} else if(draw_mode == DRAW_SLAVE)
 	{
 		slPushMatrix();
@@ -323,6 +333,33 @@ void	shadow_draw(int draw_mode)
 		slPopMatrix();
 	}
 	
+}
+
+void	mover_draw_queue(void)
+{
+	for( unsigned char i = 0; i < MAX_PHYS_PROXY; i++)
+	{
+		//This conditions covers if somehow a non-renderable object (like level data) got put into the render stack.
+		//Assuming the rest of the game code made sense up to this point. Else the game's gonna crash here.
+		if(DBBs[i].status[0] != 'R') continue;
+		if(DBBs[i].status[4] == 'S') apply_box_scale(&DBBs[i]);
+		//unsigned short objType = (dWorldObjects[activeObjects[i]].type.ext_dat & ETYPE);
+		DBBs[i].status[5] = 'r';
+	
+		entities[objDRAW[i]].prematrix = (FIXED *)&DBBs[i];
+
+		switch(entities[objDRAW[i]].type)
+		{
+			case(MODEL_TYPE_BUILDING):
+			plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);	
+			break;
+			case(MODEL_TYPE_SECTORED):
+			break;
+			default:
+			//msh2DrawModel(&entities[objDRAW[i]], (MATRIX*)&world_box);
+			break;
+		}
+	}
 }
 
 
@@ -343,9 +380,12 @@ void	obj_draw_queue(void)
 		switch(entities[objDRAW[i]].type)
 		{
 			case(MODEL_TYPE_BUILDING):
-			plane_rendering_with_subdivision(&entities[objDRAW[i]]);		
+			//plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);		
 			break;
 			case(MODEL_TYPE_SECTORED):
+			break;
+			case(MODEL_TYPE_ANIMATED):
+			ssh2DrawAnimation(&idle_pose, &entities[objDRAW[i]], 1);
 			break;
 			default:
 			ssh2DrawModel(&entities[objDRAW[i]]);
@@ -452,6 +492,7 @@ void	scene_draw(void)
 	} while(!(*masterIsDoneDrawing));
 	
 	sort_master_polys();
+	*timeComm = 1;
 }
 
 void	background_draw(void)
@@ -625,6 +666,7 @@ void	master_draw(void)
 	//
 	player_animation();
 	player_draw(&viewmodel_state);
+	mover_draw_queue();
 	shadow_draw(DRAW_MASTER);
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
@@ -682,7 +724,6 @@ void	master_draw(void)
 		nbg_sprintf(29, 9, "Objs:");
 		nbg_sprintf(29, 10, "Ext:");
 		nbg_sprintf(29, 11, "End:");
-		
 		while(!*timeComm){
 			if(get_time_in_frame() >= (50<<16)) break;
 		};
@@ -690,6 +731,7 @@ void	master_draw(void)
 		nbg_sprintf_decimal(34, 12, time_at_ssh2_end);
 		nbg_sprintf(29, 12, "SSH2:");
 	
+		nbg_sprintf(20, 13, "CPU1 can't finish first!");
 		avg_samples++;
 		int inversion = fxdiv(1<<16, avg_samples<<16);
 		rolling_avg_msh2 -= fxm(rolling_avg_msh2, inversion);

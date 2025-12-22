@@ -29,6 +29,15 @@ extern MATRIX world_root;
 //Root position of the viewport (with no commuted translation)
 extern int viewport_pos[3];
 
+extern animationControl idle_pose;
+extern animationControl idle_action;
+extern animationControl spot;
+extern animationControl moving;
+extern animationControl aggro;
+extern animationControl aggro_action;
+extern animationControl attack;
+extern animationControl die;
+
 extern int scrn_z_fwd[3];
 
 void	set_camera(void);

@@ -23,12 +23,57 @@ Other asset data may need to be assessed when assets are available to fill the s
 	- Need to implement a way for actors to move in unloaded sectors.
 	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
 	
--> It's time for 3D sound
-	- This also means sound instancing must be implemented.
-	I wonder if sound instancing should be handled via driver.
+-> Level design
+	Levels are more interactive when the player can destroy or move things to reveal new paths.
+	Plus its just fun when things blow up.
+	I should investigate how to pull off that. Build engine games use it alot.
+	
+
+	
+-> A more complete test actor is needed
+	One with animation states.
+	- Idle pose
+	- Idle action
+	- Moving
+	- Point
+	- Threat pose
+	- Attack
+	- Die / Die pose
+	- We probably want to reserve a keyframe or two for "Special Poses", like crouching, dodging, or rolling.
+	Then, we need to test the respective animation method. I suspect it will have to change to accomodate performance.
+	
+	
+enemy roles idea:
+Of all types - at most 5 will spawn 
+Small - At most 5 will spawn  ~50-70 polygons
+Medium - At most 3 will spawn ~90-110 polygons
+Heavy - At most 1 will spawn ~150 - 200 polygons
+The budget is set at no more than 500 actor polygons on-screen.
+Enemies will spawn in "pods". That is, an actor spawn pod will either be in a set place on the map or roam it, and trigger based on an event or on sector load.
+What spawns in the pod can be varied depending on other events, or be fixed.
+The point is that only one pod will ever spawn at once, and if another pod is due to spawn, it will wait until the other pod is unloaded or killed.
+There might be certain exceptions, e.g. if there is 1 actor left who ran away to grab another pod.
+The idea here is that there are enemy pods given on the level, and certain conditions can attract more.
+But the fixed nature of enemy spawning will guarantee we don't ever blow out the polygon budget.
+
+The "most loaded" pod would be 1 heavy (200), 1 medium (100), and 3 smalls (150) adding to ~500 polygons.
+There's a limited amount that can be loaded and I'm going to have to evaluate the various enemies to see what will and won't fit.
+e.g. an entity with 42 keyframes (and ~150polys) came to 60kb - an enemy might be 15 keyframes, usually less polys, so like... 15kb?
+It's hard to know how much HWRAM is free to do that. Whatever happens, I should understand that enemy diversity takes space from level complexity/size.
+I figure we might have like ~300KB of asset data available. So if we had 8 types, we might have 37KB available for each asset.
+Okay, I think this should work within an average of 24kb per asset (not including textures!).
+
+Small ...
+
+
+Medium ...
+Warlock - Weaker, dumber enemy. Attacks player on sight and generally does not run away.
+Soldier - Weak, but smart. Will run away from player if alone to get help. Throws grenades. Makes small enemies smarter.
+Baron - Strong and smart. Won't fight alone unless cornered or player is weak. Can teleport. Makes smaller enemies smarter.
+
+Heavy ...
 	
 Roadmap to playable game:
-0 - > Implement 3D Sound (sound instancing)
 1 - > Complete simple actor implementations
 2 - > Start player weapon implementations
 3 - > Test/implement multiple actor simultaneous
@@ -38,10 +83,10 @@ Roadmap to playable game:
 7 - > Implement item <-> actor interactions
 8 - > the list only goes on (like give stuff particles)
 
-My point is that I want to have more than for actors to just walk at the player and shoot.
-Most FPS games can get away with just that.
-I want actors to move and react to each other and the player.
-To seek cover and break line of sight, even.
+Mechanical concept:
+A sound effect (always loaded in RAM) is played when the player is spotted by enemies once.
+It will not play again until enemies that have spotted the player are either unalerted or destroyed.
+This is to play on top of any callout sounds that enemies may make to report to other AI.
 
 jump into abyss is next level door
 can hide new areas off to the side of these!
@@ -53,30 +98,10 @@ chakra golden muzzleloader pistol
 autoaim instakill weapon, but long reload
 magical bone weapon?
 
-what else?
-sometime soon i will have to integrate enemies and the enemy animation
-the enemy/NPC characters are planned to be mostly polygonal
-i'll want different behaviors, basically:
-1. squadder, an enemy AI type that will find another friendly actor (to it) and hang around them when encountering the player
-2. leader, an enemy AI type that will attack the player from range, then break line of sight briefly before engaging again
-3. thug, an enemy AI type that will just rush the player, whether from range or not
-4. hunter, an enemy AI type that actively chases the player when sighted on the map, but avoids the player's forward line of sight.
-
-5. reaper? a unique enemy AI that is a ghostly creature. seeks out an enemy corpse (or death spot) and reposses it.
-tries to avoid player line of sight and when cornered, will disturb the player's vision to avoid being hit.
-
-in these behavior types, most actors navigation can be turned off when not visible.
-however, in some cases (especially with the hunter), the actor needs to be able to navigate even when not displayed.
-
-I think of the overlays and broadcast function systems a lot.
-it's clearly the best way to add/manage content.
-... but I just didn't make an engine to do that.
-Next I make an engine, I ought to do that. It really enables emergent gameplay.
-Right now, if two things are not specifically programmed to interact, they won't.
-This is good for performance, though...
-
-Overall though, first person shooter as a genre can be good and fun without this beautiful complexity.
-I'm generally still unsure of what kind of FPS game I am making. I am just making its framework; the rules that shall enable it.
+-> Auto-movers
+e.g. environmental geometry which automatically moves in a certain way
+this is usually rotation, but it could be translation too
+automatically triggering movers
 
 special note:
 pulping enemies with a single shot is very satisfying
@@ -288,6 +313,7 @@ void	load_test(void)
 
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"NME1.GVP",			HWRAM_ldptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_ANIMATED, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BTNSTN.GVP",		HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	

@@ -443,7 +443,7 @@ void	sort_master_polys(void)
     *Zentry=(void*)user_sprite; //Make last entry at that Z distance this entry [*Zentry becomes a pointer to this polygon]
 	}
 	
-	*timeComm = 1;
+	
 }
 
 //If rendering a matrix-centered object (like a gun model or a third-person player model), set "model_purpose" to Y.
@@ -916,7 +916,7 @@ void ssh2DrawModel(entity_t * ent) //Primary variable sorting rendering
 }
 
 //Master SH2 drawing function (needs to be sorted after by slave)
-void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
+void msh2DrawModel(entity_t * ent, MATRIX * msMatrix)
 {
 	if(ent->file_done != 1){return;}
 	drawn_entity_list[drawn_entity_count] = ent;
@@ -924,7 +924,7 @@ void msh2DrawModel(entity_t * ent, MATRIX msMatrix)
 	//Recommended, for performance, that large entities be placed in HWRAM.
     static FIXED newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	fxMatrixMul(&msMatrix[0][0], ent->prematrix, &newMtx[0]);
+	fxMatrixMul(&msMatrix[0][0][0], ent->prematrix, &newMtx[0]);
 
 	static FIXED m0x[4];
 	static FIXED m1y[4];

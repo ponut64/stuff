@@ -321,7 +321,7 @@ extern int animated_texture_list[MAX_SIMULTANEOUS_SPRITE_ANIMATIONS];
 
 //subrender.c
 void *	preprocess_planes_to_tiles_for_sector(_sector * sct, void * workAddress);
-void	plane_rendering_with_subdivision(entity_t * ent);
+void	plane_rendering_with_subdivision(entity_t * ent, MATRIX * msMatrix);
 void	transform_verts_for_sector(int sector_number, MATRIX * msMatrix);
 void	draw_sector(int sector_number, int viewport_sector, MATRIX * msMatrix);
 //2drender.c
@@ -363,6 +363,6 @@ void	preclipping(vertex_t ** ptv, unsigned short * flip, unsigned short * pclp);
 void	clipping(vertex_t * pnt, short useClip);
 void	setUserClippingAtDepth(int * topLeft, int * btmRight, int zDepthTgt);
 void	ssh2DrawModel(entity_t * ent);
-void	msh2DrawModel(entity_t * ent, MATRIX msMatrix);
+void	msh2DrawModel(entity_t * ent, MATRIX * msMatrix);
 void	sort_master_polys(void);
 

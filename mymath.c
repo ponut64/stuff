@@ -636,9 +636,9 @@ Uint8	solve_domain(int x_axis, int y_axis)
 }
 
 //scaled to 32767 which is pi (180 degrees)
-#define A (2544>>4)
-#define B -(9418>>4)
-#define C (15065>>4)
+#define ATAN2A (2544>>4)
+#define ATAN2B -(9418>>4)
+#define ATAN2C (15065>>4)
 
 //#define A 0.0776509570923569
 //#define B -0.287434475393028
@@ -647,9 +647,10 @@ Uint8	solve_domain(int x_axis, int y_axis)
 //https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
 int Fast2ArcTan(int x)
 {
+	//(this has an opportunity to be sped up with DMAC as opposed to DMULS)
 	int lx = x>>4;
 	int xx = fxm(lx,lx);
-	return (fxm((fxm((fxm(A,xx) + B),xx) + C),lx))<<4;
+	return (fxm((fxm((fxm(ATAN2A,xx) + ATAN2B),xx) + ATAN2C),lx))<<4;
 }
 
 //https://wirelesspi.com/3-ways-to-approximate-atan2-in-hardware/#mjx-eqn-equation-atan2

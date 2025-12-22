@@ -158,6 +158,14 @@ void	anim_defs(void)
 	// You CANNOT animate with keyframe 0. Keyframe 0 must be a duplicate of the model at rest.
 	//
 	//////////////
+	
+	//Testing keyframes for animated entity
+	idle_pose.reset_enable = 'N';													
+	idle_pose.arate[7] = 0;								
+	idle_pose.startFrm = 7;
+	idle_pose.curFrm = idle_pose.startFrm * ANIM_CONST;
+	idle_pose.endFrm = 7;
+	
 	// reload.reset_enable = 'N';
 	// reload.arate[2] = 2;
 	// reload.arate[3] = 2;

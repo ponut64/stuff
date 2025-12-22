@@ -142,7 +142,7 @@ _sobject MoverOpen = {
 };
 
 _sobject TestSpawner = {
-	.entity_ID = 2,
+	.entity_ID = 3,
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
