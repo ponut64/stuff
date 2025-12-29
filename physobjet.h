@@ -311,7 +311,7 @@ Mover Target Bitwise Layout Information
 #define MOVER_TARGET_ACTION		(0x20) //(Triggered by player action button)
 #define MOVER_TARGET_REMOTE		(0x30) //(Triggered by another game object, typically for door return points)
 #define MOVER_TARGET_CALLBACK	(0x00) //(Untyped trigger; when found, operates as toggle)
-#define CLEAR_MOVER_TARGET		(0xFFCF);
+#define CLEAR_MOVER_TARGET		(0xFFCF)
 #define MOVER_TARGET_RATE		(0xF)
 
 
@@ -451,6 +451,8 @@ typedef struct {
 	unsigned short goalSector;
 	unsigned short pathingLatch;
 	unsigned short atGoal;
+	unsigned short animPriorityQueue; //Used to register allowed animations in a bitwise priority queue
+	unsigned short animState; //Reports the current animation state (certain gamestates may need animation commands to change actor behavior)
 	_actor_info info;
 	unsigned char type;
 

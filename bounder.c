@@ -29,30 +29,6 @@ Uint8 curBoxes = 0;
 // Something's wrong with this, because X+ is the same as X-. Do not use it.
 void	makeBoundBox(_object_arguments * source_data, int euler)
 {
-	FIXED prevXpos[XYZ]; 
-	prevXpos[X] = source_data->modified_box->Xplus[X];
-	prevXpos[Y] = source_data->modified_box->Xplus[Y];
-	prevXpos[Z] = source_data->modified_box->Xplus[Z];
-	FIXED prevYpos[XYZ]; 
-	prevYpos[X] = source_data->modified_box->Yplus[X];
-	prevYpos[Y] = source_data->modified_box->Yplus[Y]; 
-	prevYpos[Z] = source_data->modified_box->Yplus[Z];
-	FIXED prevZpos[XYZ];
-	prevZpos[X] = source_data->modified_box->Zplus[X];
-	prevZpos[Y] = source_data->modified_box->Zplus[Y];
-	prevZpos[Z] = source_data->modified_box->Zplus[Z];
-	FIXED prevNXpos[XYZ];
-	prevNXpos[X] = source_data->modified_box->Xneg[X];
-	prevNXpos[Y] = source_data->modified_box->Xneg[Y];
-	prevNXpos[Z] = source_data->modified_box->Xneg[Z];
-	FIXED prevNYpos[XYZ];
-	prevNYpos[X] = source_data->modified_box->Yneg[X]; 
-	prevNYpos[Y] = source_data->modified_box->Yneg[Y];
-	prevNYpos[Z] = source_data->modified_box->Yneg[Z];
-	FIXED prevNZpos[XYZ];
-	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
-	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
-	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
 	//Give the box its previous location
 	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
 	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
@@ -148,14 +124,6 @@ void	makeBoundBox(_object_arguments * source_data, int euler)
 	source_data->modified_box->Zneg[Y] = -source_data->modified_box->Zplus[Y];
 	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
-
-	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
-	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
-	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
-	
-	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
-	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
-	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
 	
 	source_data->modified_box->nextPos[X] = source_data->x_location + fxm(source_data->modified_box->velocity[X], time_fixed_scale);
 	source_data->modified_box->nextPos[Y] = source_data->y_location + fxm(source_data->modified_box->velocity[Y], time_fixed_scale);
@@ -173,30 +141,6 @@ void	makeBoundBox(_object_arguments * source_data, int euler)
 ///Also, this doesn't make a box. It's just matrix generation, but with a radius and some velocities sprinkled on top; you can _make_ a box from it.
 void	make2AxisBox(_object_arguments * source_data)
 {
-	FIXED prevXpos[XYZ]; 
-	prevXpos[X] = source_data->modified_box->Xplus[X];
-	prevXpos[Y] = source_data->modified_box->Xplus[Y];
-	prevXpos[Z] = source_data->modified_box->Xplus[Z];
-	FIXED prevYpos[XYZ]; 
-	prevYpos[X] = source_data->modified_box->Yplus[X];
-	prevYpos[Y] = source_data->modified_box->Yplus[Y]; 
-	prevYpos[Z] = source_data->modified_box->Yplus[Z];
-	FIXED prevZpos[XYZ];
-	prevZpos[X] = source_data->modified_box->Zplus[X];
-	prevZpos[Y] = source_data->modified_box->Zplus[Y];
-	prevZpos[Z] = source_data->modified_box->Zplus[Z];
-	FIXED prevNXpos[XYZ];
-	prevNXpos[X] = source_data->modified_box->Xneg[X];
-	prevNXpos[Y] = source_data->modified_box->Xneg[Y];
-	prevNXpos[Z] = source_data->modified_box->Xneg[Z];
-	FIXED prevNYpos[XYZ];
-	prevNYpos[X] = source_data->modified_box->Yneg[X]; 
-	prevNYpos[Y] = source_data->modified_box->Yneg[Y];
-	prevNYpos[Z] = source_data->modified_box->Yneg[Z];
-	FIXED prevNZpos[XYZ];
-	prevNZpos[X] = source_data->modified_box->Zneg[X]; 
-	prevNZpos[Y] = source_data->modified_box->Zneg[Y];
-	prevNZpos[Z] = source_data->modified_box->Zneg[Z];
 	//Give the box its previous location
 	source_data->modified_box->prevPos[X] = source_data->modified_box->pos[X];
 	source_data->modified_box->prevPos[Y] = source_data->modified_box->pos[Y];
@@ -273,15 +217,7 @@ void	make2AxisBox(_object_arguments * source_data)
 	source_data->modified_box->Zneg[Z] = -source_data->modified_box->Zplus[Z];
 	//end of negative
 
-	//Determine a velocity from the difference of current and last position (of each face)
-	segment_to_vector(prevXpos, source_data->modified_box->Xplus, source_data->modified_box->veloX);
-	segment_to_vector(prevYpos, source_data->modified_box->Yplus, source_data->modified_box->veloY);
-	segment_to_vector(prevZpos, source_data->modified_box->Zplus, source_data->modified_box->veloZ);
-	
-	segment_to_vector(prevNXpos, source_data->modified_box->Xneg, source_data->modified_box->veloNX);
-	segment_to_vector(prevNYpos, source_data->modified_box->Yneg, source_data->modified_box->veloNY);
-	segment_to_vector(prevNZpos, source_data->modified_box->Zneg, source_data->modified_box->veloNZ);
-	
+	//Determine a velocity from the difference of current and last position
 	source_data->modified_box->nextPos[X] = source_data->x_location + fxm(source_data->modified_box->velocity[X], time_fixed_scale);
 	source_data->modified_box->nextPos[Y] = source_data->y_location + fxm(source_data->modified_box->velocity[Y], time_fixed_scale);
 	source_data->modified_box->nextPos[Z] = source_data->z_location + fxm(source_data->modified_box->velocity[Z], time_fixed_scale);
@@ -479,27 +415,7 @@ void	initPhys(void){
 		RBBs[x].velocity[X] = 0;
 		RBBs[x].velocity[Y] = 0;
 		RBBs[x].velocity[Z] = 0;
-		
-		RBBs[x].veloX[X] = 0;
-		RBBs[x].veloX[Y] = 0;
-		RBBs[x].veloX[Z] = 0;
-		RBBs[x].veloNX[X] = 0;
-		RBBs[x].veloNX[Y] = 0;
-		RBBs[x].veloNX[Z] = 0;
-		
-		RBBs[x].veloY[X] = 0;
-		RBBs[x].veloY[Y] = 0;
-		RBBs[x].veloY[Z] = 0;
-		RBBs[x].veloNY[X] = 0;
-		RBBs[x].veloNY[Y] = 0;
-		RBBs[x].veloNY[Z] = 0;
-
-		RBBs[x].veloZ[X] = 0;
-		RBBs[x].veloZ[Y] = 0;
-		RBBs[x].veloZ[Z] = 0;
-		RBBs[x].veloNZ[X] = 0;
-		RBBs[x].veloNZ[Y] = 0;
-		RBBs[x].veloNZ[Z] = 0;
+	
 		RBBs[x].boxID = -1;
 		RBBs[x].collisionID = -1;
 		RBBs[x].surfID = -1;

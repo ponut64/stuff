@@ -22,57 +22,29 @@ Other asset data may need to be assessed when assets are available to fill the s
 -> Actor off-screen navigation
 	- Need to implement a way for actors to move in unloaded sectors.
 	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
-	
--> Level design
-	Levels are more interactive when the player can destroy or move things to reveal new paths.
-	Plus its just fun when things blow up.
-	I should investigate how to pull off that. Build engine games use it alot.
-	
 
-	
--> A more complete test actor is needed
-	One with animation states.
-	- Idle pose
-	- Idle action
-	- Moving
-	- Point
-	- Threat pose
-	- Attack
-	- Die / Die pose
-	- We probably want to reserve a keyframe or two for "Special Poses", like crouching, dodging, or rolling.
-	Then, we need to test the respective animation method. I suspect it will have to change to accomodate performance.
-	
-	
-enemy roles idea:
-Of all types - at most 5 will spawn 
-Small - At most 5 will spawn  ~50-70 polygons
-Medium - At most 3 will spawn ~90-110 polygons
-Heavy - At most 1 will spawn ~150 - 200 polygons
-The budget is set at no more than 500 actor polygons on-screen.
-Enemies will spawn in "pods". That is, an actor spawn pod will either be in a set place on the map or roam it, and trigger based on an event or on sector load.
-What spawns in the pod can be varied depending on other events, or be fixed.
-The point is that only one pod will ever spawn at once, and if another pod is due to spawn, it will wait until the other pod is unloaded or killed.
-There might be certain exceptions, e.g. if there is 1 actor left who ran away to grab another pod.
-The idea here is that there are enemy pods given on the level, and certain conditions can attract more.
-But the fixed nature of enemy spawning will guarantee we don't ever blow out the polygon budget.
+-> Roadmap of actor animation management
+	How will we communicate the animation state?
+	Rather than have the actor management system explicitly delegate the state, we need a way to command animations with a priority queue.
+	That way actors can be set such that they are allowed to play from a set of animations, and the highest priority one is what will be set to play.
+	I can think of an efficient way to do this.
+	Use a 16-bit value as a bitflag arrangement. The lower the bit, the higher the priority.
+	The system will:
+	Check if bit 0 is high
+	Check bit shift counts
+	If bit 0 is high, play animation which correlates to number of shifts
+	Shift right one
 
-The "most loaded" pod would be 1 heavy (200), 1 medium (100), and 3 smalls (150) adding to ~500 polygons.
-There's a limited amount that can be loaded and I'm going to have to evaluate the various enemies to see what will and won't fit.
-e.g. an entity with 42 keyframes (and ~150polys) came to 60kb - an enemy might be 15 keyframes, usually less polys, so like... 15kb?
-It's hard to know how much HWRAM is free to do that. Whatever happens, I should understand that enemy diversity takes space from level complexity/size.
-I figure we might have like ~300KB of asset data available. So if we had 8 types, we might have 37KB available for each asset.
-Okay, I think this should work within an average of 24kb per asset (not including textures!).
+-> Performance consideration
+	Animated entities are best animated when no one is thrashing the bus.
+	Because applying the keyframe to the mesh permanently alters it (i.e. no copy is made),
+	animation instancing is used to keep track of multiple animations --
+	making it difficult for another CPU to assist in the animation processing pipeline.
+	A few options are plausible.
+	1 - Use memory allocations dynamically to create copies of the mesh to animate for each respective instance.
+	2 - Give CPU1 exclusive processing of the animated entities, but re-allocate drawing of sectors to CPU0.
+	Further testing of the quality of existing animation systems should be done.
 
-Small ...
-
-
-Medium ...
-Warlock - Weaker, dumber enemy. Attacks player on sight and generally does not run away.
-Soldier - Weak, but smart. Will run away from player if alone to get help. Throws grenades. Makes small enemies smarter.
-Baron - Strong and smart. Won't fight alone unless cornered or player is weak. Can teleport. Makes smaller enemies smarter.
-
-Heavy ...
-	
 Roadmap to playable game:
 1 - > Complete simple actor implementations
 2 - > Start player weapon implementations

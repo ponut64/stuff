@@ -93,12 +93,6 @@ typedef struct {
 	FIXED nextPos[XYZ];
 	FIXED prevPos[XYZ];
 	FIXED velocity[XYZ];
-	FIXED veloX[XYZ];
-	FIXED veloY[XYZ];
-	FIXED veloZ[XYZ];
-	FIXED veloNX[XYZ];
-	FIXED veloNY[XYZ];
-	FIXED veloNZ[XYZ];
 	FIXED renderScale[XYZ];
 	//The box' radius
 	FIXED radius[XYZ];
@@ -110,6 +104,7 @@ typedef struct {
 	int * nmtbl[6];
 	int * cftbl[6];
 	int	maxtbl[6];
+	void * animation; //Current animation (if any - most objects are incompatible with this setting).
 	//Three separate flags to tell the engine if the box is populated, and ready to ..
 	// [0] == 'R', render,
 //	[1] == 'C', collide,

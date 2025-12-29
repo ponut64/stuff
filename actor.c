@@ -12,7 +12,7 @@
 #include "collision.h"
 #include "particle.h"
 #include "input.h"
-
+#include "draw.h"
 #include "physobjet.h"
 
 _actor spawned_actors[MAX_PHYS_PROXY];
@@ -24,12 +24,6 @@ unsigned char * sectorPathHeap;
 
 unsigned char * pathStackPtr;
 unsigned char * pathStackMax;
-
-//Next step ideas:
-// 1. "Off a cliff" avoidance
-// 2. "Stuck on a Wall" avoidance 
-// 3. Implementation of multi-step pathing
-// (do I even need it...?)
 
 // Design Evaluation:
 // The system allocates memory for one path guide per adjacent sector, generally speaking; sometimes two.
@@ -47,17 +41,6 @@ unsigned char * pathStackMax;
 // If there is no LOS to this node, increment node counter, and wait until next exception release check to check again.
 // Perhaps the system would optimally order the check by the nodes closest to the desired sector border.
 // It also needs to flag intrasector nodes it has already visited on this path so it doesn't go back to a used one...?
-
-
-//design notes:
-//the only other solution i can think of is like an open bolt mechanism; 
-//retracting the bolt ejects the spent round out of the port, and pulls the bolt/carrier back against a spring
-//it is held back by the trigger
-//first, the magazine handle must be moved forward again to get the magazine in place
-//then, the a press of the trigger will release the bolt+carrier to go forward under spring pressure, strip a round, then fire
-//as a locked breach gun, the firing pin only hits the primer after the bolt carrier is all the way forward
-
-
 
 
 //Handler function which will populate the goal position and goal floor ID.
@@ -601,6 +584,56 @@ void	actor_per_object_processing(_actor * act)
 	
 }
 
+void *	adjudicate_actor_animation_queue(_actor * act)
+{
+	int shift_count = 0;
+	int reg = act->animPriorityQueue;
+	//In the act of counting out the animation priority queue, we want to clear the animations set on the actor.
+	act->animPriorityQueue = 0;
+	if(reg != 0)
+	{
+		while((reg & 1) == 0)
+		{
+			shift_count++;
+			reg>>=1;
+		}
+	} else {
+	return (void*)&t_idle_pose;	
+	}
+	
+	switch(shift_count)
+	{
+	case(0):
+	return (void*)&t_dead_anim;//(highest priority)
+	break;
+	case(1):
+	return (void*)&t_dead_pose; 
+	break;
+	case(2):
+	return (void*)&t_attack_anim;
+	break;
+	case(3):
+	return (void*)&t_move_anim;
+	break;
+	case(4):
+	return (void*)&t_aggro_anim;
+	break;
+	case(5):
+	return (void*)&t_point_anim;
+	break;
+	case(6):
+	return (void*)&t_point_pose;
+	break;
+	case(7):
+	return (void*)&t_look_anim;
+	break;
+	default:
+	break;
+	}
+	
+	
+}
+
 void	manage_actors(void)
 {
 	//Goal:
@@ -820,6 +853,7 @@ void	manage_actors(void)
 					{
 						findPathTo(act->goalSector, i);
 					}
+					act->animPriorityQueue |= (1<<3);
 				}
 				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
 				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
@@ -870,6 +904,8 @@ void	manage_actors(void)
 			active_lights[0].pos[Y] = -act->pos[Y];
 			active_lights[0].pos[Z] = -act->pos[Z];
 			
+			
+			act->box->animation = adjudicate_actor_animation_queue(act);
 			act->info.flags.hitFloor = 0;
 		} else {
 			act->info.flags.active = 0;

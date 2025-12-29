@@ -156,22 +156,73 @@ void	anim_defs(void)
 
 	//////////////
 	// You CANNOT animate with keyframe 0. Keyframe 0 must be a duplicate of the model at rest.
-	//
 	//////////////
 	
 	//Testing keyframes for animated entity
-	idle_pose.reset_enable = 'N';													
-	idle_pose.arate[7] = 0;								
-	idle_pose.startFrm = 7;
-	idle_pose.curFrm = idle_pose.startFrm * ANIM_CONST;
-	idle_pose.endFrm = 7;
+	t_idle_pose.reset_enable = 'N';													
+	t_idle_pose.arate[0] = 0;								
+	t_idle_pose.startFrm = 0;
+	t_idle_pose.curFrm = t_idle_pose.startFrm * ANIM_CONST;
+	t_idle_pose.endFrm = 0;
 	
-	// reload.reset_enable = 'N';
-	// reload.arate[2] = 2;
-	// reload.arate[3] = 2;
-	// reload.startFrm = 2;
-	// reload.curFrm = reload.startFrm * ANIM_CONST;
-	// reload.endFrm = 3;
+	t_dead_pose.reset_enable = 'N';													
+	t_dead_pose.arate[16] = 0;								
+	t_dead_pose.startFrm = 16;
+	t_dead_pose.curFrm = t_dead_pose.startFrm * ANIM_CONST;
+	t_dead_pose.endFrm = 16;
+	
+	t_point_pose.reset_enable = 'N';													
+	t_point_pose.arate[4] = 0;								
+	t_point_pose.startFrm = 4;
+	t_point_pose.curFrm = t_point_pose.startFrm * ANIM_CONST;
+	t_point_pose.endFrm = 4;
+	
+	t_look_anim.reset_enable = 'N';													
+	t_look_anim.arate[1] = 1;		
+	t_look_anim.arate[2] = 1;	
+	t_look_anim.arate[3] = 1;	
+	t_look_anim.startFrm = 1;
+	t_look_anim.curFrm = t_look_anim.startFrm * ANIM_CONST;
+	t_look_anim.endFrm = 3;
+	
+	t_point_anim.reset_enable = 'N';													
+	t_point_anim.arate[3] = 1;	
+	t_point_anim.arate[4] = 1;		
+	t_point_anim.startFrm = 4;
+	t_point_anim.curFrm = t_point_anim.startFrm * ANIM_CONST;
+	t_point_anim.endFrm = 4;
+	
+	t_move_anim.reset_enable = 'N';													
+	t_move_anim.arate[5] = 1;		
+	t_move_anim.arate[6] = 1;	
+	t_move_anim.arate[7] = 1;	
+	t_move_anim.arate[8] = 1;	
+	t_move_anim.startFrm = 5;
+	t_move_anim.curFrm = t_move_anim.startFrm * ANIM_CONST;
+	t_move_anim.endFrm = 8;
+	
+	t_aggro_anim.reset_enable = 'N';													
+	t_aggro_anim.arate[10] = 1;		
+	t_aggro_anim.arate[11] = 1;	
+	t_aggro_anim.arate[12] = 1;	
+	t_aggro_anim.startFrm = 10;
+	t_aggro_anim.curFrm = t_aggro_anim.startFrm * ANIM_CONST;
+	t_aggro_anim.endFrm = 12;
+	
+	t_attack_anim.reset_enable = 'N';													
+	t_attack_anim.arate[13] = 2;		
+	t_attack_anim.arate[14] = 2;	
+	t_attack_anim.arate[15] = 2;	
+	t_attack_anim.startFrm = 13;
+	t_attack_anim.curFrm = t_attack_anim.startFrm * ANIM_CONST;
+	t_attack_anim.endFrm = 15;
+	
+	t_dead_anim.reset_enable = 'N';	
+	t_dead_anim.arate[15] = 2;	
+	t_dead_anim.arate[16] = 2;				
+	t_dead_anim.startFrm = 15;
+	t_dead_anim.curFrm = t_dead_anim.startFrm * ANIM_CONST;
+	t_dead_anim.endFrm = 16;
 	
 	// idle.reset_enable = 'N';													
 	// idle.arate[0] = 0;								

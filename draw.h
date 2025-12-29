@@ -6,6 +6,8 @@
 #define DRAW_MASTER (1)
 #define DRAW_SLAVE	(2)
 
+
+
 extern POINT point_0[LCL_MAP_PIX * LCL_MAP_PIX];
 extern _quad polygon_0[LCL_MAP_PLY * LCL_MAP_PLY];
 extern POINT normal_0[1];
@@ -29,14 +31,15 @@ extern MATRIX world_root;
 //Root position of the viewport (with no commuted translation)
 extern int viewport_pos[3];
 
-extern animationControl idle_pose;
-extern animationControl idle_action;
-extern animationControl spot;
-extern animationControl moving;
-extern animationControl aggro;
-extern animationControl aggro_action;
-extern animationControl attack;
-extern animationControl die;
+extern animationControl t_idle_pose;
+extern animationControl t_dead_pose;
+extern animationControl t_point_pose;
+extern animationControl t_point_anim;
+extern animationControl t_look_anim;
+extern animationControl t_move_anim;
+extern animationControl t_aggro_anim;
+extern animationControl t_attack_anim;
+extern animationControl t_dead_anim;
 
 extern int scrn_z_fwd[3];
 

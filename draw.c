@@ -57,14 +57,18 @@ unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 //////////////////////////////////////////////////////////////////////////////
 spriteAnimation qmark;
 
-animationControl idle_pose;
-animationControl idle_action;
-animationControl spot;
-animationControl moving;
-animationControl aggro;
-animationControl aggro_action;
-animationControl attack;
-animationControl die;
+animationControl t_idle_pose;
+animationControl t_dead_pose;
+animationControl t_point_pose;
+
+animationControl t_point_anim;
+animationControl t_look_anim;
+animationControl t_move_anim;
+animationControl t_aggro_anim;
+
+animationControl t_attack_anim;
+animationControl t_dead_anim;
+
 
 
 void	computeLight(void)
@@ -385,7 +389,7 @@ void	obj_draw_queue(void)
 			case(MODEL_TYPE_SECTORED):
 			break;
 			case(MODEL_TYPE_ANIMATED):
-			ssh2DrawAnimation(&idle_pose, &entities[objDRAW[i]], 1);
+			ssh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 1);
 			break;
 			default:
 			ssh2DrawModel(&entities[objDRAW[i]]);
