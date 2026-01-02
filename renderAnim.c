@@ -194,27 +194,24 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	compVert * curKeyFrame;
 	compVert * nextKeyFrame;
     /**Sets the animation data**/
+	
+
 	///Variable interpolation set
 	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
 
-
 	////
-	//
-	// The interpolator has 16 steps at current + ((next - current)>>4)
-	// I don't understand why the key-frames are shifted by 3, for 8 steps... but they have to be.
-	//
 	////
-	AnimArea[anims].curFrm += (localArate * framerate)>>1;
-	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>3);
+	AnimArea[anims].curFrm += (localArate * framerate);
+	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
 	
     if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
 	{
-        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<3;
-        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
+        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<ANIM_SHIFT;
+        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>ANIM_SHIFT;
 	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
 	{
 		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
-		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<3;
+		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<ANIM_SHIFT;
 	}
     nextKeyFrm = AnimArea[anims].curKeyFrm+1;
 
@@ -227,18 +224,18 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	}
 
 	
- if(animation_change == 1 && transplant != 1) 
+ if(animation_change == 1) 
  {
 	//For single-frame interpolation between poses
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[animCtrl->startFrm]->cVert;
-	frDelta = 8;
+	frDelta = (1<<ANIM_SHIFT)>>1;
  } else {
 	//For interpolation inside keyframed animation
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
 	///Don't touch this! **absolute** frame delta 
-	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<3);
+	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
  }
 
 
@@ -276,9 +273,9 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		/**Uncompress the NEXT vertex and apply linear interpolation**/
 		#pragma GCC push_options
 		#pragma GCC diagnostic ignored "-Wsequence-point"
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>3))<<8;
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>3))<<8;
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>3))<<8;
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
 		#pragma GCC pop_options
 		// ** 3 **
         /** Retrieves the result of the division  for CURRENT vertex**/
@@ -335,8 +332,9 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 
 		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
  
-		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE ||
-		((ptv[0]->clipFlag & ptv[2]->clipFlag) == 1) ||
+		int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
+ 
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE || offScrn ||
 		ssh2SentPolys[0] >= MAX_SSH2_SENT_POLYS){ continue; }
 		//Pre-clipping Function
 		preclipping(ptv, &flip, &pclp);
@@ -372,24 +370,21 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		
  // Check to see if the animation matches, or if reset is enabled.
  // In these cases, re-load information from the AnimCtrl.
- if(animation_change == 1 || animCtrl->reset_enable == 'Y') 
+ if(animation_change == 1) 
  {
 	
-	if(transplant != 1)
+	if(animCtrl->reset_enable == 'Y')
 	{
-	AnimArea[anims].curFrm = animCtrl->startFrm<<3;
+	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
 	} else {
 		//Transplant the running frame / current frame to its place in the other animation set
-	AnimArea[anims].curFrm += (animCtrl->startFrm<<3) - (AnimArea[anims].startFrm<<3) + 2;
-		//Transplant the keyframe pos so it doesn't spend a frame re-seating the animation
-	AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
+	AnimArea[anims].curFrm += (animCtrl->startFrm<<ANIM_SHIFT) - (AnimArea[anims].startFrm<<ANIM_SHIFT);
 	}
 	
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
-	AnimArea[anims].reset_enable = 'N';
-	animCtrl->reset_enable = 'N';
  }
+	
 		
 		anims++; //Increment animation work area pointer
 
@@ -422,28 +417,23 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	///Variable interpolation set
 	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
 
-
 	////
-	//
-	// The interpolator has 16 steps at current + ((next - current)>>4)
-	// I don't understand why the key-frames are shifted by 3, for 8 steps... but they have to be.
-	//
 	////
-	AnimArea[anims].curFrm += (localArate * framerate)>>1;
-	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>3);
+	AnimArea[anims].curFrm += (localArate * framerate);
+	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
 	
-    if (AnimArea[anims].curKeyFrm >= (AnimArea[anims].endFrm+1))
+    if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
 	{
-        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<3;
-        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
+        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<ANIM_SHIFT;
+        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>ANIM_SHIFT;
 	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
 	{
 		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
-		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<3;
+		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<ANIM_SHIFT;
 	}
     nextKeyFrm = AnimArea[anims].curKeyFrm+1;
 
-    if (nextKeyFrm >= (AnimArea[anims].endFrm+1))
+    if (nextKeyFrm > (AnimArea[anims].endFrm))
 	{
         nextKeyFrm = AnimArea[anims].startFrm;
 	} else if (nextKeyFrm <= AnimArea[anims].startFrm)
@@ -452,18 +442,18 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	}
 
 	
- if(animation_change == 1 && transplant != 1) 
+ if(animation_change == 1) 
  {
 	//For single-frame interpolation between poses
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[animCtrl->startFrm]->cVert;
-	frDelta = 8;
+	frDelta = (1<<ANIM_SHIFT)>>1;
  } else {
 	//For interpolation inside keyframed animation
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
 	///Don't touch this! **absolute** frame delta 
-	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<3);
+	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
  }
 
 
@@ -472,18 +462,12 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
     short * src = curKeyFrame[0];
     short * nxt = nextKeyFrame[0];
 	/////
-	//
-	//	Primary frame delta shift is 4, or 16 delta steps possible.
-	//	1 is therefore 1/16th interpolation, 2 is 2/16th, 3 is 3/16th, etc.
-	//	This interpolation is from the current keyframe;
-	//	At 16/16 steps, the delta will be 1, making the current the next keyframe.
-	//
 	/////
 	for(unsigned int i = 0; i < model->nbPoint; i++)
 	{
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>3))<<8;
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>3))<<8;
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>3))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
+		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
 	}
 
     dst = (Sint32 *)&model->pltbl[0];
@@ -500,25 +484,21 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 		
  // Check to see if the animation matches, or if reset is enabled.
  // In these cases, re-load information from the AnimCtrl.
- if(animation_change == 1 || animCtrl->reset_enable == 'Y') 
+ if(animation_change == 1) 
  {
 	
-	if(transplant != 1)
+	if(animCtrl->reset_enable == 'Y')
 	{
-	AnimArea[anims].curFrm = animCtrl->startFrm<<3;
+	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
 	} else {
 		//Transplant the running frame / current frame to its place in the other animation set
-	AnimArea[anims].curFrm += (animCtrl->startFrm<<3) - (AnimArea[anims].startFrm<<3) + 2;
-		//Transplant the keyframe pos so it doesn't spend a frame re-seating the animation
-	AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>3;
+	AnimArea[anims].curFrm += (animCtrl->startFrm<<ANIM_SHIFT) - (AnimArea[anims].startFrm<<ANIM_SHIFT);
 	}
 	
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
-	AnimArea[anims].reset_enable = 'N';
-	animCtrl->reset_enable = 'N';
  }
-		
+	
 		anims++; //Increment animation work area pointer
 	
 }

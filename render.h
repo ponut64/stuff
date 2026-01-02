@@ -207,9 +207,10 @@ typedef struct{
 //////////////////////////////////
 typedef struct
 {
+	int time;
+    Uint16 curFrm;
 	char reset_enable;
 	Uint8 arate[64];
-    Uint16 curFrm;
     Uint8 curKeyFrm;
     Uint8 startFrm;
     Uint8 endFrm;

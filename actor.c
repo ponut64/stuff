@@ -584,12 +584,26 @@ void	actor_per_object_processing(_actor * act)
 	
 }
 
+void	actor_set_animation_state(_actor * act, int animation_number)
+{
+	act->animPriorityQueue |= animation_number;
+	act->animState |= animation_number;
+}
+
 void *	adjudicate_actor_animation_queue(_actor * act)
 {
 	int shift_count = 0;
+	int state_count = 0;
 	int reg = act->animPriorityQueue;
+	int state = act->animState;
 	//In the act of counting out the animation priority queue, we want to clear the animations set on the actor.
 	act->animPriorityQueue = 0;
+	act->animState = 0;
+	act->animationTimer -= (act->animationTimer > 0) ? delta_time : 0;
+	animationControl * used_anim = &t_idle_pose;
+
+	if(reg == 0 && state == 0) return (void*)used_anim;
+	
 	if(reg != 0)
 	{
 		while((reg & 1) == 0)
@@ -597,40 +611,64 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 			shift_count++;
 			reg>>=1;
 		}
-	} else {
-	return (void*)&t_idle_pose;	
 	}
+	if(state != 0)
+	{
+		while((state & 1) == 0)
+		{
+			state_count++;
+			state>>=1;
+		}
+	}
+
 	
 	switch(shift_count)
 	{
 	case(0):
-	return (void*)&t_dead_anim;//(highest priority)
+	used_anim = &t_dead_anim;//(highest priority)
 	break;
 	case(1):
-	return (void*)&t_dead_pose; 
+	used_anim =	&t_dead_pose; 
 	break;
 	case(2):
-	return (void*)&t_attack_anim;
+	used_anim =	&t_attack_anim;
 	break;
 	case(3):
-	return (void*)&t_move_anim;
+	used_anim =	&t_move_anim;
 	break;
 	case(4):
-	return (void*)&t_aggro_anim;
+	used_anim =	&t_aggro_anim;
 	break;
 	case(5):
-	return (void*)&t_point_anim;
+	used_anim =	&t_point_anim;
 	break;
 	case(6):
-	return (void*)&t_point_pose;
+	used_anim =	&t_point_pose;
 	break;
 	case(7):
-	return (void*)&t_look_anim;
+	used_anim =	&t_look_anim;
 	break;
 	default:
 	break;
 	}
 	
+	
+	//If animation reset is enabled, we will treat this animation as one that must be played through.
+	//When starting an animation we need to set the animation timer of the actor to the length of this animation, and then set the flag back.
+	//However, we may have set this animation state from this procedure of animation maintenance.
+	//We only want to start this course if we have started the animation state on this frame. If we have not, we don't want to start the animation.
+	if(used_anim->reset_enable == 'Y' && act->animationTimer <= 0 && state_count == shift_count)
+	{
+		act->animPriorityQueue = (1<<shift_count);
+		act->animationTimer = used_anim->time;
+	} else if(act->animationTimer > 0)
+	{
+	//In such case where the used animation had reset enabled but the timer is above zero, we only want to set it back for the next frame.
+		act->animPriorityQueue = (1<<shift_count);
+	
+	}
+	
+	return (void*)used_anim;
 	
 }
 
@@ -852,8 +890,9 @@ void	manage_actors(void)
 					if(!act->info.flags.losTarget)
 					{
 						findPathTo(act->goalSector, i);
+						actor_set_animation_state(act, 1);
 					}
-					act->animPriorityQueue |= (1<<3);
+					actor_set_animation_state(act, 1<<3);
 				}
 				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
 				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);

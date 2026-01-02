@@ -355,7 +355,7 @@ void	mover_draw_queue(void)
 		switch(entities[objDRAW[i]].type)
 		{
 			case(MODEL_TYPE_BUILDING):
-			plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);	
+			//plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);	
 			break;
 			case(MODEL_TYPE_SECTORED):
 			break;
@@ -384,12 +384,12 @@ void	obj_draw_queue(void)
 		switch(entities[objDRAW[i]].type)
 		{
 			case(MODEL_TYPE_BUILDING):
-			//plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);		
+			plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);		
 			break;
 			case(MODEL_TYPE_SECTORED):
 			break;
 			case(MODEL_TYPE_ANIMATED):
-			ssh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 1);
+			ssh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 0);
 			break;
 			default:
 			ssh2DrawModel(&entities[objDRAW[i]]);

@@ -439,6 +439,7 @@ typedef struct {
 	int wallPos[3];
 	int totalFriction;
 	int exceptionTimer;
+	int animationTimer;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;

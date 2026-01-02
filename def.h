@@ -47,6 +47,9 @@
 #define N_Yn (3)
 #define N_Zp (4)
 #define N_Zn (5)
+/////////////////////////////////
+#define ANIM_SHIFT		(6)
+#define ANIM_TIME(x)	fxdiv(fxdiv(16<<16,x<<16), 30<<16);
 
 #define GRAVITY (6553)
 #define MOVEMENT_DECAY_RATE (6000)

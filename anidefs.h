@@ -1,7 +1,4 @@
 //anidefs.h
-
-#define ANIM_CONST (8)
-
 //Variable Interpolation Animation Data. Each key frame is given an interpolation rate.
 void	anim_defs(void)
 {
@@ -157,40 +154,60 @@ void	anim_defs(void)
 	//////////////
 	// You CANNOT animate with keyframe 0. Keyframe 0 must be a duplicate of the model at rest.
 	//////////////
+	animationControl * anim;
+	int count = 0;
+	//okay, now I need to calculate out the length of each animation (in seconds)
+	// -- but shouldn't I count frames instead?
 	
 	//Testing keyframes for animated entity
 	t_idle_pose.reset_enable = 'N';													
 	t_idle_pose.arate[0] = 0;								
 	t_idle_pose.startFrm = 0;
-	t_idle_pose.curFrm = t_idle_pose.startFrm * ANIM_CONST;
+	t_idle_pose.curFrm = t_idle_pose.startFrm<<ANIM_SHIFT;
 	t_idle_pose.endFrm = 0;
 	
 	t_dead_pose.reset_enable = 'N';													
 	t_dead_pose.arate[16] = 0;								
 	t_dead_pose.startFrm = 16;
-	t_dead_pose.curFrm = t_dead_pose.startFrm * ANIM_CONST;
+	t_dead_pose.curFrm = t_dead_pose.startFrm<<ANIM_SHIFT;
 	t_dead_pose.endFrm = 16;
 	
 	t_point_pose.reset_enable = 'N';													
 	t_point_pose.arate[4] = 0;								
 	t_point_pose.startFrm = 4;
-	t_point_pose.curFrm = t_point_pose.startFrm * ANIM_CONST;
+	t_point_pose.curFrm = t_point_pose.startFrm<<ANIM_SHIFT;
 	t_point_pose.endFrm = 4;
 	
-	t_look_anim.reset_enable = 'N';													
+	t_look_anim.reset_enable = 'Y';													
 	t_look_anim.arate[1] = 1;		
 	t_look_anim.arate[2] = 1;	
 	t_look_anim.arate[3] = 1;	
 	t_look_anim.startFrm = 1;
-	t_look_anim.curFrm = t_look_anim.startFrm * ANIM_CONST;
+	t_look_anim.curFrm = t_look_anim.startFrm<<ANIM_SHIFT;
 	t_look_anim.endFrm = 3;
 	
-	t_point_anim.reset_enable = 'N';													
+	anim = &t_look_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
+	
+	t_point_anim.reset_enable = 'Y';													
 	t_point_anim.arate[3] = 1;	
 	t_point_anim.arate[4] = 1;		
-	t_point_anim.startFrm = 4;
-	t_point_anim.curFrm = t_point_anim.startFrm * ANIM_CONST;
+	t_point_anim.startFrm = 3;
+	t_point_anim.curFrm = t_point_anim.startFrm<<ANIM_SHIFT;
 	t_point_anim.endFrm = 4;
+	
+	anim = &t_point_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
 	
 	t_move_anim.reset_enable = 'N';													
 	t_move_anim.arate[5] = 1;		
@@ -198,36 +215,68 @@ void	anim_defs(void)
 	t_move_anim.arate[7] = 1;	
 	t_move_anim.arate[8] = 1;	
 	t_move_anim.startFrm = 5;
-	t_move_anim.curFrm = t_move_anim.startFrm * ANIM_CONST;
+	t_move_anim.curFrm = t_move_anim.startFrm<<ANIM_SHIFT;
 	t_move_anim.endFrm = 8;
+	
+	anim = &t_move_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
 	
 	t_aggro_anim.reset_enable = 'N';													
 	t_aggro_anim.arate[10] = 1;		
 	t_aggro_anim.arate[11] = 1;	
 	t_aggro_anim.arate[12] = 1;	
 	t_aggro_anim.startFrm = 10;
-	t_aggro_anim.curFrm = t_aggro_anim.startFrm * ANIM_CONST;
+	t_aggro_anim.curFrm = t_aggro_anim.startFrm<<ANIM_SHIFT;
 	t_aggro_anim.endFrm = 12;
 	
-	t_attack_anim.reset_enable = 'N';													
-	t_attack_anim.arate[13] = 2;		
-	t_attack_anim.arate[14] = 2;	
-	t_attack_anim.arate[15] = 2;	
+	anim = &t_aggro_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
+	
+	t_attack_anim.reset_enable = 'Y';													
+	t_attack_anim.arate[13] = 1;		
+	t_attack_anim.arate[14] = 1;	
+	t_attack_anim.arate[15] = 1;	
 	t_attack_anim.startFrm = 13;
-	t_attack_anim.curFrm = t_attack_anim.startFrm * ANIM_CONST;
+	t_attack_anim.curFrm = t_attack_anim.startFrm<<ANIM_SHIFT;
 	t_attack_anim.endFrm = 15;
 	
-	t_dead_anim.reset_enable = 'N';	
-	t_dead_anim.arate[15] = 2;	
-	t_dead_anim.arate[16] = 2;				
+	anim = &t_attack_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
+	
+	t_dead_anim.reset_enable = 'Y';	
+	t_dead_anim.arate[15] = 1;	
+	t_dead_anim.arate[16] = 1;				
 	t_dead_anim.startFrm = 15;
-	t_dead_anim.curFrm = t_dead_anim.startFrm * ANIM_CONST;
+	t_dead_anim.curFrm = t_dead_anim.startFrm<<ANIM_SHIFT;
 	t_dead_anim.endFrm = 16;
+	
+	anim = &t_dead_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+	anim->time = count;
+	count = 0;
 	
 	// idle.reset_enable = 'N';													
 	// idle.arate[0] = 0;								
 	// idle.startFrm = 0;
-	// idle.curFrm = idle.startFrm * ANIM_CONST;
+	// idle.curFrm = idle.startFrm<<ANIM_SHIFT;
 	// idle.endFrm = 0;
 	
 	// idleB.reset_enable = 'N';													
@@ -235,7 +284,7 @@ void	anim_defs(void)
 	// idleB.arate[1] = 1;	
 	// idleB.arate[2] = 1;		
 	// idleB.startFrm = 0;
-	// idleB.curFrm = idle.startFrm * ANIM_CONST;
+	// idleB.curFrm = idle.startFrm<<ANIM_SHIFT;
 	// idleB.endFrm = 3;
 
 //Note: Of non-uniform animations, the end frame (19 in this case) is never part of the animation.
@@ -247,7 +296,7 @@ void	anim_defs(void)
 	// walk.arate[18] = 2;
 	// walk.arate[19] = 2;
 	// walk.startFrm = 14;
-	// walk.curFrm = walk.startFrm * ANIM_CONST;
+	// walk.curFrm = walk.startFrm<<ANIM_SHIFT;
 	// walk.endFrm=19;
 
 //Sprite(Texture)Animation
