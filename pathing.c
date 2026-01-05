@@ -690,6 +690,7 @@ void	actor_hit_wall(_actor * act, int * wall_norm)
 }
 
 
+//Note: To make this a "look at" function, just make the rate 0.
 int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 {
 	static int target_dif[3];
@@ -710,13 +711,55 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	
 	if((target_dif[X] + target_dif[Y] + target_dif[Z]) < gap) return 1;
 
-	act->dV[X] += fxm(dif_norm[X], rate);
-	act->dV[Y] += fxm(dif_norm[Y], rate);
-	act->dV[Z] += fxm(dif_norm[Z], rate);
+	//Goal:
+	//When are are moving towards anything, the actor has to move in the front vector.
+	//What we need to do is stop movement if the actor isn't facing the target, and instead rotate.
+	int sin_y = fxdot(act->box->UVX, dif_norm);
+	int cos_y = fxdot(act->box->UVZ, dif_norm);
+	int sign = 1;
+	int turn_rate = 512;
+	int travel_rate = rate;
+	//If sin_y is 0, we are either facing directly or facing directly away.
+	//If sin_y is +, we are facing the right.
+	//If sin_y is -, we are facing the left.
+	
+	//If cos_y is 0, we are either facing direct right or direct left.
+	//If cos_y is +, we are facing away.
+	//If cos_y is -, we are facing towards.
+	//We want to ordain these outputs such that sin_y is close to 0 and cos_y is negative; in other words, negative cosine and low zero make the final value near-zero.
+
+	if(cos_y < 0)
+	{
+		//Facing towards
+		//If we are facing towards it and sin_y is nearly zero, don't turn.
+		if(sin_y > 4096)
+		{
+			sign = -1;
+		} else if(JO_ABS(sin_y) < 4096)
+		{
+			sign = 0;
+		}
+		
+	} else if(cos_y >= 0)
+	{
+		//Facing away.
+		//Reduce travel rate to make a tighter turn and turn faster.
+		travel_rate>>=1;
+		turn_rate<<=1;
+	}
+	
+	act->dRot[Y] += sign * turn_rate;
+	act->dV[X] += fxm(act->box->UVNZ[X], travel_rate);
+	act->dV[Y] += fxm(act->box->UVNZ[Y], travel_rate);
+	act->dV[Z] += fxm(act->box->UVNZ[Z], travel_rate);
+	
+	//nbg_sprintf(5, 9, "tur(%i)", sign);
+	//nbg_sprintf(5, 10, "fac(%i)", face);
+	
+
 	
 	return 0;
 }
-
 
 //Allows each search for the target sector to iterate through each sector's adjacent sector list up to the iteration limit.
 //There are really two iteration limits; the one set here for this function to allow each branch to find the shortest path,

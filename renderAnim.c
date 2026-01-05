@@ -397,15 +397,6 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 
     GVPLY * model = ent->pol;
 	
-	//Process for static pose change:
-	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
-	//2. Set curFrm to the AnimArea startFrm<<3
-	//3. Set uniforn to 0
-	//4. Set the local arate to 4
-	//5. Set curKeyFrm to the AnimArea startFrm
-	//6. set the nextKeyFrame to the animCtrl startFrm
-	//7. Interpolate once
-	//8. Return all control data as if set from the animCtrl pose
 	short animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
 //
 	unsigned char localArate;

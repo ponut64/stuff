@@ -22,19 +22,15 @@ Other asset data may need to be assessed when assets are available to fill the s
 -> Actor off-screen navigation
 	- Need to implement a way for actors to move in unloaded sectors.
 	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
-
--> Roadmap of actor animation management
-	How will we communicate the animation state?
-	Rather than have the actor management system explicitly delegate the state, we need a way to command animations with a priority queue.
-	That way actors can be set such that they are allowed to play from a set of animations, and the highest priority one is what will be set to play.
-	I can think of an efficient way to do this.
-	Use a 16-bit value as a bitflag arrangement. The lower the bit, the higher the priority.
-	The system will:
-	Check if bit 0 is high
-	Check bit shift counts
-	If bit 0 is high, play animation which correlates to number of shifts
-	Shift right one
-
+	
+-> Actor Implementations
+	Dichotomy of Movement
+	One simplified idea of movement is to have the actor's model rotate to face the direction it is moving.
+	From this, we would delineate that it is facing that way and can see that way.
+	The other more nuanced idea is to program the actor to move like the player, where it moves forward, and we guide it by directing the forward vector.
+	From this setup, actors have a turn-rate that they must complete before going in a direction.
+	I for one feel like the direction that my projects are going, we need to guide it by a forward and pivot forward.
+	
 -> Performance consideration
 	Animated entities are best animated when no one is thrashing the bus.
 	Because applying the keyframe to the mesh permanently alters it (i.e. no copy is made),
