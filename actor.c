@@ -586,6 +586,11 @@ void	actor_per_object_processing(_actor * act)
 
 void	actor_set_animation_state(_actor * act, int animation_number)
 {
+	if(!(act->animPriorityQueue & animation_number) && act->animPriorityQueue > animation_number)
+	{
+		act->animationTimer = -1;
+	}
+	
 	act->animPriorityQueue |= animation_number;
 	act->animState |= animation_number;
 }
@@ -652,24 +657,104 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	break;
 	}
 	
-	
+
 	//If animation reset is enabled, we will treat this animation as one that must be played through.
 	//When starting an animation we need to set the animation timer of the actor to the length of this animation, and then set the flag back.
 	//However, we may have set this animation state from this procedure of animation maintenance.
 	//We only want to start this course if we have started the animation state on this frame. If we have not, we don't want to start the animation.
 	if(used_anim->reset_enable == 'Y' && act->animationTimer <= 0 && state_count == shift_count)
 	{
-		act->animPriorityQueue = (1<<shift_count);
+		act->animPriorityQueue |= (1<<shift_count);
 		act->animationTimer = used_anim->time;
 	} else if(act->animationTimer > 0)
 	{
 	//In such case where the used animation had reset enabled but the timer is above zero, we only want to set it back for the next frame.
-		act->animPriorityQueue = (1<<shift_count);
+		act->animPriorityQueue |= (1<<shift_count);
 	
 	}
 	
 	return (void*)used_anim;
 	
+}
+
+
+void	actor_idle_actions(_actor * act)
+{
+	//Goal:
+	//To manage the idle state of various actor types.
+	//Primarily, this will make the actor look for the player both actively and passively.
+	static int intersection_pt[3] = {0,0,0};
+	static int hit_id = 0;
+	int los_blocked = 0;
+	//*we're going to use the player's sector, as that what we are judging LOS to/from here
+	_sector * sct = &sectors[you.curSector];
+	
+	//we need to get a vector from actor->player
+	int vec_dif[3] = {-(act->pos[X] + you.pos[X])>>4, -(act->pos[Y] + you.pos[Y])>>4, -(act->pos[Z] + you.pos[Z])>>4};
+	int vec_norm[3] = {0,0,0};
+	
+	quick_normalize(vec_dif, vec_norm);
+	
+	//Must re-set this variable in order for the hitscan function to be able to properly filter the nearest hit
+	intersection_pt[X] = 32766<<16;
+	intersection_pt[Y] = 32766<<16;
+	intersection_pt[Z] = 32766<<16;
+	for(int s = 0; s < (sct->nbVisible+1); s++)
+	{
+		hitscan_vector_from_position_building(vec_norm, act->pos, &intersection_pt[0], &hit_id, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+	}
+	//(We also need to do line of sight calculations with movers)
+	los_blocked = isPointonSegment(intersection_pt, you.wpos, act->pos, 128);
+	
+	nbg_sprintf(5, 7, "los(%i)", los_blocked);
+	
+	short sprSpan[3] = {10, 10, 10};
+	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
+	sprite_prep.info.drawOnce = 1;
+	sprite_prep.info.mesh = 0;
+	sprite_prep.info.sorted = 0;
+	add_to_sprite_list(intersection_pt, sprSpan, 'O', 5, sprite_prep, 0, 0);
+	
+	//So we have an intersection_pt and a determination if line of sight is blocked.
+	//Now we need to derive a viewing angle difference.
+	//The important thing here is while we have accurate vectors to represent everything,
+	//we do *not* have the ability to derive a linear 360-degree angle from the vectors.
+	//So we have to use different math.
+	//Positive numbers are co-aligned (so +1 is facing perfectly). Negative is facing away.
+	//If the actor is looking, it will see the player in all positive numbers.
+	//If the actor is not looking, it will only see the player in numbers > 49152.
+	
+	int vec_dot = fxdot(act->box->UVNZ, vec_norm);
+
+	// nbg_sprintf_decimal(5, 11, vec_norm[X]);
+	// nbg_sprintf_decimal(5, 12, vec_norm[Y]);
+	// nbg_sprintf_decimal(5, 13, vec_norm[Z]);
+	
+	nbg_sprintf(5, 10, "angl(%i)", vec_dot);
+	
+	if(act->idleActionTimer <= 0)
+	{
+	act->idleActionTimer += 6<<16;	
+	actor_set_animation_state(act, 1<<7);
+		
+	} else {
+		
+	act->idleActionTimer -= delta_time;	
+	}
+	
+	if(!los_blocked)
+	{
+		if(vec_dot > 49152)
+		{
+			//Make the actor look at the player, and point.
+			actor_set_animation_state(act, 1<<6);
+			actorMoveToPos(act, intersection_pt, 0, 64);
+		} else if(vec_dot > 0 && act->idleActionTimer > 0)
+		{
+			actor_set_animation_state(act, 1<<5);
+			actorMoveToPos(act, intersection_pt, 0, 64);
+		}
+	}
 }
 
 void	manage_actors(void)
@@ -922,7 +1007,7 @@ void	manage_actors(void)
 				act->totalFriction = 32768;
 				
 				if(!act->atGoal) checkInPathSteps(i);
-				
+				actor_idle_actions(act);
 				//Add velocity of surface
 				if(act->box->surfID != INVALID_SECTOR)
 				{

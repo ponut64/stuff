@@ -167,39 +167,44 @@ void	anim_defs(void)
 	t_idle_pose.endFrm = 0;
 	
 	t_dead_pose.reset_enable = 'N';													
-	t_dead_pose.arate[16] = 0;								
-	t_dead_pose.startFrm = 16;
+	t_dead_pose.arate[18] = 0;								
+	t_dead_pose.startFrm = 18;
 	t_dead_pose.curFrm = t_dead_pose.startFrm<<ANIM_SHIFT;
-	t_dead_pose.endFrm = 16;
+	t_dead_pose.endFrm = 18;
 	
 	t_point_pose.reset_enable = 'N';													
-	t_point_pose.arate[4] = 0;								
-	t_point_pose.startFrm = 4;
+	t_point_pose.arate[7] = 0;								
+	t_point_pose.startFrm = 6;
 	t_point_pose.curFrm = t_point_pose.startFrm<<ANIM_SHIFT;
-	t_point_pose.endFrm = 4;
+	t_point_pose.endFrm = 7;
 	
 	t_look_anim.reset_enable = 'Y';													
 	t_look_anim.arate[1] = 1;		
 	t_look_anim.arate[2] = 1;	
 	t_look_anim.arate[3] = 1;	
+	t_look_anim.arate[4] = 1;	
+	t_look_anim.arate[5] = 1;	
+	t_look_anim.arate[6] = 1;	
 	t_look_anim.startFrm = 1;
 	t_look_anim.curFrm = t_look_anim.startFrm<<ANIM_SHIFT;
-	t_look_anim.endFrm = 3;
+	t_look_anim.endFrm = 6;
 	
 	anim = &t_look_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+	count += ANIM_TIME(1);
+	count += ANIM_TIME(1);
 	anim->time = count;
 	count = 0;
 	
 	t_point_anim.reset_enable = 'Y';													
-	t_point_anim.arate[3] = 1;	
-	t_point_anim.arate[4] = 1;		
-	t_point_anim.startFrm = 3;
+	t_point_anim.arate[5] = 1;	
+	t_point_anim.arate[6] = 1;		
+	t_point_anim.startFrm = 5;
 	t_point_anim.curFrm = t_point_anim.startFrm<<ANIM_SHIFT;
-	t_point_anim.endFrm = 4;
+	t_point_anim.endFrm = 6;
 	
 	anim = &t_point_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)
@@ -210,13 +215,13 @@ void	anim_defs(void)
 	count = 0;
 	
 	t_move_anim.reset_enable = 'N';													
-	t_move_anim.arate[5] = 1;		
-	t_move_anim.arate[6] = 1;	
-	t_move_anim.arate[7] = 1;	
-	t_move_anim.arate[8] = 1;	
-	t_move_anim.startFrm = 5;
+	t_move_anim.arate[8] = 1;		
+	t_move_anim.arate[9] = 1;	
+	t_move_anim.arate[10] = 1;	
+	t_move_anim.arate[11] = 1;	
+	t_move_anim.startFrm = 8;
 	t_move_anim.curFrm = t_move_anim.startFrm<<ANIM_SHIFT;
-	t_move_anim.endFrm = 8;
+	t_move_anim.endFrm = 11;
 	
 	anim = &t_move_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)
@@ -227,12 +232,12 @@ void	anim_defs(void)
 	count = 0;
 	
 	t_aggro_anim.reset_enable = 'N';													
-	t_aggro_anim.arate[10] = 1;		
-	t_aggro_anim.arate[11] = 1;	
-	t_aggro_anim.arate[12] = 1;	
-	t_aggro_anim.startFrm = 10;
+	t_aggro_anim.arate[12] = 1;		
+	t_aggro_anim.arate[13] = 1;	
+	t_aggro_anim.arate[14] = 1;	
+	t_aggro_anim.startFrm = 12;
 	t_aggro_anim.curFrm = t_aggro_anim.startFrm<<ANIM_SHIFT;
-	t_aggro_anim.endFrm = 12;
+	t_aggro_anim.endFrm = 14;
 	
 	anim = &t_aggro_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)
@@ -243,12 +248,12 @@ void	anim_defs(void)
 	count = 0;
 	
 	t_attack_anim.reset_enable = 'Y';													
-	t_attack_anim.arate[13] = 1;		
-	t_attack_anim.arate[14] = 1;	
-	t_attack_anim.arate[15] = 1;	
-	t_attack_anim.startFrm = 13;
+	t_attack_anim.arate[15] = 1;		
+	t_attack_anim.arate[16] = 1;	
+	t_attack_anim.arate[17] = 1;	
+	t_attack_anim.startFrm = 15;
 	t_attack_anim.curFrm = t_attack_anim.startFrm<<ANIM_SHIFT;
-	t_attack_anim.endFrm = 15;
+	t_attack_anim.endFrm = 17;
 	
 	anim = &t_attack_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)
@@ -259,11 +264,11 @@ void	anim_defs(void)
 	count = 0;
 	
 	t_dead_anim.reset_enable = 'Y';	
-	t_dead_anim.arate[15] = 1;	
-	t_dead_anim.arate[16] = 1;				
-	t_dead_anim.startFrm = 15;
+	t_dead_anim.arate[17] = 1;	
+	t_dead_anim.arate[18] = 1;				
+	t_dead_anim.startFrm = 17;
 	t_dead_anim.curFrm = t_dead_anim.startFrm<<ANIM_SHIFT;
-	t_dead_anim.endFrm = 16;
+	t_dead_anim.endFrm = 18;
 	
 	anim = &t_dead_anim;
 	for(int i = anim->startFrm; i <= anim->endFrm; i++)

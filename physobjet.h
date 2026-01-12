@@ -440,6 +440,7 @@ typedef struct {
 	int totalFriction;
 	int exceptionTimer;
 	int animationTimer;
+	int idleActionTimer;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;
@@ -467,6 +468,7 @@ extern unsigned char * pathStackMax;
 void	init_pathing_system(void);
 void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);
 
+int		actorMoveToPos(_actor * act, int * target, int rate, int gap);
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
 void	manage_actors(void);
 
