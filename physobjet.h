@@ -414,6 +414,9 @@ typedef struct {
 			unsigned char active:1;
 			unsigned char hitWall:1;
 			unsigned char hitFloor:1;
+			unsigned char inCombat:1;
+			unsigned char locked:1;
+			unsigned char looking:1;
 		} flags;
 	};
 } _actor_info;

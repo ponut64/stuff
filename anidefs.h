@@ -173,10 +173,10 @@ void	anim_defs(void)
 	t_dead_pose.endFrm = 18;
 	
 	t_point_pose.reset_enable = 'N';													
-	t_point_pose.arate[7] = 0;								
+	t_point_pose.arate[6] = 0;								
 	t_point_pose.startFrm = 6;
 	t_point_pose.curFrm = t_point_pose.startFrm<<ANIM_SHIFT;
-	t_point_pose.endFrm = 7;
+	t_point_pose.endFrm = 6;
 	
 	t_look_anim.reset_enable = 'Y';													
 	t_look_anim.arate[1] = 1;		

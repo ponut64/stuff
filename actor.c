@@ -604,7 +604,6 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	//In the act of counting out the animation priority queue, we want to clear the animations set on the actor.
 	act->animPriorityQueue = 0;
 	act->animState = 0;
-	act->animationTimer -= (act->animationTimer > 0) ? delta_time : 0;
 	animationControl * used_anim = &t_idle_pose;
 
 	if(reg == 0 && state == 0) return (void*)used_anim;
@@ -657,7 +656,41 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	break;
 	}
 	
-
+	act->animationTimer -= (act->animationTimer > 0) ? delta_time : 0;
+	
+	if(used_anim->reset_enable == 'Y' && act->animationTimer <= (delta_time<<1) && act->animationTimer > 0 && state_count == shift_count)
+	{
+		switch(shift_count)
+		{
+		case(0):
+		//used_anim = &t_dead_anim;//(highest priority)
+		break;
+		case(1):
+		//used_anim =	&t_dead_pose; 
+		break;
+		case(2):
+		//used_anim =	&t_attack_anim;
+		break;
+		case(3):
+		//used_anim =	&t_move_anim;
+		break;
+		case(4):
+		//used_anim =	&t_aggro_anim;
+		break;
+		case(5):
+		//used_anim =	&t_point_anim;
+		act->info.flags.locked = 1;
+		break;
+		case(6):
+		//used_anim =	&t_point_pose;
+		break;
+		case(7):
+		//used_anim =	&t_look_anim;
+		break;
+		default:
+		break;
+		}
+	}
 	//If animation reset is enabled, we will treat this animation as one that must be played through.
 	//When starting an animation we need to set the animation timer of the actor to the length of this animation, and then set the flag back.
 	//However, we may have set this animation state from this procedure of animation maintenance.
@@ -673,10 +706,25 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	}
 	
+	
 	return (void*)used_anim;
 	
 }
 
+void	actor_threat_evaluation(_actor * act)
+{
+	//Procedurally speaking, this would ordinarily contain information about how each actor type responds to things that they (are allowed to) see.
+	//In this test case, it is always assumed to be evaluating the player.
+	
+	int * target = you.wpos;
+	
+	int dist = approximate_distance(you.wpos, act->pos);
+	
+	if(dist < 512<<16)
+	{
+		act->info.flags.inCombat = 1;
+	}
+}
 
 void	actor_idle_actions(_actor * act)
 {
@@ -716,21 +764,17 @@ void	actor_idle_actions(_actor * act)
 	add_to_sprite_list(intersection_pt, sprSpan, 'O', 5, sprite_prep, 0, 0);
 	
 	//So we have an intersection_pt and a determination if line of sight is blocked.
-	//Now we need to derive a viewing angle difference.
-	//The important thing here is while we have accurate vectors to represent everything,
-	//we do *not* have the ability to derive a linear 360-degree angle from the vectors.
-	//So we have to use different math.
+	//Now we need to derive a viewing angle difference via a simple dot product.
 	//Positive numbers are co-aligned (so +1 is facing perfectly). Negative is facing away.
 	//If the actor is looking, it will see the player in all positive numbers.
 	//If the actor is not looking, it will only see the player in numbers > 49152.
+	//Note that vertical difference is not accounted for yet. It ought to be.
 	
 	int vec_dot = fxdot(act->box->UVNZ, vec_norm);
 
 	// nbg_sprintf_decimal(5, 11, vec_norm[X]);
 	// nbg_sprintf_decimal(5, 12, vec_norm[Y]);
 	// nbg_sprintf_decimal(5, 13, vec_norm[Z]);
-	
-	nbg_sprintf(5, 10, "angl(%i)", vec_dot);
 	
 	if(act->idleActionTimer <= 0)
 	{
@@ -742,19 +786,45 @@ void	actor_idle_actions(_actor * act)
 	act->idleActionTimer -= delta_time;	
 	}
 	
+	//I need to program an event specific to the end of an animation. This would be a function pointer.
+	//Concept:
+	//AI starts looking at potential enemy target.
+	//When AI is "locked" (i.e. looking at it directly), it plays the "Point" animation. "Locked"
+	//This animation ends, then puts AI in a state where it will hold the "Point" pose and then runs evaluations on the threat.
+	//For our test purposes, it will be a distance check. If you are close, the AI will change to "inCombat".
 	if(!los_blocked)
 	{
+		if(vec_dot > 0)
+		{
+			actorMoveToPos(act, intersection_pt, 0, 64);
+		} else {
+			act->info.flags.locked = 0;
+		}
+		
 		if(vec_dot > 49152)
 		{
-			//Make the actor look at the player, and point.
-			actor_set_animation_state(act, 1<<6);
-			actorMoveToPos(act, intersection_pt, 0, 64);
-		} else if(vec_dot > 0 && act->idleActionTimer > 0)
-		{
-			actor_set_animation_state(act, 1<<5);
-			actorMoveToPos(act, intersection_pt, 0, 64);
+			if(!act->info.flags.locked) actor_set_animation_state(act, 1<<5);
 		}
+		
+		if(act->info.flags.locked)
+		{
+			//At this point, we would do a threat evaluation.
+			actor_set_animation_state(act, 1<<6);
+			actor_threat_evaluation(act);
+		}
+	} else {
+			act->info.flags.locked = 0;
+			act->info.flags.inCombat = 0;
 	}
+	
+	if(act->info.flags.inCombat)
+	{
+		actor_set_animation_state(act, 1<<4);
+	}
+	
+	nbg_sprintf(5, 10, "lc(%i)", act->info.flags.locked);
+	nbg_sprintf(5, 11, "st(%x)", act->animPriorityQueue);
+	
 }
 
 void	manage_actors(void)
@@ -1030,6 +1100,7 @@ void	manage_actors(void)
 			
 			
 			act->box->animation = adjudicate_actor_animation_queue(act);
+			//nbg_sprintf(5, 13, "ani(%x)", act->box->animation);
 			act->info.flags.hitFloor = 0;
 		} else {
 			act->info.flags.active = 0;

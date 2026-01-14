@@ -204,6 +204,9 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	AnimArea[anims].curFrm += (localArate * framerate);
 	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
 	
+	nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
+	nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
+	
     if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
 	{
         AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<ANIM_SHIFT;
@@ -224,20 +227,11 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	}
 
 	
- if(animation_change == 1) 
- {
-	//For single-frame interpolation between poses
-	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
-	nextKeyFrame = (compVert*)ent->animation[animCtrl->startFrm]->cVert;
-	frDelta = (1<<ANIM_SHIFT)>>1;
- } else {
 	//For interpolation inside keyframed animation
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
 	///Don't touch this! **absolute** frame delta 
 	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
- }
-
 
 	//Animation Data
     volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
@@ -373,13 +367,8 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
  if(animation_change == 1) 
  {
 	
-	if(animCtrl->reset_enable == 'Y')
-	{
+
 	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
-	} else {
-		//Transplant the running frame / current frame to its place in the other animation set
-	AnimArea[anims].curFrm += (animCtrl->startFrm<<ANIM_SHIFT) - (AnimArea[anims].startFrm<<ANIM_SHIFT);
-	}
 	
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
@@ -433,19 +422,11 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	}
 
 	
- if(animation_change == 1) 
- {
-	//For single-frame interpolation between poses
-	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
-	nextKeyFrame = (compVert*)ent->animation[animCtrl->startFrm]->cVert;
-	frDelta = (1<<ANIM_SHIFT)>>1;
- } else {
 	//For interpolation inside keyframed animation
 	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
 	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
 	///Don't touch this! **absolute** frame delta 
 	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
- }
 
 
 	//Animation Data
@@ -477,15 +458,9 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
  // In these cases, re-load information from the AnimCtrl.
  if(animation_change == 1) 
  {
-	
-	if(animCtrl->reset_enable == 'Y')
-	{
+
 	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
-	} else {
-		//Transplant the running frame / current frame to its place in the other animation set
-	AnimArea[anims].curFrm += (animCtrl->startFrm<<ANIM_SHIFT) - (AnimArea[anims].startFrm<<ANIM_SHIFT);
-	}
-	
+
 	AnimArea[anims].startFrm = animCtrl->startFrm;
 	AnimArea[anims].endFrm = animCtrl->endFrm;
  }
