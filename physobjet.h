@@ -407,7 +407,7 @@ extern _pathStepHost pathStepHeap;
 
 typedef struct {
 	union {
-		char raw;
+		short raw;
 		struct {
 			unsigned char losTarget:1;
 			unsigned char alive:1;
@@ -417,6 +417,7 @@ typedef struct {
 			unsigned char inCombat:1;
 			unsigned char locked:1;
 			unsigned char looking:1;
+			unsigned char onPathNode:1;
 		} flags;
 	};
 } _actor_info;
@@ -444,6 +445,7 @@ typedef struct {
 	int exceptionTimer;
 	int animationTimer;
 	int idleActionTimer;
+	int aggroTimer;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;
@@ -455,6 +457,7 @@ typedef struct {
 	unsigned short boxID;
 	unsigned short goalSector;
 	unsigned short pathingLatch;
+	unsigned short markedSector;
 	unsigned short atGoal;
 	unsigned short animPriorityQueue; //Used to register allowed animations in a bitwise priority queue
 	unsigned short animState; //Reports the current animation state (certain gamestates may need animation commands to change actor behavior)
@@ -470,6 +473,8 @@ extern unsigned char * pathStackMax;
 
 void	init_pathing_system(void);
 void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);
+
+void	pathing_exception(int actor_id);
 
 int		actorMoveToPos(_actor * act, int * target, int rate, int gap);
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);

@@ -1141,8 +1141,6 @@ void	checkInPathSteps(int actor_id)
 	//path steps
 	_pathStep * step;
 	
-	static int onPathNode = 0;
-	
 	if(act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME && act->curPathStep > 0 && act->exceptionStep != INVALID_SECTOR)
 	{
 		//We will use the path checking function to evaluate the line-of-sight to the original path direction.
@@ -1153,13 +1151,13 @@ void	checkInPathSteps(int actor_id)
 		int path_dUV[3] = {0,0,0};
 		quick_normalize(path_delta, path_dUV);
 	
-		if(actorCheckPathOK(act, path_dUV) || onPathNode)
+		if(actorCheckPathOK(act, path_dUV) || act->info.flags.onPathNode)
 		{
 			act->curPathStep--;
 			act->exceptionStep = INVALID_SECTOR;
-			if(onPathNode)
+			if(act->info.flags.onPathNode)
 			{
-				onPathNode = 0;
+				act->info.flags.onPathNode = 0;
 				runPath(actor_id);
 			}
 		} else {
@@ -1180,13 +1178,13 @@ void	checkInPathSteps(int actor_id)
 		runPath(actor_id);
 		//since the current step has changed, register it again
 		step = &stepList[act->curPathStep];
-		onPathNode = 0;
+		act->info.flags.onPathNode = 0;
 		act->exceptionTimer = 0;
 	}
 	
 	if(act->curSector != step->fromSector && act->curSector != step->toSector)
 	{
-		onPathNode = 0;
+		act->info.flags.onPathNode = 0;
 		act->exceptionTimer = 0;
 		act->curPathStep = 0;
 		act->pathingLatch = 0;
@@ -1214,12 +1212,12 @@ void	checkInPathSteps(int actor_id)
 		act->pathTarget[Z] = levelPos[Z] + step->pos[Z];
 		
 		//iterate towards the step
-		onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
 		//if on the path node ( = 1), we need to do something else.
 		//each path node has a direction; we need to follow that direction until we are in the sector of the next node.
 		// ^^ this exception needs to be added - we only want to follow this particular exception when we are not in the target sector.
 		// Once we're in it, we need to abandon this and go towards the target, or else we'll get stuck.
-		if(onPathNode && act->exceptionStep == INVALID_SECTOR && act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME && step->toSector != act->curSector)
+		if(act->info.flags.onPathNode && act->exceptionStep == INVALID_SECTOR && act->exceptionTimer >= ACTOR_PATH_EXCEPTION_TIME && step->toSector != act->curSector)
 		{
 			//Grab the direction from the last path node, presumed to not be an exception path node as restricted by the "if"
 			int * pathNodeDir = step->dir;

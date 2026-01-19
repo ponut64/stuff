@@ -62,6 +62,37 @@ void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)
 	act->goalSector = broad_phase_sector_finder(act->pathGoal, levelPos, &sectors[target_sector]);
 }
 
+void	get_floor_position_at_sector_center(int sector_number, int * given_center)
+{
+	//Check sectors for LOS
+	_sector * sct = &sectors[sector_number];
+	
+	int towardsFloor[3] = {0, (1<<16), 0};
+	int neg_ctr[3] = {-sct->center_pos[X], -sct->center_pos[Y], -sct->center_pos[Z]};
+	int hitFloorPly = 0;
+	int possibleFloor = 0;
+	//We can't forget to re-set these.
+	given_center[X] = -(32765<<16);
+	given_center[Y] = -(32765<<16);
+	given_center[Z] = -(32765<<16);
+	//Rather than check everything in the sector's PVS for collision,
+	//we will first check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleFloor += hitscan_vector_from_position_building(towardsFloor, neg_ctr, given_center, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+	}
+	if(!possibleFloor)
+	{
+	//	given_center[X] = -sct->center_pos[X];
+	//	given_center[Y] = -sct->center_pos[Y];
+	//	given_center[Z] = -sct->center_pos[Z];
+	} else {
+		given_center[X] = given_center[X];
+		given_center[Y] = given_center[Y];
+		given_center[Z] = given_center[Z];
+	}
+}
+
 int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity_t * ent, int * ent_pos)
 {
 	//Plan:
@@ -248,10 +279,12 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 }
 
 
-int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * sct, int * ent_pos)
+int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * sct, int * ent_pos)
 {
 	
 	if(!sct->nbPolygon) return 0;
+	
+	_actor * act = &spawned_actors[actor_id];
 	
 	entity_t * ent = sct->ent;
 	GVPLY * mesh = ent->pol;
@@ -394,6 +427,10 @@ int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
+					//if(!act->atGoal && act->goalSector != act->curSector)
+					//{
+					//	findPathTo(act->goalSector, actor_id);
+					//}
 				}
 			}
 			break;
@@ -408,6 +445,10 @@ int		actor_sector_collision(_actor * act, _lineTable * realTimeAxis, _sector * s
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
+					//if(!act->atGoal && act->goalSector != act->curSector)
+					//{
+					//	findPathTo(act->goalSector, actor_id);
+					//}
 				}
 			}
 			break;
@@ -487,7 +528,10 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->pathGoal[X] = 0;
 	act->pathGoal[Y] = 0;
 	act->pathGoal[Z] = 0;
+	act->atGoal = 1;
+	act->aggroTimer = 0;
 	act->goalSector = INVALID_SECTOR;
+	act->markedSector = INVALID_SECTOR;
 	
 	act->spawner = spawner;
 	act->entity_ID = spawner->type.entity_ID;
@@ -718,7 +762,7 @@ void	actor_threat_evaluation(_actor * act)
 	
 	int * target = you.wpos;
 	
-	int dist = approximate_distance(you.wpos, act->pos);
+	int dist = approximate_distance(target, act->pos);
 	
 	if(dist < 512<<16)
 	{
@@ -726,8 +770,9 @@ void	actor_threat_evaluation(_actor * act)
 	}
 }
 
-void	actor_idle_actions(_actor * act)
+void	actor_idle_actions(int actor_id)
 {
+	_actor * act = &spawned_actors[actor_id];
 	//Goal:
 	//To manage the idle state of various actor types.
 	//Primarily, this will make the actor look for the player both actively and passively.
@@ -796,14 +841,18 @@ void	actor_idle_actions(_actor * act)
 	{
 		if(vec_dot > 0)
 		{
-			actorMoveToPos(act, intersection_pt, 0, 64);
+			actorMoveToPos(act, intersection_pt, 0, act->box->radius[X]>>16);
 		} else {
 			act->info.flags.locked = 0;
 		}
 		
 		if(vec_dot > 49152)
 		{
-			if(!act->info.flags.locked) actor_set_animation_state(act, 1<<5);
+			if(!act->info.flags.locked)
+			{
+				actor_set_animation_state(act, 1<<5);
+				
+			}
 		}
 		
 		if(act->info.flags.locked)
@@ -811,20 +860,53 @@ void	actor_idle_actions(_actor * act)
 			//At this point, we would do a threat evaluation.
 			actor_set_animation_state(act, 1<<6);
 			actor_threat_evaluation(act);
+			act->aggroTimer = 30<<16;
 		}
+		
 	} else {
+			if(act->aggroTimer <= 0)
+			{
 			act->info.flags.locked = 0;
+			act->markedSector = INVALID_SECTOR;
+			}
 			act->info.flags.inCombat = 0;
+			act->aggroTimer -= delta_time;
 	}
+	
+
+
 	
 	if(act->info.flags.inCombat)
 	{
 		actor_set_animation_state(act, 1<<4);
+		
+		//If you are in the same sector as the actor, the actor will go directly to you.
+		//If you are NOT in the same sector, guide the actor towards the sector generally.
+		//In addition, do not repeat the guidance command unless the player changes sectors.
+		if(act->curSector == you.curSector)
+		{
+		actorPopulateGoalInfo(act, you.wpos, you.curSector);
+		} else if(act->markedSector != act->goalSector || act->markedSector == INVALID_SECTOR)
+		{
+		get_floor_position_at_sector_center(you.curSector, intersection_pt);
+			
+		intersection_pt[Y] -= act->box->radius[Y];
+
+		actorPopulateGoalInfo(act, intersection_pt, you.curSector);
+		act->markedSector = act->goalSector;
+		}
 	}
+
 	
-	nbg_sprintf(5, 10, "lc(%i)", act->info.flags.locked);
-	nbg_sprintf(5, 11, "st(%x)", act->animPriorityQueue);
+	 //Bug: the actor will sometimes recieve a goal sector (vis a vie populate goal info), but not continue until in the goal sector.
+	 //Instead, it will end pathing close to the goal sector as per the pathing target being close to the edge.
+	 //In this case, act->curSector and you.curSector are not equal, and act->goalSector can be equal to your current sector.
 	
+	nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
+	nbg_sprintf(5, 10, "st(%x)", act->curSector);
+	nbg_sprintf(5, 11, "gl(%i)", act->goalSector);
+	nbg_sprintf(5, 12, "lat(%i)", act->pathingLatch);
+	nbg_sprintf(15, 9, "at(%i)", act->atGoal);
 }
 
 void	manage_actors(void)
@@ -1016,7 +1098,7 @@ void	manage_actors(void)
 			//we will only check the sector itself + primary adjacents.
 			//for(int s = 0; s < (sct->nbAdjacent+1); s++)
 			//{
-				actor_sector_collision(act, &cur_actor_line_table, sct, levelPos);
+				actor_sector_collision(i, &cur_actor_line_table, sct, levelPos);
 			//}
 			
 			actor_per_object_processing(act);
@@ -1048,6 +1130,8 @@ void	manage_actors(void)
 						actor_set_animation_state(act, 1);
 					}
 					actor_set_animation_state(act, 1<<3);
+				} else {
+					act->goalSector = INVALID_SECTOR;
 				}
 				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
 				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
@@ -1077,7 +1161,7 @@ void	manage_actors(void)
 				act->totalFriction = 32768;
 				
 				if(!act->atGoal) checkInPathSteps(i);
-				actor_idle_actions(act);
+				actor_idle_actions(i);
 				//Add velocity of surface
 				if(act->box->surfID != INVALID_SECTOR)
 				{

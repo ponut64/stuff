@@ -24,13 +24,14 @@ Other asset data may need to be assessed when assets are available to fill the s
 	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
 	
 -> Actor Implementations
-	Dichotomy of Movement
-	One simplified idea of movement is to have the actor's model rotate to face the direction it is moving.
-	From this, we would delineate that it is facing that way and can see that way.
-	The other more nuanced idea is to program the actor to move like the player, where it moves forward, and we guide it by directing the forward vector.
-	From this setup, actors have a turn-rate that they must complete before going in a direction.
-	I for one feel like the direction that my projects are going, we need to guide it by a forward and pivot forward.
-	
+	Some things to figure out with actor navigation.
+	1 - Actor can easily get hung up on a wall corner. Need to find a way to detect this problem early. (probably trigger a pathing exception on X axis collision)
+	2 - Actor still has animation issues when changing poses.
+	3 - A momentary loss of vision will re-set the aggro chain. A timer should be set where the actor is still ready to pursue when the player is visible next.
+	4 - Actor can push the player. That's all well and good, but they can push the player into oblivion. So the player needs to push back.
+	Likely need to put a protection in the player's location tracking code to catch wall collisions and count time after a wall collision.
+	If a wall collision was detected recently (i.e. past 5 frames), we probably want to set the player back to their previous in-sector location.
+
 -> Performance consideration
 	Animated entities are best animated when no one is thrashing the bus.
 	Because applying the keyframe to the mesh permanently alters it (i.e. no copy is made),
