@@ -77,6 +77,11 @@ pulping enemies with a single shot is very satisfying
 i think the dualie should be able to do that
 and i need to figure out a pulp animation
 
+start the game with something artistic
+a gray grass field with no enemies or items
+and relaxing synths
+then after a few minutes, the music shifts, and the palette turns back to color
+
 **/
 //
 // Compilation updated to use latest version of Jo Engine standard compiler.

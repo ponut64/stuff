@@ -842,8 +842,6 @@ void	actor_idle_actions(int actor_id)
 		if(vec_dot > 0)
 		{
 			actorMoveToPos(act, intersection_pt, 0, act->box->radius[X]>>16);
-		} else {
-			act->info.flags.locked = 0;
 		}
 		
 		if(vec_dot > 49152)
@@ -860,7 +858,7 @@ void	actor_idle_actions(int actor_id)
 			//At this point, we would do a threat evaluation.
 			actor_set_animation_state(act, 1<<6);
 			actor_threat_evaluation(act);
-			act->aggroTimer = 30<<16;
+			act->aggroTimer = 10<<16;
 		}
 		
 	} else {
@@ -874,7 +872,7 @@ void	actor_idle_actions(int actor_id)
 	}
 	
 
-
+	static int nolos_timer = 0;
 	
 	if(act->info.flags.inCombat)
 	{
@@ -883,30 +881,51 @@ void	actor_idle_actions(int actor_id)
 		//If you are in the same sector as the actor, the actor will go directly to you.
 		//If you are NOT in the same sector, guide the actor towards the sector generally.
 		//In addition, do not repeat the guidance command unless the player changes sectors.
-		if(act->curSector == you.curSector)
+		if(act->curSector == you.curSector && nolos_timer < 0)
 		{
 		actorPopulateGoalInfo(act, you.wpos, you.curSector);
-		} else if(act->markedSector != act->goalSector || act->markedSector == INVALID_SECTOR)
+		} else if(you.curSector != act->goalSector)
 		{
 		get_floor_position_at_sector_center(you.curSector, intersection_pt);
 			
 		intersection_pt[Y] -= act->box->radius[Y];
 
 		actorPopulateGoalInfo(act, intersection_pt, you.curSector);
+		nolos_timer = 1<<16;
+		}
+	} else if(act->aggroTimer > 0 && act->markedSector == INVALID_SECTOR && act->atGoal)
+	{
+		//In case the aggroTimer is still positive, the actor is still aggro'd onto the player.
+		//It should not know where the player is at this point.
+		//Rather, it should pick a sector adjacent to the last sector the player was in that the actor is not currently in, and go there.
+		//Later I am going to build "Wandering" or "Patrolling" logic so .. that'll be relevant to this.
+		//Unlike wandering or patrolling, this will only be evaluated once.
 		act->markedSector = act->goalSector;
+		
+		for(int i = 0; i < sct->nbAdjacent; i++)
+		{
+			int randal = getRandom();
+			int sct_num = sct->pvs[i+1];
+			if(sct_num == act->curSector) continue;
+			if(i == (sct->nbAdjacent-1) || randal > 32768)
+			{
+				get_floor_position_at_sector_center(sct_num, intersection_pt);
+					
+				intersection_pt[Y] -= act->box->radius[Y];
+		
+				actorPopulateGoalInfo(act, intersection_pt, sct_num);
+				break;
+			}
 		}
 	}
-
-	
-	 //Bug: the actor will sometimes recieve a goal sector (vis a vie populate goal info), but not continue until in the goal sector.
-	 //Instead, it will end pathing close to the goal sector as per the pathing target being close to the edge.
-	 //In this case, act->curSector and you.curSector are not equal, and act->goalSector can be equal to your current sector.
+	nolos_timer -= delta_time;
 	
 	nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
-	nbg_sprintf(5, 10, "st(%x)", act->curSector);
-	nbg_sprintf(5, 11, "gl(%i)", act->goalSector);
-	nbg_sprintf(5, 12, "lat(%i)", act->pathingLatch);
-	nbg_sprintf(15, 9, "at(%i)", act->atGoal);
+	nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
+	nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
+	nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
+	nbg_sprintf(5, 11, "at(%i)", act->atGoal);
+	nbg_sprintf_decimal(5, 12, act->aggroTimer);
 }
 
 void	manage_actors(void)
