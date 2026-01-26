@@ -55,7 +55,7 @@ void reset_player(void)
 	you.dV[Y]=0;
 	you.dV[Z]=0;
 	you.IPaccel=0;
-	you.id = 0;
+	you.timeSinceWallHit = 0;
 	you.avg_sanics = 0;
 	you.sanic_samples = 0;
 	you.distanceToMapFloor = 0;
@@ -237,6 +237,43 @@ void	construct_line_tables(void)
 	
 }
 
+void	player_hit_wall(int * wallNorm, int * wallPos)
+{
+	//Push away.
+	//This might be the factor which is making this less functional,
+	//considering 1 meter has gone from 8 units to 64 units.
+	you.dV[X] -= wallNorm[X]<<1;
+	you.dV[Y] -= wallNorm[Y]<<1;
+	you.dV[Z] -= wallNorm[Z]<<1;
+	
+	you.IPaccel = fxm(you.IPaccel, 32768);
+	
+	//this should be restructured to be less bouncy and more strict
+	
+	int deflectionFactor = fxdot(you.velocity, wallNorm);
+	//This shouldn't be time-scaled, should it?
+	you.velocity[X] -= fxm(wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
+	you.velocity[Y] -= fxm(wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
+	you.velocity[Z] -= fxm(wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
+		
+	you.hitWall = true;
+	you.timeSinceWallHit = 1<<16;
+	//if(you.sanics >= 7<<16 && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
+	
+	if(you.sanics >= 3<<16)
+	{
+	pcm_play(snd_mstep, PCM_SEMI, 200);
+	emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, wallPos, wallNorm, 8<<16, 8192, 4);
+	}
+	
+	you.wallNorm[X] = wallNorm[X];
+	you.wallNorm[Y] = wallNorm[Y];
+	you.wallNorm[Z] = wallNorm[Z];
+	you.wallPos[X] = wallPos[X];
+	you.wallPos[Y] = wallPos[Y];
+	you.wallPos[Z] = wallPos[Z];
+}
+
 void	smart_cam(void)
 {
 	///////////////////////////////////////////
@@ -356,7 +393,7 @@ void	player_phys_affect(void)
 	////////////////////////////////////////////////////
 	//On-surface collision response
 	////////////////////////////////////////////////////
-	static int deflectionFactor = 0;
+	int deflectionFactor = 0;
 	if(you.hitSurface == true)
 	{
 		//These conditions force ground contact to occur when jumping repeatedly
@@ -469,35 +506,18 @@ void	player_phys_affect(void)
 	////////////////////////////////////////////////////
 	// Wall collision response
 	////////////////////////////////////////////////////
-	if(you.hitWall == true)
+	if(you.timeSinceWallHit > 0 && you.curSector == INVALID_SECTOR)
 	{
-			//Push away.
-			//This might be the factor which is making this less functional,
-			//considering 1 meter has gone from 8 units to 64 units.
-			you.dV[X] -= you.wallNorm[X]<<1;
-			you.dV[Y] -= you.wallNorm[Y]<<1;
-			you.dV[Z] -= you.wallNorm[Z]<<1;
-			
-			you.IPaccel = fxm(you.IPaccel, 32768);
-			
-			//this should be restructured to be less bouncy and more strict
-			
-			deflectionFactor = fxdot(you.velocity, you.wallNorm);
-			//This shouldn't be time-scaled, should it?
-			you.velocity[X] -= fxm(you.wallNorm[X], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Y] -= fxm(you.wallNorm[Y], deflectionFactor + REBOUND_ELASTICITY); 
-			you.velocity[Z] -= fxm(you.wallNorm[Z], deflectionFactor + REBOUND_ELASTICITY); 
-		
-			you.hitWall = false;
-			
-			//if(you.sanics >= 7<<16 && !you.setJump) pcm_play(snd_smack, PCM_SEMI, 7);
-			
-			if(you.sanics >= 3<<16)
-			{
-			pcm_play(snd_mstep, PCM_SEMI, 200);
-			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, you.wallPos, you.wallNorm, 8<<16, 8192, 4);
-			}
-	} 
+		you.pos[X] = you.prevPos[X];
+		you.pos[Y] = you.prevPos[Y];
+		you.pos[Z] = you.prevPos[Z];
+		you.curSector = you.prevSector;
+		you.timeSinceWallHit = 1<<16;
+	}
+	
+		//Clear wall flag, decrement wall timer
+		you.hitWall = false;
+		you.timeSinceWallHit -= delta_time;
 
 	//Ladder/Climb Escape Sequence
 	//At least in one test, this was pretty much perfect!
@@ -540,10 +560,12 @@ void	player_phys_affect(void)
 	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
 	you.sanics = fxm((you.sanics>>5), time_delta_scale);
 	//Set prev pos
+	if(you.curSector != INVALID_SECTOR)
+	{
 	you.prevPos[X] = you.pos[X];
 	you.prevPos[Y] = you.pos[Y];
 	you.prevPos[Z] = you.pos[Z];
-
+	}
 	//slPrintFX(you.sanics, slLocate(0, 8));
 		
 	////////////////////////////////////////////////////////////
@@ -720,14 +742,11 @@ void	player_phys_affect(void)
 		// Aligning by angles was technically more efficient since the matrix was only calculated once, in the prior function.
 		// By aligning with a matrix, a new matrix is used instead of the one from make2AxisBox.
 		// So that is pasted in to the box here.
-//		if(pl_RBB.collisionID == BOXID_VOID)
-//		{
 				//Release from surface
 				you.hitMap = false;
 				you.hitObject = false;
 				you.hitBox = false;
 				you.hitSurface = false;
-				you.hitWall = false;
 				you.aboveObject = false;
 		if(pl_RBB.status[0] == 'A')
 		{

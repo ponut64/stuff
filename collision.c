@@ -715,14 +715,7 @@ Wall collisions pass the Boolean "hitWall" that is processed in player_phy.c
 		you.aboveObject = true;
 		you.hitSurface = true;
 	} else {
-		you.wallNorm[X] = stator->nmtbl[faceIndex][X];
-		you.wallNorm[Y] = stator->nmtbl[faceIndex][Y];
-		you.wallNorm[Z] = stator->nmtbl[faceIndex][Z];
-		you.wallPos[X] = hitPt[X];
-		you.wallPos[Y] = hitPt[Y];
-		you.wallPos[Z] = hitPt[Z];
-			
-		you.hitWall = true;
+		player_hit_wall(stator->nmtbl[faceIndex], hitPt);
 	}
 }
 
@@ -872,6 +865,16 @@ numBoxChecks++;
 					pl_physics_handler(mover, stator, moverTimeAxis, lineEnds[u], i, obj_type_data);
 					mover->collisionID = stator->boxID;
 					stator->collisionID = mover->boxID;
+					if(stator->status[6] != 0)
+					{
+						//Collision belongs to an actor.
+						//The actor should collide.
+						_actor * act = &spawned_actors[(int)stator->status[6]];
+						centerDif[X] = -you.wallNorm[X];
+						centerDif[Y] = -you.wallNorm[Y];
+						centerDif[Z] = -you.wallNorm[Z];
+						actor_hit_wall(act, centerDif);
+					}
 					you.hitBox = true;
 					return true;
 				} 
@@ -960,6 +963,7 @@ void	player_collision_test_loop(void)
 	
 	//First, find the player's sector and build sector lists.
 	//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
+	you.prevSector = you.curSector;
 	you.curSector = broad_phase_sector_finder(you.realTimeAxis.yp1, levelPos, &sectors[you.curSector]);
 	//This is also the moment where we should build the adjacent / visible sector list.
 	//Use the current sector's adjacent list as the draw list.

@@ -25,13 +25,8 @@ Other asset data may need to be assessed when assets are available to fill the s
 	
 -> Actor Implementations
 	Some things to figure out with actor navigation.
-	1 - Actor can easily get hung up on a wall corner. Need to find a way to detect this problem early. (probably trigger a pathing exception on X axis collision)
-	2 - Actor still has animation issues when changing poses.
-	3 - A momentary loss of vision will re-set the aggro chain. A timer should be set where the actor is still ready to pursue when the player is visible next.
-	4 - Actor can push the player. That's all well and good, but they can push the player into oblivion. So the player needs to push back.
-	Likely need to put a protection in the player's location tracking code to catch wall collisions and count time after a wall collision.
-	If a wall collision was detected recently (i.e. past 5 frames), we probably want to set the player back to their previous in-sector location.
-
+	1 - Actor can sometimes be stuck moving in a circle around a navigation point.
+	There should be some distal closure where instead of trying to chase it, it will turn and move straight towards it.
 -> Performance consideration
 	Animated entities are best animated when no one is thrashing the bus.
 	Because applying the keyframe to the mesh permanently alters it (i.e. no copy is made),

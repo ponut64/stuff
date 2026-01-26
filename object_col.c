@@ -823,14 +823,7 @@ int		collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 				ray_to_plane(mover->UVX, mover->nextPos, used_normal, plane_center, possible_wall);
 				if(isPointonSegment(possible_wall, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
 				{
-					you.hitWall = true;
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					
-					you.wallPos[X] = possible_wall[X];
-					you.wallPos[Y] = possible_wall[Y];
-					you.wallPos[Z] = possible_wall[Z];
+					player_hit_wall(used_normal, possible_wall);
 				}
 			}
 			break;
@@ -841,14 +834,7 @@ int		collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * move
 				ray_to_plane(mover->UVZ, mover->nextPos, used_normal, plane_center, possible_wall);
 				if(isPointonSegment(possible_wall, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
 				{
-					you.hitWall = true;
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					
-					you.wallPos[X] = possible_wall[X];
-					you.wallPos[Y] = possible_wall[Y];
-					you.wallPos[Z] = possible_wall[Z];
+					player_hit_wall(used_normal, possible_wall);
 				}
 			}
 			break;
@@ -981,14 +967,7 @@ int		collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 				ray_to_plane(mover->UVX, mover->nextPos, used_normal, plane_center, possible_wall);
 				if(isPointonSegment(possible_wall, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
 				{
-					you.hitWall = true;
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					
-					you.wallPos[X] = possible_wall[X];
-					you.wallPos[Y] = possible_wall[Y];
-					you.wallPos[Z] = possible_wall[Z];
+					player_hit_wall(used_normal, possible_wall);
 				}
 			}
 			break;
@@ -999,14 +978,7 @@ int		collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 				ray_to_plane(mover->UVZ, mover->nextPos, used_normal, plane_center, possible_wall);
 				if(isPointonSegment(possible_wall, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
 				{
-					you.hitWall = true;
-					you.wallNorm[X] = used_normal[X];
-					you.wallNorm[Y] = used_normal[Y];
-					you.wallNorm[Z] = used_normal[Z];
-					
-					you.wallPos[X] = possible_wall[X];
-					you.wallPos[Y] = possible_wall[Y];
-					you.wallPos[Z] = possible_wall[Z];
+					player_hit_wall(used_normal, possible_wall);
 				}
 			}
 			break;

@@ -186,8 +186,17 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	//6. set the nextKeyFrame to the animCtrl startFrm
 	//7. Interpolate once
 	//8. Return all control data as if set from the animCtrl pose
-	Bool animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
-//
+	int animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm || AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
+	//
+	// Check to see if the animation matches, or if reset is enabled.
+	// In these cases, re-load information from the AnimCtrl.
+	if(animation_change == 1) 
+	{
+		AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
+		AnimArea[anims].startFrm = animCtrl->startFrm;
+		AnimArea[anims].endFrm = animCtrl->endFrm;
+	}
+
 	unsigned char localArate;
 	unsigned char nextKeyFrm;
 	int frDelta;
@@ -362,17 +371,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
     }
 		transPolys[0] += model->nbPolygon;
 		
- // Check to see if the animation matches, or if reset is enabled.
- // In these cases, re-load information from the AnimCtrl.
- if(animation_change == 1) 
- {
-	
 
-	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
-	
-	AnimArea[anims].startFrm = animCtrl->startFrm;
-	AnimArea[anims].endFrm = animCtrl->endFrm;
- }
 	
 		
 		anims++; //Increment animation work area pointer

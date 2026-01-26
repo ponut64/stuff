@@ -126,8 +126,6 @@ void	master_draw_stats(void)
 	nbg_sprintf(8, 27, "VERTS:                ");
 	nbg_sprintf(8, 27, "VERTS:%i", transVerts[0]);
 //		}
-	nbg_sprintf(37, 26, "cX(%i)", you.cellPos[X]);
-	nbg_sprintf(37, 27, "cY(%i)", you.cellPos[Y]);    
 	
 	nbg_sprintf(1, 4, "Rate:(%i)", you.IPaccel);
 	

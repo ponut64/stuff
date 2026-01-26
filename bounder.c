@@ -393,6 +393,7 @@ void	flush_boxes(int start)
 		RBBs[i].status[3] = 'N';
 		RBBs[i].status[4] = 'N';
 		RBBs[i].status[5] = 'N';
+		RBBs[i].status[6] = 0;
 		RBBs[i].velocity[X] = 0;
 		RBBs[i].velocity[Y] = 0;
 		RBBs[i].velocity[Z] = 0;

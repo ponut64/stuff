@@ -115,8 +115,9 @@ typedef struct {
 // [3] == 'B', collision box proxy ready
 // [4] == 'S', box is receiving a scale
 // [5] == 'r', was rendered, else 0.
+// [6] == 'A', box belongs to an actor.
 // could be bitflags tbh
-	char status[6];
+	char status[8];
 	//ID# for collision. Usually throws the object # collided with. -1 signals no collision.
 	short collisionID;
 	//ID#. Used to verify the box object #. -1 signals the box is void.
@@ -188,12 +189,7 @@ typedef struct {
 	FIXED pos[XYZ];
 	FIXED wpos[XYZ];
 	int startPos[XYZ];
-	int cellPos[XY];
-	int dispPos[XY];
-	int prevCellPos[XY];
-	int prevDispPos[XY];
 	FIXED prevPos[XYZ];
-	int id;
 	int rot[XYZ]; //It needs to be an INT... NO IDEA WHY...
 	int rot2[XYZ];
 	int renderRot[XYZ];
@@ -237,6 +233,8 @@ typedef struct {
 	int airTime;
 	int parTime;
 	int hasValidAim;
+	
+	int	timeSinceWallHit;
 	
 	short firstSurfHit;
 	

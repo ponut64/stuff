@@ -427,10 +427,10 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
-					//if(!act->atGoal && act->goalSector != act->curSector)
-					//{
-					//	findPathTo(act->goalSector, actor_id);
-					//}
+					if(!act->atGoal && act->goalSector != act->curSector)
+					{
+						findPathTo(act->goalSector, actor_id);
+					}
 				}
 			}
 			break;
@@ -445,10 +445,10 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
-					//if(!act->atGoal && act->goalSector != act->curSector)
-					//{
-					//	findPathTo(act->goalSector, actor_id);
-					//}
+					if(!act->atGoal && act->goalSector != act->curSector)
+					{
+						findPathTo(act->goalSector, actor_id);
+					}
 				}
 			}
 			break;
@@ -750,6 +750,9 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	}
 	
+	nbg_sprintf(5, 9, "anim(%x)", act->animPriorityQueue);
+	nbg_sprintf(15, 9, "stat(%x)", act->animState);
+	nbg_sprintf(5, 10, "tim(%i)", act->animationTimer);
 	
 	return (void*)used_anim;
 	
@@ -920,12 +923,20 @@ void	actor_idle_actions(int actor_id)
 	}
 	nolos_timer -= delta_time;
 	
-	nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
-	nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
-	nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
-	nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
-	nbg_sprintf(5, 11, "at(%i)", act->atGoal);
-	nbg_sprintf_decimal(5, 12, act->aggroTimer);
+	// nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
+	// nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
+	// nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
+	// nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
+	// nbg_sprintf(5, 11, "at(%i)", act->atGoal);
+	// nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
+	// nbg_sprintf_decimal(5, 12, act->aggroTimer);
+	
+	//To get the player to collide back with an actor,
+	//the collision ID needs to be present from the actor's box<->player collision.
+	//This is currently reset as flush boxes happens after player collision, but before actor interaction.
+	//We need to find a way to store this interaction specifically between the player and a box that is owned by an actor.
+	
+	
 }
 
 void	manage_actors(void)
@@ -1030,10 +1041,12 @@ void	manage_actors(void)
 				// 1. Render-able
 				// 2. Collidable
 				// 3. May or may not emit light
+				// 7. Belongs to <actor number>
 				////////////////////////////////////////////////////
 				RBBs[objUP].status[0] = 'R';
 				RBBs[objUP].status[1] = 'C';
 				RBBs[objUP].status[2] = 'N';
+				RBBs[objUP].status[6] = i;
 				//This array is meant on a list where iterative searches can find the right object in the entire declared list.
 				activeObjects[objUP] = act->boxID;
 				//This array is meant as a list where iterative searches find the entity type drawn.

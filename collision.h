@@ -19,6 +19,7 @@ void	player_collision_test_loop(void);
 
 //player_phy
 void	reset_player(void);
+void	player_hit_wall(int * wallNorm, int * wallPos);
 void	player_phys_affect(void);
 void	collideBoxes(_boundBox * boxD);
 void	collide_with_heightmap(_boundBox * sbox, _lineTable * moverCFs, _lineTable * moverTimeAxis);
