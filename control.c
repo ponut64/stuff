@@ -148,15 +148,15 @@ void controls(void)
 		
 		use_viewmodel();
 		
-		for(int i = 0; i < MAX_PHYS_PROXY; i++)
-		{
-			_actor * act = &spawned_actors[i];
+		// for(int i = 0; i < MAX_PHYS_PROXY; i++)
+		// {
+			// _actor * act = &spawned_actors[i];
 			
-			if(act->info.flags.active)
-			{
-				actorPopulateGoalInfo(act, you.wpos, you.curSector);
-			}
-		}
+			// if(act->info.flags.active)
+			// {
+				// actorPopulateGoalInfo(act, you.wpos, you.curSector);
+			// }
+		// }
 		//you.guidePos[X] = you.wpos[X];//you.hitscanPt[X];
 		//you.guidePos[Y] = you.wpos[Y];//you.hitscanPt[Y];
 		//you.guidePos[Z] = you.wpos[Z];//you.hitscanPt[Z];

@@ -435,6 +435,7 @@ typedef struct {
 	int exceptionDir[3];
 	int blockedLOSNorm[3];
 	_boundBox * box;
+	int boxNumber;
 	int entity_ID;
 	_declaredObject * spawner;
 	int lifetime;
@@ -446,6 +447,7 @@ typedef struct {
 	int animationTimer;
 	int idleActionTimer;
 	int aggroTimer;
+	int nolosTimer;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;
@@ -480,4 +482,5 @@ void	actor_hit_wall(_actor * act, int * wall_norm);
 int		actorMoveToPos(_actor * act, int * target, int rate, int gap);
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);
 void	manage_actors(void);
+void	init_actors(void);
 

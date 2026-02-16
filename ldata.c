@@ -325,8 +325,8 @@ void	testing_level_data(Sint8 * filename, void * destination)
 
 void declarations(void)
 {
-	declare_object_at_cell(0, -(0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
-	declare_object_at_cell(0, -(0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell(0, -(0), -240, 1 /*DestroyBlock*/, 0, 0, 0, 0, 0);
+	//declare_object_at_cell(0, -(0), 240, 60 /*TestSpawner*/, 0, 0, 0, 0, 0);
 	
 
 }
@@ -341,7 +341,7 @@ void	level_data_basic(void)
 	ldata_ready = true;
 
 	post_ldata_init_building_object_search();
-	
+	init_actors();
 		//////////////////////////////////
 		//
 		// Send player to map's start location

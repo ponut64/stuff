@@ -197,11 +197,11 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		AnimArea[anims].endFrm = animCtrl->endFrm;
 	}
 
-	unsigned char localArate;
-	unsigned char nextKeyFrm;
-	int frDelta;
-	compVert * curKeyFrame;
-	compVert * nextKeyFrame;
+	static unsigned char localArate;
+	static unsigned char nextKeyFrm;
+	static int frDelta;
+	static compVert * curKeyFrame;
+	static compVert * nextKeyFrame;
     /**Sets the animation data**/
 	
 
@@ -243,66 +243,49 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
 
 	//Animation Data
-    volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
-    short * src = curKeyFrame[0];
-    short * nxt = nextKeyFrame[0];
-	int inverseZ = 0;
-	register int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
-	////////////////////////////////////////////////////////////
-	// Pre-loop
-	////////////////////////////////////////////////////////////
-	// ** 1 **
-	// Interpolate/decompress the FIRST vertex
-	// Hypothetically, we should do this, but it seems to be fine to use the last frame's vertex 0.
-	// Alternatively, we know that any jump costs us a pipeline dump, but *only* if the code is not in cache.
-	// Thus, a small loop which performs the decompression/interpolation before transformation occurs may be faster.
-	// It might be if it fits in cache. Then again, you still lose 3 cycles to the jump, on pure instruction cost.
-	// ** 2 **
-	// Calculate Z for the FIRST vertex
-	ssh2VertArea[0].pnt[Z] = trans_pt_by_component(model->pntbl[0], m2z);
-	ssh2VertArea[0].pnt[Z] = (ssh2VertArea[0].pnt[Z] > near_plane) ? ssh2VertArea[0].pnt[Z] : near_plane;
-	// ** 3 **
-	// Set the division unit to work on the FIRST vertex Z
-	SetFixDiv(scrn_dist, ssh2VertArea[0].pnt[Z]);
-
-    for (unsigned int i = 0; i < model->nbPoint; i++)
-    {
-
-		// ** 1 **
-        /**Calculates X and Y while waiting for screenDist/z for CURRENT vertex **/
-        ssh2VertArea[i].pnt[Y] = trans_pt_by_component(model->pntbl[i], m1y);
-        ssh2VertArea[i].pnt[X] = trans_pt_by_component(model->pntbl[i], m0x);
-		// ** 2 **
-		/**Uncompress the NEXT vertex and apply linear interpolation**/
+    //volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
+	volatile short * src = curKeyFrame[0];
+	volatile short * nxt = nextKeyFrame[0];
+	register int inverseZ = 0;
+	int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
+	
+	int wp[3];
+	//Get interpolation set vertex (first vertex)
+	#pragma GCC push_options
+	#pragma GCC diagnostic ignored "-Wsequence-point"
+	wp[X]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	wp[Y]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	wp[Z]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	#pragma GCC pop_options
+	for(unsigned int i = 0; i < model->nbPoint; i++)
+	{
+		//Non-writeback animation interpolation/drawing
+		//Calcluate Z and start division
+		ssh2VertArea[i].pnt[Z] = trans_pt_by_component(wp, m2z);
+		ssh2VertArea[i].pnt[Z] = (ssh2VertArea[i].pnt[Z] > near_plane) ? ssh2VertArea[i].pnt[Z] : near_plane;
+		SetFixDiv(scrn_dist, ssh2VertArea[i].pnt[Z]);
+		//Calculate X and Y while division happens
+		ssh2VertArea[i].pnt[X] = trans_pt_by_component(wp, m0x);
+		ssh2VertArea[i].pnt[Y] = trans_pt_by_component(wp, m1y);
+		//Get next vertex interpolated (also while division happens)
 		#pragma GCC push_options
 		#pragma GCC diagnostic ignored "-Wsequence-point"
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
-		*dst++=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		wp[X]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		wp[Y]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		wp[Z]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
 		#pragma GCC pop_options
-		// ** 3 **
-        /** Retrieves the result of the division  for CURRENT vertex**/
+		//Get division result
 		inverseZ = *DVDNTL;
-		// ** 4 **
-        /**calculate z for the NEXT vertex**/
-        ssh2VertArea[i+1].pnt[Z] = trans_pt_by_component(model->pntbl[i+1], m2z);
-		ssh2VertArea[i+1].pnt[Z] = (ssh2VertArea[i+1].pnt[Z] > near_plane) ? ssh2VertArea[i+1].pnt[Z] : near_plane;
-		// ** 5 **
-         /**Starts the division for the NEXT vertex**/
-        SetFixDiv(scrn_dist, ssh2VertArea[i+1].pnt[Z]);
-		// ** 6 **
-        /**Transform X and Y to screen space for CURRENT vertex**/
-        ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
-        ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
-		
+		ssh2VertArea[i].pnt[X] = fxm(ssh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+		ssh2VertArea[i].pnt[Y] = fxm(ssh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
+			
 		//For animated models, CPU time is at a premium.
 		//Simplifying the clipping system specifically for animations might be worth.
 		clipping(&ssh2VertArea[i], ent->useClip);
-    }
+	}
 
     transVerts[0] += model->nbPoint;
 
-    dst = (Sint32 *)&model->pltbl[0];
     volatile Uint8 *src2 = ent->animation[AnimArea[anims].curKeyFrm]->cNorm; //A new 1-byte src
 	VECTOR tNorm = {0, 0, 0};
 	
@@ -333,7 +316,7 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		//Adding logic to change sorting per-polygon can be done, but costs CPU time.
 		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
 
-		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address, always, but only after the first polygon
+		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address only after the first polygon
  
 		int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
  
@@ -384,15 +367,35 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	if(ent->file_done != 1){return;}
 
     GVPLY * model = ent->pol;
-	
-	short animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm && AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
-//
-	unsigned char localArate;
-	unsigned char nextKeyFrm;
-	int frDelta;
-	compVert * curKeyFrame;
-	compVert * nextKeyFrame;
+	//there's an unknown memory access issue with this function...
+	static unsigned char localArate;
+	static unsigned char nextKeyFrm;
+	static int frDelta;
+	static compVert * curKeyFrame;
+	static compVert * nextKeyFrame;
+	//Process for static pose change:
+	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
+	//2. Set curFrm to the AnimArea startFrm<<3
+	//3. Set uniforn to 0
+	//4. Set the local arate to 4
+	//5. Set curKeyFrm to the AnimArea startFrm
+	//6. set the nextKeyFrame to the animCtrl startFrm
+	//7. Interpolate once
+	//8. Return all control data as if set from the animCtrl pose
+	int animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm || AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
+	//
+	// Check to see if the animation matches, or if reset is enabled.
+	// In these cases, re-load information from the AnimCtrl.
+	if(animation_change == 1) 
+	{
+		AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
+		AnimArea[anims].startFrm = animCtrl->startFrm;
+		AnimArea[anims].endFrm = animCtrl->endFrm;
+	}
+
     /**Sets the animation data**/
+	
+
 	///Variable interpolation set
 	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
 
@@ -400,6 +403,9 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	////
 	AnimArea[anims].curFrm += (localArate * framerate);
 	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
+	
+	// nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
+	// nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
 	
     if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
 	{
@@ -427,11 +433,10 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 	///Don't touch this! **absolute** frame delta 
 	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
 
-
 	//Animation Data
     volatile Sint32 * dst = model->pntbl[0];
-    short * src = curKeyFrame[0];
-    short * nxt = nextKeyFrame[0];
+    volatile short * src = curKeyFrame[0];
+    volatile short * nxt = nextKeyFrame[0];
 	/////
 	/////
 	for(unsigned int i = 0; i < model->nbPoint; i++)
@@ -453,17 +458,6 @@ void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transp
 		src2++;
 	}
 		
- // Check to see if the animation matches, or if reset is enabled.
- // In these cases, re-load information from the AnimCtrl.
- if(animation_change == 1) 
- {
-
-	AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
-
-	AnimArea[anims].startFrm = animCtrl->startFrm;
-	AnimArea[anims].endFrm = animCtrl->endFrm;
- }
-	
 		anims++; //Increment animation work area pointer
 	
 }

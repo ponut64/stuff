@@ -530,6 +530,7 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->pathGoal[Z] = 0;
 	act->atGoal = 1;
 	act->aggroTimer = 0;
+	act->nolosTimer = 0;
 	act->goalSector = INVALID_SECTOR;
 	act->markedSector = INVALID_SECTOR;
 	
@@ -650,6 +651,8 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	act->animState = 0;
 	animationControl * used_anim = &t_idle_pose;
 
+	if(entities[act->entity_ID].type != MODEL_TYPE_ANIMATED) return (void*)NULL;
+
 	if(reg == 0 && state == 0) return (void*)used_anim;
 	
 	if(reg != 0)
@@ -750,9 +753,9 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	}
 	
-	nbg_sprintf(5, 9, "anim(%x)", act->animPriorityQueue);
-	nbg_sprintf(15, 9, "stat(%x)", act->animState);
-	nbg_sprintf(5, 10, "tim(%i)", act->animationTimer);
+	// nbg_sprintf(5, 9, "anim(%x)", act->animPriorityQueue);
+	// nbg_sprintf(15, 9, "stat(%x)", act->animState);
+	// nbg_sprintf(5, 10, "tim(%i)", act->animationTimer);
 	
 	return (void*)used_anim;
 	
@@ -763,11 +766,11 @@ void	actor_threat_evaluation(_actor * act)
 	//Procedurally speaking, this would ordinarily contain information about how each actor type responds to things that they (are allowed to) see.
 	//In this test case, it is always assumed to be evaluating the player.
 	
-	int * target = you.wpos;
+	int target[3] = {you.wpos[X]>>16, you.wpos[Y]>>16, you.wpos[Z]>>16};
+	int dst[3] = {act->pos[X]>>16, act->pos[Y]>>16, act->pos[Z]>>16};
+	int dist = approximate_distance(target, dst);
 	
-	int dist = approximate_distance(target, act->pos);
-	
-	if(dist < 512<<16)
+	if(dist < 512)
 	{
 		act->info.flags.inCombat = 1;
 	}
@@ -802,7 +805,7 @@ void	actor_idle_actions(int actor_id)
 	//(We also need to do line of sight calculations with movers)
 	los_blocked = isPointonSegment(intersection_pt, you.wpos, act->pos, 128);
 	
-	nbg_sprintf(5, 7, "los(%i)", los_blocked);
+	//nbg_sprintf(5, 7, "los(%i)", los_blocked);
 	
 	short sprSpan[3] = {10, 10, 10};
 	sprite_prep.info.drawMode = SPRITE_TYPE_BILLBOARD;
@@ -861,7 +864,6 @@ void	actor_idle_actions(int actor_id)
 			//At this point, we would do a threat evaluation.
 			actor_set_animation_state(act, 1<<6);
 			actor_threat_evaluation(act);
-			act->aggroTimer = 10<<16;
 		}
 		
 	} else {
@@ -875,16 +877,14 @@ void	actor_idle_actions(int actor_id)
 	}
 	
 
-	static int nolos_timer = 0;
-	
 	if(act->info.flags.inCombat)
 	{
 		actor_set_animation_state(act, 1<<4);
-		
+		act->aggroTimer = 10<<16;
 		//If you are in the same sector as the actor, the actor will go directly to you.
 		//If you are NOT in the same sector, guide the actor towards the sector generally.
 		//In addition, do not repeat the guidance command unless the player changes sectors.
-		if(act->curSector == you.curSector && nolos_timer < 0)
+		if(act->curSector == you.curSector && act->nolosTimer < 0)
 		{
 		actorPopulateGoalInfo(act, you.wpos, you.curSector);
 		} else if(you.curSector != act->goalSector)
@@ -894,7 +894,7 @@ void	actor_idle_actions(int actor_id)
 		intersection_pt[Y] -= act->box->radius[Y];
 
 		actorPopulateGoalInfo(act, intersection_pt, you.curSector);
-		nolos_timer = 1<<16;
+		act->nolosTimer = 1<<16;
 		}
 	} else if(act->aggroTimer > 0 && act->markedSector == INVALID_SECTOR && act->atGoal)
 	{
@@ -921,7 +921,7 @@ void	actor_idle_actions(int actor_id)
 			}
 		}
 	}
-	nolos_timer -= delta_time;
+	act->nolosTimer -= delta_time;
 	
 	// nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
 	// nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
@@ -956,16 +956,18 @@ void	manage_actors(void)
 	
 	_actor * act;
 
-	for(int i = 0; i < MAX_PHYS_PROXY; i++)
+	for(int i = MAX_PHYS_PROXY; i > 0; --i)
 	{
 		
 		act = &spawned_actors[i];
 		act->prevSector = act->curSector;
 		
+		//When an actor is spawned, alive or dead, it will be marked active.
+		//Only certain game conditions (i.e. lifetime expired) will make it inactive.
+		if(!act->info.flags.active) continue;
+
 		if(sectorIsVisible[act->curSector])
 		{
-			//Mark as active
-			act->info.flags.active = 1;
 			if(act->health == 0) act->info.flags.alive = 0;
 			if(!act->info.flags.alive)
 			{
@@ -1035,7 +1037,7 @@ void	manage_actors(void)
 				
 				makeBoundBox(&bound_box_starter, EULER_OPTION_XZY);
 				RBBs[objUP].boxID = act->boxID;
-				act->box = &RBBs[objUP];
+				act->box = bound_box_starter.modified_box;
 				////////////////////////////////////////////////////
 				//Set the box status. This branch of the logic dictates the box is:
 				// 1. Render-able
@@ -1055,6 +1057,10 @@ void	manage_actors(void)
 			} else {
 				continue;
 			}
+			
+			act->box->animation = adjudicate_actor_animation_queue(act);
+			nbg_sprintf(3, 18, "a(%i)", act->boxID);
+			nbg_sprintf(3, 19, "d(%i)", i);
 			////////////////////////////////////////////////////
 			//Before we progress to the rules applied to all actors,
 			//we need a part here where the behaviors of each actor is implemented.
@@ -1210,16 +1216,20 @@ void	manage_actors(void)
 				
 			}
 			
-			active_lights[0].pos[X] = -act->pos[X];
-			active_lights[0].pos[Y] = -act->pos[Y];
-			active_lights[0].pos[Z] = -act->pos[Z];
+			// active_lights[0].pos[X] = -act->pos[X];
+			// active_lights[0].pos[Y] = -act->pos[Y];
+			// active_lights[0].pos[Z] = -act->pos[Z];
 			
 			
-			act->box->animation = adjudicate_actor_animation_queue(act);
+			
 			//nbg_sprintf(5, 13, "ani(%x)", act->box->animation);
 			act->info.flags.hitFloor = 0;
+			//Hmm...
+			// entities[act->entity_ID].prematrix = (FIXED *)act->box;
+			// meshAnimProcessing((animationControl*)act->box->animation, &entities[act->entity_ID], 0);
+			// msh2DrawModel(&entities[act->entity_ID], (MATRIX*)&world_box);
+			
 		} else {
-			act->info.flags.active = 0;
 		
 			if(act->curSector == INVALID_SECTOR)
 			{
@@ -1233,3 +1243,22 @@ void	manage_actors(void)
 	
 }
 
+void	init_actors(void)
+{
+	for(int i = 0; i < MAX_PHYS_PROXY; i++)
+	{
+		_actor * act = &spawned_actors[i];
+		act->health = 0;
+		act->maxHealth = 0;
+		act->curSector = INVALID_SECTOR;
+		act->prevSector = INVALID_SECTOR;
+		
+		act->info.flags.alive = 0;
+		act->info.flags.active = 0;
+		act->info.flags.inCombat = 0;
+		act->info.flags.onPathNode = 0;
+		
+	}
+	
+	
+}

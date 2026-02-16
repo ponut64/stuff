@@ -709,7 +709,9 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	target_dif[Y] = JO_ABS(target_dif[Y]>>12);
 	target_dif[Z] = JO_ABS(target_dif[Z]>>12);
 	
-	if((target_dif[X] + target_dif[Y] + target_dif[Z]) < gap) return 1;
+	int distal = (target_dif[X] + target_dif[Y] + target_dif[Z]);
+	
+	if(distal < gap) return 1;
 
 	//Goal:
 	//When are are moving towards anything, the actor has to move in the front vector.
@@ -744,7 +746,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	{
 		//Facing away.
 		//Reduce travel rate to make a tighter turn and turn faster.
-		travel_rate>>=1;
+		travel_rate = (distal < (gap<<1)) ? 0 : rate>>1;
 		turn_rate<<=1;
 	}
 	

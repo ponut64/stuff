@@ -24,18 +24,24 @@ Other asset data may need to be assessed when assets are available to fill the s
 	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
 	
 -> Actor Implementations
-	Some things to figure out with actor navigation.
-	1 - Actor can sometimes be stuck moving in a circle around a navigation point.
-	There should be some distal closure where instead of trying to chase it, it will turn and move straight towards it.
+
+	- Multiple Actors
+	- Actors don't collide with each other
+	- actor can walk through movers (doors).
+	
 -> Performance consideration
-	Animated entities are best animated when no one is thrashing the bus.
-	Because applying the keyframe to the mesh permanently alters it (i.e. no copy is made),
-	animation instancing is used to keep track of multiple animations --
-	making it difficult for another CPU to assist in the animation processing pipeline.
-	A few options are plausible.
-	1 - Use memory allocations dynamically to create copies of the mesh to animate for each respective instance.
-	2 - Give CPU1 exclusive processing of the animated entities, but re-allocate drawing of sectors to CPU0.
-	Further testing of the quality of existing animation systems should be done.
+	Right now, SH2-1 draws everything, and SH2-0 prepares everything and does game logic.
+	Even with a surplus of box-box collision tests happening, SH2-1 is overloaded by 8ms (real hardware test).
+	4ms of work could be reasonably lifted from SH2-1 in this case.
+	Note that due to the high variability of 3D scenes, it is unlikely this workload can be lifted in all cases.
+	Remember, SH2-0 already helps with drawing sectors, and this is most of SH2-1's work.
+	
+-> "Is key struck" logic
+	We should re-set the struck keyset only on the next game frame, not next vblank.
+	
+-> ssh2 <-> msh2 master matrix mismatch
+	at times, the master matrix is either a frame ahead or behind of ssh2.
+	this is kind of jarring and a solution should be found, but... later. that's a timing thing.
 
 Roadmap to playable game:
 1 - > Complete simple actor implementations
