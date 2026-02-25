@@ -677,13 +677,15 @@ void	actor_hit_wall(_actor * act, int * wall_norm)
 	
 	int deflectionFactor = -fxdot(act->velocity, wall_norm);
 		
-	act->velocity[X] += fxm(wall_norm[X], deflectionFactor + REBOUND_ELASTICITY);
-	act->velocity[Y] += fxm(wall_norm[Y], deflectionFactor + REBOUND_ELASTICITY);
-	act->velocity[Z] += fxm(wall_norm[Z], deflectionFactor + REBOUND_ELASTICITY);
+	
+		
+	act->velocity[X] += fxm(wall_norm[X]<<1, deflectionFactor + REBOUND_ELASTICITY);
+	act->velocity[Y] += fxm(wall_norm[Y]<<1, deflectionFactor + REBOUND_ELASTICITY);
+	act->velocity[Z] += fxm(wall_norm[Z]<<1, deflectionFactor + REBOUND_ELASTICITY);
 	//Small push to secure surface release
-	act->dV[X] += wall_norm[X];
-	act->dV[Y] += wall_norm[Y];
-	act->dV[Z] += wall_norm[Z];
+	act->dV[X] += wall_norm[X]<<1;
+	act->dV[Y] += wall_norm[Y]<<1;
+	act->dV[Z] += wall_norm[Z]<<1;
 	
 	act->info.flags.hitWall = 1;
 	

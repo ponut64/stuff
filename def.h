@@ -57,7 +57,7 @@
 #define NUM_LEVELS	(9)
 
 //Warning: 32 seems to be a max right now.
-#define MAX_PHYS_PROXY (64)
+#define MAX_PHYS_PROXY (48)
 
 #define BOXID_PLAYER	(-2)
 #define BOXID_MAP		(-3)

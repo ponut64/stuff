@@ -279,8 +279,6 @@ void	object_control_loop(void)
 	//nbg_sprintf(5, 10, "size(%i)", sizeof(xdata));
 //Notice: Maximum collision tested & rendered items is MAX_PHYS_PROXY
 
-	manage_actors();
-
 	for(int i = 0; i < objNEW; i++)
 	{
 		obj = &dWorldObjects[i];
@@ -566,7 +564,7 @@ void	object_control_loop(void)
 			////////////////////////////////////////////////////
 		}
 		
-		
+	manage_actors();
 		
 	// nbg_sprintf(12, 6, "objUP:(%i)", objUP);
 	// nbg_sprintf(12, 7, "objNW:(%i)", objNEW);

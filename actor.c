@@ -100,27 +100,19 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	// 2. Project the center-face to the plane being tested
 	// 3. Test the projected point to see if it is inside the actor
 	// 4. If it is inside the actor, conduct collision response.
-	// I'm using an axis-aligned box, this has to be simple.
-	// From the center-face projected point, I can add:
-	// the polygon normal multiplied by the radius of the box
-	// But what good does that do?
-	// There are two separate problems I am trying to solve:
-	// 1. Colliding with large surfaces as they are sloped on the edges of the box
-	// 2. Colliding with small surfaces that do not cross any center-face of the box
-	// With large surfaces, something like the Minkowski Difference can apply.
-	// For colliding with small surfaces like that, it needs every edge projected on the box.
-	// We want to project only the faces which are not being tested.
+	// Actors are thusly allowed to rotate to the direction they are facing.
+	// This makes collision testing slightly more expensive, but honestly it makes other code and mechanics better.
 	
 	//If the entity is not loaded, cease the test.
 	if(ent->file_done != true) return 0;
 	//If the actor is not within a reasonable radius of the object, cease the test.
 	int cDif[3];
-	cDif[X] = (JO_ABS(ent_pos[X] - act->pos[X]) - (act->box->radius[X]<<1))>>16;
-	cDif[Y] = (JO_ABS(ent_pos[Y] - act->pos[Y]) - (act->box->radius[Y]<<1))>>16;
-	cDif[Z] = (JO_ABS(ent_pos[Z] - act->pos[Z]) - (act->box->radius[Z]<<1))>>16;
+	cDif[X] = (JO_ABS(ent_pos[X] - act->pos[X]) - (act->box->radius[X]<<2))>>16;
+	cDif[Y] = (JO_ABS(ent_pos[Y] - act->pos[Y]) - (act->box->radius[Y]<<2))>>16;
+	cDif[Z] = (JO_ABS(ent_pos[Z] - act->pos[Z]) - (act->box->radius[Z]<<2))>>16;
 	if(cDif[X] > ent->radius[X] || cDif[Y] > ent->radius[Y] || cDif[Z] > ent->radius[Z]) return 0;
 	
-	spr_sprintf(20, 24, "inbox");
+
 	
 	GVPLY * mesh = ent->pol;
 	_boundBox * box = act->box;
@@ -131,6 +123,34 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 	static int potential_hit[3];
 	int surfHit = 0;
 	
+	//Spend a moment to find the major X and major Z axis
+	int * mz;
+	int * mx;
+	int * px[2];
+	int * pz[2];
+	
+	if(JO_ABS(box->UVX[Z]) >= JO_ABS(box->UVZ[Z]))
+	{
+		//If UVX has a more major Z than the Z axis, then the X axis can hitherto be used as the Z.
+		mz = &box->UVX[0];
+		pz[0] = &realTimeAxis->xp0[0];
+		pz[1] = &realTimeAxis->xp1[0];
+
+		mx = &box->UVZ[0];
+		px[0] = &realTimeAxis->zp0[0];
+		px[1] = &realTimeAxis->zp1[0];
+	} else {
+		//Otherwise, traditional use of each axis applies.
+		mx = &box->UVX[0];
+		px[0] = &realTimeAxis->xp0[0];
+		px[1] = &realTimeAxis->xp1[0];
+
+		mz = &box->UVZ[0];
+		pz[0] = &realTimeAxis->zp0[0];
+		pz[1] = &realTimeAxis->zp1[0];
+	}
+	
+
 	for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	{
 		
@@ -190,7 +210,7 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 16384))
+				if(isPointonSegment(potential_hit, act->nextPos, realTimeAxis->yp1, 16384))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
@@ -207,7 +227,7 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->yp0, mesh->maxtbl[i], 12))
 			{
 				ray_to_plane(box->UVY, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->yp0, realTimeAxis->yp1, 65536))
+				if(isPointonSegment(potential_hit, act->nextPos, realTimeAxis->yp0, 65536))
 				{	
 					act->floorPos[X] = potential_hit[X];
 					act->floorPos[Y] = potential_hit[Y];
@@ -219,50 +239,34 @@ int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity
 			break;
 			case(N_Xp):
 			case(N_Xn):
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[i], 12))
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], px[1], mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVX, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				//spr_sprintf(20, 24, "X");
+				ray_to_plane(mx, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, px[0], px[1], 65536))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
+					
 				}
-			} else {
-				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zp))
-				//{
-				//	actor_hit_wall(act, used_normal);
-				//}
-				//
-				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Zn))
-				//{
-				//	actor_hit_wall(act, used_normal);
-				//}	
 			}
 			break;
 			case(N_Zp):
 			case(N_Zn):
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[i], 12))
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], pz[1], mesh->maxtbl[i], 12))
 			{
-				ray_to_plane(box->UVZ, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
+				//spr_sprintf(20, 36, "Z");
+				ray_to_plane(mz, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, pz[0], pz[1], 65536))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
 					act->wallPos[Z] = potential_hit[Z];
 					actor_hit_wall(act, used_normal);
+					
 				}
-			} else {
-				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xp))
-				//{
-				//	actor_hit_wall(act, used_normal);
-				//}
-				//
-				//if(edge_projection_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis, act->box, N_Xn))
-				//{
-				//	actor_hit_wall(act, used_normal);
-				//}	
 			}
 			break;
 		}
@@ -295,6 +299,33 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 	static int used_normal[3];
 	static int potential_hit[3];
 	int surfHit = 0;
+	
+	//Spend a moment to find the major X and major Z axis
+	int * mz;
+	int * mx;
+	int * px[2];
+	int * pz[2];
+	
+	if(JO_ABS(box->UVX[Z]) >= JO_ABS(box->UVZ[Z]))
+	{
+		//If UVX has a more major Z than the Z axis, then the X axis can hitherto be used as the Z.
+		mz = &box->UVX[0];
+		pz[0] = &realTimeAxis->xp0[0];
+		pz[1] = &realTimeAxis->xp1[0];
+
+		mx = &box->UVZ[0];
+		px[0] = &realTimeAxis->zp0[0];
+		px[1] = &realTimeAxis->zp1[0];
+	} else {
+		//Otherwise, traditional use of each axis applies.
+		mx = &box->UVX[0];
+		px[0] = &realTimeAxis->xp0[0];
+		px[1] = &realTimeAxis->xp1[0];
+
+		mz = &box->UVZ[0];
+		pz[0] = &realTimeAxis->zp0[0];
+		pz[1] = &realTimeAxis->zp1[0];
+	}
 	
 	for(unsigned int i = 0; i < sct->nbPolygon; i++)
 	{
@@ -418,10 +449,10 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 			break;
 			case(N_Xp):
 			case(N_Xn):
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->xp1, mesh->maxtbl[alias], 12))
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], px[1], mesh->maxtbl[alias], 12))
 			{
-				ray_to_plane(box->UVX, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->xp0, realTimeAxis->xp1, 16384))
+				ray_to_plane(mx, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, px[0], px[1], 16384))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
@@ -436,10 +467,10 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 			break;
 			case(N_Zp):
 			case(N_Zn):
-			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], realTimeAxis->zp1, mesh->maxtbl[alias], 12))
+			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], pz[1], mesh->maxtbl[alias], 12))
 			{
-				ray_to_plane(box->UVZ, act->nextPos, used_normal, plane_center, potential_hit);
-				if(isPointonSegment(potential_hit, realTimeAxis->zp0, realTimeAxis->zp1, 16384))
+				ray_to_plane(mz, act->nextPos, used_normal, plane_center, potential_hit);
+				if(isPointonSegment(potential_hit, pz[0], pz[1], 16384))
 				{
 					act->wallPos[X] = potential_hit[X];
 					act->wallPos[Y] = potential_hit[Y];
@@ -1058,7 +1089,7 @@ void	manage_actors(void)
 				continue;
 			}
 			
-			act->box->animation = adjudicate_actor_animation_queue(act);
+
 			nbg_sprintf(3, 18, "a(%i)", act->boxID);
 			nbg_sprintf(3, 19, "d(%i)", i);
 			////////////////////////////////////////////////////
@@ -1200,6 +1231,7 @@ void	manage_actors(void)
 				
 				if(!act->atGoal) checkInPathSteps(i);
 				actor_idle_actions(i);
+				act->box->animation = adjudicate_actor_animation_queue(act);
 				//Add velocity of surface
 				if(act->box->surfID != INVALID_SECTOR)
 				{

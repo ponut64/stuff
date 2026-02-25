@@ -213,8 +213,8 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 	AnimArea[anims].curFrm += (localArate * framerate);
 	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
 	
-	nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
-	nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
+	// nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
+	// nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
 	
     if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
 	{

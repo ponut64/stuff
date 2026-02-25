@@ -625,19 +625,6 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 		plane_center[X] >>=2;
 		plane_center[Y] >>=2;
 		plane_center[Z] >>=2;
-		
-		// for(int u = 0; u < 4; u++)
-		// {
-			// plane_points[u][X] -= plane_center[X];
-			// plane_points[u][X] -= plane_center[Y];
-			// plane_points[u][X] -= plane_center[Z];
-			// anchor[X] = plane_points[u][X] & 0xFFFF;
-			// anchor[Y] = plane_points[u][Y] & 0xFFFF;
-			// anchor[Z] = plane_points[u][Z] & 0xFFFF;
-			// plane_points[u][X] += anchor[X] + plane_center[X];
-			// plane_points[u][Y] += anchor[Y] + plane_center[Y];
-			// plane_points[u][Z] += anchor[Z] + plane_center[Z];
-		// }
 
 		ray_to_plane(ray_normal, ray_pos, mesh->nmtbl[alias], plane_center, possible_hit);
 
