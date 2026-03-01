@@ -114,6 +114,253 @@ void	start_texture_animation(spriteAnimation * anim, entity_t * ent)
 	}	
 }
 
+void msh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant, MATRIX * msMatrix) //Draws animated model via msh2
+{
+	if(ent->file_done != 1){return;}
+	drawn_entity_list[drawn_entity_count] = ent;
+	drawn_entity_count++;
+	//Recommended, for performance, that large entities be placed in HWRAM.
+    static FIXED newMtx[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+
+	fxMatrixMul(&msMatrix[0][0][0], ent->prematrix, &newMtx[0]);
+
+	static FIXED m0x[4];
+	static FIXED m1y[4];
+	static FIXED m2z[4];
+	
+	//you.pos : Representing the core (initial) translation of the scene; could be avoided?
+	//ent->prematrix : Position of the object (matrix). Hmm. Isn't quite right.
+	
+	m0x[3] = newMtx[9];
+	m1y[3] = newMtx[10];
+	m2z[3] = newMtx[11];
+	
+	m0x[0] = newMtx[0];
+	m0x[1] = newMtx[1];
+	m0x[2] = newMtx[2];
+	
+	m1y[0] = newMtx[3];
+	m1y[1] = newMtx[4];
+	m1y[2] = newMtx[5];
+	
+	m2z[0] = newMtx[6];
+	m2z[1] = newMtx[7];
+	m2z[2] = newMtx[8];
+
+    GVPLY * model = ent->pol;
+    if ( (transVerts[0]+model->nbPoint) >= INTERNAL_MAX_VERTS) return;
+    if ( (transPolys[0]+model->nbPolygon) >= INTERNAL_MAX_POLY) return;
+	
+	unsigned short usrClp = SYS_CLIPPING; //The clipping setting added to command table
+	if(ent->useClip == USER_CLIP_INSIDE)
+	{
+		//Clip inside the user clipping setting
+		usrClp = 0x400;
+	} else if(ent->useClip == USER_CLIP_OUTSIDE)
+	{
+		//Clip outside the user clipping setting
+		usrClp = 0x600;
+	}
+	
+	VECTOR lightAngle = {0, -65535, 0};
+	VECTOR ambient_light = {0, -65535, 0};
+	int ambient_bright = 0;
+	
+	int bright = 0;
+	int cue = 0;
+	if(ent->type != 'F') // 'F' for 'flat', no dynamic lighting applied.
+	{
+	bright = process_light(lightAngle, ambient_light, &ambient_bright, ent->prematrix, ent->type);
+	} else {
+	ambient_bright = active_lights[0].min_bright;
+	}
+	
+	FIXED luma;
+	unsigned short colorBank;
+	
+	//Process for static pose change:
+	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
+	//2. Set curFrm to the AnimArea startFrm<<3
+	//3. Set uniforn to 0
+	//4. Set the local arate to 4
+	//5. Set curKeyFrm to the AnimArea startFrm
+	//6. set the nextKeyFrame to the animCtrl startFrm
+	//7. Interpolate once
+	//8. Return all control data as if set from the animCtrl pose
+	int animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm || AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
+	//
+	// Check to see if the animation matches, or if reset is enabled.
+	// In these cases, re-load information from the AnimCtrl.
+	if(animation_change == 1) 
+	{
+		AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
+		AnimArea[anims].startFrm = animCtrl->startFrm;
+		AnimArea[anims].endFrm = animCtrl->endFrm;
+	}
+
+	static unsigned char localArate;
+	static unsigned char nextKeyFrm;
+	static int frDelta;
+	static compVert * curKeyFrame;
+	static compVert * nextKeyFrame;
+    /**Sets the animation data**/
+	
+
+	///Variable interpolation set
+	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
+
+	////
+	////
+	AnimArea[anims].curFrm += (localArate * framerate);
+	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
+	
+	// nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
+	// nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
+	
+    if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
+	{
+        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<ANIM_SHIFT;
+        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>ANIM_SHIFT;
+	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
+	{
+		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
+		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<ANIM_SHIFT;
+	}
+    nextKeyFrm = AnimArea[anims].curKeyFrm+1;
+
+    if (nextKeyFrm > (AnimArea[anims].endFrm))
+	{
+        nextKeyFrm = AnimArea[anims].startFrm;
+	} else if (nextKeyFrm <= AnimArea[anims].startFrm)
+	{
+        nextKeyFrm = AnimArea[anims].startFrm+1;
+	}
+
+	
+	//For interpolation inside keyframed animation
+	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
+	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
+	///Don't touch this! **absolute** frame delta 
+	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
+
+	//Animation Data
+    //volatile Sint32 * dst = model->pntbl[0]; //This pointer is incremented by the animation interpolator.
+	volatile short * src = curKeyFrame[0];
+	volatile short * nxt = nextKeyFrame[0];
+	register int inverseZ = 0;
+	int near_plane = (ent->z_plane) ? SUPER_NEAR_PLANE : NEAR_PLANE_DISTANCE;
+	
+	int wp[3];
+	//Get interpolation set vertex (first vertex)
+	#pragma GCC push_options
+	#pragma GCC diagnostic ignored "-Wsequence-point"
+	wp[X]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	wp[Y]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	wp[Z]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+	#pragma GCC pop_options
+	for(unsigned int i = 0; i < model->nbPoint; i++)
+	{
+		//Non-writeback animation interpolation/drawing
+		//Calcluate Z and start division
+		msh2VertArea[i].pnt[Z] = trans_pt_by_component(wp, m2z);
+		msh2VertArea[i].pnt[Z] = (msh2VertArea[i].pnt[Z] > near_plane) ? msh2VertArea[i].pnt[Z] : near_plane;
+		SetFixDiv(scrn_dist, msh2VertArea[i].pnt[Z]);
+		//Calculate X and Y while division happens
+		msh2VertArea[i].pnt[X] = trans_pt_by_component(wp, m0x);
+		msh2VertArea[i].pnt[Y] = trans_pt_by_component(wp, m1y);
+		//Get next vertex interpolated (also while division happens)
+		#pragma GCC push_options
+		#pragma GCC diagnostic ignored "-Wsequence-point"
+		wp[X]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		wp[Y]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		wp[Z]=( *src + ((( *nxt++ - *src++) * frDelta)>>ANIM_SHIFT))<<8;
+		#pragma GCC pop_options
+		//Get division result
+		inverseZ = *DVDNTL;
+		msh2VertArea[i].pnt[X] = fxm(msh2VertArea[i].pnt[X], inverseZ)>>SCR_SCALE_X;
+		msh2VertArea[i].pnt[Y] = fxm(msh2VertArea[i].pnt[Y], inverseZ)>>SCR_SCALE_Y;
+			
+		//For animated models, CPU time is at a premium.
+		//Simplifying the clipping system specifically for animations might be worth.
+		clipping(&msh2VertArea[i], ent->useClip);
+	}
+
+    transVerts[0] += model->nbPoint;
+
+    volatile Uint8 *src2 = ent->animation[AnimArea[anims].curKeyFrm]->cNorm; //A new 1-byte src
+	VECTOR tNorm = {0, 0, 0};
+	
+	vertex_t * ptv[5] = {0, 0, 0, 0, 0};
+	unsigned short flip = 0;
+	unsigned short flags = 0;
+	unsigned short pclp = 0;
+
+    /**POLYGON PROCESSING**/ 
+    for (unsigned int i = 0; i < model->nbPolygon; i++)
+    {
+		ptv[0] = &msh2VertArea[model->pltbl[i].vertices[0]];
+		ptv[1] = &msh2VertArea[model->pltbl[i].vertices[1]];
+		ptv[2] = &msh2VertArea[model->pltbl[i].vertices[2]];
+		ptv[3] = &msh2VertArea[model->pltbl[i].vertices[3]];
+		flags = model->attbl[i].render_data_flags;
+		flip = GET_FLIP_DATA(flags);
+		//Components of screen-space cross-product used for backface culling.
+		//Vertice order hint:
+		// 0 - 1
+		// 3 - 2
+		//A cross-product can tell us if it's facing the screen. If it is not, we do not want it.
+		 int cross0 = (ptv[1]->pnt[X] - ptv[3]->pnt[X])
+							* (ptv[0]->pnt[Y] - ptv[2]->pnt[Y]);
+		 int cross1 = (ptv[1]->pnt[Y] - ptv[3]->pnt[Y])
+							* (ptv[0]->pnt[X] - ptv[2]->pnt[X]);
+		//Sorting target. Uses average of top-left and bottom-right. 
+		//Adding logic to change sorting per-polygon can be done, but costs CPU time.
+		 int zDepthTgt = (ptv[0]->pnt[Z] + ptv[2]->pnt[Z])>>1;
+
+		src2 += (i != 0) ? 1 : 0; //Add to compressed normal pointer address only after the first polygon
+ 
+		int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
+ 
+		if((cross0 >= cross1 && (flags & GV_FLAG_SINGLE)) || zDepthTgt < near_plane || zDepthTgt > FAR_PLANE_DISTANCE || offScrn ||
+		msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS){ continue; }
+		//Pre-clipping Function
+		preclipping(ptv, &flip, &pclp);
+		//New normals in from animation normal table // These are not written back to memory
+        tNorm[X]=ANORMS[*src2][X];
+        tNorm[Y]=ANORMS[*src2][Y];
+        tNorm[Z]=ANORMS[*src2][Z];
+		//Transform the polygon's normal by light source vector
+		luma = fxm(-(fxdot(tNorm, lightAngle) + 32768), bright);
+		//We set the minimum luma as zero so the dynamic light does not corrupt the global light's basis.
+		luma = (bright < 0) ? ((luma > 0) ? 0 : luma) : ((luma < 0) ? 0 : luma);
+		luma += fxdot(tNorm, ambient_light) + ambient_bright; //In normal "vision" however, bright light would do that..
+		//Use transformed normal as shade determinant
+		determine_colorbank(&colorBank, &luma);
+		//Shift the color bank code to the appropriate bits
+		colorBank<<=6;
+		//Added later: In case of a polyline (or really, any untextured command),
+		// the color for the draw command is defined by the draw command's "texno" or texture number data.
+		// this texture number data however is inserted in the wrong parts of the draw command to be the color.
+		// So here, we insert it into the correct place in the command table to be the drawn color.
+		unsigned short usedCMDCTRL = (flags & GV_FLAG_POLYLINE) ? VDP1_POLYLINE_CMDCTRL : VDP1_BASE_CMDCTRL;
+		colorBank += (usedCMDCTRL == VDP1_BASE_CMDCTRL) ? 0 : model->attbl[i].texno;
+		
+ 		flags = (((flags & GV_FLAG_MESH)>>1) | ((flags & GV_FLAG_DARK)<<4))<<8;
+
+		depth_cueing(&zDepthTgt, &cue);
+
+        msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+		usedCMDCTRL | (flip), (VDP1_BASE_PMODE | flags | pclp | usrClp),
+		pcoTexDefs[model->attbl[i].texno].SRCA, colorBank | cue, pcoTexDefs[model->attbl[i].texno].SIZE, 0, zDepthTgt);
+    }
+		transPolys[0] += model->nbPolygon;
+		
+
+	
+		
+		anims++; //Increment animation work area pointer
+
+}
 
 
 void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant) //Draws animated model via SSH2
@@ -360,105 +607,3 @@ void ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transpl
 		anims++; //Increment animation work area pointer
 
 }
-
-//Use by either CPU to apply the animation interpolation to a mesh.
-void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant)
-{
-	if(ent->file_done != 1){return;}
-
-    GVPLY * model = ent->pol;
-	//there's an unknown memory access issue with this function...
-	static unsigned char localArate;
-	static unsigned char nextKeyFrm;
-	static int frDelta;
-	static compVert * curKeyFrame;
-	static compVert * nextKeyFrame;
-	//Process for static pose change:
-	//1. Check if both animations are static poses [if arate of startFrm is 0 or if startFrm == endFrm]
-	//2. Set curFrm to the AnimArea startFrm<<3
-	//3. Set uniforn to 0
-	//4. Set the local arate to 4
-	//5. Set curKeyFrm to the AnimArea startFrm
-	//6. set the nextKeyFrame to the animCtrl startFrm
-	//7. Interpolate once
-	//8. Return all control data as if set from the animCtrl pose
-	int animation_change = (AnimArea[anims].startFrm != animCtrl->startFrm || AnimArea[anims].endFrm != animCtrl->endFrm) ? 1 : 0;
-	//
-	// Check to see if the animation matches, or if reset is enabled.
-	// In these cases, re-load information from the AnimCtrl.
-	if(animation_change == 1) 
-	{
-		AnimArea[anims].curFrm = (animCtrl->startFrm<<ANIM_SHIFT);
-		AnimArea[anims].startFrm = animCtrl->startFrm;
-		AnimArea[anims].endFrm = animCtrl->endFrm;
-	}
-
-    /**Sets the animation data**/
-	
-
-	///Variable interpolation set
-	localArate = animCtrl->arate[AnimArea[anims].curKeyFrm];
-
-	////
-	////
-	AnimArea[anims].curFrm += (localArate * framerate);
-	AnimArea[anims].curKeyFrm = (AnimArea[anims].curFrm>>ANIM_SHIFT);
-	
-	// nbg_sprintf(3, 13, "frm(%i)", AnimArea[anims].curFrm);
-	// nbg_sprintf(3, 14, "kfr(%i)", AnimArea[anims].curKeyFrm);
-	
-    if (AnimArea[anims].curKeyFrm > (AnimArea[anims].endFrm))
-	{
-        AnimArea[anims].curFrm -= ((AnimArea[anims].endFrm+1) - AnimArea[anims].startFrm)<<ANIM_SHIFT;
-        AnimArea[anims].curKeyFrm = AnimArea[anims].curFrm>>ANIM_SHIFT;
-	} else if(AnimArea[anims].curKeyFrm < AnimArea[anims].startFrm)
-	{
-		AnimArea[anims].curKeyFrm = AnimArea[anims].startFrm;
-		AnimArea[anims].curFrm += ((AnimArea[anims].endFrm+1)-AnimArea[anims].startFrm)<<ANIM_SHIFT;
-	}
-    nextKeyFrm = AnimArea[anims].curKeyFrm+1;
-
-    if (nextKeyFrm > (AnimArea[anims].endFrm))
-	{
-        nextKeyFrm = AnimArea[anims].startFrm;
-	} else if (nextKeyFrm <= AnimArea[anims].startFrm)
-	{
-        nextKeyFrm = AnimArea[anims].startFrm+1;
-	}
-
-	
-	//For interpolation inside keyframed animation
-	curKeyFrame = (compVert*)ent->animation[AnimArea[anims].curKeyFrm]->cVert;
-	nextKeyFrame = (compVert*)ent->animation[nextKeyFrm]->cVert;
-	///Don't touch this! **absolute** frame delta 
-	frDelta = (AnimArea[anims].curFrm)-(AnimArea[anims].curKeyFrm<<ANIM_SHIFT);
-
-	//Animation Data
-    volatile Sint32 * dst = model->pntbl[0];
-    volatile short * src = curKeyFrame[0];
-    volatile short * nxt = nextKeyFrame[0];
-	/////
-	/////
-	for(unsigned int i = 0; i < model->nbPoint; i++)
-	{
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
-		*dst++=( *src + (( ((*nxt++) - (*src++)) * frDelta)>>ANIM_SHIFT))<<8;
-	}
-
-    dst = (Sint32 *)&model->pltbl[0];
-    volatile Uint8 *src2 = ent->animation[AnimArea[anims].curKeyFrm]->cNorm; //A new 1-byte src
-
-	for(unsigned int i = 0; i < model->nbPolygon; i++)
-	{
-		//New normals in from animation normal table // These are not written back to memory
-        model->nmtbl[i][X]=ANORMS[*src2][X];
-        model->nmtbl[i][Y]=ANORMS[*src2][Y];
-        model->nmtbl[i][Z]=ANORMS[*src2][Z];
-		src2++;
-	}
-		
-		anims++; //Increment animation work area pointer
-	
-}
-

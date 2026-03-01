@@ -1256,19 +1256,19 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	if(!tile_rules[0] || (flags & GV_FLAG_NDIV) || min_z > z_rules[0])
 	{
 		//In case subdivision was not enabled, we need to copy from screen_transform_buffer to ssh2_vert_area.
-		msh2VertArea[0].pnt[X] = ptv[0]->pnt[X];
-		msh2VertArea[0].pnt[Y] = ptv[0]->pnt[Y];
-		msh2VertArea[0].pnt[Z] = ptv[0]->pnt[Z];
-		msh2VertArea[1].pnt[X] = ptv[1]->pnt[X];
-		msh2VertArea[1].pnt[Y] = ptv[1]->pnt[Y];
-		msh2VertArea[1].pnt[Z] = ptv[1]->pnt[Z];
-		msh2VertArea[2].pnt[X] = ptv[2]->pnt[X];
-		msh2VertArea[2].pnt[Y] = ptv[2]->pnt[Y];
-		msh2VertArea[2].pnt[Z] = ptv[2]->pnt[Z];
-		msh2VertArea[3].pnt[X] = ptv[3]->pnt[X];
-		msh2VertArea[3].pnt[Y] = ptv[3]->pnt[Y];
-		msh2VertArea[3].pnt[Z] = ptv[3]->pnt[Z];
-		msh2VertArea[0].clipFlag = 0;
+		ssh2VertArea[0].pnt[X] = ptv[0]->pnt[X];
+		ssh2VertArea[0].pnt[Y] = ptv[0]->pnt[Y];
+		ssh2VertArea[0].pnt[Z] = ptv[0]->pnt[Z];
+		ssh2VertArea[1].pnt[X] = ptv[1]->pnt[X];
+		ssh2VertArea[1].pnt[Y] = ptv[1]->pnt[Y];
+		ssh2VertArea[1].pnt[Z] = ptv[1]->pnt[Z];
+		ssh2VertArea[2].pnt[X] = ptv[2]->pnt[X];
+		ssh2VertArea[2].pnt[Y] = ptv[2]->pnt[Y];
+		ssh2VertArea[2].pnt[Z] = ptv[2]->pnt[Z];
+		ssh2VertArea[3].pnt[X] = ptv[3]->pnt[X];
+		ssh2VertArea[3].pnt[Y] = ptv[3]->pnt[Y];
+		ssh2VertArea[3].pnt[Z] = ptv[3]->pnt[Z];
+		ssh2VertArea[0].clipFlag = 0;
 		//Because I fucked up when transcribing the texture tables, we gotta -1.
 		used_textures[0] -= 1;
 		//Subdivision disabled end stub
@@ -1284,22 +1284,22 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		for(int v = 0; v < sub_vert_cnt; v++)
 		{
 			//Push to near-plane for CURRENT vertex
-			msh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
+			ssh2VertArea[v].pnt[Z] = (subdivided_points[v][Z] > SUBDIVISION_NEAR_PLANE) ? subdivided_points[v][Z] : SUBDIVISION_NEAR_PLANE;
 			//Set division for CURRENT vertex
-			//SetFixDiv(scrn_dist, msh2VertArea[v].pnt[Z]);
+			//SetFixDiv(scrn_dist, ssh2VertArea[v].pnt[Z]);
 			//Get 1/z for CURRENT vertex
 			//inverseZ = *DVDNTL;
-			inverseZ = zTable[msh2VertArea[v].pnt[Z]>>16];
+			inverseZ = zTable[ssh2VertArea[v].pnt[Z]>>16];
 			//Transform to screen-space
-			msh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
-			msh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
+			ssh2VertArea[v].pnt[X] = fxm(subdivided_points[v][X], inverseZ)>>SCR_SCALE_X;
+			ssh2VertArea[v].pnt[Y] = fxm(subdivided_points[v][Y], inverseZ)>>SCR_SCALE_Y;
 			//Screen Clip Flags for on-off screen decimation
-			msh2VertArea[v].clipFlag = ((msh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
-			msh2VertArea[v].clipFlag |= ((msh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
-			msh2VertArea[v].clipFlag |= ((msh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
-			msh2VertArea[v].clipFlag |= ((msh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
-			msh2VertArea[v].clipFlag |= ((msh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
-			// clipping(&msh2VertArea[v], USER_CLIP_INSIDE);
+			ssh2VertArea[v].clipFlag = ((ssh2VertArea[v].pnt[X]) > TV_HALF_WIDTH) ? SCRN_CLIP_X : 0; 
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[X]) < -TV_HALF_WIDTH) ? SCRN_CLIP_NX : 0; 
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) > TV_HALF_HEIGHT) ? SCRN_CLIP_Y : 0;
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Y]) < -TV_HALF_HEIGHT) ? SCRN_CLIP_NY : 0;
+			ssh2VertArea[v].clipFlag |= ((ssh2VertArea[v].pnt[Z]) <= SUBDIVISION_NEAR_PLANE) ? CLIP_Z : 0;
+			// clipping(&ssh2VertArea[v], USER_CLIP_INSIDE);
 		}
 		transVerts[0] += sub_vert_cnt;
 	//Subdivision activation end stub
@@ -1317,10 +1317,10 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 	for(int j = 0; j < sub_poly_cnt; j++)
 	{
 		transPolys[0]++;
-		ptv[0] = &msh2VertArea[subdivided_polygons[j][0]];
-		ptv[1] = &msh2VertArea[subdivided_polygons[j][1]];
-		ptv[2] = &msh2VertArea[subdivided_polygons[j][2]];
-		ptv[3] = &msh2VertArea[subdivided_polygons[j][3]];
+		ptv[0] = &ssh2VertArea[subdivided_polygons[j][0]];
+		ptv[1] = &ssh2VertArea[subdivided_polygons[j][1]];
+		ptv[2] = &ssh2VertArea[subdivided_polygons[j][2]];
+		ptv[3] = &ssh2VertArea[subdivided_polygons[j][3]];
 		flags = mesh->attbl[i].render_data_flags;
 		 int offScrn = (ptv[0]->clipFlag & ptv[1]->clipFlag & ptv[2]->clipFlag & ptv[3]->clipFlag);
 		///////////////////////////////////////////
@@ -1394,7 +1394,7 @@ for(unsigned int i = 0; i < mesh->nbPolygon; i++)
 		//depth cueing experiments
 		depth_cueing(&zDepthTgt, &cue);
 		
-      msh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
+      ssh2SetCommand(ptv[0]->pnt, ptv[1]->pnt, ptv[2]->pnt, ptv[3]->pnt,
 		usedCMDCTRL | flip, (VDP1_BASE_PMODE | flags) | pclp, //Reads flip value, mesh enable, and msb bit
 		pcoTexDefs[specific_texture].SRCA, colorBank | cue, pcoTexDefs[specific_texture].SIZE, 0, zDepthTgt);
 	}

@@ -355,6 +355,9 @@ void	mover_draw_queue(void)
 			case(MODEL_TYPE_BUILDING):
 			//plane_rendering_with_subdivision(&entities[objDRAW[i]], (MATRIX*)&world_box);	
 			break;
+			case(MODEL_TYPE_ANIMATED):
+			//msh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 0,  (MATRIX*)&world_box);
+			break;
 			case(MODEL_TYPE_SECTORED):
 			break;
 			default:

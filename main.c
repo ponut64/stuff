@@ -26,22 +26,18 @@ Other asset data may need to be assessed when assets are available to fill the s
 -> Actor Implementations
 
 	- Multiple Actors
-	- Actors don't collide with each other
-	- actor can walk through movers (doors).
+	- want actor off-screen navigation solution. not exactly priority.
 	
 -> Performance consideration
-	Right now, SH2-1 draws everything, and SH2-0 prepares everything and does game logic.
-	Even with a surplus of box-box collision tests happening, SH2-1 is overloaded by 8ms (real hardware test).
-	4ms of work could be reasonably lifted from SH2-1 in this case.
-	Note that due to the high variability of 3D scenes, it is unlikely this workload can be lifted in all cases.
-	Remember, SH2-0 already helps with drawing sectors, and this is most of SH2-1's work.
+	Well, I did some tests.
+	It is indeed more efficient to just have SSH2 draw everything.
+	There isn't really anything I can draw away from it.
+	That only leaves hard code optimizations, which... I don't have time for.
+	I can barely fit two enemies in the polygon budget, let alone three.
+	Optimization must happen for this game to work, but for now, I'm going to have to live with the shite performance.
 	
 -> "Is key struck" logic
-	We should re-set the struck keyset only on the next game frame, not next vblank.
-	
--> ssh2 <-> msh2 master matrix mismatch
-	at times, the master matrix is either a frame ahead or behind of ssh2.
-	this is kind of jarring and a solution should be found, but... later. that's a timing thing.
+	that needs to be logically reviewed to understand where it is going wrong and how to fix it.
 
 Roadmap to playable game:
 1 - > Complete simple actor implementations

@@ -32,7 +32,7 @@
 #define MAX_SSH2_SENT_POLYS (750) //SpriteBuf size limitation 
 #define MAX_MSH2_SENT_POLYS (550) //SpriteBuf size limitation 
 #define MAX_SSH2_ENTITY_VERTICES (1024) //These are probably oversized, but they need to be at least this big for the subdivision.
-#define MAX_MSH2_ENTITY_VERTICES (1024)
+#define MAX_MSH2_ENTITY_VERTICES (512)
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.
 #define MAX_SIMULTANEOUS_SPRITE_ANIMATIONS (64)
 // Base PMOD: Bit 12 is HSS
@@ -345,8 +345,8 @@ short	menu_with_options(__basic_menu * mnu);
 void	clean_sprite_animations(void);
 void	operate_texture_animations(void);
 void	start_texture_animation(spriteAnimation * anim, entity_t * ent);
+void	msh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant, MATRIX * msMatrix);
 void	ssh2DrawAnimation(animationControl * animCtrl, entity_t * ent, Bool transplant);
-void	meshAnimProcessing(animationControl * animCtrl, entity_t * ent, Bool transplant);
 //render.c
 FIXED	trans_pt_by_component(POINT ptx, FIXED * normal);
 void	SetFixDiv(FIXED dividend, FIXED divisor); //Defined as "dividend / divisor", for fixed points, using division unit

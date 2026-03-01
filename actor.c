@@ -497,6 +497,92 @@ int		actor_sector_collision(int actor_id, _lineTable * realTimeAxis, _sector * s
 	}
 }
 
+
+Bool	actor_collide_boxes(_actor * act, _boundBox * stator, _boundBox * mover, _lineTable * moverTimeAxis, short obj_type_data)
+{
+
+static FIXED bigRadius = 0;
+
+static POINT centerDif = {0, 0, 0};
+
+static POINT lineEnds[9];
+
+static Bool lineChecks[9];
+		
+static FIXED bigDif = 0;
+
+
+//Box Populated Check
+if(stator->status[1] != 'C')
+{
+	return false;
+}
+
+
+//Box Distance Culling Check
+bigRadius = JO_MAX(JO_MAX(JO_MAX(JO_MAX(JO_ABS(stator->Xplus[X]), JO_ABS(stator->Xplus[Y])), JO_ABS(stator->Xplus[Z])),
+		JO_MAX(JO_MAX(JO_ABS(stator->Yplus[X]), JO_ABS(stator->Yplus[Y])), JO_ABS(stator->Yplus[Z]))),
+		JO_MAX(JO_MAX(JO_ABS(stator->Zplus[X]), JO_ABS(stator->Zplus[Y])), JO_ABS(stator->Zplus[Z])));
+		
+
+centerDif[X] = stator->pos[X] - mover->pos[X];
+centerDif[Y] = stator->pos[Y] - mover->pos[Y];
+centerDif[Z] = stator->pos[Z] - mover->pos[Z];
+
+
+bigDif = JO_MAX(JO_MAX(JO_ABS(centerDif[X]), JO_ABS(centerDif[Y])),JO_ABS(centerDif[Z]));
+if(bigDif > (bigRadius<<1)) return false;
+
+//If the collision proxy is not ready for this frame, make it.
+if(stator->status[3] != 'B')
+{
+	finalize_collision_proxy(stator);
+}
+
+	for(int i = 0; i < 6; i++)
+	{
+   		//Backfacing Faces
+		if(fxdot(centerDif, stator->nmtbl[i]) > 0) continue;
+		//Drawing lines to face
+		
+		lineChecks[X] = line_hit_plane_here(moverTimeAxis->xp0, moverTimeAxis->xp1, stator->cftbl[i],
+										stator->nmtbl[i], stator->pos, 16384, lineEnds[X]);
+		lineChecks[Y] = line_hit_plane_here(moverTimeAxis->yp0, moverTimeAxis->yp1, stator->cftbl[i],
+										stator->nmtbl[i], stator->pos, 65536, lineEnds[Y]);
+		lineChecks[Z] = line_hit_plane_here(moverTimeAxis->zp0, moverTimeAxis->zp1, stator->cftbl[i],
+										stator->nmtbl[i], stator->pos, 16384, lineEnds[Z]);
+		for(int u = 0; u < 3; u++)
+		{
+			if(lineChecks[u])
+			{
+				if(edge_wind_test(stator->pltbl[i][0], stator->pltbl[i][1], stator->pltbl[i][2], stator->pltbl[i][3], lineEnds[u], stator->maxtbl[i], 12))
+				{
+					mover->collisionID = stator->boxID;
+					stator->collisionID = mover->boxID;
+					centerDif[X] = stator->nmtbl[i][X];
+					centerDif[Y] = stator->nmtbl[i][Y];
+					centerDif[Z] = stator->nmtbl[i][Z];
+					actor_hit_wall(act, centerDif);
+					if(stator->status[6] != 0)
+					{
+						//Collision belongs to an actor.
+						//The actor should collide.
+						_actor * act2 = &spawned_actors[(int)stator->status[6]];
+						centerDif[X] = -stator->nmtbl[i][X];
+						centerDif[Y] = -stator->nmtbl[i][Y];
+						centerDif[Z] = -stator->nmtbl[i][Z];
+						actor_hit_wall(act2, centerDif);
+					}
+					return true;
+				} 
+			}
+		}  
+	}
+
+	return false;
+}
+
+
 int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 {
 	//First, check the spawner to make sure it's actually a spawner.
@@ -987,6 +1073,9 @@ void	manage_actors(void)
 	
 	_actor * act;
 
+	//////////////////////////////////////////////////////////////
+	// Actor Data Population Loop
+	//////////////////////////////////////////////////////////////
 	for(int i = MAX_PHYS_PROXY; i > 0; --i)
 	{
 		
@@ -1090,6 +1179,26 @@ void	manage_actors(void)
 			}
 			
 
+		}
+	}
+	//////////////////////////////////////////////////////////////
+	// Actor Collision Loop
+	//////////////////////////////////////////////////////////////
+	for(int i = MAX_PHYS_PROXY; i > 0; --i)
+	{
+		
+		act = &spawned_actors[i];
+		if(sectorIsVisible[act->curSector])
+		{
+			
+			if(!act->info.flags.alive)
+			{
+				act->info.flags.active = 0;
+				act->spawner->type.ext_dat |= SPAWNER_DISABLED;
+				continue;
+			}
+			
+
 			nbg_sprintf(3, 18, "a(%i)", act->boxID);
 			nbg_sprintf(3, 19, "d(%i)", i);
 			////////////////////////////////////////////////////
@@ -1125,6 +1234,7 @@ void	manage_actors(void)
 			}
 			//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
 			act->curSector = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
+			
 			//this is going to get very expensive, because we must:
 			//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
 			for(int c = 0; c < MAX_PHYS_PROXY; c++)
@@ -1139,7 +1249,7 @@ void	manage_actors(void)
 				{
 					case(OBJPOP):
 					case(SPAWNER):
-
+					actor_collide_boxes(act, &RBBs[c], act->box, &cur_actor_line_table, edata);
 					break;
 					case(ITEM | OBJPOP):
 

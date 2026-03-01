@@ -744,12 +744,19 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 			sign = 0;
 		}
 		
+		//If "mostly" facing away, slow down and turn faster if close.
+		//if(JO_ABS(sin_y) > 16384)
+		//{
+		//	travel_rate = (distal < (gap<<2)) ? rate>>1 : rate;
+		//	turn_rate<<=1;
+		//}
+		
 	} else if(cos_y >= 0)
 	{
 		//Facing away.
 		//Reduce travel rate to make a tighter turn and turn faster.
-		travel_rate = (distal < (gap<<1)) ? 0 : rate>>1;
-		turn_rate<<=1;
+		travel_rate = (distal < (gap<<2)) ? 0 : rate>>1;
+		turn_rate<<=2;
 	}
 	
 	act->dRot[Y] += sign * turn_rate;
