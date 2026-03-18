@@ -263,7 +263,7 @@ void	player_hit_wall(int * wallNorm, int * wallPos)
 	if(you.sanics >= 3<<16)
 	{
 	pcm_play(snd_mstep, PCM_SEMI, 200);
-	emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, wallPos, wallNorm, 8<<16, 8192, 4);
+	emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, wallPos, wallNorm, 8<<16, 8192, 4, you.curSector);
 	}
 	
 	you.wallNorm[X] = wallNorm[X];
@@ -440,7 +440,7 @@ void	player_phys_affect(void)
 			{
 			pcm_play(snd_mstep, PCM_PROTECTED, 210);
 			int nFloorPos[3] = {-you.floorPos[X], -you.floorPos[Y], -you.floorPos[Z]};
-			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, nFloorPos, you.floorNorm, 8<<16, 8192, 4);
+			emit_particle_explosion(&HitPuff, PARTICLE_TYPE_NOCOL, nFloorPos, you.floorNorm, 8<<16, 8192, 4, you.curSector);
 			}
 			
 			//This is sourced from an article on Tribes physics. It really helps to understand *bounce*.

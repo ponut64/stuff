@@ -31,4 +31,4 @@ int		hitscan_vector_from_position_building(int * ray_normal, int * ray_pos, int 
 void *	buildAdjacentSectorList(int entity_id, void * workAddress);
 int		collide_in_sector_of_entity(entity_t * ent, _sector * sct, _boundBox * mover, _lineTable * realTimeAxis);
 int		collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable * realTimeAxis);
-
+void	get_floor_position_at_sector_center(int sector_number, int * given_center);

@@ -715,6 +715,16 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	
 	if(distal < gap) return 1;
 
+	if(act->info.flags.movedUnrendered)
+	{
+		//In case the actor is moving unrendered, we can't reference a forward direction, as there is none. So we will just use the difference vector.
+		act->dV[X] += fxm(dif_norm[X], rate);
+		act->dV[Y] += fxm(dif_norm[Y], rate);
+		act->dV[Z] += fxm(dif_norm[Z], rate);
+		return 0;
+	}
+
+
 	//Goal:
 	//When are are moving towards anything, the actor has to move in the front vector.
 	//What we need to do is stop movement if the actor isn't facing the target, and instead rotate.
@@ -1082,6 +1092,10 @@ void	runPath(int actor_id)
 	
 	_sector * sctA = &sectors[cap_sct];
 	
+	act->pathingFrom[X] = act->pos[X];
+	act->pathingFrom[Y] = act->pos[Y];
+	act->pathingFrom[Z] = act->pos[Z];
+	
 	int next_step = INVALID_SECTOR;
 	static int iterations = 0;
 	iterations = 0;
@@ -1138,6 +1152,58 @@ void	runPath(int actor_id)
 	act->curPathStep = 1;
 }
 
+void	actorReturnToPathNode(int actor_id)
+{
+	_actor * act = &spawned_actors[actor_id];
+	
+	static int navPt[3] = {0,0,0};
+	navPt[X] = 0;
+	navPt[Y] = 0;
+	navPt[Z] = 0;
+	
+	act->velocity[X] = 0;
+	act->velocity[Y] = 0;
+	act->velocity[Z] = 0;
+	
+	get_floor_position_at_sector_center(act->prevSector, navPt);
+	//First: exception catch.
+	//If for some reason our current path step is invalid, just return the actor to the last sector it was in.
+	if(act->curPathStep == INVALID_SECTOR)
+	{
+		
+		
+		act->pos[X] = navPt[X];
+		act->pos[Y] = navPt[Y];
+		act->pos[Z] = navPt[Z];
+		return;
+	}
+	
+	//Next, we want to do a brief test to find out if we are closer to sector center or the next nav point.
+	int centerDist = approximate_distance(navPt, act->pos);
+	
+	int nextDist = approximate_distance(navPt, act->pathTarget);
+	
+	int prevDist = approximate_distance(navPt, act->pathingFrom);
+	
+	int minDist = JO_MIN(JO_MIN(centerDist, nextDist), prevDist);
+	
+	if(minDist == prevDist)
+	{
+		act->pos[X] = act->pathingFrom[X];
+		act->pos[Y] = act->pathingFrom[Y];
+		act->pos[Z] = act->pathingFrom[Z];
+	} else if(minDist == nextDist)
+	{
+		act->pos[X] = act->pathTarget[X];
+		act->pos[Y] = act->pathTarget[Y];
+		act->pos[Z] = act->pathTarget[Z];
+	} else {
+		act->pos[X] = navPt[X];
+		act->pos[Y] = navPt[Y];
+		act->pos[Z] = navPt[Z];
+	}
+	
+}
 
 
 void	checkInPathSteps(int actor_id)
@@ -1224,6 +1290,14 @@ void	checkInPathSteps(int actor_id)
 		
 		//iterate towards the step
 		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+		if(act->info.flags.movedUnrendered && act->info.flags.onPathNode)
+		{
+			//Dangerous unrendered sector manipulation.
+			//In case an actor is moving while unrendered, it won't recieve proper sector assignment from collision checks.
+			//Thus, its sector information can only be construed by the sequence of path nodes it is following.
+			act->prevSector = act->curSector;
+			act->curSector = step->toSector;
+		}
 		//if on the path node ( = 1), we need to do something else.
 		//each path node has a direction; we need to follow that direction until we are in the sector of the next node.
 		// ^^ this exception needs to be added - we only want to follow this particular exception when we are not in the target sector.

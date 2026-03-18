@@ -62,36 +62,6 @@ void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector)
 	act->goalSector = broad_phase_sector_finder(act->pathGoal, levelPos, &sectors[target_sector]);
 }
 
-void	get_floor_position_at_sector_center(int sector_number, int * given_center)
-{
-	//Check sectors for LOS
-	_sector * sct = &sectors[sector_number];
-	
-	int towardsFloor[3] = {0, (1<<16), 0};
-	int neg_ctr[3] = {-sct->center_pos[X], -sct->center_pos[Y], -sct->center_pos[Z]};
-	int hitFloorPly = 0;
-	int possibleFloor = 0;
-	//We can't forget to re-set these.
-	given_center[X] = -(32765<<16);
-	given_center[Y] = -(32765<<16);
-	given_center[Z] = -(32765<<16);
-	//Rather than check everything in the sector's PVS for collision,
-	//we will first check the sector itself + primary adjacents.
-	for(int s = 0; s < (sct->nbAdjacent+1); s++)
-	{
-		possibleFloor += hitscan_vector_from_position_building(towardsFloor, neg_ctr, given_center, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
-	}
-	if(!possibleFloor)
-	{
-	//	given_center[X] = -sct->center_pos[X];
-	//	given_center[Y] = -sct->center_pos[Y];
-	//	given_center[Z] = -sct->center_pos[Z];
-	} else {
-		given_center[X] = given_center[X];
-		given_center[Y] = given_center[Y];
-		given_center[Z] = given_center[Z];
-	}
-}
 
 int		actor_per_polygon_collision(_actor * act, _lineTable * realTimeAxis, entity_t * ent, int * ent_pos)
 {
@@ -629,6 +599,9 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->wallPos[X] = 0;
 	act->wallPos[Y] = 0;
 	act->wallPos[Z] = 0;
+	act->pathingFrom[X] = 0;
+	act->pathingFrom[Y] = 0;
+	act->pathingFrom[Z] = 0;
 	act->rot[X] = 0;
 	act->rot[Y] = spawner->rot[Y];
 	act->rot[Z] = 0;
@@ -882,7 +855,11 @@ void	actor_threat_evaluation(_actor * act)
 {
 	//Procedurally speaking, this would ordinarily contain information about how each actor type responds to things that they (are allowed to) see.
 	//In this test case, it is always assumed to be evaluating the player.
-	
+	if(act->aggroTimer > 0)
+	{
+		act->info.flags.inCombat = 1;
+		return;
+	}
 	int target[3] = {you.wpos[X]>>16, you.wpos[Y]>>16, you.wpos[Z]>>16};
 	int dst[3] = {act->pos[X]>>16, act->pos[Y]>>16, act->pos[Z]>>16};
 	int dist = approximate_distance(target, dst);
@@ -990,7 +967,10 @@ void	actor_idle_actions(int actor_id)
 			act->markedSector = INVALID_SECTOR;
 			}
 			act->info.flags.inCombat = 0;
+			if(act->goalSector == act->curSector || act->atGoal)
+			{
 			act->aggroTimer -= delta_time;
+			}
 	}
 	
 
@@ -1040,13 +1020,16 @@ void	actor_idle_actions(int actor_id)
 	}
 	act->nolosTimer -= delta_time;
 	
+	//if(actor_id == (MAX_PHYS_PROXY-1))
+	//{
 	// nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
 	// nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
 	// nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
 	// nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
 	// nbg_sprintf(5, 11, "at(%i)", act->atGoal);
-	// nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
 	// nbg_sprintf_decimal(5, 12, act->aggroTimer);
+	// nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
+	//}
 	
 	//To get the player to collide back with an actor,
 	//the collision ID needs to be present from the actor's box<->player collision.
@@ -1080,7 +1063,6 @@ void	manage_actors(void)
 	{
 		
 		act = &spawned_actors[i];
-		act->prevSector = act->curSector;
 		
 		//When an actor is spawned, alive or dead, it will be marked active.
 		//Only certain game conditions (i.e. lifetime expired) will make it inactive.
@@ -1199,8 +1181,8 @@ void	manage_actors(void)
 			}
 			
 
-			nbg_sprintf(3, 18, "a(%i)", act->boxID);
-			nbg_sprintf(3, 19, "d(%i)", i);
+			//nbg_sprintf(3, 18, "a(%i)", act->boxID);
+			//nbg_sprintf(3, 19, "d(%i)", i);
 			////////////////////////////////////////////////////
 			//Before we progress to the rules applied to all actors,
 			//we need a part here where the behaviors of each actor is implemented.
@@ -1233,7 +1215,19 @@ void	manage_actors(void)
 				
 			}
 			//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
+			act->prevSector = act->curSector;
 			act->curSector = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
+			
+			if(act->info.flags.movedUnrendered && act->curSector == INVALID_SECTOR)
+			{
+			//In case an actor ended up out of bounds (in invalid sector) when it had previously moved while unrendered,
+			//we need to move it to the nearest navigation point of its current path target.
+			//It is also important to note that this will pretty much always happen if the actor has to move up or down towards its goal.
+			actorReturnToPathNode(i);
+			act->info.flags.movedUnrendered = 0;
+			//CONTINUE, don't process collision checks!
+			continue;
+			}
 			
 			//this is going to get very expensive, because we must:
 			//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
@@ -1311,6 +1305,10 @@ void	manage_actors(void)
 					actor_set_animation_state(act, 1<<3);
 				} else {
 					act->goalSector = INVALID_SECTOR;
+					
+					act->pathingFrom[X] = act->pos[X];
+					act->pathingFrom[Y] = act->pos[Y];
+					act->pathingFrom[Z] = act->pos[Z];
 				}
 				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
 				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
@@ -1366,6 +1364,7 @@ void	manage_actors(void)
 			
 			//nbg_sprintf(5, 13, "ani(%x)", act->box->animation);
 			act->info.flags.hitFloor = 0;
+			act->info.flags.movedUnrendered = 0;
 			//Hmm...
 			// entities[act->entity_ID].prematrix = (FIXED *)act->box;
 			// meshAnimProcessing((animationControl*)act->box->animation, &entities[act->entity_ID], 0);
@@ -1376,6 +1375,50 @@ void	manage_actors(void)
 			if(act->curSector == INVALID_SECTOR)
 			{
 				act->curSector = broad_phase_sector_finder(act->pos, levelPos, &sectors[act->curSector]);
+			}
+			
+			if(!act->atGoal && act->goalSector != INVALID_SECTOR && act->info.flags.alive)
+			{
+				//In case the actor has a path and is not currently at its goal, we want to silently move it towards its path goal.
+				//We will have to build a special exception case where the actor may end up out of bounds because there are no collision checks made in this case.
+							///////////////////////////////////////////////
+							//At this point, an actor should be alive and active.
+							///////////////////////////////////////////////
+							// Increase the velocity by the velocity change, multiplied by the timescale
+							///////////////////////////////////////////////
+							act->dV[X] -= fxm(act->velocity[X], act->totalFriction);
+							act->dV[Y] -= fxm(act->velocity[Y], act->totalFriction);
+							act->dV[Z] -= fxm(act->velocity[Z], act->totalFriction);
+							act->velocity[X] += fxm(act->dV[X], time_fixed_scale);
+							act->velocity[Y] += fxm(act->dV[Y], time_fixed_scale);
+							act->velocity[Z] += fxm(act->dV[Z], time_fixed_scale);
+							act->dV[X] = 0;
+							act->dV[Y] = 0;
+							act->dV[Z] = 0;
+							///////////////////////////////////////////////
+							// Position change
+							///////////////////////////////////////////////
+							act->pos[X] += fxm(act->velocity[X], time_fixed_scale);
+							act->pos[Y] += fxm(act->velocity[Y], time_fixed_scale);
+							act->pos[Z] += fxm(act->velocity[Z], time_fixed_scale);
+							act->nextPos[X] = act->pos[X] + fxm(act->velocity[X], time_fixed_scale);
+							act->nextPos[Y] = act->pos[Y] + fxm(act->velocity[Y], time_fixed_scale);
+							act->nextPos[Z] = act->pos[Z] + fxm(act->velocity[Z], time_fixed_scale);
+				
+							///////////////////////////////////////////////
+							// Rotation change
+							///////////////////////////////////////////////
+							act->rot[X] += act->dRot[X] * framerate;
+							act->rot[Y] += act->dRot[Y] * framerate;
+							act->rot[Z] += act->dRot[Z] * framerate;
+							act->dRot[X] = 0;
+							act->dRot[Y] = 0;
+							act->dRot[Z] = 0;
+							
+							act->info.flags.movedUnrendered = 1;
+							checkInPathSteps(i);
+							if(act->atGoal) act->curSector = act->goalSector;
+							
 			}
 		
 		}

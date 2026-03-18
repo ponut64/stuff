@@ -169,10 +169,11 @@ void	init_particle(void)
 	particle_type_list[PROJ_TEST].info.collide = 1;
 	particle_type_list[PROJ_TEST].info.bounce = 0;
 	particle_type_list[PROJ_TEST].info.damage = 15;
+	particle_type_list[PROJ_TEST].info.onHit = 1;
 	
 }
 
-_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity)
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector)
 {
 	
 	//Particles are co-related with the sprite system, since they draw with the sprite list.
@@ -191,11 +192,12 @@ _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos,
 	particles[spr_entry].prevPos[X] = spr_type->pos[X];
 	particles[spr_entry].prevPos[Y] = spr_type->pos[Y];
 	particles[spr_entry].prevPos[Z] = spr_type->pos[Z];
+	particles[spr_entry].curSector = curSector;
 	return &particles[spr_entry];
 }
 
 //Emits particles of a type with random velocities/directions from a radius
-void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count)
+void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count, int curSector)
 {
 	for(int i = 0; i < count; i++)
 	{
@@ -203,7 +205,7 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		partVelocity[X] = fxm(getRandom(), intensity);
 		partVelocity[Y] = fxm(getRandom(), intensity);
 		partVelocity[Z] = fxm(getRandom(), intensity);
-		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity);
+		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity, curSector);
 		int newTime = (fxm(getRandom(), spr_type->lifetime) + spr_type->lifetime)>>1;
 		part->lifetime = newTime;
 		part->spr->lifetime = newTime;
@@ -237,7 +239,7 @@ void	object_effects(int obj_index, int box_index)
 		case(EFFECT_SPARKLE):
 			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
 			{
-			emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, obj->pos, zPt, 12<<16, 8192, 2);
+			emit_particle_explosion(&GlowPuff, PARTICLE_TYPE_GHOST, obj->pos, zPt, 12<<16, 8192, 2, obj->curSector);
 			obj->type.effectTimeCount = 0;
 			}
 			obj->type.effectTimeCount += delta_time;
@@ -268,7 +270,7 @@ void	object_effects(int obj_index, int box_index)
 		{
 			if(obj->type.effectTimeCount > obj->type.effectTimeLimit)
 			{
-			emit_particle_explosion(&ThrowPuff, PARTICLE_TYPE_GHOST, obj->pos, box->UVNZ, box->radius[Z], 32768, 2);
+			emit_particle_explosion(&ThrowPuff, PARTICLE_TYPE_GHOST, obj->pos, box->UVNZ, box->radius[Z], 32768, 2, obj->curSector);
 			obj->type.effectTimeCount = 0;
 			}
 			obj->type.effectTimeCount += delta_time;
@@ -306,7 +308,7 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 	
 }
 
-void	particle_collision_handler(_particle * part, int * normal)
+void	particle_collision_handler(_particle * part, int * hitPos, int * normal)
 {
 	
 	int deflectionFactor = -fxdot(part->velocity, normal);
@@ -320,6 +322,13 @@ void	particle_collision_handler(_particle * part, int * normal)
 	part->spr->pos[Z] += normal[Z]>>4;
 	
 	part->type.info.garbage = (part->type.info.bounce) ? 0 : 1;
+	
+	if(part->type.info.onHit == 1)
+	{
+		//emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, hitPos, zPt, 65536, 65536, 4);
+		spawn_particle(&TestSpr, PARTICLE_TYPE_NOCOL, hitPos, zPt, you.curSector);
+		
+	}
 	
 	//part->spr->pos[X] = part->prevPos[X];
 	//part->spr->pos[Y] = part->prevPos[Y];
@@ -417,13 +426,113 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		{
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], hitPt, dominant_axis, 12))
 			{
-				particle_collision_handler(part, plnm);
+				particle_collision_handler(part, hitPt, plnm);
 				return true;
 			}
 		}
 	//Loop end stub
 	}
 	
+	
+	return false;
+}
+
+short	particle_collide_sector(_particle * part)
+{
+
+	
+	static int discard_vector[XYZ];
+	static int plane_center[XYZ];
+	static int plane_points[4][XYZ];
+	static int hitPt[XYZ];
+	static int dominant_axis = N_Yp;
+	
+	int usedSpan;
+	if(part->spr->type.info.drawMode != SPRITE_TYPE_3DLINE)
+	{
+		usedSpan = part->spr->span[X];
+	} else {
+		usedSpan = 5;
+	}
+	
+	_sector * sctA = &sectors[part->curSector];
+	GVPLY * mesh = sctA->ent->pol;
+	for(int s = 0; s < sctA->nbVisible+1; s++)
+	{
+		_sector * sct = &sectors[sctA->pvs[s]];
+		unsigned int ply_limit = sct->nbPolygon;
+		
+		for(unsigned int i = 0; i < ply_limit; i++)
+		{		
+			//The alias must change depending on if we're looking through sectors, all sectors, or an object without sectors.
+			int alias = (sct != &sectors[INVALID_SECTOR]) ? sct->pltbl[i] : i;
+			if(mesh->attbl[alias].render_data_flags & GV_FLAG_PORTAL) continue;
+			//Exceptor: if the plane is not physical (no collision), don't try to collide with it.
+			if(!(mesh->attbl[alias].render_data_flags & GV_FLAG_PHYS)) continue;
+			//if(mesh->attbl[alias].render_data_flags & GV_FLAG_SINGLE)
+			//{
+			//	if(fxdot(ray_normal, mesh->nmtbl[alias]) > 0) continue;
+			//}
+			//First, back-facing.
+			//First we have to match the vector spaces for the particle and for the mesh.
+			//Then we have to get to the vector space of a particular polygon.
+			//After that point, we can use a dot-product to check on which side of the polygon we are.
+			int * plpt = mesh->pntbl[mesh->pltbl[alias].vertices[0]];
+			int * plnm = mesh->nmtbl[alias];
+			discard_vector[X] = (plpt[X]) - part->spr->pos[X];
+			discard_vector[Y] = (plpt[Y]) - part->spr->pos[Y];
+			discard_vector[Z] = (plpt[Z]) - part->spr->pos[Z];
+			
+			//If the dot product is negative, I've determined that to mean:
+			//1. The current tested position is behind the plane, and
+			//2. The current tested normal is facing away
+			if(fxdot(discard_vector, plnm) < 0) continue;
+			//////////////////////////////////////////////////////////////
+			// Grab the dominant axis
+			//////////////////////////////////////////////////////////////
+			dominant_axis = mesh->maxtbl[alias];
+			//////////////////////////////////////////////////////////////
+			// Add the position of the mesh to the position of its points
+			// PDATA vector space is inverted, so we negate them
+			// "Get world-space point position"
+			//////////////////////////////////////////////////////////////
+			plane_center[X] = 0;
+			plane_center[Y] = 0;
+			plane_center[Z] = 0;
+			for(int u = 0; u < 4; u++)
+			{
+			plane_points[u][X] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][X] + levelPos[X] ); 
+			plane_points[u][Y] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Y] + levelPos[Y] ); 
+			plane_points[u][Z] = (mesh->pntbl[mesh->pltbl[alias].vertices[u]][Z] + levelPos[Z] );
+			//Add to the plane's center
+			plane_center[X] += plane_points[u][X];
+			plane_center[Y] += plane_points[u][Y];
+			plane_center[Z] += plane_points[u][Z];
+			}
+			//Divide sum of plane points by 4 to average all the points
+			plane_center[X] >>=2;
+			plane_center[Y] >>=2;
+			plane_center[Z] >>=2;
+			
+			int segPt[XYZ] = {part->spr->pos[X] - fxm(part->velocity[X], time_fixed_scale),
+			part->spr->pos[Y] - fxm(part->velocity[Y], time_fixed_scale),
+			part->spr->pos[Z] - fxm(part->velocity[Z], time_fixed_scale)};
+			//Yes, the line method is truly better than dot product tests.
+			//Though part of how it's better is that the collision check can include velocity (in the line segment).
+			//You do that so you can catch things before they just casually phase through by virtue of going fast.
+			int hitLine = line_hit_plane_here(part->spr->pos, segPt, plane_center, plnm, zPt, 16384 + (usedSpan<<16), hitPt);
+	
+			if(hitLine)
+			{
+				if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], hitPt, dominant_axis, 12))
+				{
+					particle_collision_handler(part, hitPt, plnm);
+					return true;
+				}
+			}
+		//Loop end stub
+		}
+	}
 	
 	return false;
 }
@@ -502,7 +611,7 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 		{
 			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, boxDisField[i], 12))
 			{
-				particle_collision_handler(part, obj->nmtbl[i]);
+				particle_collision_handler(part, hitPt, obj->nmtbl[i]);
 				object_particle_collision_handler(part, bound_box_entry);
 				return true;
 			} 
@@ -527,6 +636,14 @@ void	operate_particles(void)
 		
 		if(particles[i].type.info.collide)
 		{
+			
+				if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
+				{
+					particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
+					particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;
+					particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
+				}
+			
 				//Used for collisions
 				quick_normalize(particles[i].velocity, particles[i].dirUV);
 				pHit = false;
@@ -544,12 +661,7 @@ void	operate_particles(void)
 					}
 				}
 				
-				if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
-				{
-					particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
-					particles[i].spr->span[Y] = particles[i].dirUV[Y]>>1;
-					particles[i].spr->span[Z] = particles[i].dirUV[Z]>>1;
-				}
+				particle_collide_sector(&particles[i]);
 				
 		} else if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 		{

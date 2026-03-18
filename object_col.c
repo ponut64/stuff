@@ -981,3 +981,34 @@ int		collide_per_polygon_of_mesh(entity_t * ent, _boundBox * mover, _lineTable *
 	}
 }
 
+void	get_floor_position_at_sector_center(int sector_number, int * given_center)
+{
+	//Check sectors for LOS
+	_sector * sct = &sectors[sector_number];
+	
+	int towardsFloor[3] = {0, (1<<16), 0};
+	int neg_ctr[3] = {-sct->center_pos[X], -sct->center_pos[Y], -sct->center_pos[Z]};
+	int hitFloorPly = 0;
+	int possibleFloor = 0;
+	//We can't forget to re-set these.
+	given_center[X] = -(32765<<16);
+	given_center[Y] = -(32765<<16);
+	given_center[Z] = -(32765<<16);
+	//Rather than check everything in the sector's PVS for collision,
+	//we will first check the sector itself + primary adjacents.
+	for(int s = 0; s < (sct->nbAdjacent+1); s++)
+	{
+		possibleFloor += hitscan_vector_from_position_building(towardsFloor, neg_ctr, given_center, &hitFloorPly, sct->ent, levelPos, &sectors[sct->pvs[s]]);
+	}
+	if(!possibleFloor)
+	{
+	//	given_center[X] = -sct->center_pos[X];
+	//	given_center[Y] = -sct->center_pos[Y];
+	//	given_center[Z] = -sct->center_pos[Z];
+	} else {
+		given_center[X] = given_center[X];
+		given_center[Y] = given_center[Y];
+		given_center[Z] = given_center[Z];
+	}
+}
+

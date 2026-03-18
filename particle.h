@@ -23,6 +23,7 @@ typedef struct {
 		unsigned char collide:1;
 		unsigned char bounce:1;
 		unsigned char damage:4;
+		unsigned char onHit:4;
 		} info;
 	};
 } ptypes;
@@ -44,6 +45,7 @@ typedef struct {
 	unsigned short luma; //Light emission value (unused)
 	ptypes type;
 	unsigned short extra; //Type-specific data
+	short curSector;
 } _particle;
 
 extern int sparkTexno;
@@ -60,10 +62,10 @@ extern _particle	particle_starter;
 extern _particle	particles[MAX_SPRITES];
 
 void		init_particle(void);
-_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity);
-void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count);
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector);
+void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count, int curSector);
 void		object_effects(int obj_index, int box_index);
-void		particle_collision_handler(_particle * part, int * normal);
+void		particle_collision_handler(_particle * part, int * hitPos, int * normal);
 void		operate_particles(void);
 
 

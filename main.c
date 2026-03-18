@@ -19,15 +19,12 @@ But more or less it should be in the game.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
 
--> Actor off-screen navigation
-	- Need to implement a way for actors to move in unloaded sectors.
-	I might just put them on a rail towards the next navigation node and if they spawn in a different or invalid sector, teleport them to node
-	
--> Actor Implementations
+-> Player must schuut
+	projectile work is done on Master SH2, so I don't really think I have to worry about performance with it.
+	I *do* have to concern myself with the number of drawn particles.
+	- need to be able to link particles with another effect to be emitted on death
+	- could also have particle emission types on death (e.g. bullet splash if a wall, or just a small blood cloud on enemy hit)
 
-	- Multiple Actors
-	- want actor off-screen navigation solution. not exactly priority.
-	
 -> Performance consideration
 	Well, I did some tests.
 	It is indeed more efficient to just have SSH2 draw everything.
@@ -40,9 +37,9 @@ Other asset data may need to be assessed when assets are available to fill the s
 	that needs to be logically reviewed to understand where it is going wrong and how to fix it.
 
 Roadmap to playable game:
-1 - > Complete simple actor implementations
-2 - > Start player weapon implementations
-3 - > Test/implement multiple actor simultaneous
+1 - > Complete simple actor implementations *
+2 - > Start player weapon implementations 
+3 - > Test/implement multiple actor simultaneous *
 4 - > Start working on actor <-> player interactions (because the player needs to be able to shoot first)
 5 - > Start testing actor <-> actor interactions
 6 - > Implement item <-> player interactions

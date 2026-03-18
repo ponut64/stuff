@@ -418,6 +418,7 @@ typedef struct {
 			unsigned char locked:1;
 			unsigned char looking:1;
 			unsigned char onPathNode:1;
+			unsigned char movedUnrendered:1;
 		} flags;
 	};
 } _actor_info;
@@ -429,6 +430,7 @@ typedef struct {
 	int velocity[3];
 	int dirUV[3];
 	int pathUV[3];
+	int pathingFrom[3];
 	int pathTarget[3];
 	int pathGoal[3];
 	int exceptionPos[3];
@@ -476,6 +478,7 @@ extern unsigned char * pathStackMax;
 void	init_pathing_system(void);
 void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);
 
+void	actorReturnToPathNode(int actor_id);
 void	pathing_exception(int actor_id);
 void	actor_hit_wall(_actor * act, int * wall_norm);
 

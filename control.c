@@ -138,13 +138,14 @@ void controls(void)
 	if(is_key_down(DIGI_C) && inputTimer < 256)
 	{
 		int mark[3] = {0,0,0};
-		mark[X] = -(you.shootDir[X]<<2);
-		mark[Y] = -(you.shootDir[Y]<<2);
-		mark[Z] = -(you.shootDir[Z]<<2);
+		//200 meters per second?
+		mark[X] = -fxm((you.shootDir[X]), 6<<16);
+		mark[Y] = -fxm((you.shootDir[Y]), 6<<16);
+		mark[Z] = -fxm((you.shootDir[Z]), 6<<16);
 		mark[X] += you.wvel[X];
 		mark[Y] += you.wvel[Y];
 		mark[Z] += you.wvel[Z];
-		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark);
+		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark, you.curSector);
 		
 		use_viewmodel();
 		
