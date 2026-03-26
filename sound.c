@@ -43,13 +43,8 @@
  int snd_button2;
  int snd_ffield1;
  int snd_ffield2;
- int snd_ring1;
- int snd_ring2;
- int snd_ring3;
- int snd_ring4;
- int snd_ring5;
- int snd_ring6;
- int snd_ring7;
+ int snd_impact;
+ int snd_shot;
  Sint8 * stmsnd[64];
  int snd_win;
  int snd_freturn;

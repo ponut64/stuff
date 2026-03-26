@@ -42,6 +42,7 @@ typedef struct {
 	int velocity[XYZ];
 	int dirUV[XYZ];
 	int lifetime;
+	int sanics;
 	unsigned short luma; //Light emission value (unused)
 	ptypes type;
 	unsigned short extra; //Type-specific data

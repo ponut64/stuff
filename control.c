@@ -139,9 +139,9 @@ void controls(void)
 	{
 		int mark[3] = {0,0,0};
 		//200 meters per second?
-		mark[X] = -fxm((you.shootDir[X]), 6<<16);
-		mark[Y] = -fxm((you.shootDir[Y]), 6<<16);
-		mark[Z] = -fxm((you.shootDir[Z]), 6<<16);
+		mark[X] = -fxm((you.shootDir[X]), 704<<16);
+		mark[Y] = -fxm((you.shootDir[Y]), 704<<16);
+		mark[Z] = -fxm((you.shootDir[Z]), 704<<16);
 		mark[X] += you.wvel[X];
 		mark[Y] += you.wvel[Y];
 		mark[Z] += you.wvel[Z];

@@ -677,7 +677,6 @@ void	master_draw(void)
 	time_of_master_draw = get_time_in_frame() - interim_time;
 	interim_time = get_time_in_frame();
 	//
-	operate_particles();
 	hud_menu();
 
 	// nbg_sprintf(2, 6, "prts:(%i)", *current_portal_count);
@@ -698,6 +697,7 @@ void	master_draw(void)
 	//light_control_loop(); //lit
 	object_control_loop();
 	update_3d_sounds();
+	operate_particles();
 	time_of_object_management = get_time_in_frame() - interim_time;
 	*masterIsDoneDrawing = 1;
 		//

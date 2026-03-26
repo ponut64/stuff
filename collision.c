@@ -856,6 +856,7 @@ numBoxChecks++;
 										stator->nmtbl[i], stator->pos, 65536, lineEnds[Y]);
 		lineChecks[Z] = line_hit_plane_here(moverCFs->zp0, moverCFs->zp1, stator->cftbl[i],
 										stator->nmtbl[i], stator->pos, 16384, lineEnds[Z]);
+
 		for(int u = 0; u < 3; u++)
 		{
 			if(lineChecks[u])

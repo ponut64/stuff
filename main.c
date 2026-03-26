@@ -19,12 +19,9 @@ But more or less it should be in the game.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
 
--> Player must schuut
-	projectile work is done on Master SH2, so I don't really think I have to worry about performance with it.
-	I *do* have to concern myself with the number of drawn particles.
-	- need to be able to link particles with another effect to be emitted on death
-	- could also have particle emission types on death (e.g. bullet splash if a wall, or just a small blood cloud on enemy hit)
-
+-> Chasing Issues
+	1. particles show behind near-objects, should push particles Z closer
+	
 -> Performance consideration
 	Well, I did some tests.
 	It is indeed more efficient to just have SSH2 draw everything.
@@ -32,9 +29,15 @@ Other asset data may need to be assessed when assets are available to fill the s
 	That only leaves hard code optimizations, which... I don't have time for.
 	I can barely fit two enemies in the polygon budget, let alone three.
 	Optimization must happen for this game to work, but for now, I'm going to have to live with the shite performance.
+
 	
 -> "Is key struck" logic
 	that needs to be logically reviewed to understand where it is going wrong and how to fix it.
+
+-> am I going to change themes / gears?
+expie idea is enticing.
+generally, the game will work better if i go for less complex enemies.
+... but what im working with is already so simple. Guh.
 
 Roadmap to playable game:
 1 - > Complete simple actor implementations *
@@ -250,6 +253,8 @@ void	load_test(void)
 	snd_alarm = load_8bit_pcm((Sint8*)"ALARM.PCM", 15360);
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	snd_boost = load_8bit_pcm((Sint8*)"BOOST.PCM", 15360);
+	snd_impact = load_8bit_pcm((Sint8*)"IMPACT.PCM", 15360);
+	snd_shot = load_8bit_pcm((Sint8*)"SHOT.PCM", 15360);
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
 	snd_click = load_8bit_pcm((Sint8*)"CLICK.PCM", 7680);
@@ -258,13 +263,6 @@ void	load_test(void)
 	snd_button2 = load_8bit_pcm((Sint8*)"BUTTON2.PCM", 7680);
 	snd_ffield1 = load_8bit_pcm((Sint8*)"FOPEN.PCM", 7680);
 	snd_ffield2 = load_8bit_pcm((Sint8*)"FCLOSE.PCM", 7680);
-	snd_ring1 = load_8bit_pcm((Sint8*)"CRING1.PCM", 7680);
-	snd_ring2 = load_8bit_pcm((Sint8*)"CRING2.PCM", 7680);
-	snd_ring3 = load_8bit_pcm((Sint8*)"CRING3.PCM", 7680);
-	snd_ring4 = load_8bit_pcm((Sint8*)"CRING4.PCM", 7680);
-	snd_ring5 = load_8bit_pcm((Sint8*)"CRING5.PCM", 7680);
-	snd_ring6 = load_8bit_pcm((Sint8*)"CRING6.PCM", 7680);
-	snd_ring7 = load_8bit_pcm((Sint8*)"CRING7.PCM", 7680);
 	
 	baseRingMenuTexno = numTex;
 	WRAP_NewTable((Sint8*)"RINGNUM.TGA", (void*)dirty_buf, 0);

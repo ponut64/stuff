@@ -31,7 +31,7 @@ short	add_to_sprite_list(FIXED * position, short * span, short texno, unsigned s
 			break;
 		}
 	}
-	if(used_sprite == -1) return used_sprite;
+	if(used_sprite < 0) return -1;
 	
 	sprWorkList[used_sprite].lifetime = lifetime;
 	sprWorkList[used_sprite].pos[X] = position[X];
@@ -171,7 +171,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 	int spanX;
 	int spanY;
 	
-	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] : 1<<16;
+	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] - (8<<16) : 1<<16;
 	
 	if(spr->type.info.drawMode == SPRITE_TYPE_BILLBOARD)
 	{
