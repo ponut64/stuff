@@ -65,7 +65,7 @@ void	operate_digital_pad1(void)
 	pad1.pressed = oregs[6] | (oregs[4]<<8); //Holds current frame data
 	
 	pad1.change = pad1.pressed ^ pad1.prevPressed;
-	pad1.frameHeld ^= pad1.change;
+	pad1.frameHeld |= pad1.change;
 	
 	pad1.up ^= pad1.change;
 	pad1.down = (pad1.change != 0) ? pad1.down ^ pad1.change : pad1.down;
@@ -86,10 +86,13 @@ void	operate_digital_pad1(void)
 
 //Specifically for the operation of "is_key_change" to function at 30 hz, 20hz, etc
 //Place once anywhere in game loop
+//the idea of frame held is to capture whether or not a button was pressed for the duration of a single frame, but never the next frame after.
+//frameHeld then should just accumulate pad1.change, but only with data over the course of one frame.
 void	reset_pad(digital_pad * pad)
 {
 
 	pad->frameHeld = 0;
+	pad->frameHeld |= pad->change;
 
 }
 

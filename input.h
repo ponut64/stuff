@@ -22,28 +22,28 @@
 void	operate_digital_pad1(void);
 
 typedef struct {
-	unsigned short pressed;
-	unsigned short prevPressed;
-	unsigned short frameHeld;
-	unsigned short up;
-	unsigned short down;
-	unsigned short change;
-	unsigned short toggle;
+	volatile unsigned short pressed;
+	volatile unsigned short prevPressed;
+	volatile unsigned short frameHeld;
+	volatile unsigned short up;
+	volatile unsigned short down;
+	volatile unsigned short change;
+	volatile unsigned short toggle;
 } digital_pad;
 
 typedef struct {
-	unsigned char active; //Is analogue input active, or not?
-	unsigned char ax; // Stick X-Axis
-	unsigned char ay; // Stick Y-Axis
-	unsigned char lta; // Left trigger
-	unsigned char rta; // Right trigger
-	unsigned char dax; // Delta X-Axis
-	unsigned char day; // Delta Y-Axis
-	unsigned char ltd; // Left trigger delta
-	unsigned char rtd; // Right trigger delta
-	unsigned char tax; // X-Axis Tolerance 
-	unsigned char tay; // Y-Axis Tolerance
-	unsigned char taz; // Trigger' tolerance
+	volatile unsigned char active; //Is analogue input active, or not?
+	volatile unsigned char ax; // Stick X-Axis
+	volatile unsigned char ay; // Stick Y-Axis
+	volatile unsigned char lta; // Left trigger
+	volatile unsigned char rta; // Right trigger
+	volatile unsigned char dax; // Delta X-Axis
+	volatile unsigned char day; // Delta Y-Axis
+	volatile unsigned char ltd; // Left trigger delta
+	volatile unsigned char rtd; // Right trigger delta
+	volatile unsigned char tax; // X-Axis Tolerance 
+	volatile unsigned char tay; // Y-Axis Tolerance
+	volatile unsigned char taz; // Trigger' tolerance
 } analog_ext;
 
 extern digital_pad pad1;

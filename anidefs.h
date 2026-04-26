@@ -78,7 +78,7 @@ void	anim_defs(void)
 	shorty_fire.keyframes = fire_keylist;
 	shorty_fire.sequence = (void*)&shorty_idle;
 	
-	
+	shorty_fire.sound = snd_shotf;
 	//For Lever Pistol (this dopesheet has spare room for another item)
 	static bg_key lp_idle_key;
 	lp_idle_key.spos[X] = 0;
@@ -151,6 +151,7 @@ void	anim_defs(void)
 	leverpistol_fire.keyframes = leverpistol_fire_keylist;
 	leverpistol_fire.sequence = (void*)&leverpistol_idle;
 
+	leverpistol_fire.sound = snd_lpistf;
 	//////////////
 	// You CANNOT animate with keyframe 0. Keyframe 0 must be a duplicate of the model at rest.
 	//////////////

@@ -19,20 +19,13 @@ But more or less it should be in the game.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
 
--> Chasing Issues
-	1. particles show behind near-objects, should push particles Z closer
+-> Projectile work
+ - add sound to shoot and animations (complex work)
 	
 -> Performance consideration
-	Well, I did some tests.
-	It is indeed more efficient to just have SSH2 draw everything.
-	There isn't really anything I can draw away from it.
-	That only leaves hard code optimizations, which... I don't have time for.
-	I can barely fit two enemies in the polygon budget, let alone three.
+	A single light costs 1-2ms. Oof. Hmm... how do precalculate those? Or just speed it up? I mean, halving the cost would be huge...
 	Optimization must happen for this game to work, but for now, I'm going to have to live with the shite performance.
-
-	
--> "Is key struck" logic
-	that needs to be logically reviewed to understand where it is going wrong and how to fix it.
+	It is on the edge of in-budget currently; I wish I could get just another two hundred polygons in there.
 
 -> am I going to change themes / gears?
 expie idea is enticing.
@@ -103,10 +96,10 @@ then after a few minutes, the music shifts, and the palette turns back to color
 #include "pcmsys.h"
 #include "pcmstm.h"
 #include "draw.h"
-#include "anidefs.h"
 #include "gamespeed.h"
 #include "menu.h"
 #include "sound.h"
+#include "anidefs.h"
 #include "particle.h"
 //
 #include "lwram.c"
@@ -235,14 +228,8 @@ void	load_test(void)
 	////////////////////////////////////////////////
 	nbg_sprintf(0,0, "Loading ...");
 	
-	snd_win = load_adx((Sint8*)"WIN.ADX");
-	snd_yeah = load_adx((Sint8*)"YEAH.ADX");
-	snd_freturn = load_adx((Sint8*)"FRETURN.ADX");
-	snd_orchit0 = load_adx((Sint8*)"ORCHIT0.ADX");
-	snd_ftake = load_adx((Sint8*)"FLAG.ADX");
-	snd_tslow = load_adx((Sint8*)"TSLOW.ADX");
-	snd_gpass = load_adx((Sint8*)"GPASS.ADX");
-	snd_rlap = load_adx((Sint8*)"RLAP.ADX");
+//	snd_win = load_adx((Sint8*)"WIN.ADX");
+
 	snd_bwee = load_8bit_pcm((Sint8*)"BWEE.PCM", 15360);
 	snd_lstep = load_8bit_pcm((Sint8*)"LSTEP.PCM", 15360);
 	snd_mstep = load_8bit_pcm((Sint8*)"MSTEP.PCM", 15360);
@@ -254,7 +241,10 @@ void	load_test(void)
 	snd_smack = load_8bit_pcm((Sint8*)"MSMACK.PCM", 15360);
 	snd_boost = load_8bit_pcm((Sint8*)"BOOST.PCM", 15360);
 	snd_impact = load_8bit_pcm((Sint8*)"IMPACT.PCM", 15360);
-	snd_shot = load_8bit_pcm((Sint8*)"SHOT.PCM", 15360);
+	
+	snd_shotf = load_8bit_pcm((Sint8*)"SHOTF.PCM", 15360);
+	snd_lpistf = load_8bit_pcm((Sint8*)"LPISTF.PCM", 15360);
+	
 	snd_khit = load_8bit_pcm((Sint8*)"KICKHIT.PCM", 7680);
 	snd_clack = load_8bit_pcm((Sint8*)"CLACK.PCM", 7680);
 	snd_click = load_8bit_pcm((Sint8*)"CLICK.PCM", 7680);

@@ -208,6 +208,7 @@ void	player_draw(backgroundAnimation ** refAnim)
 	static int keyTimer = 0;
 	static int curKey = 0;
 	
+	if(keyTimer == 0 && curKey == 0 && curAnim->sound > 0) pcm_play(curAnim->sound, PCM_SEMI, 210);
 	keyTimer+= delta_time;
 	
 	bg_key * keyfrm = curAnim->keyframes[curKey];
@@ -361,7 +362,7 @@ void	mover_draw_queue(void)
 			case(MODEL_TYPE_SECTORED):
 			break;
 			default:
-			//msh2DrawModel(&entities[objDRAW[i]], (MATRIX*)&world_box);
+			msh2DrawModel(&entities[objDRAW[i]], (MATRIX*)&world_box);
 			break;
 		}
 	}
@@ -393,7 +394,7 @@ void	obj_draw_queue(void)
 			ssh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 0);
 			break;
 			default:
-			ssh2DrawModel(&entities[objDRAW[i]]);
+			//ssh2DrawModel(&entities[objDRAW[i]]);
 			break;
 		}
 
@@ -673,9 +674,11 @@ void	master_draw(void)
 	player_draw(&viewmodel_state);
 	mover_draw_queue();
 	shadow_draw(DRAW_MASTER);
+	
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
 	interim_time = get_time_in_frame();
+	*masterIsDoneDrawing = 1;
 	//
 	hud_menu();
 
@@ -699,7 +702,7 @@ void	master_draw(void)
 	update_3d_sounds();
 	operate_particles();
 	time_of_object_management = get_time_in_frame() - interim_time;
-	*masterIsDoneDrawing = 1;
+	
 		//
 	
 	//Oh, right, this...

@@ -139,14 +139,14 @@ void controls(void)
 	{
 		int mark[3] = {0,0,0};
 		//200 meters per second?
-		mark[X] = -fxm((you.shootDir[X]), 704<<16);
-		mark[Y] = -fxm((you.shootDir[Y]), 704<<16);
-		mark[Z] = -fxm((you.shootDir[Z]), 704<<16);
+		mark[X] = -fxm((you.shootDir[X]), 64<<16);
+		mark[Y] = -fxm((you.shootDir[Y]), 64<<16);
+		mark[Z] = -fxm((you.shootDir[Z]), 64<<16);
 		mark[X] += you.wvel[X];
 		mark[Y] += you.wvel[Y];
 		mark[Z] += you.wvel[Z];
 		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark, you.curSector);
-		
+		//pcm_play(snd_shotf, PCM_SEMI, 210);
 		use_viewmodel();
 		
 		// for(int i = 0; i < MAX_PHYS_PROXY; i++)

@@ -79,7 +79,7 @@ void	transform_mesh_point(FIXED * mpt, FIXED * opt, _boundBox * mpara)
 //mesh: 0 for solid, 1 for mesh
 void	draw2dSquare(int * firstPt, int * scndPt, unsigned short colorData, unsigned short solid_or_border, unsigned short depth, unsigned short mesh)
 {
-	if(msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) return;
+	if((msh2SentPolys[0]+1) >= MAX_MSH2_SENT_POLYS) return;
 	//
 	// Draw a 2D square.
 	// Draws using VDP1 single-color polygon.
@@ -110,6 +110,8 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 	// Draw Billboard Scaled Sprite
 	// Recieves a 3D position in a matrix, transforms it to screenspace, and then displays a sprite.
 	//
+	if((ssh2SentPolys[0]+1) >= MAX_SSH2_SENT_POLYS) return;
+	
     static MATRIX newMtx;
     slGetMatrix(newMtx);
 
@@ -170,8 +172,8 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 	transVerts[0] += 1;
 	int spanX;
 	int spanY;
-	
-	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] - (8<<16) : 1<<16;
+	//because the game engine has massively increased in scale (from 8 units being 1 meter to 64 units being 1 meter), we need to bring this closer to the camera
+	int used_z = (spr->type.info.sorted) ? ssh2VertArea[0].pnt[Z] + SPRITE_Z_ADJUSTMENT : 1<<16;
 	
 	if(spr->type.info.drawMode == SPRITE_TYPE_BILLBOARD)
 	{
@@ -203,6 +205,7 @@ void	ssh2BillboardScaledSprite(_sprite * spr)
 
 void	ssh2Line(_sprite * spr)
 {
+	if((ssh2SentPolys[0]+1) >= MAX_SSH2_SENT_POLYS) return;
 	//
 	// Draw A Line
 	// Recieves a 3D position in a matrix, transforms it to screenspace, and then displays a line with pos + span as the line.
@@ -286,6 +289,7 @@ void	ssh2Line(_sprite * spr)
 
 void	ssh2NormalSprite(_sprite * spr)
 {
+	if((ssh2SentPolys[0]+1) >= MAX_SSH2_SENT_POLYS) return;
 	int ptv[XY] = {spr->pos[X] - TV_HALF_WIDTH, spr->pos[Y] - TV_HALF_HEIGHT};
 	//Let sprite type allow mesh strobing, bank strobing, or on/off strobing.
 	//Let span[X] determine strobe status (strobe on, strobe off) 0 or 1.
@@ -340,7 +344,7 @@ void	drawAxis(POINT size)
 {
 	//The point of this function is, when placed in a matrix, will draw that matrix given its size as function arguments.
 	//The matrix is drawn as polyline. (just lil thicker than a line)
-
+	if((msh2SentPolys[0]+3) >= MAX_SSH2_SENT_POLYS) return;
     static MATRIX newMtx;
     slGetMatrix(newMtx);
 
@@ -483,7 +487,7 @@ void	spr_print(int xPos, int yPos, char * data)
 	}
 	// "baseAsciiTexno" is supplied by setting "baseAsciiTexno = numTex" then loading the ASCII texture table (WRAP_NewTable).
 	texIndex = (baseAsciiTexno + nextChar)-32;
-	if(msh2SentPolys[0] >= MAX_MSH2_SENT_POLYS) return;
+	if((msh2SentPolys[0]+1) >= MAX_MSH2_SENT_POLYS) return;
 	msh2SetCommand(ptv, 0, 0, 0, 0 /*CMD CTRL*/, 0x890 /*COMMAND MODES*/, 
 				pcoTexDefs[(unsigned char)texIndex].SRCA /*SRCA*/, 2 /*COLOR BANK CODE*/,
 				pcoTexDefs[(unsigned char)texIndex].SIZE /*CMDSIZE*/, 0 /*GR ADDR*/, 1<<16 /*Z*/

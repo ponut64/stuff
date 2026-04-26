@@ -41,6 +41,9 @@ typedef struct {
 	int prevPos[XYZ];
 	int velocity[XYZ];
 	int dirUV[XYZ];
+	int pHit[3];
+	int * nHit;
+	int hitDist;
 	int lifetime;
 	int sanics;
 	unsigned short luma; //Light emission value (unused)
@@ -66,7 +69,6 @@ void		init_particle(void);
 _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector);
 void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count, int curSector);
 void		object_effects(int obj_index, int box_index);
-void		particle_collision_handler(_particle * part, int * hitPos, int * normal);
 void		operate_particles(void);
 
 

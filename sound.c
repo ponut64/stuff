@@ -31,7 +31,6 @@
  int snd_button;
  int snd_cronch;
  int snd_alarm;
- int snd_win;
  int snd_freturn;
  int snd_ftake;
  int snd_bwee;
@@ -44,15 +43,9 @@
  int snd_ffield1;
  int snd_ffield2;
  int snd_impact;
- int snd_shot;
+ int snd_shotf;
+ int snd_lpistf;
  Sint8 * stmsnd[64];
- int snd_win;
- int snd_freturn;
- int snd_orchit0;
- int snd_tslow;
- int snd_gpass;
- int snd_yeah;
- int snd_rlap;
  int stm_win = 0;
  int stm_freturn = 1;
  int stm_orchit0 = 2;

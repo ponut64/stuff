@@ -309,35 +309,53 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 	
 }
 
-void	particle_collision_handler(_particle * part, int * hitPos, int * normal)
+void	particle_collision_handler(_particle * part)
 {
 	
-	int deflectionFactor = -fxdot(part->velocity, normal);
+	int deflectionFactor = -fxdot(part->velocity, part->nHit);
 		
 	if(part->type.info.bounce)
 	{
-	part->velocity[X] += fxm(normal[X], deflectionFactor + REBOUND_ELASTICITY);// - (normal[X]>>4);
-	part->velocity[Y] += fxm(normal[Y], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Y]>>4);
-	part->velocity[Z] += fxm(normal[Z], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Z]>>4);
+	part->velocity[X] += fxm(part->nHit[X], deflectionFactor + REBOUND_ELASTICITY);// - (normal[X]>>4);
+	part->velocity[Y] += fxm(part->nHit[Y], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Y]>>4);
+	part->velocity[Z] += fxm(part->nHit[Z], deflectionFactor + REBOUND_ELASTICITY);// - (normal[Z]>>4);
 	//Small push to secure surface release
-	part->spr->pos[X] += normal[X]>>4;
-	part->spr->pos[Y] += normal[Y]>>4;
-	part->spr->pos[Z] += normal[Z]>>4;
+	part->spr->pos[X] += part->nHit[X]>>4;
+	part->spr->pos[Y] += part->nHit[Y]>>4;
+	part->spr->pos[Z] += part->nHit[Z]>>4;
 	}
 	
 	part->type.info.garbage = (part->type.info.bounce) ? 0 : 1;
 	
 	if(part->type.info.onHit == 1)
 	{
-		emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, hitPos, zPt, 65536, 65536, 4, you.curSector);
+		emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, part->pHit, zPt, 65536, 65536, 4, you.curSector);
 		//spawn_particle(&TestSpr, PARTICLE_TYPE_NOCOL, hitPos, zPt, you.curSector);
-		play_sound_instance(snd_impact, PCM_PROTECTED, 65536, hitPos);
+		play_sound_instance(snd_impact, PCM_PROTECTED, 65536, part->pHit);
 	}
 	
 	//part->spr->pos[X] = part->prevPos[X];
 	//part->spr->pos[Y] = part->prevPos[Y];
 	//part->spr->pos[Z] = part->prevPos[Z];
 	
+}
+
+void	particle_potential_hit(_particle * part, int * hitPos, int * normal)
+{
+	int hitDif[3] = {hitPos[X] - part->spr->pos[X], hitPos[Y] - part->spr->pos[Y], hitPos[Z] - part->spr->pos[Z]};
+	hitDif[X]>>=4;
+	hitDif[Y]>>=4;
+	hitDif[Z]>>=4;
+	int pDist = fxdot(hitDif, hitDif);
+	
+	if(pDist <= part->hitDist)
+	{
+		part->pHit[X] = hitPos[X];
+		part->pHit[Y] = hitPos[Y];
+		part->pHit[Z] = hitPos[Z];
+		part->hitDist = pDist;
+		part->nHit = normal;
+	}
 }
 
 short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
@@ -435,7 +453,8 @@ short	particle_collide_polygon(entity_t * ent, int * ent_pos, _particle * part)
 		{
 			if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], hitPt, dominant_axis, 12))
 			{
-				particle_collision_handler(part, hitPt, plnm);
+				//particle_collision_handler(part, hitPt, plnm);
+				particle_potential_hit(part, hitPt, plnm);
 				return true;
 			}
 		}
@@ -534,7 +553,8 @@ short	particle_collide_sector(_particle * part)
 			{
 				if(edge_wind_test(plane_points[0], plane_points[1], plane_points[2], plane_points[3], hitPt, dominant_axis, 12))
 				{
-					particle_collision_handler(part, hitPt, plnm);
+					//particle_collision_handler(part, hitPt, plnm);
+					particle_potential_hit(part, hitPt, plnm);
 					m_hits++;
 				}
 			}
@@ -622,8 +642,9 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 		{
 			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, obj->maxtbl[i], 12))
 			{
-				particle_collision_handler(part, hitPt, obj->nmtbl[i]);
-				object_particle_collision_handler(part, bound_box_entry);
+				//particle_collision_handler(part, hitPt, obj->nmtbl[i]);
+				//object_particle_collision_handler(part, bound_box_entry);
+				particle_potential_hit(part, hitPt, obj->nmtbl[i]);
 				return true;
 			} 
 		}
@@ -647,7 +668,7 @@ void	operate_particles(void)
 		
 		if(particles[i].type.info.collide)
 		{
-			
+				particles[i].hitDist = 1<<30;
 				if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 				{
 					particles[i].spr->span[X] = particles[i].dirUV[X]>>1;
@@ -680,6 +701,8 @@ void	operate_particles(void)
 				}
 				
 				pHit |= particle_collide_sector(&particles[i]);
+				
+				if(pHit) particle_collision_handler(&particles[i]);
 				
 		} else if(particles[i].spr->type.info.drawMode == SPRITE_TYPE_3DLINE)
 		{

@@ -95,6 +95,8 @@
 #define DEPTH_CUE_OFFSET (200<<16)
 #define DEPTH_CUE_CUTOFF (1200<<16)
 
+#define SPRITE_Z_ADJUSTMENT -(32<<16)
+
 /*
 Render data flags:
 	
@@ -242,8 +244,9 @@ typedef struct {
 } bg_key;
 
 typedef struct {
-	int length; //# of keyframes in this animation
-	int loop; //Whether this animation loops, or not. 
+	short length; //# of keyframes in this animation
+	short loop; //Whether this animation loops, or not. 
+	short sound; //sound number to be played with this animation (if sound number > 0)
 	bg_key ** keyframes; //Pointer to the keyframes of the animation in the played order
 	int * lifetimes; //Pointer to the list of lifetimes of each keyframe in this animation (in fixed-point time units)
 	void * sequence; //Pointer to another animation to be played in sequence with this one
