@@ -118,7 +118,7 @@ void	set_sound_instance(_sound_instance * snd, int * volume, int * pan)
 				accumulator += dist * dist;
 				dist = position_dif[Z]>>16;
 				accumulator += dist * dist;
-			dist = slSquart(accumulator)<<16;
+			dist = squart(accumulator)<<16;
 			vmag = dist;
 		
 			vmag = fxdiv(1<<16, vmag);

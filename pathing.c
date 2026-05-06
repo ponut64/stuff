@@ -119,7 +119,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 			normal_to_tc[Y] = 0;
 			normal_to_tc[Z] = 0;
 			
-			accurate_normalize(vector_to_tc, normal_to_tc, 5);
+			accurate_normalize(vector_to_tc, normal_to_tc);
 			//Method for detecting adjacency:
 			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
 			//If they are, they probably share an edge.
@@ -334,7 +334,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 			normal_to_tc[Y] = 0;
 			normal_to_tc[Z] = 0;
 			
-			accurate_normalize(vector_to_tc, normal_to_tc, 5);
+			accurate_normalize(vector_to_tc, normal_to_tc);
 			//Method for detecting adjacency:
 			//Hooray, it's the edge-wind test again. We check if two vertices are within the original polygon being tested.
 			//If they are, they probably share an edge.
@@ -392,7 +392,7 @@ for(int s = 0; s < sct->nbAdjacent; s++)
 				normal_to_tc[X] = -((t_center[X] - (guidance_point[X]>>2))>>4);
 				normal_to_tc[Y] = -((t_center[Y] - (guidance_point[Y]>>2))>>4);
 				normal_to_tc[Z] = -((t_center[Z] - (guidance_point[Z]>>2))>>4);
-				accurate_normalize(normal_to_tc, sct->paths[s].dir[num_paths], 5);
+				accurate_normalize(normal_to_tc, sct->paths[s].dir[num_paths]);
 				num_paths++;
 			}
 			

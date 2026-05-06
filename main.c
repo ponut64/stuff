@@ -19,8 +19,7 @@ But more or less it should be in the game.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
 
--> Projectile work
- - add sound to shoot and animations (complex work)
+-> added sounds. now what?
 	
 -> Performance consideration
 	A single light costs 1-2ms. Oof. Hmm... how do precalculate those? Or just speed it up? I mean, halving the cost would be huge...

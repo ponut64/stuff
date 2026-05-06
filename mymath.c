@@ -149,6 +149,84 @@ inline void	swap_ushort(unsigned short * a, unsigned short * b)
 	*b = e;
 }
 
+//I rarely ever use slSquartFX, sooo... fxSquart
+//stolen from SRL / danny
+int		fxSquart(int input)
+{
+    int remainder = input;
+    int root = 0;
+    int bit = 0x40000000;
+
+    while (bit > 0x40)
+    {
+        int trial = root + bit;
+        if (remainder >= trial)
+        {
+            remainder -= trial;
+            root = trial + bit;
+        }
+        remainder <<= 1;
+        bit >>= 1;
+    }
+
+    return root >>=8;
+}
+
+//also stolen from SRL
+int		squart(int input)
+{
+    int baseEstimation = 1;
+    int estimation = input >> 2;
+
+    while (baseEstimation < estimation)
+    {
+        estimation >>= 1;
+        baseEstimation <<= 1;
+    }
+
+    return baseEstimation + estimation;
+}
+
+int		crazy_length(int * input)
+{
+	int min = JO_ABS(input[X]);
+	int mid = JO_ABS(input[Y]);
+	int max = JO_ABS(input[Z]);
+	int swap;
+	//At the end of this statement, we know that "mid" is not the minimum.
+	if(min > mid)
+	{
+	min = JO_ABS(input[Y]);
+	mid = JO_ABS(input[X]);
+	}
+	
+	//At the end of this statement, we know that "max" is greater than "mid".
+	if(mid > max)
+	{
+		swap = max;
+		max = mid;
+		mid = swap;
+	}
+	//At the end of this statement, we know that "mid" is greater than "min". 
+	if(min > mid)
+	{
+		swap = min;
+		min = mid;
+		mid = swap;
+	}
+	// Alpha is close to 1, beta is ~0.4, gamma is ~0.25
+	// These coefficients give good accuracy and can be calculated with shifts/adds
+	//int alpha = max;
+	
+	// beta = 0.375 = 3/8 = 1/2 - 1/8
+	//int beta = (mid >> 1) - (mid >> 3);
+	
+	// gamma = 0.25 = 1/4
+	//int gamma = min >> 2;
+	
+	return max + ((mid>>1)-(mid>>3)) + (min>>2);
+}
+ 
 //////////////////////////////////
 // Shorthand to turn two points (to represent a segment) into a vector
 //////////////////////////////////
@@ -169,7 +247,7 @@ int unfix_length(FIXED Max[XYZ], FIXED Min[XYZ])
 	vdif[X]>>=16;
 	vdif[Y]>>=16;
 	vdif[Z]>>=16;
-	return slSquart( (vdif[X] * vdif[X]) + (vdif[Y] * vdif[Y]) + (vdif[Z] * vdif[Z]) );
+	return squart( (vdif[X] * vdif[X]) + (vdif[Y] * vdif[Y]) + (vdif[Z] * vdif[Z]) );
 }
 
 //////////////////////////////////
@@ -196,37 +274,116 @@ FIXED		approximate_distance(FIXED * p0, FIXED * p1)
 	return (JO_ABS(p0[X] - p1[X]) + JO_ABS(p0[Y] - p1[Y]) + JO_ABS(p0[Z] - p1[Z]));
 }
 
-
 //////////////////////////////////
 // "fast inverse square root", but fixed-point
 // Newton-Raphsom root-seeking sequence
 //////////////////////////////////
-FIXED		fxisqrt(FIXED input)
+FIXED		fxisqrt(int input)
 {
-	
-	FIXED xSR = 0;
-	FIXED pushrsamp = 0;
-	FIXED msb = 0;
-	FIXED shoffset = 0;
-	FIXED yIsqr = 0;
+
+	//let's do this -- let's modify this to work kind of like the assembly variant.
 	
 	if(input <= 65536){
 		return 65536;
 	}
 	
-	xSR = input>>1;
-	pushrsamp = input;
 	
-	while(pushrsamp & 0xFFFF0000)
+	int pushrsamp = input>>16;
+	int msb = 0;
+	
+	while(pushrsamp)
 	{
 		pushrsamp >>=1;
 		msb++;
 	}
 
-	shoffset = (16 - ((msb)>>1));
-	yIsqr = 1<<shoffset;
+	int yIsqr = 1<<8;
+	int shoffset = (8 - ((msb)>>1));
+	yIsqr<<=shoffset;
 	//y = (y * (98304 - ( ( (x>>1) * ((y * y)>>16 ) )>>16 ) ) )>>16;   x2
-	return (fxm(yIsqr, (98304 - fxm(xSR, fxm(yIsqr, yIsqr)))));
+	return (fxm(yIsqr, (98304 - fxm((input>>1), (yIsqr * yIsqr)>>16))));
+
+}
+
+
+int			isqrtASM(int * ptA, int * ptB)
+{
+	//Let's write this in assembly, but start it at the MAC part.
+	register volatile int rtval;
+	asm(
+		"clrmac;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"mac.l @%[ptr1]+,@%[ptr2]+;"
+		"sts MACH,r1;"
+		"sts MACL,r2;"
+		"xtrct r1,r2;" //result of fxdot in R2 --xSR in R2
+		"mov r2,r1;" //the code was made for Q16.16 - if we use R1 directly, we're dealing with more bits than expected.
+		"shlr16 r1;"
+		"mov #1,r4;" //move literal 1 to r4
+		"cmp/hi r4,r1;" // compare high 32 bits with zero. if greater than zero, T=1
+		"bf GIVEONE;" //if T=0 (value not greater than zero), jump to end of shift sequence
+		"shlr r1;" //Shift sample right one
+		"mov #1,r5;" //Move a literal #1 to r5
+		"cmp/hi r4,r1;"
+		"bf ENDSHIFT;"
+		"ROTL:" //Shift sequence loop
+		"shlr r1;" //Shift sample right once
+		"add #1,r5;" //Add 1 to MSB counter
+		"cmp/hi r4,r1;" //is sample >0?
+		"bf ENDSHIFT;" //if not greater than 0, jump
+		"bra ROTL;"
+		"ENDSHIFT:"
+		"mov #8,r6;" //Next to calculate the shift offset is 16 - (msb>>1). We are assuming the shift count is never more than 16, which we divide in half for 8, therefore its never more than 8.
+		"shlr r5;"
+		"sub r5,r6;" //r6 - r5 aka 8 - (msb>>1) - r6 contains the initial guess shift count
+		"shll8 r4;" //1<<8
+		"cmp/pl r6;" //We need to check if r6 is positive or if it is zero.
+		"bf SHIFTOUT;" //In that case shift is negative or zero, jump to end of shift sequence.
+		"SHIFTLOW:"
+		"shll r4;" //yIsqr being shifted in r4
+		"dt r6;" //R6-1. If 6 is non-zero, jump to shift more.
+		"bf SHIFTLOW;"
+		"SHIFTOUT:"
+		"nop;" //Special note. Since the shift count is 16 - msb, yIsqr is known to be less than 16 bits long. Therefore, we can use cheaper mul.
+		"mul.l r4,r4;"
+		"sts MACL,r5;" //working result in R5
+		"shlr16 r5;"
+		"shar r2;"
+		"dmuls.l r2,r5;"
+		"sts MACH,r5;"
+		"sts MACL,r1;"
+		"xtrct r5,r1;" //result of fixed point mul in r1
+		"mov #96,r6;" //Hint: SH2 8-bit mov immediate is signed.
+		"shll2 r6;"
+		"shll8 r6;" //98304 in r6
+		"sub r1,r6;" //r6 - r1 -> r6 (98304)
+		"dmuls.l r6,r4;"
+		"sts MACH,r1;"
+		"sts MACL,%[ox];"
+		"xtrct r1,%[ox];" //result of fixed point mul in %[ox] -- end of calculation
+		"bra ENDOUT;"
+		"GIVEONE:"
+		"shll16 r4;"
+		"mov r4,%[ox];"
+		"ENDOUT:"
+		: 	[ox] "=r" (rtval), [ptr1] "+p" (ptA) , [ptr2] "+p" (ptB)	//OUT
+		:																//IN
+		:	"r1", "r2", "r4", "r5", "r6", "mach", "macl"										//CLOBBERS
+	);
+	return rtval;
+}
+
+int		isqrt_test_back(int * vector, int ofsX, int ofsY)
+{
+	int outputA = isqrtASM(vector,vector);
+	
+	int outputB = fxisqrt(fxdot(vector,vector));
+	
+	nbg_sprintf(ofsX, ofsY, "asm:(%i)", outputA);
+	
+	nbg_sprintf(ofsX, ofsY+1, "fxi:(%i)", outputB);
+	
 }
 
 //////////////////////////////////
@@ -476,18 +633,19 @@ void	quick_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
-	vmag = fxisqrt(fxdot(vector_in, vector_in));
+	//Tested: The "crazy length" function by Danny from SRL is indeed the fastest/best solution.
+	vmag = fxdiv(65536,crazy_length(vector_in));
 	vector_out[X] = fxm(vmag, vector_in[X]);
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
 }
 
-//note: vector_in cannot have negative components
-void	accurate_normalize(FIXED * vector_in, FIXED * vector_out, int accuracy)
+
+void	accurate_normalize(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
-	vmag = fxisqrt_iterations(fxdot(vector_in, vector_in), accuracy);
+	vmag = fxdiv(65536,crazy_length(vector_in));
 	vector_out[X] = fxm(vmag, vector_in[X]);
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
@@ -497,7 +655,7 @@ int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out)
 {
 	//Shift inputs rsamp by 8, to prevent overflow.
 	static FIXED vmag = 0;
-	vmag = slSquartFX(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
+	vmag = fxSquart(fxm(vector_in[X],vector_in[X]) + fxm(vector_in[Y],vector_in[Y]) + fxm(vector_in[Z],vector_in[Z]));
 	int scale = vmag;
 	vmag = fxdiv(1<<16, vmag);
 	vector_out[X] = fxm(vmag, vector_in[X]);

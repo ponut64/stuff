@@ -513,8 +513,8 @@ if(JO_ABS(surface_normal[Y]) > 32768)
 	//colr2 = 47;
 }
 
-accurate_normalize(plane_matrix[X], plane_matrix[X], 5);
-accurate_normalize(plane_matrix[Z], plane_matrix[Z], 5);
+accurate_normalize(plane_matrix[X], plane_matrix[X]);
+accurate_normalize(plane_matrix[Z], plane_matrix[Z]);
 
 //Use an axis-relative rotation.
 /**

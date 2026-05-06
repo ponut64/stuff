@@ -262,7 +262,7 @@ void	player_draw(backgroundAnimation ** refAnim)
 				ldist = relative_light_pos[Z]>>16;
 				accumulator += ldist * ldist;
 				
-			vmag = slSquart(accumulator);
+			vmag = squart(accumulator);
 			vmag<<=16;
 		
 			vmag = fxdiv(1<<16, vmag);
@@ -758,6 +758,15 @@ void	master_draw(void)
 		avg_samples = 0;
 	}
 	
+	// static int testA[3] = {-65536,0,0};
+	// static int testB[3] = {3<<16, 30<<16, 76<<16};
+	// static int testC[3] = {111<<16, -(80<<16), 22<<16};
+
+	// isqrt_test_back(testA, 5, 8);
+	
+	// isqrt_test_back(testB, 5, 12); //700
+
+	// isqrt_test_back(testC, 5, 16); //467
 	
 }
 

@@ -684,7 +684,7 @@ void	operate_particles(void)
 				particles[i].sanics += swapr * swapr;
 				swapr = particles[i].velocity[Z]>>16;
 				particles[i].sanics += swapr * swapr;
-				particles[i].sanics = slSquart(particles[i].sanics);
+				particles[i].sanics = squart(particles[i].sanics);
 				pHit = false;
 				for(int u = 0; u < MAX_PHYS_PROXY; u++)
 				{

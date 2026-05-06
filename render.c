@@ -550,7 +550,7 @@ int		process_light(VECTOR lightAngle, FIXED * ambient_light, int * brightness_fl
 		accumulator += ldist * ldist;
 		ldist = lightDist[Z]>>16;
 		accumulator += ldist * ldist;
-	vmag = slSquart(accumulator);
+	vmag = squart(accumulator);
 	vmag<<=16;
 
 	vmag = fxdiv(1<<16, vmag);

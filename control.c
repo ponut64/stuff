@@ -113,7 +113,7 @@ void controls(void)
 		
 		int norm_pt[3] = {0, 0, 0};
 		
-		accurate_normalize(control_axis_pt, norm_pt, 5);
+		accurate_normalize(control_axis_pt, norm_pt);
 		short angle = slAtan(norm_pt[Z], norm_pt[X]);
 		
 		// Next: Get the magnitude of each axis, relative to its (signed) maximum (STICK_MAX).

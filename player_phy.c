@@ -557,7 +557,7 @@ void	player_phys_affect(void)
 	tempDif[Y] = you.pos[Y] - you.prevPos[Y];
 	tempDif[Z] = you.pos[Z] - you.prevPos[Z];
 	quick_normalize(tempDif, you.DirUV);
-	you.sanics = slSquartFX(fxm(tempDif[X], tempDif[X]) + fxm(tempDif[Y], tempDif[Y]) + fxm(tempDif[Z], tempDif[Z]));
+	you.sanics = fxSquart(fxdot(tempDif,tempDif));
 	you.sanics = fxm((you.sanics>>5), time_delta_scale);
 	//Set prev pos
 	if(you.curSector != INVALID_SECTOR)

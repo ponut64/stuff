@@ -29,7 +29,6 @@ void		SetDiv(int dividend, int divisor);
 void		swap_ushort(unsigned short * a, unsigned short * b);
 
 FIXED		approximate_distance(FIXED * p0, FIXED * p1);
-FIXED		fxisqrt(FIXED input);
 
 int		unfix_length(FIXED Max[XYZ], FIXED Min[XYZ]);
 void	segment_to_vector(FIXED * start, FIXED * end, FIXED * out);
@@ -46,13 +45,17 @@ void	copy_matrix(int * mtx_dst, int * mtx_src);
 void	cpy3(FIXED * dst, FIXED * src);
 
 void	quick_normalize(FIXED * vector_in, FIXED * vector_out);
-void	accurate_normalize(FIXED * vector_in, FIXED * vector_out, int accuracy);
+void	accurate_normalize(FIXED * vector_in, FIXED * vector_out);
 int		normalize_with_scale(FIXED * vector_in, FIXED * vector_out);
 int		line_intersection_function(FIXED * ptA, FIXED * vA, FIXED * ptB, FIXED * vB, FIXED * intersection);
 void	fxcross(FIXED * vector1, FIXED * vector2, FIXED * output);
 Bool	isPointonSegment(FIXED * point, FIXED * start, FIXED * end, int tolerance);
 
 Uint8	solve_domain(int x_axis, int y_axis);
+
+int		isqrt_test_back(int * vector, int ofsX, int ofsY);
+int		fxSquart(int input);
+int		squart(int input);
 
 int		fxAtan2(int x_axis, int y_axis);
 
