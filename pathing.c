@@ -698,22 +698,20 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	static int target_dif[3];
 	static int dif_norm[3];
 	
-	target_dif[X] = (target[X] - act->pos[X])>>4;
-	target_dif[Y] = (target[Y] - act->pos[Y])>>4;
-	target_dif[Z] = (target[Z] - act->pos[Z])>>4;
+	target_dif[X] = (target[X] - act->pos[X]);
+	target_dif[Y] = (target[Y] - act->pos[Y]);
+	target_dif[Z] = (target[Z] - act->pos[Z]);
 	
 	//Flatten the dif according to the allowable movement of the actor
 	target_dif[Y] = 0;
 	
 	quick_normalize(target_dif, dif_norm);
 	
-	target_dif[X] = JO_ABS(target_dif[X]>>12);
-	target_dif[Y] = JO_ABS(target_dif[Y]>>12);
-	target_dif[Z] = JO_ABS(target_dif[Z]>>12);
+	int distal = crazy_length(target_dif);
 	
-	int distal = (target_dif[X] + target_dif[Y] + target_dif[Z]);
+	//nbg_sprintf(5, 9, "dst(%i)", distal);
 	
-	if(distal < gap) return 1;
+	if(distal <= gap) return 1;
 
 	if(act->info.flags.movedUnrendered)
 	{
@@ -757,7 +755,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 		//If "mostly" facing away, slow down and turn faster if close.
 		//if(JO_ABS(sin_y) > 16384)
 		//{
-		//	travel_rate = (distal < (gap<<2)) ? rate>>1 : rate;
+		//	travel_rate = (distal < (gap<<2)) ? 0 : rate;
 		//	turn_rate<<=1;
 		//}
 		
@@ -765,7 +763,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	{
 		//Facing away.
 		//Reduce travel rate to make a tighter turn and turn faster.
-		travel_rate = (distal < (gap<<2)) ? 0 : rate>>1;
+		travel_rate = (distal < (gap<<2)) ? 0 : rate;
 		turn_rate<<=2;
 	}
 	
@@ -830,9 +828,9 @@ int		actorLineOfSight(_actor * act, int * pos)
 	hit[Y] = 32767<<16;
 	hit[Z] = 32767<<16;
 	
-	vector_to_pos[X] = (pos[X] - act->pos[X])>>4;
-	vector_to_pos[Y] = (pos[Y] - act->pos[Y])>>4;
-	vector_to_pos[Z] = (pos[Z] - act->pos[Z])>>4;
+	vector_to_pos[X] = (pos[X] - act->pos[X]);
+	vector_to_pos[Y] = (pos[Y] - act->pos[Y]);
+	vector_to_pos[Z] = (pos[Z] - act->pos[Z]);
 	
 	quick_normalize(vector_to_pos, normal_to_pos);
 	
@@ -1224,7 +1222,7 @@ void	checkInPathSteps(int actor_id)
 		//If the path to the original point is clear, we will release the exception.
 		//If it is not, we will reset the timer, but we won't release the exception.
 		step = &stepList[act->curPathStep-1];
-		int path_delta[3] = {((levelPos[X] + step->pos[X]) - act->pos[X])>>4, 0, ((levelPos[Z] + step->pos[Z]) - act->pos[Z])>>4};
+		int path_delta[3] = {((levelPos[X] + step->pos[X]) - act->pos[X]), 0, ((levelPos[Z] + step->pos[Z]) - act->pos[Z])};
 		int path_dUV[3] = {0,0,0};
 		quick_normalize(path_delta, path_dUV);
 	
@@ -1289,7 +1287,7 @@ void	checkInPathSteps(int actor_id)
 		act->pathTarget[Z] = levelPos[Z] + step->pos[Z];
 		
 		//iterate towards the step
-		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, 32768, 64<<16);
 		if(act->info.flags.movedUnrendered && act->info.flags.onPathNode)
 		{
 			//Dangerous unrendered sector manipulation.
@@ -1344,7 +1342,7 @@ void	checkInPathSteps(int actor_id)
 			act->pathTarget[X] = act->pathGoal[X];
 			act->pathTarget[Y] = act->pathGoal[Y];
 			act->pathTarget[Z] = act->pathGoal[Z];
-			act->atGoal = actorMoveToPos(act, act->pathTarget, 32768, act->box->radius[X]>>16);
+			act->atGoal = actorMoveToPos(act, act->pathTarget, 32768, 64<<16);
 		}
 		return;
 	}

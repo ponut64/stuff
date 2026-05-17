@@ -94,7 +94,7 @@ _sobject Strange = {
 	.radius[X] = 0,
 	.radius[Y] = 0,
 	.radius[Z] = 0,
-	.ext_dat = BUILD
+	.ext_dat = GHOST
 };
 
 _sobject ToggleClosed = {

@@ -858,6 +858,7 @@ void	actor_threat_evaluation(_actor * act)
 	if(act->aggroTimer > 0)
 	{
 		act->info.flags.inCombat = 1;
+		act->markedSector = INVALID_SECTOR;
 		return;
 	}
 	int target[3] = {you.wpos[X]>>16, you.wpos[Y]>>16, you.wpos[Z]>>16};
@@ -883,7 +884,7 @@ void	actor_idle_actions(int actor_id)
 	_sector * sct = &sectors[you.curSector];
 	
 	//we need to get a vector from actor->player
-	int vec_dif[3] = {-(act->pos[X] + you.pos[X])>>4, -(act->pos[Y] + you.pos[Y])>>4, -(act->pos[Z] + you.pos[Z])>>4};
+	int vec_dif[3] = {-(act->pos[X] + you.pos[X]), -(act->pos[Y] + you.pos[Y]), -(act->pos[Z] + you.pos[Z])};
 	int vec_norm[3] = {0,0,0};
 	
 	quick_normalize(vec_dif, vec_norm);
@@ -941,6 +942,7 @@ void	actor_idle_actions(int actor_id)
 	{
 		if(vec_dot > 0)
 		{
+			//(note that rate is set to 0, this makes the actor turn)
 			actorMoveToPos(act, intersection_pt, 0, act->box->radius[X]>>16);
 		}
 		
@@ -1001,14 +1003,24 @@ void	actor_idle_actions(int actor_id)
 		//Later I am going to build "Wandering" or "Patrolling" logic so .. that'll be relevant to this.
 		//Unlike wandering or patrolling, this will only be evaluated once.
 		act->markedSector = act->goalSector;
-		
+		sct = &sectors[act->markedSector];
+		short evaluations[sct->nbAdjacent];
+		int nEval = 0;
+		int randal = 0;
 		for(int i = 0; i < sct->nbAdjacent; i++)
 		{
-			int randal = getRandom();
+			randal += getRandom();
 			int sct_num = sct->pvs[i+1];
-			if(sct_num == act->curSector) continue;
-			if(i == (sct->nbAdjacent-1) || randal > 32768)
+			evaluations[i] = 0;
+			if(sct_num == act->curSector || sct_num == act->prevSector)
+			{ //we need to find a way to clear the sectors which are valid path options before we exclude the ones which are not
+				evaluations[i] = INVALID_SECTOR;
+				nEval++;
+			}
+			//nbg_sprintf(15, 3+i, "rand(%i)", randal);
+			if(randal >= 0 || nEval >= (sct->nbAdjacent-2))
 			{
+				if(evaluations[i] == INVALID_SECTOR) continue;
 				get_floor_position_at_sector_center(sct_num, intersection_pt);
 					
 				intersection_pt[Y] -= act->box->radius[Y];
@@ -1017,19 +1029,31 @@ void	actor_idle_actions(int actor_id)
 				break;
 			}
 		}
+		
+			if(actor_id == (MAX_PHYS_PROXY-1))
+			{
+		//	nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
+		//	nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
+		//	nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
+		//	nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
+		//	nbg_sprintf(5, 11, "at(%i)", act->atGoal);
+		//	nbg_sprintf_decimal(5, 12, act->aggroTimer);
+		//	nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
+			}
+		
 	}
 	act->nolosTimer -= delta_time;
 	
-	//if(actor_id == (MAX_PHYS_PROXY-1))
-	//{
-	// nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
-	// nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
-	// nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
-	// nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
-	// nbg_sprintf(5, 11, "at(%i)", act->atGoal);
-	// nbg_sprintf_decimal(5, 12, act->aggroTimer);
-	// nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
-	//}
+	if(actor_id == (MAX_PHYS_PROXY-1))
+	{
+	//nbg_sprintf(5, 9, "loc(%i)", act->info.flags.locked);
+	//nbg_sprintf(15, 9, "sctAt(%x)", act->curSector);
+	//nbg_sprintf(5, 10, "sctGl(%i)", act->goalSector);
+	//nbg_sprintf(15, 10, "lat(%i)", act->pathingLatch);
+	//nbg_sprintf(5, 11, "at(%i)", act->atGoal);
+	//nbg_sprintf_decimal(5, 12, act->aggroTimer);
+	//nbg_sprintf(15, 11, "hi(%i)", you.timeSinceWallHit);
+	}
 	
 	//To get the player to collide back with an actor,
 	//the collision ID needs to be present from the actor's box<->player collision.
@@ -1210,13 +1234,17 @@ void	manage_actors(void)
 				quick_normalize(act->velocity, act->dirUV);
 				//The path delta (guidance vector) uses 0 for the Y axis to represent the actor's inability to go up.
 				//A more graceful way to do this would be to multiply each input by the actor's traversal limitations.
-				int path_delta[3] = {(act->pathTarget[X] - act->pos[X])>>4, 0, (act->pathTarget[Z] - act->pos[Z])>>4};
+				int path_delta[3] = {(act->pathTarget[X] - act->pos[X]), 0, (act->pathTarget[Z] - act->pos[Z])};
 				quick_normalize(path_delta, act->pathUV);
 				
 			}
 			//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
-			act->prevSector = act->curSector;
-			act->curSector = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
+			int sectorNow = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
+			if(sectorNow != act->curSector)
+			{
+				act->prevSector = act->curSector;
+				act->curSector = sectorNow;
+			}
 			
 			if(act->info.flags.movedUnrendered && act->curSector == INVALID_SECTOR)
 			{

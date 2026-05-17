@@ -620,9 +620,9 @@ void	player_phys_affect(void)
 	
 	if(you.hasValidAim)
 	{
-		passa[X] = (you.shootPos[X] - you.hitscanPt[X])>>4;
-		passa[Y] = (you.shootPos[Y] - you.hitscanPt[Y])>>4;
-		passa[Z] = (you.shootPos[Z] - you.hitscanPt[Z])>>4;
+		passa[X] = (you.shootPos[X] - you.hitscanPt[X]);
+		passa[Y] = (you.shootPos[Y] - you.hitscanPt[Y]);
+		passa[Z] = (you.shootPos[Z] - you.hitscanPt[Z]);
 		quick_normalize(passa, you.shootDir);
 	} else {
 		you.shootDir[X] = -you.uview[X];

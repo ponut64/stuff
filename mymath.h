@@ -53,9 +53,9 @@ Bool	isPointonSegment(FIXED * point, FIXED * start, FIXED * end, int tolerance);
 
 Uint8	solve_domain(int x_axis, int y_axis);
 
-int		isqrt_test_back(int * vector, int ofsX, int ofsY);
 int		fxSquart(int input);
 int		squart(int input);
+int		crazy_length(int * input);
 
 int		fxAtan2(int x_axis, int y_axis);
 

@@ -15,11 +15,17 @@ Actors will also seek out a mover trigger zone if they hit a mover that blocks t
 Well, this is a more complex behavior. Only certain actor types should seek out a button or mover trigger.
 But more or less it should be in the game.
 
+-> a lot of this actor behavior stuff is pretty complicated. but im thinking, how hard would it be to have them "grab" a box and put it down between player and them as cover...
+
+-> there are situations where the actor can easily lose the player. i should try and track that down.
+
 -> I think the engine can handle changing level/texture data.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
 
--> added sounds. now what?
+-> added sounds. well, i guess i should um... make the guns do damage?
+changing gears to actual game design is a challenge.
+there's still issues to fix with actor pathing. they love go in circles.
 	
 -> Performance consideration
 	A single light costs 1-2ms. Oof. Hmm... how do precalculate those? Or just speed it up? I mean, halving the cost would be huge...

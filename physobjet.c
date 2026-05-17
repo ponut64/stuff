@@ -443,9 +443,6 @@ void	object_control_loop(void)
 								
 								//A unit difference will be used to scale the movement.
 								static int unitD[3];
-								dTrig[X]>>=4;
-								dTrig[Y]>>=4;
-								dTrig[Z]>>=4;
 								quick_normalize(dTrig, unitD);
 								int speed_set = (obj->type.ext_dat & MOVER_TARGET_RATE)+1;
 								RBBs[dwa->bbnum].velocity[X] = fxm(fxm(delta_time, speed_set<<21), unitD[X]);
@@ -713,9 +710,9 @@ void	has_entity_passed_between(short obj_id1, short obj_id2, _boundBox * tgt)
 	
 	fxcross(rminusb, sminusb, cross);
 	
-	cross[X] = cross[X]>>4;
-	cross[Y] = cross[Y]>>4;
-	cross[Z] = cross[Z]>>4;
+	cross[X] = cross[X];
+	cross[Y] = cross[Y];
+	cross[Z] = cross[Z];
 	
 	quick_normalize(cross, used_normal);
 

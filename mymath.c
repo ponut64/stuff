@@ -373,19 +373,6 @@ int			isqrtASM(int * ptA, int * ptB)
 	);
 	return rtval;
 }
-
-int		isqrt_test_back(int * vector, int ofsX, int ofsY)
-{
-	int outputA = isqrtASM(vector,vector);
-	
-	int outputB = fxisqrt(fxdot(vector,vector));
-	
-	nbg_sprintf(ofsX, ofsY, "asm:(%i)", outputA);
-	
-	nbg_sprintf(ofsX, ofsY+1, "fxi:(%i)", outputB);
-	
-}
-
 //////////////////////////////////
 // "fast inverse square root x2", but fixed-point
 //////////////////////////////////
@@ -635,6 +622,7 @@ void	quick_normalize(FIXED * vector_in, FIXED * vector_out)
 	static FIXED vmag = 0;
 	//Tested: The "crazy length" function by Danny from SRL is indeed the fastest/best solution.
 	vmag = fxdiv(65536,crazy_length(vector_in));
+	//vmag = zTable[(crazy_length(vector_in)>>16)];
 	vector_out[X] = fxm(vmag, vector_in[X]);
 	vector_out[Y] = fxm(vmag, vector_in[Y]);
 	vector_out[Z] = fxm(vmag, vector_in[Z]);
