@@ -57,17 +57,19 @@ unsigned char * backScrn = (unsigned char *)VDP2_RAMBASE;
 //////////////////////////////////////////////////////////////////////////////
 spriteAnimation qmark;
 
-animationControl t_idle_pose;
-animationControl t_dead_pose;
-animationControl t_point_pose;
+animationControl vw_idle_pose;
+animationControl vw_dead_pose;
+animationControl vw_point_pose;
 
-animationControl t_point_anim;
-animationControl t_look_anim;
-animationControl t_move_anim;
-animationControl t_aggro_anim;
+animationControl vw_point_anim;
+animationControl vw_look_anim;
+animationControl vw_move_anim;
+animationControl vw_idle_anim;
+animationControl vw_aggro_anim;
 
-animationControl t_attack_anim;
-animationControl t_dead_anim;
+animationControl vw_melee_anim;
+animationControl vw_throw_anim;
+animationControl vw_dead_anim;
 
 
 
@@ -392,6 +394,7 @@ void	obj_draw_queue(void)
 			break;
 			case(MODEL_TYPE_ANIMATED):
 			ssh2DrawAnimation((animationControl*)DBBs[i].animation, &entities[objDRAW[i]], 0);
+			//ssh2DrawModel(&entities[objDRAW[i]]);
 			break;
 			default:
 			//ssh2DrawModel(&entities[objDRAW[i]]);

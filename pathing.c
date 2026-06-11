@@ -771,7 +771,10 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	act->dV[X] += fxm(act->box->UVNZ[X], travel_rate);
 	act->dV[Y] += fxm(act->box->UVNZ[Y], travel_rate);
 	act->dV[Z] += fxm(act->box->UVNZ[Z], travel_rate);
-	
+	if(travel_rate > 8192)
+	{
+	actor_set_animation_state(act, 1<<SHIFT_ANIM_MOVE);
+	}
 	//nbg_sprintf(5, 9, "tur(%i)", sign);
 	//nbg_sprintf(5, 10, "fac(%i)", face);
 	

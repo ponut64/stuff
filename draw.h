@@ -32,15 +32,17 @@ extern _boundBox world_box;
 //Root position of the viewport (with no commuted translation)
 extern int viewport_pos[3];
 
-extern animationControl t_idle_pose;
-extern animationControl t_dead_pose;
-extern animationControl t_point_pose;
-extern animationControl t_point_anim;
-extern animationControl t_look_anim;
-extern animationControl t_move_anim;
-extern animationControl t_aggro_anim;
-extern animationControl t_attack_anim;
-extern animationControl t_dead_anim;
+extern animationControl vw_idle_pose;
+extern animationControl vw_dead_pose;
+extern animationControl vw_point_pose;
+extern animationControl vw_point_anim;
+extern animationControl vw_look_anim;
+extern animationControl vw_move_anim;
+extern animationControl vw_idle_anim;
+extern animationControl vw_aggro_anim;
+extern animationControl vw_melee_anim;
+extern animationControl vw_throw_anim;
+extern animationControl vw_dead_anim;
 
 extern int scrn_z_fwd[3];
 

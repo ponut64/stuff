@@ -68,7 +68,7 @@ bitflag orientation for SPAWNER:
 		pix: Approx. grid location of the spawner
 		rot: Orientation of the actor spawned. Only the Y axis applies.
 		more_data :
-			No data right now
+			Array entry value for a valid actor spawned from this spawner (we'd think, only one)
 		dist :
 			Unused (?)
 ///////////////////////////////////////////////////////////////
@@ -386,6 +386,15 @@ void	ldata_manager(void);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // used for actor.c
 
+#define SHIFT_POSE_DEAD		(0)
+#define SHIFT_ANIM_DEAD		(1)
+#define SHIFT_ANIM_MELEE	(2)
+#define SHIFT_ANIM_MOVE		(3)
+#define SHIFT_ANIM_AGGRO	(4)
+#define SHIFT_ANIM_SPOT		(5)
+#define SHIFT_POSE_SPOT		(6)
+#define SHIFT_ANIM_IDLE		(7)
+
 #define MAX_PATHING_STEPS	(4)
 #define ACTOR_PATH_EXCEPTION_TIME (1<<16) //(maybe i should scale this based on actor's size or speed)
 
@@ -454,10 +463,10 @@ typedef struct {
 	short dRot[3];
 	short curPathStep;
 	short exceptionStep;
+	short health;
+	short maxHealth;
 	unsigned short curSector;
 	unsigned short prevSector;
-	unsigned short health;
-	unsigned short maxHealth;
 	unsigned short boxID;
 	unsigned short goalSector;
 	unsigned short pathingLatch;
@@ -481,6 +490,7 @@ void	actorPopulateGoalInfo(_actor * act, int * goal, int target_sector);
 void	actorReturnToPathNode(int actor_id);
 void	pathing_exception(int actor_id);
 void	actor_hit_wall(_actor * act, int * wall_norm);
+void	actor_set_animation_state(_actor * act, int animation_number);
 
 int		actorMoveToPos(_actor * act, int * target, int rate, int gap);
 int		create_actor_from_spawner(_declaredObject * spawner, int boxID);

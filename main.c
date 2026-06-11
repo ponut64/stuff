@@ -9,34 +9,21 @@
 
 What's on my development iternerary?
 
-Actionable plan:
-Actors will also seek out a mover trigger zone if they hit a mover that blocks their path, then continue as normal.
+-> it is time to make actors take damage.
+Particles need to have a "Damage" and probably a "DamageType" category.
+Then, particle collision needs to assess if the collision proxy hit has a type that can be damaged and by how much it should be damaged.
 
-Well, this is a more complex behavior. Only certain actor types should seek out a button or mover trigger.
-But more or less it should be in the game.
-
--> a lot of this actor behavior stuff is pretty complicated. but im thinking, how hard would it be to have them "grab" a box and put it down between player and them as cover...
-
--> there are situations where the actor can easily lose the player. i should try and track that down.
+-> i think magical knife is more interesting than magical crystal in hand.
 
 -> I think the engine can handle changing level/texture data.
 Other asset data may need to be assessed when assets are available to fill the spots; otherwise, a standard asset plan is used for all levels.
 (To me, this makes sense ... for now)
-
--> added sounds. well, i guess i should um... make the guns do damage?
-changing gears to actual game design is a challenge.
-there's still issues to fix with actor pathing. they love go in circles.
 	
 -> Performance consideration
 	A single light costs 1-2ms. Oof. Hmm... how do precalculate those? Or just speed it up? I mean, halving the cost would be huge...
 	Optimization must happen for this game to work, but for now, I'm going to have to live with the shite performance.
 	It is on the edge of in-budget currently; I wish I could get just another two hundred polygons in there.
-
--> am I going to change themes / gears?
-expie idea is enticing.
-generally, the game will work better if i go for less complex enemies.
-... but what im working with is already so simple. Guh.
-
+ 
 Roadmap to playable game:
 1 - > Complete simple actor implementations *
 2 - > Start player weapon implementations 
@@ -46,6 +33,17 @@ Roadmap to playable game:
 6 - > Implement item <-> player interactions
 7 - > Implement item <-> actor interactions
 8 - > the list only goes on (like give stuff particles)
+
+Gameplay design:
+
+Making an FPS game where you explore the level and just shoot enemies as they show up is mechanically fine, reach an exit, then hit next level - probably an acceptable game-plan.
+As always though, I feel compelled to add something mechanically to compensate for the fact that only 1-3 enemies can be on screen at once.
+I also feel a need to add this as engine/performance limitations will restrict the art, making it difficult to concieve of a game whose art style will carry a strict DOOM-clone approach.
+Then again, I can make cool models and gun models. It's just the level design will be restricted.
+--> I am consistently attacted to the idea of there being allied actors. I guess if the allied actors are low enough in polycount that it can work to add one or two of them.]
+Maybe a game where you explore a level with many interconnected paths to find points of interest which have to be defended once a key note is activated.
+You'd have the ability to buy ammo and some allies to help cover the way.
+Or just a game where you are incentivized to save the allied actors when encountered.
 
 Mechanical concept:
 A sound effect (always loaded in RAM) is played when the player is spotted by enemies once.
@@ -274,7 +272,7 @@ void	load_test(void)
 
 
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"SHADOW.GVP", 		HWRAM_ldptr, &shadow,	    GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"NME1.GVP",			HWRAM_ldptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_ANIMATED, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"VOID.GVP",			HWRAM_ldptr, &entities[3], GV_SORT_CEN, MODEL_TYPE_ANIMATED, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BTNSTN.GVP",		HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	

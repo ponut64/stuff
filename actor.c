@@ -573,10 +573,12 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 		}
 	}
 	//In the case where no open slot was found, the actor number will be -1. Exit the function.
+	spawner->more_data = MAX_PHYS_PROXY;
 	if(actor_number == -1) return actor_number;
 	//Otherwise, we will continue setting up the new actor.
 	_actor * act = &spawned_actors[actor_number];
-	
+	//Report back the actor entry number to the spawner.
+	spawner->more_data = actor_number;
 	act->pos[X] = spawner->pos[X];
 	act->pos[Y] = spawner->pos[Y];
 	act->pos[Z] = spawner->pos[Z];
@@ -739,7 +741,7 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	//In the act of counting out the animation priority queue, we want to clear the animations set on the actor.
 	act->animPriorityQueue = 0;
 	act->animState = 0;
-	animationControl * used_anim = &t_idle_pose;
+	animationControl * used_anim = &vw_idle_anim;
 
 	if(entities[act->entity_ID].type != MODEL_TYPE_ANIMATED) return (void*)NULL;
 
@@ -765,29 +767,29 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	switch(shift_count)
 	{
-	case(0):
-	used_anim = &t_dead_anim;//(highest priority)
+	case(SHIFT_POSE_DEAD):
+	used_anim = &vw_dead_pose;//(highest priority)
 	break;
-	case(1):
-	used_anim =	&t_dead_pose; 
+	case(SHIFT_ANIM_DEAD):
+	used_anim =	&vw_dead_anim; 
 	break;
-	case(2):
-	used_anim =	&t_attack_anim;
+	case(SHIFT_ANIM_MELEE):
+	used_anim =	&vw_melee_anim;
 	break;
-	case(3):
-	used_anim =	&t_move_anim;
+	case(SHIFT_ANIM_MOVE):
+	used_anim =	&vw_move_anim;
 	break;
-	case(4):
-	used_anim =	&t_aggro_anim;
+	case(SHIFT_ANIM_AGGRO):
+	used_anim =	&vw_aggro_anim;
 	break;
-	case(5):
-	used_anim =	&t_point_anim;
+	case(SHIFT_ANIM_SPOT):
+	used_anim =	&vw_point_anim;
 	break;
-	case(6):
-	used_anim =	&t_point_pose;
+	case(SHIFT_POSE_SPOT):
+	used_anim =	&vw_point_pose;
 	break;
-	case(7):
-	used_anim =	&t_look_anim;
+	case(SHIFT_ANIM_IDLE):
+	used_anim =	&vw_look_anim;
 	break;
 	default:
 	break;
@@ -799,30 +801,30 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	{
 		switch(shift_count)
 		{
-		case(0):
-		//used_anim = &t_dead_anim;//(highest priority)
+		case(SHIFT_POSE_DEAD):
+		//used_anim = &vw_dead_pose;//(highest priority)
 		break;
-		case(1):
-		//used_anim =	&t_dead_pose; 
+		case(SHIFT_ANIM_DEAD):
+		//used_anim =	&vw_dead_anim; 
 		break;
-		case(2):
-		//used_anim =	&t_attack_anim;
+		case(SHIFT_ANIM_MELEE):
+		//used_anim =	&vw_melee_anim;
 		break;
-		case(3):
-		//used_anim =	&t_move_anim;
+		case(SHIFT_ANIM_MOVE):
+		//used_anim =	&vw_move_anim;
 		break;
-		case(4):
-		//used_anim =	&t_aggro_anim;
+		case(SHIFT_ANIM_AGGRO):
+		//used_anim =	&vw_aggro_anim;
 		break;
-		case(5):
-		//used_anim =	&t_point_anim;
+		case(SHIFT_ANIM_SPOT):
+		//used_anim =	&vw_point_anim;
 		act->info.flags.locked = 1;
 		break;
-		case(6):
-		//used_anim =	&t_point_pose;
+		case(SHIFT_POSE_SPOT):
+		//used_anim =	&vw_point_pose;
 		break;
-		case(7):
-		//used_anim =	&t_look_anim;
+		case(SHIFT_ANIM_IDLE):
+		//used_anim =	&vw_look_anim;
 		break;
 		default:
 		break;
@@ -925,7 +927,7 @@ void	actor_idle_actions(int actor_id)
 	if(act->idleActionTimer <= 0)
 	{
 	act->idleActionTimer += 6<<16;	
-	actor_set_animation_state(act, 1<<7);
+	actor_set_animation_state(act, 1<<SHIFT_ANIM_IDLE);
 		
 	} else {
 		
@@ -950,7 +952,7 @@ void	actor_idle_actions(int actor_id)
 		{
 			if(!act->info.flags.locked)
 			{
-				actor_set_animation_state(act, 1<<5);
+				actor_set_animation_state(act, 1<<SHIFT_ANIM_SPOT);
 				
 			}
 		}
@@ -958,7 +960,7 @@ void	actor_idle_actions(int actor_id)
 		if(act->info.flags.locked)
 		{
 			//At this point, we would do a threat evaluation.
-			actor_set_animation_state(act, 1<<6);
+			actor_set_animation_state(act, 1<<SHIFT_POSE_SPOT);
 			actor_threat_evaluation(act);
 		}
 		
@@ -978,7 +980,7 @@ void	actor_idle_actions(int actor_id)
 
 	if(act->info.flags.inCombat)
 	{
-		actor_set_animation_state(act, 1<<4);
+		actor_set_animation_state(act, 1<<SHIFT_ANIM_AGGRO);
 		act->aggroTimer = 10<<16;
 		//If you are in the same sector as the actor, the actor will go directly to you.
 		//If you are NOT in the same sector, guide the actor towards the sector generally.
@@ -1203,7 +1205,12 @@ void	manage_actors(void)
 				act->spawner->type.ext_dat |= SPAWNER_DISABLED;
 				continue;
 			}
-			
+			//In such case where an actor's health is zero or negative, we want to mark it as not-alive, but otherwise continue to evaluate it for at least this frame.
+			//Actors which are not alive should: Not collide, not path, not look. Only animate, then shortly, be removed.
+			if(act->health <= 0)
+			{
+				act->info.flags.alive = 0;
+			}
 
 			//nbg_sprintf(3, 18, "a(%i)", act->boxID);
 			//nbg_sprintf(3, 19, "d(%i)", i);
@@ -1328,9 +1335,9 @@ void	manage_actors(void)
 					if(!act->info.flags.losTarget)
 					{
 						findPathTo(act->goalSector, i);
-						actor_set_animation_state(act, 1);
+						actor_set_animation_state(act, SHIFT_ANIM_DEAD);
 					}
-					actor_set_animation_state(act, 1<<3);
+					
 				} else {
 					act->goalSector = INVALID_SECTOR;
 					

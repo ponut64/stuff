@@ -287,7 +287,24 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 	unsigned short * edata = &obj->type.ext_dat;
 	unsigned short otype = GET_OBJECT_TYPE(*edata);
 	
+	//In a general case, this is where we will be dealing damage to actors and objects.
+	//An actor's bound box is spawned from an object called an actor spawner which is linked back to the spawner via the boxID of the actor.
+	//Actors however have their bounding boxes and health managed separately from other objects, in a structure list called spawned_actors[].
+	//To find the actor from the bound box, we can also look for that boxID in the actor list.
+	
 	int health = 0;
+	
+	if((*edata & ETYPE) == SPAWNER)
+	{
+		//In this case, we know the object links to a spawner. It should be an actor. Find and validate the actor's status, then affect it as specified.
+		_actor * act = &spawned_actors[obj->more_data];
+		if(!act->info.flags.alive) return;
+
+		act->health -= part->type.info.damage;
+		
+		
+	} else {
+	
 	switch(otype)
 	{
 		case(OBJECT_DESTRUCTIBLE):
@@ -307,6 +324,7 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 		break;
 	}
 	
+	}
 }
 
 void	particle_collision_handler(_particle * part)
@@ -643,7 +661,7 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, obj->maxtbl[i], 12))
 			{
 				//particle_collision_handler(part, hitPt, obj->nmtbl[i]);
-				//object_particle_collision_handler(part, bound_box_entry);
+				object_particle_collision_handler(part, bound_box_entry);
 				particle_potential_hit(part, hitPt, obj->nmtbl[i]);
 				return true;
 			} 
