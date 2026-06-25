@@ -168,10 +168,10 @@ void	anim_defs(void)
 	vw_idle_pose.endFrm = 0;
 	
 	vw_dead_pose.reset_enable = 'N';													
-	vw_dead_pose.arate[19] = 0;								
-	vw_dead_pose.startFrm = 19;
+	vw_dead_pose.arate[24] = 0;								
+	vw_dead_pose.startFrm = 24;
 	vw_dead_pose.curFrm = vw_dead_pose.startFrm<<ANIM_SHIFT;
-	vw_dead_pose.endFrm = 19;
+	vw_dead_pose.endFrm = 24;
 	
 	vw_point_pose.reset_enable = 'N';													
 	vw_point_pose.arate[8] = 0;								

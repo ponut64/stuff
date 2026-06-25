@@ -386,8 +386,8 @@ void	ldata_manager(void);
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////
 // used for actor.c
 
-#define SHIFT_POSE_DEAD		(0)
-#define SHIFT_ANIM_DEAD		(1)
+#define SHIFT_ANIM_DEAD		(0)
+#define SHIFT_POSE_DEAD		(1)
 #define SHIFT_ANIM_MELEE	(2)
 #define SHIFT_ANIM_MOVE		(3)
 #define SHIFT_ANIM_AGGRO	(4)
@@ -397,6 +397,7 @@ void	ldata_manager(void);
 
 #define MAX_PATHING_STEPS	(4)
 #define ACTOR_PATH_EXCEPTION_TIME (1<<16) //(maybe i should scale this based on actor's size or speed)
+#define ACTOR_SPAWN_STUN_TIME (1<<16)
 
 typedef struct {
 	int * pos; //the position of the path step
@@ -416,7 +417,7 @@ extern _pathStepHost pathStepHeap;
 
 typedef struct {
 	union {
-		short raw;
+		unsigned short raw;
 		struct {
 			unsigned char losTarget:1;
 			unsigned char alive:1;
@@ -428,6 +429,7 @@ typedef struct {
 			unsigned char looking:1;
 			unsigned char onPathNode:1;
 			unsigned char movedUnrendered:1;
+			unsigned char animationLock:1;
 		} flags;
 	};
 } _actor_info;
@@ -459,6 +461,9 @@ typedef struct {
 	int idleActionTimer;
 	int aggroTimer;
 	int nolosTimer;
+	int spawnTimer;
+	int movespeed;
+	int movespeed_modifier;
 	short rot[3];
 	short dRot[3];
 	short curPathStep;

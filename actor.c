@@ -613,6 +613,9 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->totalFriction = 0;
 	act->pathingLatch = 1;
 	act->exceptionTimer = 0;
+	act->spawnTimer = 0;
+	act->movespeed = 32768;
+	act->movespeed_modifier = 0;
 	act->curSector = spawner->curSector;
 	act->curPathStep = INVALID_SECTOR;
 	act->exceptionStep = INVALID_SECTOR;
@@ -632,6 +635,8 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->info.flags.alive = 1;
 	act->info.flags.hitWall = 0;
 	act->info.flags.hitFloor = 0;
+	act->info.flags.animationLock = 0;
+	act->info.flags.inCombat = 0;
 	act->type = GET_SPAWNED_TYPE(*edata);
 	act->boxID = boxID;
 	
@@ -723,17 +728,38 @@ void	actor_per_object_processing(_actor * act)
 
 void	actor_set_animation_state(_actor * act, int animation_number)
 {
-	if(!(act->animPriorityQueue & animation_number) && act->animPriorityQueue > animation_number)
+	int written_value = 1<<animation_number;
+	int reg = act->animPriorityQueue;
+	int low_bit_counts = 0;
+	if(reg != 0)
+	{
+		while((reg & 1) == 0)
+		{
+			low_bit_counts++;
+			reg>>=1;
+		}
+	}
+	
+	if(low_bit_counts > animation_number)
 	{
 		act->animationTimer = -1;
 	}
 	
-	act->animPriorityQueue |= animation_number;
-	act->animState |= animation_number;
+	act->animPriorityQueue |= written_value;
+	act->animState |= written_value;
 }
 
 void *	adjudicate_actor_animation_queue(_actor * act)
 {
+	
+	// static int ramr = 0;
+	// int offs = 0;
+	// if(ramr == 0) ramr = act->box->boxID;
+	// if(ramr != act->box->boxID) offs += 4;
+	// nbg_sprintf(5, 9 + offs, "anim(%i)", act->animPriorityQueue);
+	// nbg_sprintf(15, 9 + offs, "stat(%i)", act->animState);
+	// nbg_sprintf(5, 10 + offs, "tim(%i)", act->animationTimer);
+	
 	int shift_count = 0;
 	int state_count = 0;
 	int reg = act->animPriorityQueue;
@@ -764,14 +790,13 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 		}
 	}
 
-	
 	switch(shift_count)
 	{
-	case(SHIFT_POSE_DEAD):
-	used_anim = &vw_dead_pose;//(highest priority)
-	break;
-	case(SHIFT_ANIM_DEAD):
+	case(SHIFT_ANIM_DEAD)://(highest priority)
 	used_anim =	&vw_dead_anim; 
+	break;
+	case(SHIFT_POSE_DEAD):
+	used_anim = &vw_dead_pose;
 	break;
 	case(SHIFT_ANIM_MELEE):
 	used_anim =	&vw_melee_anim;
@@ -797,7 +822,7 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	act->animationTimer -= (act->animationTimer > 0) ? delta_time : 0;
 	
-	if(used_anim->reset_enable == 'Y' && act->animationTimer <= (delta_time<<1) && act->animationTimer > 0 && state_count == shift_count)
+	if(used_anim->reset_enable == 'Y' && act->animationTimer <= (delta_time<<1) && act->animationTimer > 0)
 	{
 		switch(shift_count)
 		{
@@ -809,6 +834,7 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 		break;
 		case(SHIFT_ANIM_MELEE):
 		//used_anim =	&vw_melee_anim;
+		act->info.flags.animationLock = 0;
 		break;
 		case(SHIFT_ANIM_MOVE):
 		//used_anim =	&vw_move_anim;
@@ -836,8 +862,10 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	//We only want to start this course if we have started the animation state on this frame. If we have not, we don't want to start the animation.
 	if(used_anim->reset_enable == 'Y' && act->animationTimer <= 0 && state_count == shift_count)
 	{
+
 		act->animPriorityQueue |= (1<<shift_count);
 		act->animationTimer = used_anim->time;
+
 	} else if(act->animationTimer > 0)
 	{
 	//In such case where the used animation had reset enabled but the timer is above zero, we only want to set it back for the next frame.
@@ -845,9 +873,7 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	
 	}
 	
-	// nbg_sprintf(5, 9, "anim(%x)", act->animPriorityQueue);
-	// nbg_sprintf(15, 9, "stat(%x)", act->animState);
-	// nbg_sprintf(5, 10, "tim(%i)", act->animationTimer);
+
 	
 	return (void*)used_anim;
 	
@@ -872,6 +898,41 @@ void	actor_threat_evaluation(_actor * act)
 		act->info.flags.inCombat = 1;
 	}
 }
+
+void	actor_attack_evaluation(_actor * act)
+{
+	//In this function, the actor will evaluate its target
+	//(conveniently assumed to be the player)
+	//and determine whether it should or can attack.
+	//Ranged attacks will have at their basic level a cone-of-fire,
+	//so actors will generally decide whether they should get closer before attacking, or not.
+	//Actors may also have ammunition, and they may widthold ranged attacks based on how much ammo they have and the accuracy of the attack.
+	//An actor may also just not have a ranged attack, or they may not have a melee attack.
+	
+	//In general, for this first test, we just want the actor to:
+	//1. Stop moving.
+	//2. Play an animation.
+	//3. Throw a projectile at player.
+	
+	//Rather than performing a full evaluation, we'll just put this on a timer rn.
+	static int attack_timer = 0;
+	if(attack_timer >= (5<<16))
+	{
+		//We need to latch the state such that the actor will stop pathing. Well, in most cases they will stop moving altogether, but I won't leave out that some attacks will move.
+		//To do this, rather than override any pathing logic, we will just slow the actor down to 0 with this flag. That way, they will still turn and face the player while this happens.
+		act->info.flags.animationLock = 1;
+		actor_set_animation_state(act, SHIFT_ANIM_MELEE);
+		
+		attack_timer = 0;
+		
+
+
+	}
+	if(!act->info.flags.animationLock) attack_timer += delta_time;
+	
+
+}
+
 
 void	actor_idle_actions(int actor_id)
 {
@@ -927,7 +988,7 @@ void	actor_idle_actions(int actor_id)
 	if(act->idleActionTimer <= 0)
 	{
 	act->idleActionTimer += 6<<16;	
-	actor_set_animation_state(act, 1<<SHIFT_ANIM_IDLE);
+	actor_set_animation_state(act, SHIFT_ANIM_IDLE);
 		
 	} else {
 		
@@ -952,7 +1013,7 @@ void	actor_idle_actions(int actor_id)
 		{
 			if(!act->info.flags.locked)
 			{
-				actor_set_animation_state(act, 1<<SHIFT_ANIM_SPOT);
+				actor_set_animation_state(act, SHIFT_ANIM_SPOT);
 				
 			}
 		}
@@ -960,7 +1021,7 @@ void	actor_idle_actions(int actor_id)
 		if(act->info.flags.locked)
 		{
 			//At this point, we would do a threat evaluation.
-			actor_set_animation_state(act, 1<<SHIFT_POSE_SPOT);
+			actor_set_animation_state(act, SHIFT_POSE_SPOT);
 			actor_threat_evaluation(act);
 		}
 		
@@ -980,7 +1041,8 @@ void	actor_idle_actions(int actor_id)
 
 	if(act->info.flags.inCombat)
 	{
-		actor_set_animation_state(act, 1<<SHIFT_ANIM_AGGRO);
+		actor_attack_evaluation(act);
+		actor_set_animation_state(act, SHIFT_ANIM_AGGRO);
 		act->aggroTimer = 10<<16;
 		//If you are in the same sector as the actor, the actor will go directly to you.
 		//If you are NOT in the same sector, guide the actor towards the sector generally.
@@ -1096,15 +1158,7 @@ void	manage_actors(void)
 
 		if(sectorIsVisible[act->curSector])
 		{
-			if(act->health == 0) act->info.flags.alive = 0;
-			if(!act->info.flags.alive)
-			{
-				act->info.flags.active = 0;
-				act->spawner->type.ext_dat |= SPAWNER_DISABLED;
-				continue;
-			}
-			
-			
+
 			//nbg_sprintf(5, 11, "ac_sct(%i)", act->curSector);
 			///////////////////////////////////////////////
 			//At this point, an actor should be alive and active.
@@ -1173,9 +1227,16 @@ void	manage_actors(void)
 				// 3. May or may not emit light
 				// 7. Belongs to <actor number>
 				////////////////////////////////////////////////////
+				if(act->info.flags.alive)
+				{
 				RBBs[objUP].status[0] = 'R';
 				RBBs[objUP].status[1] = 'C';
 				RBBs[objUP].status[2] = 'N';
+				} else {
+				RBBs[objUP].status[0] = 'R';
+				RBBs[objUP].status[1] = 'N';
+				RBBs[objUP].status[2] = 'N';
+				}
 				RBBs[objUP].status[6] = i;
 				//This array is meant on a list where iterative searches can find the right object in the entire declared list.
 				activeObjects[objUP] = act->boxID;
@@ -1190,26 +1251,37 @@ void	manage_actors(void)
 		}
 	}
 	//////////////////////////////////////////////////////////////
-	// Actor Collision Loop
+	// Actor Collision\Activity Loop
 	//////////////////////////////////////////////////////////////
 	for(int i = MAX_PHYS_PROXY; i > 0; --i)
 	{
 		
 		act = &spawned_actors[i];
+		//When an actor is spawned, alive or dead, it will be marked active.
+		//Only certain game conditions (i.e. lifetime expired) will make it inactive.
+		if(!act->info.flags.active) continue;
+		
 		if(sectorIsVisible[act->curSector])
 		{
 			
 			if(!act->info.flags.alive)
 			{
-				act->info.flags.active = 0;
-				act->spawner->type.ext_dat |= SPAWNER_DISABLED;
-				continue;
+				act->idleActionTimer -= delta_time;
+				actor_set_animation_state(act, SHIFT_POSE_DEAD);
+				if(act->idleActionTimer <= 0)
+				{
+					//After-death lifetime is expired. Kill the actor.
+					act->info.flags.active = 0;
+					act->spawner->type.ext_dat |= SPAWNER_DISABLED;
+				}
 			}
 			//In such case where an actor's health is zero or negative, we want to mark it as not-alive, but otherwise continue to evaluate it for at least this frame.
 			//Actors which are not alive should: Not collide, not path, not look. Only animate, then shortly, be removed.
-			if(act->health <= 0)
+			if(act->health <= 0 && act->info.flags.alive)
 			{
 				act->info.flags.alive = 0;
+				act->idleActionTimer = 15<<16;
+				actor_set_animation_state(act, SHIFT_ANIM_DEAD);
 			}
 
 			//nbg_sprintf(3, 18, "a(%i)", act->boxID);
@@ -1245,61 +1317,64 @@ void	manage_actors(void)
 				quick_normalize(path_delta, act->pathUV);
 				
 			}
-			//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
-			int sectorNow = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
-			if(sectorNow != act->curSector)
-			{
-				act->prevSector = act->curSector;
-				act->curSector = sectorNow;
-			}
 			
-			if(act->info.flags.movedUnrendered && act->curSector == INVALID_SECTOR)
+			if(act->info.flags.alive)
 			{
-			//In case an actor ended up out of bounds (in invalid sector) when it had previously moved while unrendered,
-			//we need to move it to the nearest navigation point of its current path target.
-			//It is also important to note that this will pretty much always happen if the actor has to move up or down towards its goal.
-			actorReturnToPathNode(i);
-			act->info.flags.movedUnrendered = 0;
-			//CONTINUE, don't process collision checks!
-			continue;
-			}
-			
-			//this is going to get very expensive, because we must:
-			//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
-			for(int c = 0; c < MAX_PHYS_PROXY; c++)
-			{
-				//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
-				if(RBBs[c].status[1] != 'C') continue;
-				if(dWorldObjects[activeObjects[c]].curSector != act->curSector) continue;
-				unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
-				unsigned short boxType = edata & (0xF000);
-				//Check if object # is a collision-approved type
-				switch(boxType)
+				//Special note: The collision system is using next-frame position, so the sector system must also use next-frame position.
+				int sectorNow = broad_phase_sector_finder(cur_actor_line_table.yp1, levelPos, &sectors[act->curSector]);
+				if(sectorNow != act->curSector)
 				{
-					case(OBJPOP):
-					case(SPAWNER):
-					actor_collide_boxes(act, &RBBs[c], act->box, &cur_actor_line_table, edata);
-					break;
-					case(ITEM | OBJPOP):
-
-					break;
-					case(BUILD | OBJPOP):
-					if(actor_per_polygon_collision(act, &cur_actor_line_table, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos))
+					act->prevSector = act->curSector;
+					act->curSector = sectorNow;
+				}
+				
+				if(act->info.flags.movedUnrendered && act->curSector == INVALID_SECTOR)
+				{
+				//In case an actor ended up out of bounds (in invalid sector) when it had previously moved while unrendered,
+				//we need to move it to the nearest navigation point of its current path target.
+				//It is also important to note that this will pretty much always happen if the actor has to move up or down towards its goal.
+				actorReturnToPathNode(i);
+				act->info.flags.movedUnrendered = 0;
+				//CONTINUE, don't process collision checks!
+				continue;
+				}
+				
+				//this is going to get very expensive, because we must:
+				//you know what, let's use this opportunity to develop the simplified collision system as axis-aligned collision
+				for(int c = 0; c < MAX_PHYS_PROXY; c++)
+				{
+					//nbg_sprintf(0, 0, "(PHYS)"); //Debug ONLY
+					if(RBBs[c].status[1] != 'C') continue;
+					if(dWorldObjects[activeObjects[c]].curSector != act->curSector) continue;
+					unsigned short edata = dWorldObjects[activeObjects[c]].type.ext_dat;
+					unsigned short boxType = edata & (0xF000);
+					//Check if object # is a collision-approved type
+					switch(boxType)
 					{
-						act->box->surfID = RBBs[c].boxID;
+						case(OBJPOP):
+						case(SPAWNER):
+						actor_collide_boxes(act, &RBBs[c], act->box, &cur_actor_line_table, edata);
+						break;
+						case(ITEM | OBJPOP):
+	
+						break;
+						case(BUILD | OBJPOP):
+						if(actor_per_polygon_collision(act, &cur_actor_line_table, &entities[dWorldObjects[activeObjects[c]].type.entity_ID], RBBs[c].pos))
+						{
+							act->box->surfID = RBBs[c].boxID;
+						}
+						if(act->info.flags.hitWall)
+						{
+							RBBs[c].collisionID = act->box->boxID;
+							act->box->collisionID = RBBs[c].boxID;
+						}
+						//In the "Build" type, special collision handling will be present for Movers. Atleast, that's intended.
+						break;
+						default:
+						break;
 					}
-					if(act->info.flags.hitWall)
-					{
-						RBBs[c].collisionID = act->box->boxID;
-						act->box->collisionID = RBBs[c].boxID;
-					}
-					//In the "Build" type, special collision handling will be present for Movers. Atleast, that's intended.
-					break;
-					default:
-					break;
 				}
 			}
-			
 			//Sector Collision
 			_sector * sct = &sectors[act->curSector];
 			//Rather than check everything in the sector's PVS for collision,
@@ -1328,69 +1403,73 @@ void	manage_actors(void)
 				act->pos[Y] = act->floorPos[Y] - (act->box->radius[Y] - (1<<16));
 				act->pos[Z] = act->floorPos[Z];
 				
-				
-				if(!act->atGoal)
+				if(act->info.flags.alive)
 				{
-					act->info.flags.losTarget = actorCheckPathOK(act, act->pathUV);
-					if(!act->info.flags.losTarget)
+					if(!act->atGoal)
 					{
-						findPathTo(act->goalSector, i);
-						actor_set_animation_state(act, SHIFT_ANIM_DEAD);
+						act->info.flags.losTarget = actorCheckPathOK(act, act->pathUV);
+						if(!act->info.flags.losTarget)
+						{
+							findPathTo(act->goalSector, i);
+						}
+						
+					} else {
+						act->goalSector = INVALID_SECTOR;
+						
+						act->pathingFrom[X] = act->pos[X];
+						act->pathingFrom[Y] = act->pos[Y];
+						act->pathingFrom[Z] = act->pos[Z];
 					}
+					// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
+					// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
+					//nbg_sprintf(20, 15, "(%i)", act->atGoal);
+					//nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
 					
-				} else {
-					act->goalSector = INVALID_SECTOR;
+					// nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
+					// nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
+					// nbg_sprintf_decimal(3, 12, act->pathTarget[Z]);
 					
-					act->pathingFrom[X] = act->pos[X];
-					act->pathingFrom[Y] = act->pos[Y];
-					act->pathingFrom[Z] = act->pos[Z];
-				}
-				// nbg_sprintf(20, 16, "cur(%i)", act->curSector);
-				// nbg_sprintf(20, 17, "gol(%i)", act->goalSector);
-				//nbg_sprintf(20, 15, "(%i)", act->atGoal);
-				//nbg_sprintf(20, 15, "nodes(%i)", pathing->count[act->curSector][act->goalSector]);
-				
-				// nbg_sprintf_decimal(3, 10, act->pathTarget[X]);                     
-				// nbg_sprintf_decimal(3, 11, act->pathTarget[Y]);                       
-				// nbg_sprintf_decimal(3, 12, act->pathTarget[Z]);
-				
-				// nbg_sprintf(3, 10, "x(%i)", act->dirUV[X]);                     
-				// nbg_sprintf(3, 11, "y(%i)", act->dirUV[Y]);                       
-				// nbg_sprintf(3, 12, "z(%i)", act->dirUV[Z]);
-				
-				// spr_sprintf_decimal(24, 24, act->dirUV[X]);                     
-				// spr_sprintf_decimal(24, 36, act->dirUV[Y]);                       
-				// spr_sprintf_decimal(24, 48, act->dirUV[Z]);
-				
-				// nbg_sprintf_decimal(3, 13, fxdot(act->pathUV, act->pathUV));
-				
-				// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
+					// nbg_sprintf(3, 10, "x(%i)", act->dirUV[X]);                     
+					// nbg_sprintf(3, 11, "y(%i)", act->dirUV[Y]);                       
+					// nbg_sprintf(3, 12, "z(%i)", act->dirUV[Z]);
+					
+					// spr_sprintf_decimal(24, 24, act->dirUV[X]);                     
+					// spr_sprintf_decimal(24, 36, act->dirUV[Y]);                       
+					// spr_sprintf_decimal(24, 48, act->dirUV[Z]);
+					
+					// nbg_sprintf_decimal(3, 13, fxdot(act->pathUV, act->pathUV));
+					
+					// nbg_sprintf(5, 10, "los(%i)", act->info.flags.losTarget);
 
-				//nbg_sprintf_decimal(5, 12, act->pos[X]);
-				//nbg_sprintf_decimal(5, 13, act->pos[Y]);
-				//nbg_sprintf_decimal(5, 14, act->pos[Z]);
-				
-				act->totalFriction = 32768;
-				
-				if(!act->atGoal) checkInPathSteps(i);
-				actor_idle_actions(i);
-				act->box->animation = adjudicate_actor_animation_queue(act);
-				//Add velocity of surface
-				if(act->box->surfID != INVALID_SECTOR)
-				{
-					_boundBox * on_box = &RBBs[dWorldObjects[act->box->surfID].bbnum];
-					act->pos[X] += on_box->velocity[X];
-					act->pos[Y] += on_box->velocity[Y];
-					act->pos[Z] += on_box->velocity[Z];
+					//nbg_sprintf_decimal(5, 12, act->pos[X]);
+					//nbg_sprintf_decimal(5, 13, act->pos[Y]);
+					//nbg_sprintf_decimal(5, 14, act->pos[Z]);
 					
-					// spr_sprintf_decimal(50, 20, on_box->velocity[X]);
-					// spr_sprintf_decimal(50, 33, on_box->velocity[Y]);
-					// spr_sprintf_decimal(50, 46, on_box->velocity[Z]);
-					//spr_sprintf(100, 20, "abn:%i", dWorldObjects[act->box->surfID].bbnum);
+					act->totalFriction = 32768;
+					if(!act->atGoal) checkInPathSteps(i);
+					actor_idle_actions(i);
+					//Add velocity of surface
+					if(act->box->surfID != INVALID_SECTOR)
+					{
+						_boundBox * on_box = &RBBs[dWorldObjects[act->box->surfID].bbnum];
+						act->pos[X] += on_box->velocity[X];
+						act->pos[Y] += on_box->velocity[Y];
+						act->pos[Z] += on_box->velocity[Z];
+						
+						// spr_sprintf_decimal(50, 20, on_box->velocity[X]);
+						// spr_sprintf_decimal(50, 33, on_box->velocity[Y]);
+						// spr_sprintf_decimal(50, 46, on_box->velocity[Z]);
+						//spr_sprintf(100, 20, "abn:%i", dWorldObjects[act->box->surfID].bbnum);
+					}
 				}
-				
 			}
 			
+			if(act->spawnTimer > ACTOR_SPAWN_STUN_TIME)
+			{
+				act->box->animation = adjudicate_actor_animation_queue(act);
+			} else {
+				act->spawnTimer += delta_time;
+			}
 			// active_lights[0].pos[X] = -act->pos[X];
 			// active_lights[0].pos[Y] = -act->pos[Y];
 			// active_lights[0].pos[Z] = -act->pos[Z];

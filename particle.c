@@ -294,6 +294,14 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 	
 	int health = 0;
 	
+	//Impulse Evaluation
+	//Actors/bound boxes hit by projectiles should be pushed by them, depending on the projectile type.
+	//In case of applying an impulse, ideally we would impart a change to the velocity of the actor or box.
+	//However, not all boxes have evaluations of friction or decay to their velocity/dV.
+	//Properly typing in the engine to permit some objects to move and others to not would help clear this up,
+	//but for now, there is going to be a different method for imparting movement on actors and boxes. It's just how it ended up being developed.
+		
+	
 	if((*edata & ETYPE) == SPAWNER)
 	{
 		//In this case, we know the object links to a spawner. It should be an actor. Find and validate the actor's status, then affect it as specified.
@@ -301,7 +309,10 @@ void	object_particle_collision_handler(_particle * part, int bound_box_entry)
 		if(!act->info.flags.alive) return;
 
 		act->health -= part->type.info.damage;
-		
+		//Impulse
+		act->dV[X] += part->dirUV[X];
+		act->dV[Y] += part->dirUV[Y];
+		act->dV[Z] += part->dirUV[Z];
 		
 	} else {
 	

@@ -712,13 +712,16 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	//nbg_sprintf(5, 9, "dst(%i)", distal);
 	
 	if(distal <= gap) return 1;
+	
+	int travel_rate = rate + act->movespeed_modifier;
+	if(act->info.flags.animationLock) travel_rate = 0;
 
-	if(act->info.flags.movedUnrendered)
+	if(act->info.flags.movedUnrendered && travel_rate > 0)
 	{
 		//In case the actor is moving unrendered, we can't reference a forward direction, as there is none. So we will just use the difference vector.
-		act->dV[X] += fxm(dif_norm[X], rate);
-		act->dV[Y] += fxm(dif_norm[Y], rate);
-		act->dV[Z] += fxm(dif_norm[Z], rate);
+		act->dV[X] += fxm(dif_norm[X], travel_rate);
+		act->dV[Y] += fxm(dif_norm[Y], travel_rate);
+		act->dV[Z] += fxm(dif_norm[Z], travel_rate);
 		return 0;
 	}
 
@@ -730,7 +733,6 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	int cos_y = fxdot(act->box->UVZ, dif_norm);
 	int sign = 1;
 	int turn_rate = 512;
-	int travel_rate = rate;
 	//If sin_y is 0, we are either facing directly or facing directly away.
 	//If sin_y is +, we are facing the right.
 	//If sin_y is -, we are facing the left.
@@ -755,7 +757,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 		//If "mostly" facing away, slow down and turn faster if close.
 		//if(JO_ABS(sin_y) > 16384)
 		//{
-		//	travel_rate = (distal < (gap<<2)) ? 0 : rate;
+		//	travel_rate = (distal < (gap<<2)) ? 0 : travel_rate;
 		//	turn_rate<<=1;
 		//}
 		
@@ -763,7 +765,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	{
 		//Facing away.
 		//Reduce travel rate to make a tighter turn and turn faster.
-		travel_rate = (distal < (gap<<2)) ? 0 : rate;
+		travel_rate = (distal < (gap<<2)) ? 0 : travel_rate;
 		turn_rate<<=2;
 	}
 	
@@ -773,7 +775,7 @@ int		actorMoveToPos(_actor * act, int * target, int rate, int gap)
 	act->dV[Z] += fxm(act->box->UVNZ[Z], travel_rate);
 	if(travel_rate > 8192)
 	{
-	actor_set_animation_state(act, 1<<SHIFT_ANIM_MOVE);
+	actor_set_animation_state(act, SHIFT_ANIM_MOVE);
 	}
 	//nbg_sprintf(5, 9, "tur(%i)", sign);
 	//nbg_sprintf(5, 10, "fac(%i)", face);
@@ -1290,7 +1292,7 @@ void	checkInPathSteps(int actor_id)
 		act->pathTarget[Z] = levelPos[Z] + step->pos[Z];
 		
 		//iterate towards the step
-		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, 32768, 64<<16);
+		act->info.flags.onPathNode += actorMoveToPos(act, act->pathTarget, act->movespeed, 64<<16);
 		if(act->info.flags.movedUnrendered && act->info.flags.onPathNode)
 		{
 			//Dangerous unrendered sector manipulation.
@@ -1345,7 +1347,7 @@ void	checkInPathSteps(int actor_id)
 			act->pathTarget[X] = act->pathGoal[X];
 			act->pathTarget[Y] = act->pathGoal[Y];
 			act->pathTarget[Z] = act->pathGoal[Z];
-			act->atGoal = actorMoveToPos(act, act->pathTarget, 32768, 64<<16);
+			act->atGoal = actorMoveToPos(act, act->pathTarget, act->movespeed, 64<<16);
 		}
 		return;
 	}
