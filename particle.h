@@ -48,7 +48,7 @@ typedef struct {
 	int sanics;
 	unsigned short luma; //Light emission value (unused)
 	ptypes type;
-	unsigned short extra; //Type-specific data
+	short source; //Object ID of the particle's source (if applicable)
 	short curSector;
 } _particle;
 
@@ -66,7 +66,7 @@ extern _particle	particle_starter;
 extern _particle	particles[MAX_SPRITES];
 
 void		init_particle(void);
-_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector);
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector, short src_id);
 void		emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * pos, int * inertia, int radius, int intensity, int count, int curSector);
 void		object_effects(int obj_index, int box_index);
 void		operate_particles(void);

@@ -174,11 +174,14 @@ void	init_particle(void)
 	
 }
 
-_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector)
+_particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos, int * velocity, int curSector, short src_id)
 {
 	
 	//Particles are co-related with the sprite system, since they draw with the sprite list.
 	//Because of this, whether a particle spawns or not is determined first by whether there's a free sprite entry.
+	//
+	//
+	//
 	short spr_entry = add_to_sprite_list(pos, spr_type->span, spr_type->texno, spr_type->colorBank,
 	spr_type->type, spr_type->useClip, spr_type->lifetime);
 	
@@ -194,6 +197,7 @@ _particle *	spawn_particle(_sprite * spr_type, unsigned short p_type, int * pos,
 	particles[spr_entry].prevPos[Y] = spr_type->pos[Y];
 	particles[spr_entry].prevPos[Z] = spr_type->pos[Z];
 	particles[spr_entry].curSector = curSector;
+	particles[spr_entry].source = src_id;
 	return &particles[spr_entry];
 }
 
@@ -206,7 +210,7 @@ void	emit_particle_explosion(_sprite * spr_type, unsigned short p_type, int * po
 		partVelocity[X] = fxm(getRandom(), intensity);
 		partVelocity[Y] = fxm(getRandom(), intensity);
 		partVelocity[Z] = fxm(getRandom(), intensity);
-		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity, curSector);
+		_particle * part = spawn_particle(spr_type, p_type, pos, partVelocity, curSector, -1);
 		int newTime = (fxm(getRandom(), spr_type->lifetime) + spr_type->lifetime)>>1;
 		part->lifetime = newTime;
 		part->spr->lifetime = newTime;
@@ -359,7 +363,7 @@ void	particle_collision_handler(_particle * part)
 	if(part->type.info.onHit == 1)
 	{
 		emit_particle_explosion(&DropPuff, PARTICLE_TYPE_NOCOL, part->pHit, zPt, 65536, 65536, 4, you.curSector);
-		//spawn_particle(&TestSpr, PARTICLE_TYPE_NOCOL, hitPos, zPt, you.curSector);
+		//spawn_particle(&DropPuff, PARTICLE_TYPE_NOCOL, part->pHit, zPt, you.curSector, -1);
 		play_sound_instance(snd_impact, PCM_PROTECTED, 65536, part->pHit);
 	}
 	
@@ -600,6 +604,10 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 	_boundBox * obj = &RBBs[bound_box_entry];
 	//Box Populated Check
 	if(obj->status[1] != 'C')
+	{
+		return false;
+	}
+	if(obj->boxID == part->source && part->source >= 0)
 	{
 		return false;
 	}

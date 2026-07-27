@@ -12,6 +12,8 @@ What's on my development iternerary?
 -> it is time to make actors take damage.
 Particles need to have a "Damage" and probably a "DamageType" category.
 Then, particle collision needs to assess if the collision proxy hit has a type that can be damaged and by how much it should be damaged.
+lol it shoots itself
+particles should be given an identifier of which object spawned them so they dont shoot themselves. at least on the first frame?
 
 -> i think magical knife is more interesting than magical crystal in hand.
 

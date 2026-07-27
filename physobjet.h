@@ -448,7 +448,6 @@ typedef struct {
 	int exceptionDir[3];
 	int blockedLOSNorm[3];
 	_boundBox * box;
-	int boxNumber;
 	int entity_ID;
 	_declaredObject * spawner;
 	int lifetime;

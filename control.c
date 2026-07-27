@@ -145,7 +145,7 @@ void controls(void)
 		mark[X] += you.wvel[X];
 		mark[Y] += you.wvel[Y];
 		mark[Z] += you.wvel[Z];
-		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark, you.curSector);
+		spawn_particle(&TestSpr, PROJ_TEST, you.shootPos, mark, you.curSector, -1);
 		//pcm_play(snd_shotf, PCM_SEMI, 210);
 		use_viewmodel();
 		

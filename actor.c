@@ -923,10 +923,16 @@ void	actor_attack_evaluation(_actor * act)
 		act->info.flags.animationLock = 1;
 		actor_set_animation_state(act, SHIFT_ANIM_MELEE);
 		
-		attack_timer = 0;
+		int mark[3] = {0,0,0};
+		mark[X] = fxm((act->pathUV[X]), 16<<16);
+		mark[Y] = fxm((act->pathUV[Y]), 16<<16);
+		mark[Z] = fxm((act->pathUV[Z]), 16<<16);
+		mark[X] += act->velocity[X];
+		mark[Y] += act->velocity[Y];
+		mark[Z] += act->velocity[Z];
+		spawn_particle(&TestSpr, PROJ_TEST, act->pos, mark, act->curSector, act->boxID);
 		
-
-
+		attack_timer = 0;
 	}
 	if(!act->info.flags.animationLock) attack_timer += delta_time;
 	
