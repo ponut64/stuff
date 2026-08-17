@@ -799,7 +799,7 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	used_anim = &vw_dead_pose;
 	break;
 	case(SHIFT_ANIM_MELEE):
-	used_anim =	&vw_melee_anim;
+	used_anim =	&vw_shoot_anim;
 	break;
 	case(SHIFT_ANIM_MOVE):
 	used_anim =	&vw_move_anim;

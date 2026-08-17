@@ -41,7 +41,7 @@ extern animationControl vw_move_anim;
 extern animationControl vw_idle_anim;
 extern animationControl vw_aggro_anim;
 extern animationControl vw_melee_anim;
-extern animationControl vw_throw_anim;
+extern animationControl vw_shoot_anim;
 extern animationControl vw_dead_anim;
 
 extern int scrn_z_fwd[3];

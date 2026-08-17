@@ -68,7 +68,7 @@ animationControl vw_idle_anim;
 animationControl vw_aggro_anim;
 
 animationControl vw_melee_anim;
-animationControl vw_throw_anim;
+animationControl vw_shoot_anim;
 animationControl vw_dead_anim;
 
 

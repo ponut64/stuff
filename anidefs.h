@@ -2,9 +2,7 @@
 //Variable Interpolation Animation Data. Each key frame is given an interpolation rate.
 void	anim_defs(void)
 {
-	
 	//Viewmodel (player item) background layer animations
-
 	
 	//For Shorty Shotgun
 	static bg_key close;
@@ -158,7 +156,10 @@ void	anim_defs(void)
 	animationControl * anim;
 	int count = 0;
 	//okay, now I need to calculate out the length of each animation (in seconds)
-	// -- but shouldn't I count frames instead?
+	//Strange phenomenon:
+	//Length of an animation depends on its use.
+	//If it is intended to see the start keyframe after the end, extra time must be added for that interpolation set.
+	//If it is not intended to see all keyframes, just an interpolation set (as if interpolating a single keyframe), no time must be added.
 	
 	//Keyframes for VOIDWALKER / ELEMENTAL entity type
 	vw_idle_pose.reset_enable = 'N';													
@@ -180,10 +181,10 @@ void	anim_defs(void)
 	vw_point_pose.endFrm = 8;
 	
 	vw_look_anim.reset_enable = 'Y';													
-	vw_look_anim.arate[3] = 1;		
+	vw_look_anim.arate[3] = 2;		
 	vw_look_anim.arate[4] = 1;	
-	vw_look_anim.arate[5] = 1;	
-	vw_look_anim.arate[6] = 1;	
+	vw_look_anim.arate[5] = 2;	
+	vw_look_anim.arate[6] = 2;	
 	vw_look_anim.arate[7] = 1;	
 	vw_look_anim.startFrm = 3;
 	vw_look_anim.curFrm = vw_look_anim.startFrm<<ANIM_SHIFT;
@@ -194,14 +195,16 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
-	count += ANIM_TIME(1);
-	count += ANIM_TIME(1);
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
+	//count += ANIM_TIME(1);
+	//count += ANIM_TIME(1);
 	anim->time = count;
 	count = 0;
 	
 	vw_point_anim.reset_enable = 'Y';													
-	vw_point_anim.arate[7] = 1;	
-	vw_point_anim.arate[8] = 1;		
+	vw_point_anim.arate[7] = 3;	
+	vw_point_anim.arate[8] = 3;		
 	vw_point_anim.startFrm = 7;
 	vw_point_anim.curFrm = vw_point_anim.startFrm<<ANIM_SHIFT;
 	vw_point_anim.endFrm = 8;
@@ -211,14 +214,16 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+//		count += ANIM_TIME(anim->arate[anim->startFrm]);
+//		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	
 	vw_move_anim.reset_enable = 'N';													
-	vw_move_anim.arate[19] = 1;		
-	vw_move_anim.arate[20] = 1;	
-	vw_move_anim.arate[21] = 1;	
-	vw_move_anim.arate[22] = 1;	
+	vw_move_anim.arate[19] = 2;		
+	vw_move_anim.arate[20] = 3;	
+	vw_move_anim.arate[21] = 2;	
+	vw_move_anim.arate[22] = 3;	
 //	vw_move_anim.arate[23] = 1;	(this keyframe is included, but it is a duplicate of the first keyframe -- a neccessary artifact for interpolation)
 	vw_move_anim.startFrm = 19;
 	vw_move_anim.curFrm = vw_move_anim.startFrm<<ANIM_SHIFT;
@@ -229,6 +234,8 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	
@@ -246,12 +253,14 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	
 	vw_aggro_anim.reset_enable = 'N';													
-	vw_aggro_anim.arate[16] = 1;		
-	vw_aggro_anim.arate[17] = 1;	
+	vw_aggro_anim.arate[16] = 2;		
+	vw_aggro_anim.arate[17] = 2;	
 	//vw_aggro_anim.arate[18] = 1;	//(this keyframe is included, but it is a duplicate of the first keyframe -- a neccessary artifact for interpolation)
 	vw_aggro_anim.startFrm = 16;
 	vw_aggro_anim.curFrm = vw_aggro_anim.startFrm<<ANIM_SHIFT;
@@ -262,14 +271,16 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	
 	vw_melee_anim.reset_enable = 'Y';	
-	vw_melee_anim.arate[13] = 1;		
-	vw_melee_anim.arate[14] = 1;		
-	vw_melee_anim.arate[15] = 1;	
-	vw_melee_anim.arate[16] = 1;	
+	vw_melee_anim.arate[13] = 4;		
+	vw_melee_anim.arate[14] = 5;		
+	vw_melee_anim.arate[15] = 12;	
+	vw_melee_anim.arate[16] = 10;	
 	vw_melee_anim.startFrm = 13;
 	vw_melee_anim.curFrm = vw_melee_anim.startFrm<<ANIM_SHIFT;
 	vw_melee_anim.endFrm = 16;
@@ -279,12 +290,33 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
+	anim->time = count;
+	count = 0;
+	
+	vw_shoot_anim.reset_enable = 'Y';	
+	vw_shoot_anim.arate[9] = 4;		
+	vw_shoot_anim.arate[10] = 7;		
+	vw_shoot_anim.arate[11] = 7;	
+	vw_shoot_anim.arate[12] = 7;	
+	vw_shoot_anim.startFrm = 9;
+	vw_shoot_anim.curFrm = vw_shoot_anim.startFrm<<ANIM_SHIFT;
+	vw_shoot_anim.endFrm = 12;
+	
+	anim = &vw_shoot_anim;
+	for(int i = anim->startFrm; i <= anim->endFrm; i++)
+	{
+		count += ANIM_TIME(anim->arate[i]);
+	}
+		count += ANIM_TIME(anim->arate[anim->startFrm]);
+		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	
 	vw_dead_anim.reset_enable = 'Y';	
-	vw_dead_anim.arate[23] = 1;	
-	vw_dead_anim.arate[24] = 1;				
+	vw_dead_anim.arate[23] = 3;	
+	vw_dead_anim.arate[24] = 2;				
 	vw_dead_anim.startFrm = 23;
 	vw_dead_anim.curFrm = vw_dead_anim.startFrm<<ANIM_SHIFT;
 	vw_dead_anim.endFrm = 24;
@@ -294,6 +326,8 @@ void	anim_defs(void)
 	{
 		count += ANIM_TIME(anim->arate[i]);
 	}
+//		count += ANIM_TIME(anim->arate[anim->startFrm]);
+//		count += ANIM_TIME(anim->arate[anim->endFrm]);
 	anim->time = count;
 	count = 0;
 	

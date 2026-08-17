@@ -767,5 +767,7 @@ void	player_phys_affect(void)
 	pl_RBB.status[0] = 'R';	
 	pl_RBB.status[1] = 'C';	
 	pl_RBB.status[2] = 'L';	
+	
+	finalize_collision_proxy(&pl_RBB);
 }
 

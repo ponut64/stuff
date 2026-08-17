@@ -601,7 +601,24 @@ short	particle_collide_sector(_particle * part)
 
 short	particle_collide_object(_particle * part, int bound_box_entry)
 {
-	_boundBox * obj = &RBBs[bound_box_entry];
+	_boundBox * obj = NULL;
+	int used_pos[3] = {part->spr->pos[X], part->spr->pos[Y], part->spr->pos[Z]};
+	int used_vel[3] = {part->velocity[X], part->velocity[Y], part->velocity[Z]};
+	//Particles sourced from player are marked -1. The player bound box entry is translated as -1. Thus, if they match, no collide.
+	if(bound_box_entry == -1 && part->source != -1)
+	{
+	obj = &pl_RBB;
+	used_pos[X] = -part->spr->pos[X];
+	used_pos[Y] = -part->spr->pos[Y];
+	used_pos[Z] = -part->spr->pos[Z];
+	
+	used_vel[X] = -part->velocity[X];
+	used_vel[Y] = -part->velocity[Y];
+	used_vel[Z] = -part->velocity[Z];
+	} else if(bound_box_entry >= 0)
+	{
+	obj = &RBBs[bound_box_entry];
+	
 	//Box Populated Check
 	if(obj->status[1] != 'C')
 	{
@@ -612,10 +629,16 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 		return false;
 	}
 	
+	
+	} else {
+		return false;
+	}
+
+	
 	int centerDif[XYZ];
-	centerDif[X] = obj->pos[X] - part->spr->pos[X];
-	centerDif[Y] = obj->pos[Y] - part->spr->pos[Y];
-	centerDif[Z] = obj->pos[Z] - part->spr->pos[Z];
+	centerDif[X] = obj->pos[X] - used_pos[X];
+	centerDif[Y] = obj->pos[Y] - used_pos[Y];
+	centerDif[Z] = obj->pos[Z] - used_pos[Z];
 
 
 	//Box Distance Culling Check
@@ -664,24 +687,44 @@ short	particle_collide_object(_particle * part, int bound_box_entry)
 	Your objects usually have normals around the collision point. So try to search around there.
 	*/
 	
-	int segPt[XYZ] = {part->spr->pos[X] + fxm(part->velocity[X], time_fixed_scale),
-	part->spr->pos[Y] + fxm(part->velocity[Y], time_fixed_scale),
-	part->spr->pos[Z] + fxm(part->velocity[Z], time_fixed_scale)};
+	int segPt[XYZ] = {used_pos[X] + fxm(used_vel[X], time_fixed_scale),
+	used_pos[Y] + fxm(used_vel[Y], time_fixed_scale),
+	used_pos[Z] + fxm(used_vel[Z], time_fixed_scale)};
 	
 	for(int i = 0; i < 6; i++)
 	{
    		//Backfacing Faces
 		if(fxdot(centerDif, obj->nmtbl[i]) > 0) continue;
 		
-		int hitLine = line_hit_plane_here(part->spr->pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384 + (usedSpan<<16), hitPt);
+		int hitLine = line_hit_plane_here(used_pos, segPt, obj->cftbl[i], obj->nmtbl[i], obj->pos, 16384 + (usedSpan<<16), hitPt);
 
 		if(hitLine)
 		{
 			if(edge_wind_test(obj->pltbl[i][0], obj->pltbl[i][1], obj->pltbl[i][2], obj->pltbl[i][3], hitPt, obj->maxtbl[i], 12))
 			{
 				//particle_collision_handler(part, hitPt, obj->nmtbl[i]);
-				object_particle_collision_handler(part, bound_box_entry);
-				particle_potential_hit(part, hitPt, obj->nmtbl[i]);
+				if(bound_box_entry >= 0)
+				{
+					object_particle_collision_handler(part, bound_box_entry);
+					particle_potential_hit(part, hitPt, obj->nmtbl[i]);
+				} else {
+					//Special Potential Hit Process for Player
+					int hitDif[3] = {-hitPt[X] - part->spr->pos[X], -hitPt[Y] - part->spr->pos[Y], -hitPt[Z] - part->spr->pos[Z]};
+					hitDif[X]>>=4;
+					hitDif[Y]>>=4;
+					hitDif[Z]>>=4;
+					int pDist = fxdot(hitDif, hitDif);
+					
+					if(pDist <= part->hitDist)
+					{
+						part->pHit[X] = -hitPt[X];
+						part->pHit[Y] = -hitPt[Y];
+						part->pHit[Z] = -hitPt[Z];
+						part->hitDist = pDist;
+						part->nHit = obj->nmtbl[i];
+					}
+				}
+				
 				return true;
 			} 
 		}
@@ -738,6 +781,8 @@ void	operate_particles(void)
 				}
 				
 				pHit |= particle_collide_sector(&particles[i]);
+				
+				pHit |= particle_collide_object(&particles[i], -1);
 				
 				if(pHit) particle_collision_handler(&particles[i]);
 				
