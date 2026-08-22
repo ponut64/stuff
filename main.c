@@ -9,6 +9,10 @@
 
 What's on my development iternerary?
 
+Inefficient\flagged code:
+                0x0600bd4c                hitscan_vector_from_position_building
+				
+
 -> next steps
 	a. snazz up the animations for the voidwalker 
 	b. implement the melee modal

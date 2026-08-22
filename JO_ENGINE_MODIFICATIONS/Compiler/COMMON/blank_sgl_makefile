@@ -6,8 +6,8 @@ ifeq (${COMPILER_DIR},)
 	COMPILER_DIR=../../Compiler
 endif
 
-SYSOBJS += $(SGLLDR)/SGLAREA.O
-#SYSOBJS += $(SGLIDR)/workarea.c
+#SYSOBJS += $(SGLLDR)/SGLAREA.O
+SYSOBJS += $(SGLIDR)/workarea.c
 
 OBJS = $(SRCS:.c=.o)
 

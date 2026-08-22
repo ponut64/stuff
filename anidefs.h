@@ -298,7 +298,7 @@ void	anim_defs(void)
 	vw_shoot_anim.reset_enable = 'Y';	
 	vw_shoot_anim.arate[9] = 4;		
 	vw_shoot_anim.arate[10] = 7;		
-	vw_shoot_anim.arate[11] = 7;	
+	vw_shoot_anim.arate[11] = 10;	
 	vw_shoot_anim.arate[12] = 7;	
 	vw_shoot_anim.startFrm = 9;
 	vw_shoot_anim.curFrm = vw_shoot_anim.startFrm<<ANIM_SHIFT;
