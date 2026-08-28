@@ -1,4 +1,15 @@
 
+using namespace std;
+#include <windows.h>
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <cmath>
+#include <algorithm>
+#include <cstdint>
+
+
 uint16_t         swap_endian_ushort(uint16_t value)   { return ((((value) >> 8) & 0xff) | (((value) & 0xff) << 8));}
 int16_t          swap_endian_sshort( int16_t value)   { return (((value >> 8)&0xFF) | ((value & 0xFF) << 8));}
 uint32_t         swap_endian_uint(  uint32_t value)   { return ((((value) & 0xff000000) >> 24) | (((value) & 0x00ff0000) >>  8) | (((value) & 0x0000ff00) <<  8) | (((value) & 0x000000ff) << 24)); }

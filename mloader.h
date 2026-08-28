@@ -1,5 +1,6 @@
 #pragma once
 
+#define MAX_WORKAREA_POLYGONS (1500)
 #define MAX_MODELS (64)
 #define WORLD_ENTITY_ID		(12)
 #define MAX_SECTORS (64)

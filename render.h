@@ -24,13 +24,13 @@
 	#define SUPER_NEAR_PLANE	(NEAR_PLANE_DISTANCE>>2) //Eeh... just trying
 #endif
 
-#define VRAM_TEXTURE_BASE (0xA000) //Matches jo engine specification
+#define VRAM_TEXTURE_BASE (((MAX_WORKAREA_POLYGONS + 6) * sizeof(SPRITE) * 2)) 
 #define VDP1_VRAM (0x25C00000)
 #define MAP_TO_VRAM(sh2map_vram_addr) ((sh2map_vram_addr - VDP1_VRAM)>>3) 
-#define INTERNAL_MAX_POLY (2048)
-#define INTERNAL_MAX_VERTS (2048)
-#define MAX_SSH2_SENT_POLYS (750) //SpriteBuf size limitation 
-#define MAX_MSH2_SENT_POLYS (550) //SpriteBuf size limitation 
+#define INTERNAL_MAX_POLY (2048) //kind of useless performance limiter
+#define INTERNAL_MAX_VERTS (2048) //kind of useless performance limiter
+#define MAX_SSH2_SENT_POLYS (MAX_WORKAREA_POLYGONS - 600) //SpriteBuf size limitation (500 being the amount leftover for other cpu)
+#define MAX_MSH2_SENT_POLYS (MAX_WORKAREA_POLYGONS - MAX_SSH2_SENT_POLYS) //SpriteBuf size limitation 
 #define MAX_SSH2_ENTITY_VERTICES (1024) //These are probably oversized, but they need to be at least this big for the subdivision.
 #define MAX_MSH2_ENTITY_VERTICES (512)
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.

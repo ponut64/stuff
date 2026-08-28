@@ -335,7 +335,7 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 			//Add some margin of error on height axis
 			y_min -= 1<<16;
 			y_max += 1<<16;
-			
+			nbg_sprintf(1, 8, "from_sector(%i),to_sector(%i),polygon(%i)", s, l, i);
 			for(unsigned int p = 0; p < sctB->nbPolygon; p++)
 			{
 				if(p == i) continue;

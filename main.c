@@ -10,8 +10,13 @@
 What's on my development iternerary?
 
 Inefficient\flagged code:
-                0x0600bd4c                hitscan_vector_from_position_building
+                0x06037e84 - somewhere in SGL. Likely runaway pointer.
+				0x06027ca8 - somewhere in SBL. likely CD system stall. (normal)
+				0x0600bd4c - hitscan_vector_from_position_building
 				
+
+-> loading Doom E1M1
+	Memory corruption occurs. Likely out of RAM for one or another buffer.
 
 -> next steps
 	a. snazz up the animations for the voidwalker 
@@ -282,11 +287,11 @@ void	load_test(void)
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BOX.GVP",			HWRAM_ldptr, &entities[2], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"BTNSTN.GVP",		HWRAM_ldptr, &entities[1], GV_SORT_CEN, MODEL_TYPE_NORMAL, NULL);
 	
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TEST00.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TPAK0.GVP",		HWRAM_ldptr, &entities[0], GV_SORT_CEN, MODEL_TYPE_TPACK, NULL);
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STRAN.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_NORMAL, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"TMAP2.GVP",		HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"DOOM.GVP",		HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
 	nbg_sprintf(1, 7, "Sectors complete!");
 	// while(1)
 	// {

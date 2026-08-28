@@ -31,6 +31,7 @@ using namespace std;
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <cstdint>
 #include "tools.cpp"
 
 unsigned short objects_data_list[256 * 1024]; //Few MB or so eh?
@@ -76,7 +77,7 @@ void	create_objects(int levelNo)
 		palName = "PAL0.TGA";
 		bgName = "BG0.TGA";
 		
-		declare_object_at_cell(0, (100), 0, 11 /*start stand*/, 0, 0, 0, 0, 0);
+		//declare_object_at_cell(0, (100), 0, 11 /*start stand*/, 0, 0, 0, 0, 0);
 	}
 	
 }

@@ -194,7 +194,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 			int secMoverVerts = 0;
 			int movUniqueVert = 0;
 			
-			nbg_sprintf(10, 15, "vt(%i)", moverVerts);
+			nbg_sprintf(10, 17, "vt(%i)", moverVerts);
 			//Sets "uniqueSet", checks the entire "clapBuffer" for unqiue set.
 			//If uniqueSet is not in clapBuffer, add to clap buffer, add to total vertex number.
 			for(unsigned int i = 0; i < moverVerts; i++)
@@ -347,7 +347,7 @@ void	*	load_sectors(entity_t * ent, void * workAddress)
 					break;
 				}
 			}
-			nbg_sprintf(10, 16, "tp(%i)", valid_type_found);
+			nbg_sprintf(10, 17, "tp(%i)", valid_type_found);
 			if(valid_type_found)
 			{
 			BuildingPayload[total_building_payload].object_type = valid_type_found;

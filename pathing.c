@@ -646,7 +646,7 @@ void	reconcile_pathing_lists(void)
 //4. Reconcile the sector-specific pathing lists into a 2D array that points to data contained within each sector
 void	init_pathing_system(void)
 {
-	nbg_sprintf(0,0, "Finding path tables...");
+	nbg_sprintf(0,1, "Finding path tables...");
 	//Re-seat the path node pointer (in case level is re-loaded, this pointer must be re-set)
 	pathStackPtr = sectorPathHeap;
 	for(int i = 0; i < MAX_SECTORS; i++)
@@ -654,7 +654,7 @@ void	init_pathing_system(void)
 		findSectorPathNodeCount(i);
 	}
 	accumulate_path_node_count_for_sectors();
-	nbg_sprintf(0,0, "Building path tables...");
+	nbg_sprintf(0,1, "Building path tables...");
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
 		buildSectorPathNodes(i);
@@ -667,7 +667,7 @@ void	init_pathing_system(void)
 		
 	// nbg_sprintf(0,1, "szStepHost(%i)", pathing);
 	// nbg_sprintf(0,2, "szPathHost(%i)", pathStepHeap);
-	nbg_sprintf(0,0, "Reconciling...");
+	nbg_sprintf(0,1, "Reconciling...");
 	reconcile_pathing_lists();
 }
 
