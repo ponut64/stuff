@@ -174,16 +174,16 @@ void	init_vdp2(short backColor)
     slColorCalcOn(CC_RATE | CC_TOP | SPRON | BACKON);
 
 	//These have to do with the order in which color calculation is done?
-    slPrioritySpr0(5);
+    slPrioritySpr0(5); //*
     slPrioritySpr1(3);
-    slPrioritySpr2(3);
+    slPrioritySpr2(3); //*
     slPrioritySpr3(3);
-    slPrioritySpr4(3);
+    slPrioritySpr4(3); //*
     slPrioritySpr5(3);
-    slPrioritySpr6(3);
+    slPrioritySpr6(3); //*
     slPrioritySpr7(3);
 	//These are the color calculation ratios for the SPR layer, according to the CC priority set in the pixel?
-    slColRateSpr0(2);
+    slColRateSpr0(2); 
     slColRateSpr1(4);
     slColRateSpr2(6);
     slColRateSpr3(9);

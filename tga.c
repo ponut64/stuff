@@ -1007,8 +1007,9 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	int size_switch = 0;
 	if(wx == 64 && yh == 64) size_switch = 1;
 	if(wx == 32 && yh == 32) size_switch = 2;
+	if(wx == 16 && yh == 16) size_switch = 3;
 	if(size_switch == 0) return;
-	
+
 	if(size_switch == 2)
 	{
 		//In this case, we need to get a 32x32 texture scaled up to 64x64.
@@ -1052,6 +1053,83 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		readByte = second_dirty_buf;
 		
 	}
+	
+	
+	if(size_switch == 3)
+	{
+		//In this case, we need to get a 16x16 texture scaled up to 64x64.
+		//This is the second_dirty_buf.
+		//Now we have to line-quad the 16x16 image.
+		for(int y = 0; y < 16; y++)
+		{
+			for(int x = 0; x < 16; x++)
+			{
+				second_dirty_buf[tsl] = readByte[x + (y * 16)];
+				tsl++;
+			}
+			for(int x2 = 0; x2 < 16; x2++)
+			{
+				second_dirty_buf[tsl] = readByte[x2 + (y * 16)];
+				tsl++;
+			}
+			for(int x3 = 0; x3 < 16; x3++)
+			{
+				second_dirty_buf[tsl] = readByte[x3 + (y * 16)];
+				tsl++;
+			}
+			for(int x4 = 0; x4 < 16; x4++)
+			{
+				second_dirty_buf[tsl] = readByte[x4 + (y * 16)];
+				tsl++;
+			}
+		}
+		//Then we have to write that new 64x16 image four times.
+		tkd = 0;
+		for(int y = 0; y < 16; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		tkd = 0;
+		for(int y = 0; y < 16; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		tkd = 0;
+		for(int y = 0; y < 16; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		tkd = 0;
+		for(int y = 0; y < 16; y++)
+		{
+			for(int x = 0; x < 64; x++)
+			{
+				second_dirty_buf[tsl] = second_dirty_buf[tkd];
+				tsl++;
+				tkd++;
+			}
+		}
+		//Finally, we have to set the new source address.
+		readByte = second_dirty_buf;
+		//From this point on, we're going to subdivide this as if its 32x32 (for now).
+		size_switch = 2;
+	}
+	
 	/* Original, downscaled */
 	generate_downscale_texture(64, 64, 32, 32, readByte);
 

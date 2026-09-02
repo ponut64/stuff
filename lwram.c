@@ -38,7 +38,7 @@ void	init_lwram(void)
 	lwram_ldptr += 65536; //sizeof buf
 	//In LWRAM because why use HWRAM for it? // 8kb
 	pcoTexDefs = lwram_ldptr;
-	lwram_ldptr += sizeof(paletteCode) * 4096;
+	lwram_ldptr += sizeof(paletteCode) * (10 * 1024);
 	//Adjacent Quad Table. This has an arbitrary size.
 	sectorPathHeap = lwram_ldptr;
 	pathStackPtr = lwram_ldptr;

@@ -625,7 +625,7 @@ inline	void	depth_cueing(int * depth, int * cue)
 	
 		*cue = (*depth - DEPTH_CUE_OFFSET) >> 23;
 		*cue = (*cue > 7) ? 7 : (*cue < 0) ? 0 : *cue;
-		*cue |= (*depth > DEPTH_CUE_CUTOFF) ? 8 : 0;
+		*cue |= (*depth > DEPTH_CUE_OFFSET) ? 8 : 0;
 		*cue <<= 10;
 }
 

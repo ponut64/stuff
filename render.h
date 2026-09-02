@@ -92,8 +92,7 @@
 #define SCR_SCALE_X (16)
 #define SCR_SCALE_Y (16)
 
-#define DEPTH_CUE_OFFSET (200<<16)
-#define DEPTH_CUE_CUTOFF (1200<<16)
+#define DEPTH_CUE_OFFSET (300<<16)
 
 #define SPRITE_Z_ADJUSTMENT -(32<<16)
 
