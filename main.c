@@ -15,7 +15,7 @@ Inefficient\flagged code:
 				0x0600bd4c - hitscan_vector_from_position_building
 
 -> todo:
-	properly uv tile\cut 16x16 texture. will save a small bit of vram.
+	expand the palette to 128 colors. would really help.
 
 -> next steps
 	a. snazz up the animations for the voidwalker 

@@ -1126,20 +1126,18 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		}
 		//Finally, we have to set the new source address.
 		readByte = second_dirty_buf;
-		//From this point on, we're going to subdivide this as if its 32x32 (for now).
-		size_switch = 2;
 	}
 	
 	/* Original, downscaled */
 	generate_downscale_texture(64, 64, 32, 32, readByte);
 
 	/* Horizontal halves (32x64) -++	*/
-	//for 32x32: use first texture, then repeat
+	//for 32x32: use first texture, then repeat. same for 16x16.
 	int swap_texno[32];
 	tsl = 0;
 	for(int x32 = 0; x32 < 2; x32++)
 	{
-		if(x32 == 1 && size_switch == 2)
+		if(x32 == 1 && (size_switch == 2 || size_switch == 3))
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1158,14 +1156,14 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		generate_downscale_texture(img_sz[X], img_sz[Y], 32, 32, used_dirty_buf);
 		}
 	}
-	
+
 	/* Vertical halves (64x32) |++	*/
 	//for 32x32: use first texture, then repeat
 	tsl = 0;
 	for(int y32 = 0; y32 < 2; y32++)
 	{
 		
-		if(y32 == 1 && size_switch == 2)
+		if(y32 == 1 && (size_switch == 2 || size_switch == 3))
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1191,12 +1189,16 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	//The texture address of -+ CANNOT be made from these.
 	//The reason is because they are down-scaled to 16x32 to optimize VDP1 performance.
 	//for 32x32: use only the first two, then repeat
-
+	//for 16x16: use only the first one, then repeat
 	tsl = 0;
 	for(int x16 = 0; x16 < 4; x16++)
 	{
-		
-		if(x16 >= 2 && size_switch == 2)
+		if(x16 >= 1 && size_switch == 3)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[0]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[0]].SRCA; 
+			numTex++;
+		} else if(x16 >= 2 && size_switch == 2)
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1217,13 +1219,19 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		generate_downscale_texture(img_sz[X], img_sz[Y], 16, 32, used_dirty_buf);
 		}
 	}
-	
+
 	/* Vertical quarters (64x16)	||+	*/
 	//for 32x32: use only the first two, then repeat
+	//for 16x16: use only the first one, then repeat
 	tsl = 0;
 	for(int y16 = 0; y16 < 4; y16++)
 	{
-		if(y16 >= 2 && size_switch == 2)
+		if(y16 >= 1 && size_switch == 3)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[0]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[0]].SRCA; 
+			numTex++;
+		} else if(y16 >= 2 && size_switch == 2)
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1250,10 +1258,19 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	//The reason is because they are down-scaled to 8x32 to optimize VDP1 performance.
 	//for 32x32:
 	//use only the first four textures, then repeat
+	//for 16x16:
+	//use only the first two textures, then repeat
 	tsl = 0;
 	for(int x8 = 0; x8 < 8; x8++)
 	{
-		if(x8 >= 4 && size_switch == 2)
+		if(x8 >= 2 && size_switch == 3)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			tsl = (tsl >= 1) ? 0 : tsl+1;
+			numTex++;
+		} else if(x8 >= 4 && size_switch == 2)
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1277,10 +1294,19 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	/* Horizontal eighths (64x8) |||	*/
 	//for 32x32:
 	// only use the first four textures, then repeat
+	//fpr 16x16:
+	// use only the first two textures, then repeat
 	tsl = 0;
 	for(int y8 = 0; y8 < 8; y8++)
 	{
-		if(y8 >= 4 && size_switch == 2)
+		if(y8 >= 2 && size_switch == 3)
+		{
+			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
+			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
+			tsl++;
+			tsl = (tsl >= 1) ? 0 : tsl+1;
+			numTex++;
+		} else if(y8 >= 4 && size_switch == 2)
 		{
 			pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tsl]].SIZE;
 			pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tsl]].SRCA; 
@@ -1305,7 +1331,7 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	// Order of Quarters:
 	// 1	2
 	// 3	4
-	//for 32x32:
+	//for 32x32 and 16x16:
 	// 1	1
 	// 1	1
 	// (only generate one)
@@ -1319,7 +1345,7 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		img_min[Y] = y32 * 32;
 		for(int x32 = 0; x32 < 2; x32++)
 		{
-			if(tsl > 0 && size_switch == 2)
+			if(tsl > 0 && (size_switch == 2 || size_switch == 3))
 			{
 				pcoTexDefs[numTex].SIZE = pcoTexDefs[quarter_texno[0]].SIZE;
 				pcoTexDefs[numTex].SRCA = pcoTexDefs[quarter_texno[0]].SRCA; 
@@ -1349,6 +1375,9 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	for 32x32:
 	1	2	1	2
 	1	2	1	2
+	for 16x16: (no need for more than one)
+	1	1	1	1
+	1	1	1	1
 	*/
 	tsl = 0;
 	tkd = 0;
@@ -1360,7 +1389,13 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 		{
 			img_sz[X] = 16;
 			img_min[X] = x16 * 16;
-			if(tsl >= 2 && size_switch == 2)
+			if(tsl >= 1 && size_switch == 3)
+			{
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tkd]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tkd]].SRCA; 
+				tkd = 0;
+				numTex++;
+			} else if(tsl >= 2 && size_switch == 2)
 			{
 				pcoTexDefs[numTex].SIZE = pcoTexDefs[swap_texno[tkd]].SIZE;
 				pcoTexDefs[numTex].SRCA = pcoTexDefs[swap_texno[tkd]].SRCA; 
@@ -1421,7 +1456,7 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	9	10	11	12	13	14	15	16
 	9	10	11	12	13	14	15	16
 	9	10	11	12	13	14	15	16
-	for 32x32:
+	for 32x32 
 	1	2	3	4	1	2	3	4
 	1	2	3	4	1	2	3	4
 	1	2	3	4	1	2	3	4
@@ -1430,6 +1465,15 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	1	2	3	4	1	2	3	4
 	1	2	3	4	1	2	3	4
 	1	2	3	4	1	2	3	4
+	for 16x16 
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
+	1	2	1	2	1	2	1	2
 	Repeat the top-left quadrant
 	*/
 	tsl = 0;
@@ -1443,7 +1487,15 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 			img_sz[X] = 8;
 			img_min[X] = x8 * 8;
 			
-			if(tsl >= 4 && size_switch == 2)
+			if(tsl >= 2 && size_switch == 3)
+			{
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[horieighth_texno[tkd]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[horieighth_texno[tkd]].SRCA; 
+				horieighth_texno[tsl] = numTex;
+				tsl++;
+				tkd = (tkd >= 1) ? 0 : tkd+1;
+				numTex++;
+			} else if(tsl >= 4 && size_switch == 2)
 			{
 				pcoTexDefs[numTex].SIZE = pcoTexDefs[horieighth_texno[tkd]].SIZE;
 				pcoTexDefs[numTex].SRCA = pcoTexDefs[horieighth_texno[tkd]].SRCA; 
@@ -1485,6 +1537,15 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	2	2
 	3	3
 	4	4
+	for 16x16:
+	1	1
+	2	2
+	1	1
+	2	2
+	1	1
+	2	2
+	1	1
+	2	2
 	Repeat the texture numbers for the top-left quadrant.
 	*/
 	for(int i = 0; i < 4; i++)
@@ -1523,11 +1584,16 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 	// 5	6	7	8
 	// 9	10	11	12
 	// 13	14	15	16
-	// for 32x32:
+	// for 32x32
 	// 1	2	1	2
 	// 5	6	5	6
 	// 1	2	1	2
 	// 5	6	5	6
+	// for 16x16
+	// 1	1	1	1
+	// 1	1	1	1
+	// 1	1	1	1
+	// 1	1	1	1
 	// Repeat the textures generated for the top-left quadrant.
 	tsl = 0;
 	tkd = 0;
@@ -1613,6 +1679,24 @@ Would be possible to patch in support for arbitrary heights, but width of 64 or 
 			numTex++;
 		}
 			
+		} else if(size_switch == 3)
+		{
+			//In such case of a 16x16 source texture, everything here is just a repeat of the source.
+			//Repeat this texture 16 times.
+			img_sz[Y] = 16;
+			img_sz[X] = 16;
+			eighths_texno[tsl] = numTex;
+			tsl++;
+			generate_downscale_texture(img_sz[X], img_sz[Y], img_sz[X], img_sz[Y], data_start);
+			//Then repeat 15
+			for(int i = 0; i < 15; i++)
+			{
+				eighths_texno[tsl] = eighths_texno[i];
+				tsl++;
+				pcoTexDefs[numTex].SIZE = pcoTexDefs[eighths_texno[i]].SIZE;
+				pcoTexDefs[numTex].SRCA = pcoTexDefs[eighths_texno[i]].SRCA; 
+				numTex++;
+			}
 		}
 	
 	/* 8x16 - */
