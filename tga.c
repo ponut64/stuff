@@ -12,7 +12,7 @@
 unsigned char * GLOBAL_img_addr = (unsigned char *)NULL;
 unsigned char * curVRAMptr = (unsigned char*)(VDP1_VRAM + VRAM_TEXTURE_BASE); //see render.h
 
-unsigned int sprPaletteCopy[256];
+unsigned int sprPaletteCopy[SPR_PALLETE_SIZE];
 
 int numTex = 0;
 
@@ -64,7 +64,7 @@ void	set_tga_to_sprite_palette(void * file_start)
 	//X / Y origin data is ignored.
 	
 	//unsigned short xSizeLoBits = readByte[12]; //unused
-	//unsigned short ySizeLoBits = readByte[14]; //unused, because the has an assumed size 
+	//unsigned short ySizeLoBits = readByte[14]; //unused, because the has an assumed size (right now, 8x16x4 = 32x16)
 	
 	unsigned char bpp = readByte[16];
 	
@@ -83,7 +83,7 @@ void	set_tga_to_sprite_palette(void * file_start)
 	unsigned char component[XYZ] = {0, 0, 0}; //Actually "R, G, B"
 	unsigned int final_color = 0;
 
-	for(int i = 0; i < 256; i++){
+	for(int i = 0; i < SPR_PALLETE_SIZE; i++){
 		component[X] = readByte[(i*3)];
 		component[Y] = readByte[(i*3)+1];
 		component[Z] = readByte[(i*3)+2];
@@ -557,7 +557,7 @@ void	color_offset_vdp1_palette(int colorCode, int * run_only_once)
 //Use: Restore VDP1 color palette after modifying it to original condition.
 void	restore_vdp1_palette(void)
 {
-	for(int i = 0; i < 256; i++)
+	for(int i = 0; i < SPR_PALLETE_SIZE; i++)
 	{
 		cRAM_24bm[i+SPRITE_PALETTE_OFFSET] = sprPaletteCopy[i];
 	}

@@ -3,13 +3,15 @@
 #pragma once
 
 #define TGA_HEADER_GAP	(18)
-#define SPRITE_PALETTE_OFFSET	(256)
+
+#define SPR_PALLETE_SIZE (512) //# of colors used in sprite palette
+#define SPRITE_PALETTE_OFFSET	(0)
 #define BG_PALETTE_OFFSET		(512)
 #define HUD_PALETTE_OFFSET		(768)
 #define CHAR_PALETTE_OFFSET		(0)
 
 extern unsigned char * sprPalette;
-extern unsigned int sprPaletteCopy[256];
+extern unsigned int sprPaletteCopy[SPR_PALLETE_SIZE];
 
 extern unsigned char * GLOBAL_img_addr;
 extern unsigned char * curVRAMptr;

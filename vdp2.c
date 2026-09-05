@@ -113,10 +113,10 @@ void	vblank_requirements(void)
 	//NBG0 is using colors 512-765
 	//NBG1 is using colors 768-1024
 	//NBG2 is using colors 0-255
-	//VDP1 is using colors 256-511
+	//VDP1 is using colors 0-511
 	//nbg_sprintf(0, 15, "(%x)", (int)BACK_CRAM);
 	vdp2_CRAMoffsetA[0] = 0x32;	//Offsets indexed colors for NBG0 and NBG1
-	vdp2_CRAMoffsetB[0] = 0x10; //Offsets indexed colors for SPR layer by 256 entries ((1<<10) / 4)
+	vdp2_CRAMoffsetB[0] = 0x00; //Offsets indexed colors for SPR layer by <nothing>
 	//vdp2_TVmode[0] = 33027; //Set VDP2 to 704x224 [progressive scan, 704 width] - why? VDP2 will sharpen VDP1's output.
 	//Note that sprMode also contains data which specifies the rules for color calculation on sprite-layer pixels.
 	//"0x0404" specifies sprite type #4, and sprite color calculation condition #4. Whatever that means; seriously idk.

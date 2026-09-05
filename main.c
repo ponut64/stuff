@@ -227,7 +227,7 @@ void	load_test(void)
 	set_tga_to_nbg2_palette((void*)dirty_buf);
 
 	
-	WRAP_NewPalette((Sint8*)"TADA.TGA", (void*)dirty_buf);
+	WRAP_NewPalette((Sint8*)"NEWPAL.TGA", (void*)dirty_buf);
 	baseAsciiTexno = numTex;
 	sprAsciiHeight = 12;
 	sprAsciiWidth = WRAP_NewTable((Sint8*)"FONT2.TGA", dirty_buf, sprAsciiHeight); //last argument, tex height

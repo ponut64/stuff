@@ -36,7 +36,7 @@
 #define	MAX_SIMULTANEOUS_ANIMATED_ENTITIES (5) //RAM-wise, can be pretty high. CPU-wise, probably not.
 #define MAX_SIMULTANEOUS_SPRITE_ANIMATIONS (64)
 // Base PMOD: Bit 12 is HSS
-#define VDP1_BASE_PMODE (0x1490)
+#define VDP1_BASE_PMODE (0x1498)//(0x1490) // 1498 for 128-color bank, 14900 for 64 color bank
 // CMDCTRL = Select Distorted Sprite
 #define VDP1_BASE_CMDCTRL			(0x2)
 #define VDP1_POLYLINE_CMDCTRL		(0x5)
@@ -95,6 +95,7 @@
 #define DEPTH_CUE_OFFSET (300<<16)
 
 #define SPRITE_Z_ADJUSTMENT -(32<<16)
+
 
 /*
 Render data flags:
