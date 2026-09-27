@@ -627,7 +627,11 @@ int create_actor_from_spawner(_declaredObject * spawner, int boxID)
 	act->aggroTimer = 0;
 	act->nolosTimer = 0;
 	act->goalSector = INVALID_SECTOR;
-	act->markedSector = INVALID_SECTOR;
+	act->attackedThisAnim = 0;
+	
+	act->attackTime1 = 5<<16;
+	act->attackTime2 = 1<<16;
+	act->attackTimer = 0;
 	
 	act->spawner = spawner;
 	act->entity_ID = spawner->type.entity_ID;
@@ -799,6 +803,9 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	used_anim = &vw_dead_pose;
 	break;
 	case(SHIFT_ANIM_MELEE):
+	used_anim =	&vw_melee_anim;
+	break;
+	case(SHIFT_ANIM_SHOOT):
 	used_anim =	&vw_shoot_anim;
 	break;
 	case(SHIFT_ANIM_MOVE):
@@ -836,6 +843,9 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 		//used_anim =	&vw_melee_anim;
 		act->info.flags.animationLock = 0;
 		break;
+		case(SHIFT_ANIM_SHOOT):
+		act->info.flags.animationLock = 0;
+		break;
 		case(SHIFT_ANIM_MOVE):
 		//used_anim =	&vw_move_anim;
 		break;
@@ -871,6 +881,29 @@ void *	adjudicate_actor_animation_queue(_actor * act)
 	//In such case where the used animation had reset enabled but the timer is above zero, we only want to set it back for the next frame.
 		act->animPriorityQueue |= (1<<shift_count);
 	
+		//In the next evaluation, we want to fire the projectile (or melee attack) at the appropriate point during an animation.
+		//This is linked to which animation is playing, not the explicit logical state of an actor.
+		//Hopefully this works to ensure that attacks occur based on what the actor is visually doing.
+		switch(shift_count)
+		{
+			case(SHIFT_ANIM_SHOOT):
+			if(act->animationTimer < ((used_anim->time)>>1) && act->attackedThisAnim == 0)
+			{
+				int mark[3] = {0,0,0};
+				mark[X] = fxm((act->pathUV[X]), 16<<16);
+				mark[Y] = fxm((act->pathUV[Y]), 16<<16);
+				mark[Z] = fxm((act->pathUV[Z]), 16<<16);
+				mark[X] += act->velocity[X];
+				mark[Y] += act->velocity[Y];
+				mark[Z] += act->velocity[Z];
+				spawn_particle(&TestSpr, PROJ_TEST, act->pos, mark, act->curSector, act->boxID);
+				act->attackedThisAnim = 1;
+			}
+			break;
+			default:
+			break;
+		}
+	
 	}
 	
 
@@ -889,11 +922,8 @@ void	actor_threat_evaluation(_actor * act)
 		act->markedSector = INVALID_SECTOR;
 		return;
 	}
-	int target[3] = {you.wpos[X]>>16, you.wpos[Y]>>16, you.wpos[Z]>>16};
-	int dst[3] = {act->pos[X]>>16, act->pos[Y]>>16, act->pos[Z]>>16};
-	int dist = approximate_distance(target, dst);
 	
-	if(dist < 512)
+	if(act->distanceToAggroTarget < (512<<16))
 	{
 		act->info.flags.inCombat = 1;
 	}
@@ -906,36 +936,28 @@ void	actor_attack_evaluation(_actor * act)
 	//and determine whether it should or can attack.
 	//Ranged attacks will have at their basic level a cone-of-fire,
 	//so actors will generally decide whether they should get closer before attacking, or not.
-	//Actors may also have ammunition, and they may widthold ranged attacks based on how much ammo they have and the accuracy of the attack.
-	//An actor may also just not have a ranged attack, or they may not have a melee attack.
-	
-	//In general, for this first test, we just want the actor to:
-	//1. Stop moving.
-	//2. Play an animation.
-	//3. Throw a projectile at player.
 	
 	//Rather than performing a full evaluation, we'll just put this on a timer rn.
-	static int attack_timer = 0;
-	if(attack_timer >= (5<<16))
+	if(act->attackTimer >= act->attackTime1 && act->distanceToAggroTarget > (64<<16))
 	{
 		//We need to latch the state such that the actor will stop pathing. Well, in most cases they will stop moving altogether, but I won't leave out that some attacks will move.
 		//To do this, rather than override any pathing logic, we will just slow the actor down to 0 with this flag. That way, they will still turn and face the player while this happens.
 		act->info.flags.animationLock = 1;
+		actor_set_animation_state(act, SHIFT_ANIM_SHOOT);
+		
+		act->attackTimer = 0;
+		act->attackedThisAnim = 0;
+	} else if(act->attackTimer >= act->attackTime2 && act->distanceToAggroTarget <= (128<<16))
+	{
+		//act->info.flags.animationLock = 1;
 		actor_set_animation_state(act, SHIFT_ANIM_MELEE);
 		
-		int mark[3] = {0,0,0};
-		mark[X] = fxm((act->pathUV[X]), 16<<16);
-		mark[Y] = fxm((act->pathUV[Y]), 16<<16);
-		mark[Z] = fxm((act->pathUV[Z]), 16<<16);
-		mark[X] += act->velocity[X];
-		mark[Y] += act->velocity[Y];
-		mark[Z] += act->velocity[Z];
-		spawn_particle(&TestSpr, PROJ_TEST, act->pos, mark, act->curSector, act->boxID);
-		
-		attack_timer = 0;
+		act->attackTimer = 0;
+		act->attackedThisAnim = 0;
 	}
-	if(!act->info.flags.animationLock) attack_timer += delta_time;
+	if(!act->info.flags.animationLock) act->attackTimer += delta_time;
 	
+
 
 }
 
@@ -1030,6 +1052,10 @@ void	actor_idle_actions(int actor_id)
 			actor_set_animation_state(act, SHIFT_POSE_SPOT);
 			actor_threat_evaluation(act);
 		}
+		
+		int dst[3] = {0,0,0};
+		segment_to_vector(you.wpos, act->pos, dst);
+		act->distanceToAggroTarget = crazy_length(dst);
 		
 	} else {
 			if(act->aggroTimer <= 0)

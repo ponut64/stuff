@@ -907,7 +907,7 @@ void * gvLoad3Dmodel(Sint8 * filename, void * startAddress, entity_t * model, un
 		{
 			workAddress = preprocess_planes_to_tiles_for_sector(&sectors[i], workAddress);
 		}
-		
+		workAddress = accumulate_used_portals(workAddress);
 	}
 	
 	//Alignment

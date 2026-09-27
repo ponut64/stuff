@@ -255,6 +255,84 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	
 }
 
+void *	accumulate_used_portals(void * workAddress)
+{
+	//Goal:
+	//Accumulate a list of all portals that each sector will use
+	//Then allocate memory for the sector's used portal list and write it
+	
+	workAddress = align_4(workAddress);
+	unsigned short * writeAddress = (unsigned short *)workAddress;
+	
+
+
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		_sector * sctX = &sectors[i];
+		if(sctX->nbVisible <= 0) continue;
+		
+		//Allocate memory of size nbVisible for usedPortalList and usedPortalCt
+		sctX->usedPortalCt = writeAddress;
+		writeAddress += (sizeof(void*) * sctX->nbVisible);
+		sctX->usedPortalList = (unsigned short**)writeAddress;
+		writeAddress += (sizeof(void*) * sctX->nbVisible);
+		
+		int total_portals = sctX->nbPortal;
+		for(int j = 0; j < sctX->nbVisible; j++)
+		{
+			int id2 = sctX->pvs[j];
+			if(id2 == i) continue;
+			_sector * sctY = &sectors[id2];
+			total_portals += sctY->nbPortal;
+			sctX->usedPortalCt[j] = 0; //Initialize at zero
+			if(total_portals == 0) continue;
+			//Next, we need to allocate memory for this individual sector pair and store the amount of memory we allocated.
+			sctX->usedPortalList[j] = writeAddress;
+			writeAddress += (sizeof(unsigned short) * total_portals);
+			writeAddress = align_4(writeAddress);
+			//No alignment needed as pointers are four bytes.
+		}
+		
+	}
+
+	//Now we want to separately evaluate each pair of potentially visible sectors.
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		_sector * sctX = &sectors[i];
+		if(sctX->nbVisible <= 0) continue;
+		if(sctX->nbPortal <= 0) continue;
+
+		//We will evaluate each pair of sectors from the perspective of each portal.
+		//We are trying to answer a simple question: Will this portal be used for this pair of sectors?
+		//If it will, then we will add it to the list. 
+		//This will be a first-pass for now.
+		for(int k = 0; k < sctX->nbPortal; k++)
+		{
+			int alias = sctX->portals[k];
+			unsigned int sctA = i;
+			unsigned int sctB = sctX->ent->pol->attbl[alias].texno;
+			unsigned short marker = (unsigned short)(sctA | (sctB << 8));
+			for(int j = 0; j < sctX->nbVisible; j++)
+			{
+				if(sctX->pvs[j] == i) continue;
+				//Simple rule for testing.
+				if(sctB == sctX->pvs[j])
+				{
+					unsigned short * tpList = sctX->usedPortalList[j];
+					tpList[sctX->usedPortalCt[j]] = marker;
+					sctX->usedPortalCt[j]++;
+				}
+				
+			}
+		}
+		
+	}
+	
+		workAddress = (void *)writeAddress;
+		return align_4(workAddress);
+}
+
+
 void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 {
 	//Step 1: Is this a valid entity type?
@@ -340,7 +418,10 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 			{
 				if(p == i) continue;
 				
-				//No normal discardh here. Perhaps I should discard stuff if it's Y+ (facing down),
+
+				
+				
+				//No normal discard here. Perhaps I should discard stuff if it's Y+ (facing down),
 				//but otherwise, it'll test everything in sctB against the floors in sctA.
 				//In this test, we're setting up polygons in sctB to be tested against a specific polygon in sctA.
 				within_span = 0;
@@ -349,7 +430,7 @@ void *	buildAdjacentSectorList(int entity_id, void * workAddress)
 					c_plane[k][X] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][X];
 					c_plane[k][Y] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][Y];
 					c_plane[k][Z] = mesh->pntbl[mesh->pltbl[sctB->pltbl[p]].vertices[k]][Z];
-					if((t_plane[k][Y] > y_min) && (t_plane[k][Y] < y_max)) within_span = 1;
+					if((c_plane[k][Y] > y_min) && (c_plane[k][Y] < y_max)) within_span = 1;
 					c_center[X] += c_plane[k][X];
 					c_center[Y] += c_plane[k][Y];
 					c_center[Z] += c_plane[k][Z];

@@ -389,11 +389,12 @@ void	ldata_manager(void);
 #define SHIFT_ANIM_DEAD		(0)
 #define SHIFT_POSE_DEAD		(1)
 #define SHIFT_ANIM_MELEE	(2)
-#define SHIFT_ANIM_MOVE		(3)
-#define SHIFT_ANIM_AGGRO	(4)
-#define SHIFT_ANIM_SPOT		(5)
-#define SHIFT_POSE_SPOT		(6)
-#define SHIFT_ANIM_IDLE		(7)
+#define SHIFT_ANIM_SHOOT	(3)
+#define SHIFT_ANIM_MOVE		(4)
+#define SHIFT_ANIM_AGGRO	(5)
+#define SHIFT_ANIM_SPOT		(6)
+#define SHIFT_POSE_SPOT		(7)
+#define SHIFT_ANIM_IDLE		(8)
 
 #define MAX_PATHING_STEPS	(4)
 #define ACTOR_PATH_EXCEPTION_TIME (1<<16) //(maybe i should scale this based on actor's size or speed)
@@ -454,6 +455,7 @@ typedef struct {
 	//Collision Information
 	int floorPos[3];
 	int wallPos[3];
+	//
 	int totalFriction;
 	int exceptionTimer;
 	int animationTimer;
@@ -461,6 +463,10 @@ typedef struct {
 	int aggroTimer;
 	int nolosTimer;
 	int spawnTimer;
+	int attackTime1;
+	int attackTime2;
+	int attackTimer;
+	int distanceToAggroTarget;
 	int movespeed;
 	int movespeed_modifier;
 	short rot[3];
@@ -469,6 +475,7 @@ typedef struct {
 	short exceptionStep;
 	short health;
 	short maxHealth;
+	unsigned short attackedThisAnim;
 	unsigned short curSector;
 	unsigned short prevSector;
 	unsigned short boxID;

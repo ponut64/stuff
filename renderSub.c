@@ -1718,43 +1718,86 @@ int intersect_ct = 0;
 static int used_port_ct;
 used_port_ct = 0;
 
-for(int  i = 0; i < (*current_portal_count); i++)
+_sector * sctV = &sectors[viewport_sector];
+
+//First: we need to transliterate pointers to the portal lists between sctV and sct (viewport_sector and sector_number).
+int portListCt = 0;
+unsigned short * portList = sctV->usedPortalList[0];
+
+for(int i = 0; i < sctV->nbVisible; i++)
+{
+	if(sctV->pvs[i] == sector_number)
+	{
+		portListCt = sctV->usedPortalCt[i];
+		if(portListCt == 0) break;
+		portList = sctV->usedPortalList[i];
+		break;
+	}
+}
+
+for(int  i = (*current_portal_count); i >= 0; i--)
 {
 	_portal * scene_port = &scene_portals[i];
 	_portal * used_port = &used_portals[used_port_ct];
-
-	//Inclusive Conditions...
-	int both_sectors_visible = 0;
-	int adjacent_with_portal = 0;
-	int adjacent_uses_portal = 0;
 	
-	int secondary_adjacent_with_portal = 0;
+	if(portListCt == 0) break;
+	if(used_port_ct >= MAX_USED_PORTALS) break;
+	
 	int offscreen = 0;
 	int intersecting = 0;
-	int sectorA = scene_port->sectorA;
-	int sectorB = scene_port->sectorB;
-	int adjacentToA = 0;
-	int adjacentToB = 0;
 	int use_this_portal = 0;
-	
-	if(viewport_sector == sector_number) continue;
-	if(!scene_port->type) continue;
-	
-	if(sectorIsVisible[sectorA] && sectorIsVisible[sectorB]) both_sectors_visible = 1;
-	
-	if(sectorIsAdjacent[sectorA] || sectorIsAdjacent[sectorB]) adjacent_with_portal = 1;
 	
 	if(scene_port->type & PORTAL_OFFSCREEN) offscreen = 1;
 	
 	if(scene_port->type & PORTAL_INTERSECTING) intersecting = 1;
 	
+	for(int j = 0; j < portListCt; j++)
+	{
+		if(portList[j] == 0) continue;
+		unsigned short used_sctA = portList[j] & 0xFF;
+		unsigned short used_sctB = (portList[j] & 0xFF00)>>8;
+		if(used_sctA == scene_port->sectorA && used_sctB == scene_port->sectorB)
+		{
+			use_this_portal = 1;
+		}
+	}
+	
+	if(use_this_portal)
+	{
+		if(offscreen) offscreen_portals++;
+		if(intersecting) intersect_ct++;
+		used_port_ct++;
+		*used_port = *scene_port;
+	}
+}
+	//Inclusive Conditions...
+//	int both_sectors_visible = 0;
+//	int adjacent_with_portal = 0;
+//	int adjacent_uses_portal = 0;
+//	
+//	int secondary_adjacent_with_portal = 0;
+
+//	int sectorA = scene_port->sectorA;
+//	int sectorB = scene_port->sectorB;
+//	int adjacentToA = 0;
+//	int adjacentToB = 0;
+//	
+//	if(viewport_sector == sector_number) continue;
+//	if(!scene_port->type) continue;
+//	
+//	if(sectorIsVisible[sectorA] && sectorIsVisible[sectorB]) both_sectors_visible = 1;
+//	
+//	if(sectorIsAdjacent[sectorA] || sectorIsAdjacent[sectorB]) adjacent_with_portal = 1;
+//	
+/* 	
 	//Anyway, we need to check specifically if an adjacent WITH portal has the portal listing the viewport_sector.
 	if(adjacent_with_portal)
 	{
 		if(sectorA == viewport_sector && sectorB == sector_number) adjacent_uses_portal = 1;
 		if(sectorB == viewport_sector && sectorA == sector_number) adjacent_uses_portal = 1;
 	}
-	
+
+	//4. A portal should only be used for a potentially visible sector IF the sectors the portal mentions are primary adjacents to the potentially visible sector.
 	if(both_sectors_visible)
 	{
 		if(adjacent && adjacent_uses_portal)
@@ -1765,7 +1808,7 @@ for(int  i = 0; i < (*current_portal_count); i++)
 		
 		if(!adjacent)
 		{
-			if(sector_number == sectorA || sector_number == sectorB)
+			if((sector_number == sectorA) || (sector_number == sectorB))
 			{
 				use_this_portal = 1;
 			} else {
@@ -1805,17 +1848,17 @@ for(int  i = 0; i < (*current_portal_count); i++)
 			}
 			
 		}
-	}
+		 */
+		// if(use_this_portal)
+		// {
+			// if(offscreen) offscreen_portals++;
+			// if(intersecting) intersect_ct++;
+			// used_port_ct++;
+			// *used_port = *scene_port;
+		// }
+//	}
 	
-	if(use_this_portal)
-	{
-		if(offscreen) offscreen_portals++;
-		if(intersecting) intersect_ct++;
-		used_port_ct++;
-		*used_port = *scene_port;
-	}
-
-}
+//}
 
 if(intersect_ct)
 {
@@ -1825,13 +1868,14 @@ if(intersect_ct)
 	}
 }
 
-// if(sector_number == 2)
+//int prtc = 0;
+// if(sector_number == 24 || sector_number == 4)
 // {
-	// nbg_sprintf(2, 6, "prts:(%i),intr(%i)", used_port_ct, intersect_ct);
-	// for(int i = 0; i < *current_portal_count; i++)
+	// nbg_sprintf(2, 2, "prts:(%i),intr(%i)", used_port_ct, intersect_ct);
+	// for(int i = 0; i < used_port_ct; i++)
 	// {
-		// nbg_sprintf(2, 7+i, "ptype:(%i),ct(%i)", used_portals[i].type, i);
-		
+		// nbg_sprintf(2, 3+i, "ptype:(%i),ct(%i)", used_portals[i].type, i);
+		// nbg_sprintf(20, 3+i, "A(%i),B(%i)", used_portals[i].sectorA, used_portals[i].sectorB);
 	// }
 	
 // }
@@ -1896,7 +1940,7 @@ run_winder_prog(sct->nbTileVert, &used_port_ct, (void*)sct->scrnspace_tvtbl);
 //		Per Tile
 //			Per Subdivided Polygon
 //				Process into draw commands
- 
+
 for(unsigned int p = 0; p < sct->nbPolygon; p++)
 {
 	//Polygon ID alias
@@ -1948,20 +1992,27 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 			check = *flag0 & *flag1 & *flag2 & *flag3;
 			__asm__("nop;");
 		}while((!(check & DSP_CLIP_CHECK)) && used_port_ct);
+		
+		// if((sector_number == 24 || sector_number == 4) && prtc < 25)
+		// {
+			// nbg_sprintf(5, 7+prtc, "clip(%x)", check);
+			// prtc++;
+		// }
 		//Processing:
 		//The DSP applies clipFlags on a per-portal basis.
 		//What we want to do is clip the polygon out only if it is outside of *all* portals on the same side.
 		//Hmm.. how shall I do that?
 		if(check & SCRN_CLIP_FLAGS) continue;
-		if(used_port_ct && check & JUST_PORT_FLAGS)
+		if(used_port_ct && (check & JUST_PORT_FLAGS))
 		{
+			// continue;
 			int clipOutCt = 0;
-			if(check & DSP_PORT6) clipOutCt++;
-			if(check & DSP_PORT5) clipOutCt++;
-			if(check & DSP_PORT4) clipOutCt++;
-			if(check & DSP_PORT3) clipOutCt++;
-			if(check & DSP_PORT2) clipOutCt++;
-			if(check & DSP_PORT1) clipOutCt++;
+			if(check & DSP_PORT6) continue;	
+			if(check & DSP_PORT5) continue;	
+			if(check & DSP_PORT4) continue;	
+			if(check & DSP_PORT3) continue;	
+			if(check & DSP_PORT2) continue;	
+			if(check & DSP_PORT1) continue;	
 			if(clipOutCt >= used_port_ct) continue;	
 		}
 		

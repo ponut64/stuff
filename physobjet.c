@@ -1059,7 +1059,10 @@ void	mover_target_initialization(_declaredObject * dummy)
 		int found_dwa = 0;
 		if((dwo->type.ext_dat & LDATA) == LDATA && (dwo->type.ext_dat & LDATA_TYPE) == MOVER_TARGET)
 		{
-			if(dwo->more_data == 0) continue;
+			//if(dwo->more_data == 0) continue; // ** this line is the reason why a mover target cannot be item 0. Zero is considered no target.
+			//As far as I understand like a year after writing this bit, that line is merely an optimization to not search for items when it's zero.
+			//If you do search for zero, the only valid link is another link with zero, which will only happen if it is unitialized or linked with zero.
+			//Unitialized is a problem we should be able to avoid. Linked with zero might actually cause problems.
 			found_dwa = 1;
 			if(dwo->more_data & 0xFF00)
 			{

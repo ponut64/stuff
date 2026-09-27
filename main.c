@@ -9,19 +9,16 @@
 
 What's on my development iternerary?
 
-Inefficient\flagged code:
-                0x06037e84 - somewhere in SGL. Likely runaway pointer.
-				0x06027ca8 - somewhere in SBL. likely CD system stall. (normal)
-				0x0600bd4c - hitscan_vector_from_position_building
-
--> todo:
-	expand the palette to 128 colors. would really help.
-
--> next steps
-	a. snazz up the animations for the voidwalker 
-	b. implement the melee modal
-	c. then implement slightly better fighting logic
-	d. introduce autoaim system
+-> portal logic needs fix
+	1. Clipping portals against other portals seems prudent, may or may not be needed yet. It would just be efficient.
+	2. A vertex that is on the same side of the portal as the viewport should not be tested. This should be added to the DSP program.
+	3. We need to build which sectors use which portals to draw each other into the PVS.
+	... between every pair of potentially visible sectors
+	... eliminate polygons which backface the portal [face away from it]. then flatten them to the plane of the portal. 
+	... a second quick test is to see if every vertex is on the same side of the portal. if both sectors are on the same side, do not use the portal. intersecting vertices dont count for or against.
+	... if once flattened to the plane, the polygons collide with the portal, then the sectors might use the portal.
+	... if both sectors collide with the portal, then they will use it when viewing each other. if not, they will not use it.
+	... this is assuming the PVS is even correct. The current method of PVS calculation may plausibly have sectors render to each other, but not be visible.
 	
 -> i think magical knife is more interesting than magical crystal in hand.
 
@@ -44,16 +41,6 @@ Roadmap to playable game:
 7 - > Implement item <-> actor interactions
 8 - > the list only goes on (like give stuff particles)
 
-Gameplay design:
-
-Making an FPS game where you explore the level and just shoot enemies as they show up is mechanically fine, reach an exit, then hit next level - probably an acceptable game-plan.
-As always though, I feel compelled to add something mechanically to compensate for the fact that only 1-3 enemies can be on screen at once.
-I also feel a need to add this as engine/performance limitations will restrict the art, making it difficult to concieve of a game whose art style will carry a strict DOOM-clone approach.
-Then again, I can make cool models and gun models. It's just the level design will be restricted.
---> I am consistently attacted to the idea of there being allied actors. I guess if the allied actors are low enough in polycount that it can work to add one or two of them.]
-Maybe a game where you explore a level with many interconnected paths to find points of interest which have to be defended once a key note is activated.
-You'd have the ability to buy ammo and some allies to help cover the way.
-Or just a game where you are incentivized to save the allied actors when encountered.
 
 Mechanical concept:
 A sound effect (always loaded in RAM) is played when the player is spotted by enemies once.
@@ -290,7 +277,7 @@ void	load_test(void)
 		
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STARSTAN.GVP",		HWRAM_ldptr, &entities[11], GV_SORT_CEN, MODEL_TYPE_BUILDING, &entities[0]);
 	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"STRAN.GVP",		HWRAM_ldptr, &entities[15], GV_SORT_CEN, MODEL_TYPE_NORMAL, &entities[0]);
-	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"DOOM.GVP",			HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
+	HWRAM_ldptr = gvLoad3Dmodel((Sint8*)"DOOM.GVP",		HWRAM_ldptr, &entities[WORLD_ENTITY_ID], 0, MODEL_TYPE_SECTORED, &entities[0]);
 	nbg_sprintf(1, 7, "Sectors complete!");
 	// while(1)
 	// {

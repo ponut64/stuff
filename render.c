@@ -20,7 +20,7 @@ entity_t * drawn_entity_list[64];
 short drawn_entity_count;
 
 _portal scene_portal_host[MAX_SCENE_PORTALS];
-_portal used_portal_host[MAX_USED_PORTALS];
+_portal used_portal_host[MAX_SCENE_PORTALS];
 
 _portal * scene_portals;
 _portal * used_portals;
@@ -279,7 +279,7 @@ void	collect_portals_from_sector(int sector_number, MATRIX * msMatrix, int * vie
 	
 	for(unsigned int i = 0; i < sct->nbPortal; i++)
 	{
-		if(*current_portal_count > (MAX_USED_PORTALS-1)) return;
+		if(*current_portal_count > (MAX_SCENE_PORTALS-1)) return;
 		//Lazy Processor
 		//Portals are unlikely to share vertices, so it should be okay to do this.
 		//Establish the pointer to the portal's vertices

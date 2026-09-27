@@ -676,7 +676,7 @@ void	master_draw(void)
 	player_animation();
 	player_draw(&viewmodel_state);
 	mover_draw_queue();
-	shadow_draw(DRAW_MASTER);
+	//shadow_draw(DRAW_MASTER);
 	
 	//
 	time_of_master_draw = get_time_in_frame() - interim_time;
