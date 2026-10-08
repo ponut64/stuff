@@ -10,6 +10,7 @@ extern int boxDisField[6];
 void	init_box_handling(void);
 int		edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable * boxAxis, _boundBox * box, int discard);
 int		edge_wind_test(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift);
+int		helper_edge_wind_clip(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift);
 Bool	simple_collide(FIXED pos[XYZ], _boundBox * targetBox);
 void	standing_surface_alignment(FIXED * unitNormal);
 void	finalize_alignment(_boundBox * fmtx);

@@ -346,6 +346,158 @@ int edge_projection_test(int * pp0, int * pp1, int * pp2, int * pp3, _lineTable 
 	
 }
 
+int		helper_edge_wind_clip(int * pp0, int * pp1, int * pp2, int * pp3, int * tpt, int discard, short shift)
+{
+		int left = 0;
+		int right = 0;
+
+		int * plane_p0;
+		int * plane_p1;
+
+		int clip = 0;
+		switch(discard)
+		{
+		case (N_Xp):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		case (N_Zp):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		case (N_Yn):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			left = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			right = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		case (N_Xn):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			right = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			if((left-right) < 0)  clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		case (N_Zn):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Y] - plane_p0[Y])>>shift);
+			left = ((tpt[Y] - plane_p0[Y])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		case (N_Yp):
+			plane_p0 = pp0;
+			plane_p1 = pp1;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_Y;
+			plane_p0 = pp1;
+			plane_p1 = pp2;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_X;
+			plane_p0 = pp2;
+			plane_p1 = pp3;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NY;
+			plane_p0 = pp3;
+			plane_p1 = pp0;
+			right = ((tpt[X] - plane_p0[X])>>shift) * ((plane_p1[Z] - plane_p0[Z])>>shift);
+			left = ((tpt[Z] - plane_p0[Z])>>shift) * ((plane_p1[X] - plane_p0[X])>>shift);
+			if((left-right) < 0) clip |= SCRN_CLIP_NX;
+			return clip;
+			break;
+		}	
+	return clip;
+}
 
 Bool simple_collide(FIXED pos[XYZ], _boundBox * targetBox)
 {

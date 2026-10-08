@@ -255,6 +255,137 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 	
 }
 
+//SectorX/Y are the two sectors to be tested with the portal.
+//SectorA is the sector which owns the portal (and portal_id shall reference it in that sector's list)
+int		clip_two_sectors_portal(_sector * sctX, _sector * sctY, _sector * sectorA, int portal_id)
+{
+	
+	//Step 1: Assemble the portal 
+	int * vt[4] = {sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[0]],
+					sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[1]],
+					sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[2]],
+					sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[3]]};
+					
+	int * nm = sectorA->ent->pol->nmtbl[sectorA->portals[portal_id]];
+	
+	//Step 2: Check which side of the portal sectorX and sectorY are on.
+	
+	int sidectX = 0;
+	int on_portal = 0;
+	for(int i = 0; i < sctX->nbPoint; i++)
+	{
+		int * vertex = sctX->ent->pol->pntbl[sctX->pntbl[i]];
+		//Simple
+		int dot0 = ptalt_plane(vertex, nm, vt[0]);
+		int dot1 = ptalt_plane(vertex, nm, vt[1]);
+		int dot2 = ptalt_plane(vertex, nm, vt[2]);
+		int dot3 = ptalt_plane(vertex, nm, vt[3]);
+		
+		sidectX += (dot0 > 0) ? 1 : (dot0 < 0) ? -1 : 0;
+
+		sidectX += (dot1 > 0) ? 1 : (dot1 < 0) ? -1 : 0;
+
+		sidectX += (dot2 > 0) ? 1 : (dot2 < 0) ? -1 : 0;
+
+		sidectX += (dot3 > 0) ? 1 : (dot3 < 0) ? -1 : 0;
+		
+		on_portal += (dot0 == 0) ? 1 : 0;
+		on_portal += (dot1 == 0) ? 1 : 0;
+		on_portal += (dot2 == 0) ? 1 : 0;
+		on_portal += (dot3 == 0) ? 1 : 0;
+	}
+	sidectX += (sidectX > 0) ? on_portal : (sidectX < 0) ? -on_portal : 0;
+	on_portal = 0;
+	
+	int sidectY = 0;
+	for(int i = 0; i < sctY->nbPoint; i++)
+	{
+		int * vertex = sctY->ent->pol->pntbl[sctY->pntbl[i]];
+		//Simple
+		int dot0 = ptalt_plane(vertex, nm, vt[0]);
+		int dot1 = ptalt_plane(vertex, nm, vt[1]);
+		int dot2 = ptalt_plane(vertex, nm, vt[2]);
+		int dot3 = ptalt_plane(vertex, nm, vt[3]);
+		
+		sidectY += (dot0 > 0) ? 1 : (dot0 < 0) ? -1 : 0;
+		sidectY += (dot1 > 0) ? 1 : (dot1 < 0) ? -1 : 0;
+		sidectY += (dot2 > 0) ? 1 : (dot2 < 0) ? -1 : 0;
+		sidectY += (dot3 > 0) ? 1 : (dot3 < 0) ? -1 : 0;
+		
+		on_portal += (dot0 == 0) ? 1 : 0;
+		on_portal += (dot1 == 0) ? 1 : 0;
+		on_portal += (dot2 == 0) ? 1 : 0;
+		on_portal += (dot3 == 0) ? 1 : 0;
+		
+	}
+	sidectY += (sidectY > 0) ? on_portal : (sidectY < 0) ? -on_portal : 0;
+	on_portal = 0;
+	
+	int sideSectorY = (sidectY >= sctY->nbPoint) ? 1 : (sidectY <= -(sctY->nbPoint)) ? -1 : 0;
+	int sideSectorX = (sidectX >= sctX->nbPoint) ? 1 : (sidectX <= -(sctX->nbPoint)) ? -1 : 0;
+	
+	if(sideSectorX > 0 && sideSectorY > 0) return 0; //If both are positive (1), no intersection is possible.
+	if(sideSectorX < 0 && sideSectorY < 0) return 0; //If both are negative (-1), no intersection is possible.
+	
+	//The next test is to ensure that we exclude sectors which are not visible *through* the portal.
+	//In this test, we clip each polygon in every sector by the portal. If a *single* polygon is found which intersects the portal, then that sector can be seen through it.
+	//If both sectors can be seen through it (i.e. both sectors clip INSIDE the portal), then we'd use it to draw between them.
+	
+	int discard = sectorA->ent->pol->maxtbl[sectorA->portals[portal_id]];
+	
+	int visible_sector_x = 0;
+	int visible_sector_y = 0;
+	for(int i = 0; i < sctX->nbPolygon; i++)
+	{
+		_quad * ply  = &sctX->ent->pol->pltbl[sctX->pltbl[i]];
+		int * ply_verts[4] = {sctX->ent->pol->pntbl[ply->vertices[0]], sctX->ent->pol->pntbl[ply->vertices[1]], sctX->ent->pol->pntbl[ply->vertices[2]], sctX->ent->pol->pntbl[ply->vertices[3]]}; 
+		//We are essentially going to mimic clip flags here.
+		//Basically, every vertex might clip out 0->1, 1->2, 2->3, or 3->0.
+		//To clip out of the portal completely, every vertex of the polygon must clip out on the same side at least once.
+		//A temporary clip value will be stored to test with.
+		int clip = 0;
+	
+		clip = helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[0], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[1], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[2], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[3], discard, 12);
+		
+		//At this point, if clip IS zero, all of the polygon's vertices are either inside of the portal or spanning it such that they won't be clipped out of it.
+		if(clip == 0)
+		{
+			visible_sector_x = 1;
+			break;
+		}
+	}
+	
+	if(!visible_sector_x) return 0;
+	
+	//Repeat for sectorY.
+	for(int i = 0; i < sctY->nbPolygon; i++)
+	{
+		_quad * ply  = &sctY->ent->pol->pltbl[sctY->pltbl[i]];
+		int * ply_verts[4] = {sctY->ent->pol->pntbl[ply->vertices[0]], sctY->ent->pol->pntbl[ply->vertices[1]], sctY->ent->pol->pntbl[ply->vertices[2]], sctY->ent->pol->pntbl[ply->vertices[3]]}; 
+
+		int clip = 0;
+	
+		clip = helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[0], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[1], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[2], discard, 12);
+		clip &= helper_edge_wind_clip(vt[0], vt[1], vt[2], vt[3], ply_verts[3], discard, 12);
+		
+		//At this point, if clip IS zero, all of the polygon's vertices are either inside of the portal or spanning it such that they won't be clipped out of it.
+		if(clip == 0)
+		{
+			visible_sector_y = 1;
+			break;
+		}
+	}
+	if(!visible_sector_y) return 0;
+	
+	return 1;
+	
+}
+
 void *	accumulate_used_portals(void * workAddress)
 {
 	//Goal:
@@ -298,33 +429,89 @@ void *	accumulate_used_portals(void * workAddress)
 	//Now we want to separately evaluate each pair of potentially visible sectors.
 	for(int i = 0; i < MAX_SECTORS; i++)
 	{
-		_sector * sctX = &sectors[i];
-		if(sctX->nbVisible <= 0) continue;
-		if(sctX->nbPortal <= 0) continue;
+		_sector * sctA = &sectors[i];
+		if(sctA->nbVisible == 0) continue;
 
-		//We will evaluate each pair of sectors from the perspective of each portal.
-		//We are trying to answer a simple question: Will this portal be used for this pair of sectors?
-		//If it will, then we will add it to the list. 
-		//This will be a first-pass for now.
-		for(int k = 0; k < sctX->nbPortal; k++)
+	
+		//Okay, what do we want to do now?
+		//We need to run the clip test for every portal visible between every two potentially visible sectors.
+		if(sctA->nbPortal == 0) continue;
+		for(int j = 0; j < sctA->nbPortal; j++)
 		{
-			int alias = sctX->portals[k];
-			unsigned int sctA = i;
-			unsigned int sctB = sctX->ent->pol->attbl[alias].texno;
-			unsigned short marker = (unsigned short)(sctA | (sctB << 8));
-			for(int j = 0; j < sctX->nbVisible; j++)
+			
+			int alias = sctA->portals[j];
+			unsigned int sctAid = i;
+			unsigned int sctBid = sctA->ent->pol->attbl[alias].texno;
+			unsigned short marker = (unsigned short)(sctAid | (sctBid << 8));
+			
+			for(int k = 0; k < sctA->nbVisible; k++)
 			{
-				if(sctX->pvs[j] == i) continue;
-				//Simple rule for testing.
-				if(sctB == sctX->pvs[j])
+				_sector * sctY = &sectors[sctA->pvs[k]]; 
+				unsigned int sctYid = sctA->pvs[k];
+				
+				//We need every sector to check every other sector visible against its own portals.
+				//We also need every sector to check every other portal potentially visible against every other sector.
+				if(clip_two_sectors_portal(sctA, sctY, sctA, j))
 				{
-					unsigned short * tpList = sctX->usedPortalList[j];
-					tpList[sctX->usedPortalCt[j]] = marker;
-					sctX->usedPortalCt[j]++;
+					unsigned short * tpList = sctA->usedPortalList[k];
+					tpList[sctA->usedPortalCt[k]] = marker;
+					sctA->usedPortalCt[k]++;
+						for(int p = 0; p < sctY->nbVisible; p++)
+						{
+							if(sctAid == sctY->pvs[p])
+							{
+								tpList = sctY->usedPortalList[p];
+								tpList[sctY->usedPortalCt[p]] = marker;
+								sctY->usedPortalCt[p]++;
+							}
+						}
 				}
 				
+				for(int h = 0; h < sctY->nbVisible; h++)
+				{
+					_sector * sctX = &sectors[sctY->pvs[h]];
+					
+					if(clip_two_sectors_portal(sctX, sctY, sctA, j))
+					{
+						unsigned short * tpList = sctY->usedPortalList[h];
+						tpList[sctY->usedPortalCt[h]] = marker;
+						sctY->usedPortalCt[h]++;
+							for(int p = 0; p < sctX->nbVisible; p++)
+							{
+								if(sctYid == sctX->pvs[p])
+								{
+									tpList = sctX->usedPortalList[p];
+									tpList[sctX->usedPortalCt[p]] = marker;
+									sctX->usedPortalCt[p]++;
+								}
+							}
+					}
+					
+				}
+				
+
+				//if(sctB == sctA->pvs[k])
+				//{
+				//	unsigned short * tpList = sctA->usedPortalList[k];
+				//	tpList[sctA->usedPortalCt[k]] = marker;
+				//	sctA->usedPortalCt[k]++;
+				//	
+				//	//Now we have to add this to sctY's portal list (as sectorB).
+				//	
+				//	for(int p = 0; p < sctY->nbVisible; p++)
+				//	{
+				//		if(sctA == sctY->pvs[p])
+				//		{
+				//			tpList = sctY->usedPortalList[p];
+				//			tpList[sctY->usedPortalCt[p]] = marker;
+				//			sctY->usedPortalCt[p]++;
+				//		}
+				//	}
+				//}
 			}
 		}
+
+
 		
 	}
 	

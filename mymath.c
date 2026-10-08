@@ -844,7 +844,7 @@ FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], F
 	return fxdot(pFNn, unitNormal);
 }
 
-int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shifts down the pFNn to suppress overflows
+int	ptalt_plane(int * ptreal, int * normal, int * offset) //Shifts down the pFNn to suppress overflows
 {
 	realNormal[X] = normal[X] + (offset[X]);
 	realNormal[Y] = normal[Y] + (offset[Y]);
@@ -862,7 +862,7 @@ int	ptalt_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ]) //Shift
 // Zero is perfect contact. You can do experiments to find out if you want less than or greater than zero to be "passed through".
 // Typically, storing the value of this test for the previous frame is done, and if the values for the last frame and this frame differ,
 // the plane is considered to have been passed (collided).
-FIXED	realpt_to_plane(FIXED ptreal[XYZ], FIXED normal[XYZ], FIXED offset[XYZ])
+int	realpt_to_plane(int * ptreal, int * normal, int * offset)
 {
 	realNormal[X] = normal[X] + (offset[X]);
 	realNormal[Y] = normal[Y] + (offset[Y]);
