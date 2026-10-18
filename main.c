@@ -9,16 +9,9 @@
 
 What's on my development iternerary?
 
+-> perf revelation. profiling itself costs a measurable amount of CPU time, even in comparison to tranform and subdivision.
+
 -> portal logic needs fix
-	1. Clipping portals against other portals seems prudent, may or may not be needed yet. It would just be efficient.
-	2. A vertex that is on the same side of the portal as the viewport should not be tested. This should be added to the DSP program.
-	3. We need to build which sectors use which portals to draw each other into the PVS.
-	... between every pair of potentially visible sectors
-	... eliminate polygons which backface the portal [face away from it]. then flatten them to the plane of the portal. 
-	... a second quick test is to see if every vertex is on the same side of the portal. if both sectors are on the same side, do not use the portal. intersecting vertices dont count for or against.
-	... if once flattened to the plane, the polygons collide with the portal, then the sectors might use the portal.
-	... if both sectors collide with the portal, then they will use it when viewing each other. if not, they will not use it.
-	... this is assuming the PVS is even correct. The current method of PVS calculation may plausibly have sectors render to each other, but not be visible.
 	
 -> i think magical knife is more interesting than magical crystal in hand.
 

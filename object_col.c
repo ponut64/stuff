@@ -7,7 +7,7 @@
 #include "collision.h"
 #include "physobjet.h"
 
-#define MATH_TOLERANCE (16384)
+#define CLIP_TOLERANCE (16384)
 #define MAX_COLLISION_PLANES (512)
 
 //Purpose:
@@ -260,6 +260,8 @@ void	generate_rotated_entity_for_object(short declared_object_entry)
 int		clip_two_sectors_portal(_sector * sctX, _sector * sctY, _sector * sectorA, int portal_id)
 {
 	
+	nbg_sprintf(0, 0, "Calculating portal coverage...");
+	
 	//Step 1: Assemble the portal 
 	int * vt[4] = {sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[0]],
 					sectorA->ent->pol->pntbl[sectorA->ent->pol->pltbl[sectorA->portals[portal_id]].vertices[1]],
@@ -270,29 +272,39 @@ int		clip_two_sectors_portal(_sector * sctX, _sector * sctY, _sector * sectorA, 
 	
 	//Step 2: Check which side of the portal sectorX and sectorY are on.
 	
+	int port_center[3] =   {vt[0][X] + vt[1][X] + vt[2][X] + vt[3][X],
+					    	vt[0][Y] + vt[1][Y] + vt[2][Y] + vt[3][Y],
+					    	vt[0][Z] + vt[1][Z] + vt[2][Z] + vt[3][Z]};
+
+	port_center[X]>>=2;
+	port_center[Y]>>=2;
+	port_center[Z]>>=2;
+
 	int sidectX = 0;
 	int on_portal = 0;
 	for(int i = 0; i < sctX->nbPoint; i++)
 	{
 		int * vertex = sctX->ent->pol->pntbl[sctX->pntbl[i]];
 		//Simple
+		//Something more accurate than ptalt_plane needs to be used...
+		//Peraps generate a vector from vertex to plane, normalize it, then dot product against plane's normal.
+		//Stupidly inefficient but might work
+		
+		
 		int dot0 = ptalt_plane(vertex, nm, vt[0]);
 		int dot1 = ptalt_plane(vertex, nm, vt[1]);
 		int dot2 = ptalt_plane(vertex, nm, vt[2]);
 		int dot3 = ptalt_plane(vertex, nm, vt[3]);
 		
-		sidectX += (dot0 > 0) ? 1 : (dot0 < 0) ? -1 : 0;
-
-		sidectX += (dot1 > 0) ? 1 : (dot1 < 0) ? -1 : 0;
-
-		sidectX += (dot2 > 0) ? 1 : (dot2 < 0) ? -1 : 0;
-
-		sidectX += (dot3 > 0) ? 1 : (dot3 < 0) ? -1 : 0;
+		sidectX += (dot0 > CLIP_TOLERANCE) ? 1 : (dot0 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectX += (dot1 > CLIP_TOLERANCE) ? 1 : (dot1 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectX += (dot2 > CLIP_TOLERANCE) ? 1 : (dot2 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectX += (dot3 > CLIP_TOLERANCE) ? 1 : (dot3 < -CLIP_TOLERANCE) ? -1 : 0;
 		
-		on_portal += (dot0 == 0) ? 1 : 0;
-		on_portal += (dot1 == 0) ? 1 : 0;
-		on_portal += (dot2 == 0) ? 1 : 0;
-		on_portal += (dot3 == 0) ? 1 : 0;
+		on_portal += (JO_ABS(dot0) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot1) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot2) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot3) <= CLIP_TOLERANCE) ? 1 : 0;
 	}
 	sidectX += (sidectX > 0) ? on_portal : (sidectX < 0) ? -on_portal : 0;
 	on_portal = 0;
@@ -307,22 +319,31 @@ int		clip_two_sectors_portal(_sector * sctX, _sector * sctY, _sector * sectorA, 
 		int dot2 = ptalt_plane(vertex, nm, vt[2]);
 		int dot3 = ptalt_plane(vertex, nm, vt[3]);
 		
-		sidectY += (dot0 > 0) ? 1 : (dot0 < 0) ? -1 : 0;
-		sidectY += (dot1 > 0) ? 1 : (dot1 < 0) ? -1 : 0;
-		sidectY += (dot2 > 0) ? 1 : (dot2 < 0) ? -1 : 0;
-		sidectY += (dot3 > 0) ? 1 : (dot3 < 0) ? -1 : 0;
+		sidectY += (dot0 > CLIP_TOLERANCE) ? 1 : (dot0 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectY += (dot1 > CLIP_TOLERANCE) ? 1 : (dot1 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectY += (dot2 > CLIP_TOLERANCE) ? 1 : (dot2 < -CLIP_TOLERANCE) ? -1 : 0;
+		sidectY += (dot3 > CLIP_TOLERANCE) ? 1 : (dot3 < -CLIP_TOLERANCE) ? -1 : 0;
 		
-		on_portal += (dot0 == 0) ? 1 : 0;
-		on_portal += (dot1 == 0) ? 1 : 0;
-		on_portal += (dot2 == 0) ? 1 : 0;
-		on_portal += (dot3 == 0) ? 1 : 0;
+		on_portal += (JO_ABS(dot0) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot1) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot2) <= CLIP_TOLERANCE) ? 1 : 0;
+		on_portal += (JO_ABS(dot3) <= CLIP_TOLERANCE) ? 1 : 0;
 		
 	}
 	sidectY += (sidectY > 0) ? on_portal : (sidectY < 0) ? -on_portal : 0;
 	on_portal = 0;
 	
-	int sideSectorY = (sidectY >= sctY->nbPoint) ? 1 : (sidectY <= -(sctY->nbPoint)) ? -1 : 0;
-	int sideSectorX = (sidectX >= sctX->nbPoint) ? 1 : (sidectX <= -(sctX->nbPoint)) ? -1 : 0;
+	
+
+	int sideSectorY = 0;
+	
+	if(sidectY > 0 && sidectY >= sctY->nbPoint) sideSectorY = 1;
+	if(sidectY < 0 && sidectY <= -sctY->nbPoint) sideSectorY = -1;
+	
+	int sideSectorX = 0;
+	
+	if(sidectX > 0 && sidectX >= sctX->nbPoint) sideSectorX = 1;
+	if(sidectX < 0 && sidectX <= -sctX->nbPoint) sideSectorX = -1;
 	
 	if(sideSectorX > 0 && sideSectorY > 0) return 0; //If both are positive (1), no intersection is possible.
 	if(sideSectorX < 0 && sideSectorY < 0) return 0; //If both are negative (-1), no intersection is possible.
@@ -488,30 +509,104 @@ void *	accumulate_used_portals(void * workAddress)
 					}
 					
 				}
-				
-
-				//if(sctB == sctA->pvs[k])
-				//{
-				//	unsigned short * tpList = sctA->usedPortalList[k];
-				//	tpList[sctA->usedPortalCt[k]] = marker;
-				//	sctA->usedPortalCt[k]++;
-				//	
-				//	//Now we have to add this to sctY's portal list (as sectorB).
-				//	
-				//	for(int p = 0; p < sctY->nbVisible; p++)
-				//	{
-				//		if(sctA == sctY->pvs[p])
-				//		{
-				//			tpList = sctY->usedPortalList[p];
-				//			tpList[sctY->usedPortalCt[p]] = marker;
-				//			sctY->usedPortalCt[p]++;
-				//		}
-				//	}
-				//}
 			}
 		}
 
 
+		
+	}
+	
+	
+	//Second Run:
+	//In this run, we will attempt to optimize the number of portals used in the sector hierarchy by determining when there is a clear order of visibility for a sector.
+	//If the order of viewing is ambiguous (i.e. sometimes it is viewed through a portal and sometimes it is not), we don't want to add it to the list.
+	//We will do this by searching through the used portal list of every sector's *potentially visible sectors*.
+	
+	for(int i = 0; i < MAX_SECTORS; i++)
+	{
+		_sector * sctX = &sectors[i];
+		if(sctX->nbVisible == 0) continue;
+		for(int x = 0; x < sctX->nbVisible; x++)
+		{
+			_sector * sctY = &sectors[sctX->pvs[x]];
+			int idY = sctX->pvs[x];
+			for(int y = 0; y < sctY->nbVisible; y++)
+			{
+				
+				if(sctY->pvs[y] == i) continue;
+				if(sctY->usedPortalCt[y] == 0) continue;
+				//We want to determine a hierachy of viewing from sctX to sctY's potentially visible sector.
+				//First we need to find if this sector is even visible from sctX.
+				int vis = 0;
+				for(int xyv = 0; xyv < sctX->nbVisible; xyv++)
+				{
+					if(sctY->pvs[y] == sctX->pvs[xyv]) vis = xyv;
+					//if(sctX->usedPortalCt[xyv] != 0) vis = 0;
+				}
+				if(vis == 0) continue;
+				//Great. We have now determined that this sector (sctA) is visible from both Y and X. We know sctY is using a portal to draw it, and that sctX is *not* using a portal to draw it.
+				//Realistically we could cross-reference portal lists in case of a portal being used already, but let's start with this.
+				_sector * sctA = &sectors[sctY->pvs[y]];
+				int idA = sctY->pvs[y];
+				for(int port = 0; port < sctY->usedPortalCt[y]; y++)
+				{
+					unsigned short * tpList = sctY->usedPortalList[y];
+					unsigned short marker = tpList[port];
+					//All that is left to do is to determine if there is an alternate visibility path which does *not* use that portal to view sctA.
+					//We can do this just by looking back through everything visible and seeing if:
+					//a. nothing else can see sctA,		- if something else can see it,
+					//b. something else does use a portal to draw it,	- if the other sector doesn't use portals to draw it, don't add portal
+					//c. something else uses that specific portal to draw it - if it doesn't, don't add it
+					//
+					int portal_valid = 1;
+					for(int xx = 0; xx < sctX->nbVisible; xx++)
+					{
+						_sector * sctB = &sectors[sctX->pvs[xx]];
+						int idB = sctX->pvs[xx];
+						if(idB == idA) continue;
+						if(idB == idY) continue;
+						if(idB == i) continue;
+						for(int b = 0; b < sctB->nbVisible; b++)
+						{
+							int idC = sctB->pvs[b];
+							if(idC == idB) continue;
+							if(idC == i) continue;
+							if(idC == idY) continue;
+							if(idC == idA)
+							{
+								if(sctB->usedPortalCt[b] == 0)
+								{
+									portal_valid = 0;
+								} else {
+									//tpList = sctB->usedPortalList[b];
+									//portal_valid = 0;
+									//for(int bp = 0; bp < sctB->usedPortalCt[bp]; bp++)
+									//{
+									//	if(tpList[bp] == marker) portal_valid = 1;
+									//}
+								}
+							}
+						}
+					}
+					//If the portal is determined to be valid via hierarchical viewing, we will add it to sctX between drawing sctA and sctX.
+					if(portal_valid)
+					{
+						tpList = sctX->usedPortalList[vis];
+						tpList[sctX->usedPortalCt[vis]] = marker;
+						sctX->usedPortalCt[vis]++;
+						for(int p = 0; p < sctA->nbVisible; p++)
+						{
+							if(i == sctA->pvs[p])
+							{
+								tpList = sctA->usedPortalList[p];
+								tpList[sctA->usedPortalCt[p]] = marker;
+								sctA->usedPortalCt[p]++;
+							}
+						}
+					}
+				}
+			}
+		}
 		
 	}
 	
