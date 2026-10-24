@@ -12,6 +12,9 @@ What's on my development iternerary?
 -> perf revelation. profiling itself costs a measurable amount of CPU time, even in comparison to tranform and subdivision.
 
 -> portal logic needs fix
+-> mostly to optimize the number of portals used such that portals that aren't relevant are not used.
+every portal costs substantial CPU time.
+
 	
 -> i think magical knife is more interesting than magical crystal in hand.
 

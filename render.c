@@ -33,7 +33,7 @@ unsigned short * sectorIsVisible;
 unsigned short * visibleSectors;
 int nearSectorCt = 0;
 
-int dummy[8];
+int dummy[9];
 int * ssh2SentPolys;
 int * msh2SentPolys;
 int * transVerts;
@@ -42,6 +42,7 @@ int * timeComm;
 int * current_portal_count;
 int * masterIsDoneDrawing;
 int * sectorToDrawFrom;
+int * dspWasteComm;
 int anims; //Current active animation count; increments animation control data work array.
 int scrn_dist; //Distance to projection screen surface
 
@@ -111,6 +112,7 @@ void	init_render_area(short desired_horizontal_fov)
 	current_portal_count = (int *)(((unsigned int)&dummy[5])|UNCACHE);
 	masterIsDoneDrawing = (int *)(((unsigned int)&dummy[6])|UNCACHE);
 	sectorToDrawFrom = (int *)(((unsigned int)&dummy[7])|UNCACHE);
+	dspWasteComm = (int *)(((unsigned int)&dummy[8])|UNCACHE);
 	active_lights = (point_light *)(((unsigned int)&light_host[0])|UNCACHE);
 	used_portals = (_portal *)(((unsigned int)&used_portal_host[0])|UNCACHE);
 	scene_portals = (_portal *)(((unsigned int)&scene_portal_host[0])|UNCACHE);
@@ -129,6 +131,7 @@ void	frame_render_prep(void)
 	transPolys[0] = 0;
 	anims = 0;
 	drawn_entity_count = 0;
+	*dspWasteComm = 0;
 	*current_portal_count = 0;
 	*sectorToDrawFrom = you.curSector;
 	vert_clip_x = TV_HALF_WIDTH;

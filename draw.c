@@ -116,18 +116,16 @@ void	master_draw_stats(void)
 	slPrintFX(you.pos[Z], slLocate(29, 1));
 
 	//nbg_sprintf(18, 0, "(File System Status)");
-	nbg_sprintf(27, 2, "Scr :%x:", you.score);
-	//nbg_sprintf(10, 2, "throttle:(%i)", you.IPaccel);
-	//slPrintFX(you.sanics, slLocate(26, 3));
-//		if(delta_time>>6 > 35)
-//		{
-	nbg_sprintf(8, 25, "TRPLY:                ");
-	nbg_sprintf(8, 25, "TRPLY:%i", transPolys[0]);
-	nbg_sprintf(8, 26, "SNTPL:                ");
-	nbg_sprintf(8, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
-	nbg_sprintf(8, 27, "VERTS:                ");
-	nbg_sprintf(8, 27, "VERTS:%i", transVerts[0]);
-//		}
+
+	nbg_sprintf(2, 24, "PORT:                 ");
+	nbg_sprintf(2, 24, "PORT:%i", *current_portal_count);
+	nbg_sprintf(2, 25, "TRPLY:                ");
+	nbg_sprintf(2, 25, "TRPLY:%i", transPolys[0]);
+	nbg_sprintf(2, 26, "SNTPL:                ");
+	nbg_sprintf(2, 26, "SNTPL:%i", ssh2SentPolys[0] + msh2SentPolys[0]);
+	nbg_sprintf(2, 27, "VERTS:                ");
+	nbg_sprintf(2, 27, "VERTS:%i", transVerts[0]);
+
 	
 	nbg_sprintf(1, 4, "Rate:(%i)", you.IPaccel);
 	
@@ -136,7 +134,6 @@ void	master_draw_stats(void)
 	nbg_sprintf(10, 8, "prvSector:(%i)", you.prevSector);
 	
 	nbg_sprintf(16, 2, "Stream:(%i)", file_system_status_reporting);
-	nbg_sprintf(17, 3, "Sanics:(%i)", you.sanics);
 	
 	
 		} else if(viewInfoTxt == 2)

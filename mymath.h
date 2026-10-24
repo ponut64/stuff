@@ -59,7 +59,7 @@ int		crazy_length(int * input);
 
 int		fxAtan2(int x_axis, int y_axis);
 
-FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ]);
+int		pt_plane_dist_scaled(int * ptreal, int * normal, int * offset);
 int		ptalt_plane(int * ptreal, int * normal, int * offset);
 int		realpt_to_plane(int * ptreal, int * normal, int * offset);
 Bool	line_hit_plane_here(FIXED * p0, FIXED * p1, FIXED * point_on_plane, FIXED * unitNormal, FIXED * offset, int tolerance, FIXED * output);

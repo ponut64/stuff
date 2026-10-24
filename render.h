@@ -312,6 +312,7 @@ extern int * timeComm;
 extern int * current_portal_count;
 extern int * masterIsDoneDrawing;
 extern int * sectorToDrawFrom;
+extern int * dspWasteComm;
 extern paletteCode * pcoTexDefs;
 
 extern point_light * active_lights;

@@ -7,7 +7,6 @@
 #define RAND_TBL_SIZE	(64)
 
 	static int realNormal[XYZ] = {0, 0, 0};
-	static int realpt[XYZ] = {0, 0, 0};
 	static FIXED pFNn[XYZ] = {0, 0, 0};
 	
 	volatile int * DVSR = ( int*)0xFFFFFF00;
@@ -825,23 +824,42 @@ int fxAtan2(int x_axis, int y_axis)
 	return result;
 }
 
-FIXED	pt_col_plane(FIXED planept[XYZ], FIXED ptoffset[XYZ], FIXED normal[XYZ], FIXED unitNormal[XYZ], FIXED offset[XYZ])
+int	pt_plane_dist_scaled(int * ptreal, int * normal, int * offset)
 {
-	//Using a NORMAL OF A PLANE which is also a POINT ON THE PLANE and checking IF A POINT IS ON THAT PLANE
-	//the REAL POSITION of the normal, which is also a POINT ON THE PLANE, needs an actual position. WE FIND IT HERE.
+	
+	
+	
 	realNormal[X] = normal[X] + (offset[X]);
 	realNormal[Y] = normal[Y] + (offset[Y]);
 	realNormal[Z] = normal[Z] + (offset[Z]);
-	realpt[X] = planept[X] + (ptoffset[X]);
-	realpt[Y] = planept[Y] + (ptoffset[Y]);
-	realpt[Z] = planept[Z] + (ptoffset[Z]);
-	//the DIFFERENCE between a POSSIBLE POINT ON THE PLANE, and a KNOWN POINT ON THE PLANE, must use the REAL POSITION of the NORMAL POINT.
-	pFNn[X] = realNormal[X] - realpt[X];
-	pFNn[Y] = realNormal[Y] - realpt[Y];
-	pFNn[Z] = realNormal[Z] - realpt[Z];
-	//The NORMAL of the plane has NO REAL POSITION. it is FROM ORIGIN. We use the normal here.
-	//If the dot product here is zero, the point lies on the plane.
-	return fxdot(pFNn, unitNormal);
+	
+	pFNn[X] = (realNormal[X] - ptreal[X]);
+	pFNn[Y] = (realNormal[Y] - ptreal[Y]);
+	pFNn[Z] = (realNormal[Z] - ptreal[Z]);
+	
+	int pushrsamp = 0;
+	int msb = 0;
+	int shoffset = 0;
+	
+	int input = 0;
+	input = JO_MAX(JO_ABS(pFNn[Y]),JO_ABS(pFNn[X]));
+	input = JO_MAX(input, JO_ABS(pFNn[Z]));
+	
+	pushrsamp = input;
+	
+	while(pushrsamp & 0xFFFF0000)
+	{
+		pushrsamp >>=1;
+		msb++;
+	}
+
+	shoffset = msb-1;
+	
+	pFNn[X] >>= shoffset;
+	pFNn[Y] >>= shoffset;
+	pFNn[Z] >>= shoffset;
+	
+	return fxdot(pFNn, normal);
 }
 
 int	ptalt_plane(int * ptreal, int * normal, int * offset) //Shifts down the pFNn to suppress overflows

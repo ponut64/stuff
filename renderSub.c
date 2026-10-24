@@ -1742,15 +1742,9 @@ for(int  i = (*current_portal_count); i >= 0; i--)
 	
 	if(portListCt == 0) break;
 	if(used_port_ct >= MAX_USED_PORTALS) break;
-	
-	int offscreen = 0;
-	int intersecting = 0;
+
 	int use_this_portal = 0;
-	
-	if(scene_port->type & PORTAL_OFFSCREEN) offscreen = 1;
-	
-	if(scene_port->type & PORTAL_INTERSECTING) intersecting = 1;
-	
+
 	for(int j = 0; j < portListCt; j++)
 	{
 		if(portList[j] == 0) continue;
@@ -1764,8 +1758,18 @@ for(int  i = (*current_portal_count); i >= 0; i--)
 	
 	if(use_this_portal)
 	{
-		if(offscreen) offscreen_portals++;
-		if(intersecting) intersect_ct++;
+		if(scene_port->type & PORTAL_OFFSCREEN) offscreen_portals++;
+		if(scene_port->type & PORTAL_INTERSECTING)
+		{
+			//We never want to try and use an intersecting portal.
+			//However, in cases where we depend on that portal, unfortunately we have to turn all portals off ( as we are almost in an area which will disable the portal ).
+			if(sector_number == scene_port->sectorA || sector_number == scene_port->sectorB)
+			{
+				intersect_ct++;
+				break;
+			}
+			continue;
+		}			
 		used_port_ct++;
 		*used_port = *scene_port;
 	}
@@ -1777,6 +1781,7 @@ if(intersect_ct)
 	{
 		used_portals[i].type = 0;
 	}
+	used_port_ct = 0;
 }
 
 //int prtc = 0;
@@ -1901,7 +1906,6 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		volatile int check;
 		do{
 			check = *flag0 & *flag1 & *flag2 & *flag3;
-			__asm__("nop;");
 		}while((!(check & DSP_CLIP_CHECK)) && used_port_ct);
 		
 		// if((sector_number == 24 || sector_number == 4) && prtc < 25)
@@ -1914,18 +1918,7 @@ for(unsigned int p = 0; p < sct->nbPolygon; p++)
 		//What we want to do is clip the polygon out only if it is outside of *all* portals on the same side.
 		//Hmm.. how shall I do that?
 		if(check & SCRN_CLIP_FLAGS) continue;
-		if(used_port_ct && (check & JUST_PORT_FLAGS))
-		{
-			// continue;
-			int clipOutCt = 0;
-			if(check & DSP_PORT6) continue;	
-			if(check & DSP_PORT5) continue;	
-			if(check & DSP_PORT4) continue;	
-			if(check & DSP_PORT3) continue;	
-			if(check & DSP_PORT2) continue;	
-			if(check & DSP_PORT1) continue;	
-			if(clipOutCt >= used_port_ct) continue;	
-		}
+		if(used_port_ct && (check & JUST_PORT_FLAGS)) continue;
 		
 		stv[0] = &viewspace_verts[tile->vertices[0]].pnt[X];
 		stv[1] = &viewspace_verts[tile->vertices[1]].pnt[X];
